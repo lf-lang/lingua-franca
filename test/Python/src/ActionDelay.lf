@@ -26,9 +26,9 @@ reactor Source {
 }
 
 reactor Sink {
-  input _in
+  input inp
 
-  reaction(_in) {=
+  reaction(inp) {=
     elapsed_logical = lf.time.logical_elapsed()
     logical = lf.time.logical()
     physical = lf.time.physical()
@@ -47,5 +47,5 @@ main reactor ActionDelay {
   g = new GeneratedDelay()
 
   source.out -> g.y_in
-  g.y_out -> sink._in
+  g.y_out -> sink.inp
 }

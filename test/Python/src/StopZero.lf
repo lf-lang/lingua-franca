@@ -1,0 +1,85 @@
+target Python
+
+reactor Sender {
+  output out
+  state reaction_invoked_correctly = False
+  timer t(0, 1 usec)
+  logical action act
+
+  reaction(t) -> out, act {=
+    print("Sending 42 at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+    out.set(42)
+    act.schedule( 0)
+    zero = Tag(time=lf.time.start(), microstep=0)
+    one = Tag(time=lf.time.start(), microstep=1)
+    if lf.tag_compare(lf.tag(), zero) == 0:
+      print("Requesting stop at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      request_stop()
+    elif lf.tag_compare(lf.tag(), one) > 0:
+      sys.stderr.write("ERROR: Reaction called after shutdown at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      sys.exit(1)
+  =}
+
+  reaction(act) {=
+    one = Tag(time=lf.time.start(), microstep=1)
+    if lf.tag_compare(lf.tag(), one) == 0:
+      self.reaction_invoked_correctly = True
+  =}
+
+  reaction(shutdown) {=
+    if lf.time.logical_elapsed() != USEC(0) or lf.tag().microstep != 1:
+      sys.stderr.write("ERROR: Sender failed to stop the program in time. Stopping at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      sys.exit(1)
+    elif not self.reaction_invoked_correctly:
+      sys.stderr.write("ERROR: Sender reaction(act) was not invoked. Stopping at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      sys.exit(1)
+    print("SUCCESS: Successfully stopped the program at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+  =}
+}
+
+reactor Receiver {
+  input inp
+
+  reaction(inp) {=
+    print("Received {} at ({}, {}).".format(
+           inp.value,
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+    zero = Tag(time=lf.time.start(), microstep=0)
+    if lf.tag_compare(lf.tag(), zero) == 0:
+      print("Requesting stop at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      request_stop()
+  =}
+
+  reaction(shutdown) {=
+    if lf.time.logical_elapsed() != USEC(0) or lf.tag().microstep != 1:
+      sys.stderr.write("ERROR: Receiver failed to stop the program in time. Stopping at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+      sys.exit(1)
+    print("SUCCESS: Successfully stopped the program at ({}, {}).".format(
+           lf.time.logical_elapsed(),
+           lf.tag().microstep))
+  =}
+}
+
+main reactor StopZero {
+  sender = new Sender()
+  receiver = new Receiver()
+
+  sender.out -> receiver.inp
+}

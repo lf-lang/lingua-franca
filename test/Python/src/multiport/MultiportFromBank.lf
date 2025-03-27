@@ -14,11 +14,11 @@ reactor Source(check_override=0, bank_index=0) {
 }
 
 reactor Destination {
-  input[3] _in
+  input[3] inp
   state received = 0
 
-  reaction(_in) {=
-    for (idx, port) in enumerate(_in):
+  reaction(inp) {=
+    for (idx, port) in enumerate(inp):
       print("Destination channel " + str(idx) + " received " + str(port.value))
       if idx != port.value:
         sys.stderr.write("ERROR: Expected " + str(idx))
@@ -39,5 +39,5 @@ reactor Destination {
 main reactor MultiportFromBank {
   a = new[3] Source(check_override=1)
   b = new Destination()
-  a.out -> b._in
+  a.out -> b.inp
 }
