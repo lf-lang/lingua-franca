@@ -27,7 +27,7 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
       self.sys.exit(1)
     self.expected += 1
   =} STAA(stp_offset_param) {=
-    print("Received {} late.".format(in_.value))
+    print("Received {} late.".format(inp.value))
     current_tag = lf.tag()
     self.expected += 1
     self.sys.stderr.write("STP offset was violated by ({}, {}).".format(current_tag.time - inp.intended_tag.time, current_tag.microstep - inp.intended_tag.microstep))
