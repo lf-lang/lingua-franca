@@ -1,7 +1,7 @@
 // The problem is that start signal arrives at Ping after it has completed (0,0),
 // in which it has events because of the startup functions in the network receiver
 // reactors. The event gets put on the event queue with tag (0,1), but then Ping
-// stays blocked on the receive input which has STAA of 1 hour.
+// stays blocked on the receive input which has STAA of forever.
 target C {
   coordination: decentralized  // logging: log
 }
@@ -27,7 +27,7 @@ reactor Ping(count: size_t = 10, STA: time = 0) {
         self->pingsLeft = self->count;
         lf_set(finished, true);
     }
-  =} STAA(1 hour) {=  =}
+  =} STAA(forever) {=  =}
 }
 
 reactor Pong(expected: size_t = 10) {
@@ -39,7 +39,7 @@ reactor Pong(expected: size_t = 10) {
     lf_print("**************************** Pong received and sent");
     self->count++;
     lf_set(send, receive->value);
-  =} STAA(1 hour) {=  =}
+  =} STAA(forever) {=  =}
 
   reaction(shutdown) {=
     if (self->count != self->expected) {
