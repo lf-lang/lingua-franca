@@ -29,7 +29,7 @@ reactor Print {
 
   reaction(shutdown) {=
     if (self->c != 6) {
-      lf_print_error_and_exit("Expected to receive 5 items.");
+      lf_print_error_and_exit("Expected to receive 5 items. Received %d.", self->c - 1);
     }
   =}
 }

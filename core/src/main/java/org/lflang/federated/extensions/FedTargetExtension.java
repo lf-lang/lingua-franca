@@ -59,9 +59,6 @@ public interface FedTargetExtension {
   /** Generate code for initializing a network output reactor from its startup reaction. */
   String outputInitializationBody();
 
-  /** Generate code for initializing a network input reactor from its startup reaction. */
-  String inputInitializationBody();
-
   /** Generate code for the parameter that specifies the sender index. */
   void addSenderIndexParameter(Reactor sender);
 

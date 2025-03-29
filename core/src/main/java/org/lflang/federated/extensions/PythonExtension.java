@@ -222,6 +222,7 @@ public class PythonExtension extends CExtension {
 
   @Override
   public void annotateReaction(Reaction reaction) {
+    super.annotateReaction(reaction);
     ASTUtils.addReactionAttribute(reaction, "_c_body");
   }
 
