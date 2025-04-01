@@ -98,10 +98,9 @@ ${"             |"..preamble.code.toText()}
         }
 
         val isFederate = AttributeUtils.isFederate(reactor)
-        val networkReactorAttributeValue = AttributeUtils.getFirstArgumentValue(AttributeUtils.findAttributeByName(reactor, "_networkReactor"))
-        var isNetworkReactor = networkReactorAttributeValue != null
-        var isNetworkReceiver = networkReactorAttributeValue == "receiver"
-        var isNetworkSender = networkReactorAttributeValue == "sender"
+        var isNetworkReceiver = AttributeUtils.findAttributeByName(reactor, "_network_receiver") != null
+        var isNetworkSender = AttributeUtils.findAttributeByName(reactor, "_network_sender") != null
+        var isNetworkReactor = isNetworkReceiver || isNetworkSender
 
         // NOTE: type parameters that are referenced in ports or actions must extend
         // Present in order for the program to type check.

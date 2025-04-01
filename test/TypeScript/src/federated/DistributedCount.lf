@@ -29,7 +29,7 @@ reactor Print {
 
   reaction(shutdown) {=
     if (c != 6) {
-      util.reportError("Expected to receive 5 items.");
+      util.reportError("Expected to receive 5 items, but received " + (c - 1) + ".");
     }
   =}
 }

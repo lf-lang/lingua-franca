@@ -26,7 +26,7 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
       self.sys.stderr.write("Expected {} but got {}.\n".format(self.expected_start, inp.value))
       self.sys.exit(1)
     self.expected += 1
-  =} STP(stp_offset_param) {=
+  =} STAA(stp_offset_param) {=
     print("Received {} late.".format(inp.value))
     current_tag = lf.tag()
     self.expected += 1

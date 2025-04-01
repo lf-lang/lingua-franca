@@ -240,8 +240,7 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "_networkReactor",
-        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put("_network_sender", new AttributeSpec(null));
+    ATTRIBUTE_SPECS_BY_NAME.put("_network_receiver", new AttributeSpec(null));
   }
 }
