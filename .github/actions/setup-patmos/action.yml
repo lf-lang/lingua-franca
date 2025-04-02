@@ -8,7 +8,7 @@ runs:
         # install needed tools
         sudo apt install git openjdk-8-jdk cmake make g++ texinfo flex bison \
           subversion libelf-dev graphviz libboost-dev libboost-program-options-dev ruby-full \
-          liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl
+          liblpsolve55-dev zlib1g-dev gtkwave gtkterm scala autoconf libfl2 expect verilator curl chrpath
 
         # install sbt
 
