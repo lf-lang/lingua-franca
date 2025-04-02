@@ -61,7 +61,7 @@ public class LFGenerator extends AbstractGenerator {
         case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
-        case UC -> throw new RuntimeException("Code-generation is not supported for the UC target yet");
+        case UC -> throw new RuntimeException("Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC target.");
       };
     } catch (IOException e) {
       throw new RuntimeException(
@@ -83,7 +83,7 @@ public class LFGenerator extends AbstractGenerator {
       case CPP -> new CppGenerator(context, scopeProvider);
       case TS -> new TSGenerator(context);
       case Rust -> new RustGenerator(context, scopeProvider);
-      case UC -> throw new RuntimeException("Code-generation is not supported for the UC target yet");
+      case UC -> throw new RuntimeException("Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC target.");
     };
   }
 
