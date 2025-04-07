@@ -5,12 +5,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
-import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
@@ -110,16 +108,11 @@ public class CExtensionUtils {
     var i = 0;
     for (var offset : federate.staaOffsets) {
       // Find the corresponding ActionInstance.
-      List<Action> networkActions =
-          federate.staToNetworkActionMap.get(offset);
+      List<Action> networkActions = federate.staToNetworkActionMap.get(offset);
 
       code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
       code.pr(
-          "staa_lst["
-              + i
-              + "]->STAA = "
-              + CTypes.getInstance().getTargetTimeExpr(offset)
-              + ";");
+          "staa_lst[" + i + "]->STAA = " + CTypes.getInstance().getTargetTimeExpr(offset) + ";");
       code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
       code.pr(
           "staa_lst["

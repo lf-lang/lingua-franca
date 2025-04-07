@@ -495,9 +495,8 @@ public class FedASTUtils {
 
   /**
    * @brief Find the maximum STP offset (STAA) for the given 'port'.
-   *
-   * An STP offset (STAA) may be nested in contained reactors in the federate.
-   * This returns TimeValue.ZERO if there are no STAA offsets for the port.
+   *     <p>An STP offset (STAA) may be nested in contained reactors in the federate. This returns
+   *     TimeValue.ZERO if there are no STAA offsets for the port.
    * @param connection The connection to find the max STP offset for.
    * @param coordination The coordination scheme.
    * @return The maximum STP (STAA) as a TimeValue
