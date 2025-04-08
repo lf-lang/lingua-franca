@@ -350,14 +350,15 @@ public class FedLauncherGenerator {
   }
 
   private String rtiRequiredVersion = "0.2.x";
-  private String rtiInstallInfo = "The RTI source code can be obtained from"
-            + " https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI";
+  private String rtiInstallInfo =
+      "The RTI source code can be obtained from"
+          + " https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI";
 
   private String getRtiVerifyVersionCode() {
     return String.join(
         "\n",
         "# Verify that the correct version of the RTI is installed",
-        "RTI_REQUIRED_VERSION=\"" +  rtiRequiredVersion + "\"",
+        "RTI_REQUIRED_VERSION=\"" + rtiRequiredVersion + "\"",
         "RTI_REQUIRED_VERSION_NO_PATCH=$(echo $RTI_REQUIRED_VERSION | cut -d. -f1,2)",
         "if ! which RTI > /dev/null; then",
         "    echo \"ERROR: RTI executable not on PATH\"",
@@ -368,12 +369,12 @@ public class FedLauncherGenerator {
         "RTI_VERSION=$(RTI -v | awk '{print $2}')",
         "RTI_VERSION_NO_PATCH=$(echo $RTI_VERSION -v | cut -d. -f1,2)",
         "if [[ \"$RTI_VERSION_NO_PATCH\" != \"$RTI_REQUIRED_VERSION_NO_PATCH\" ]]; then",
-        "    echo \"ERROR: RTI version mismatch. Expected: '$RTI_REQUIRED_VERSION', Found: '$RTI_VERSION'\"",
+        "    echo \"ERROR: RTI version mismatch. Expected: '$RTI_REQUIRED_VERSION', Found:"
+            + " '$RTI_VERSION'\"",
         "    echo \"" + rtiInstallInfo + "\"",
         "    EXITED_SUCCESSFULLY=true",
         "    exit 1",
-        "fi"
-    );
+        "fi");
   }
 
   private String getLaunchCode(String rtiLaunchCode) {
