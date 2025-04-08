@@ -397,7 +397,13 @@ public class FedASTUtils {
     // that it is connected to, which both have the same downstream reaction, have the correct
     // ordering wrt each other.
     var ub = p.getLevelUpperBound(index);
-    e.setValue(String.valueOf(p.isInput() ? 2 * ub : 2 * ub - 1));
+    // Adjust the level so that input levels are even and output levels are odd, unless the level is Integer.MAX_VALUE,
+    // which occurs if a port has no dependent reactions.
+    int level = Integer.MAX_VALUE;
+    if (ub < Integer.MAX_VALUE / 2) {
+      level = p.isInput() ? 2 * ub : 2 * ub - 1;
+    }
+    e.setValue(String.valueOf(level));
     a.getAttrParms().add(e);
     instantiation.getAttributes().add(a);
   }
