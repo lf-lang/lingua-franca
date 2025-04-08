@@ -349,20 +349,40 @@ public class FedLauncherGenerator {
     return String.join("\n", commands);
   }
 
+  private String rtiRequiredVersion = "0.2.x";
+  private String rtiInstallInfo = "The RTI source code can be obtained from"
+            + " https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI";
+
+  private String getRtiVerifyVersionCode() {
+    return String.join(
+        "\n",
+        "# Verify that the correct version of the RTI is installed",
+        "RTI_REQUIRED_VERSION=\"" +  rtiRequiredVersion + "\"",
+        "RTI_REQUIRED_VERSION_NO_PATCH=$(echo $RTI_REQUIRED_VERSION | cut -d. -f1,2)",
+        "if ! which RTI > /dev/null; then",
+        "    echo \"ERROR: RTI executable not on PATH\"",
+        "    echo \"" + rtiInstallInfo + "\"",
+        "    EXITED_SUCCESSFULLY=true",
+        "    exit 1",
+        "fi",
+        "RTI_VERSION=$(RTI -v | awk '{print $2}')",
+        "RTI_VERSION_NO_PATCH=$(echo $RTI_VERSION -v | cut -d. -f1,2)",
+        "if [[ \"$RTI_VERSION_NO_PATCH\" != \"$RTI_REQUIRED_VERSION_NO_PATCH\" ]]; then",
+        "    echo \"ERROR: RTI version mismatch. Expected: '$RTI_REQUIRED_VERSION', Found: '$RTI_VERSION'\"",
+        "    echo \"" + rtiInstallInfo + "\"",
+        "    EXITED_SUCCESSFULLY=true",
+        "    exit 1",
+        "fi"
+    );
+  }
+
   private String getLaunchCode(String rtiLaunchCode) {
     String launchCodeWithLogging = String.join(" ", rtiLaunchCode, ">& RTI.log &");
     String launchCodeWithoutLogging = String.join(" ", rtiLaunchCode, "&");
     return String.join(
         "\n",
         "echo \"#### Launching the runtime infrastructure (RTI).\"",
-        "# First, check if the RTI is on the PATH",
-        "if ! command -v RTI &> /dev/null",
-        "then",
-        "    echo \"RTI could not be found.\"",
-        "    echo \"The source code can be obtained from"
-            + " https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI\"",
-        "    exit 1",
-        "fi                ",
+        getRtiVerifyVersionCode(),
         "# The RTI is started first to allow proper boot-up",
         "# before federates will try to connect.",
         "# The RTI will be brought back to foreground",
@@ -398,13 +418,7 @@ public class FedLauncherGenerator {
             + "\n\" 2>&1 | tee -a "
             + logFileName
             + "; \\",
-        "    # First, check if the RTI is on the PATH",
-        "    if ! command -v RTI &> /dev/null",
-        "    then",
-        "        echo \"RTI could not be found.\"",
-        "        echo \"The source code can be found in org.lflang/src/lib/core/federated/RTI\"",
-        "        exit 1",
-        "    fi",
+        "    " + getRtiVerifyVersionCode(),
         "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
         "# Store the PID of the channel to RTI",
         "RTI=$!",
