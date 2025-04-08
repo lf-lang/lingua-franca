@@ -34,6 +34,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.MessageReporter;
@@ -269,11 +271,8 @@ public class FederateInstance {
   /** Cached result of analysis of which reactions to exclude from main. */
   private Set<Reaction> excludeReactions = null;
 
-  /** Keep a unique list of enabled serializers */
-  public List<TimeValue> staaOffsets = new ArrayList<>();
-
-  /** The STA offsets that have been recorded thus far. */
-  public Set<Long> currentSTAOffsets = new HashSet<>();
+  /** A list of unique STAA offsets over all input ports of this federate. */
+  public SortedSet<TimeValue> staaOffsets = new TreeSet<TimeValue>();
 
   /** Keep a map of STP values to a list of network actions */
   public HashMap<TimeValue, List<Action>> staToNetworkActionMap = new HashMap<>();

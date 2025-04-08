@@ -100,49 +100,38 @@ public class CExtensionUtils {
    */
   public static String stpStructs(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
-    federate.staaOffsets.sort(
-        (d1, d2) -> {
-          if (d1.time > d2.time) return 1;
-          else if (d1.time < d2.time) return -1;
-          else return 0;
-        });
-    if (!federate.staaOffsets.isEmpty()) {
-      // Create a static array of trigger_t pointers.
-      // networkMessageActions is a list of Actions, but we
-      // need a list of trigger struct names for ActionInstances.
-      // There should be exactly one ActionInstance in the
-      // main reactor for each Action.
-      for (int i = 0; i < federate.staaOffsets.size(); ++i) {
-        // Find the corresponding ActionInstance.
-        List<Action> networkActions =
-            federate.staToNetworkActionMap.get(federate.staaOffsets.get(i));
+    // Create a static array of trigger_t pointers.
+    // networkMessageActions is a list of Actions, but we
+    // need a list of trigger struct names for ActionInstances.
+    // There should be exactly one ActionInstance in the
+    // main reactor for each Action.
+    var i = 0;
+    for (var offset : federate.staaOffsets) {
+      // Find the corresponding ActionInstance.
+      List<Action> networkActions = federate.staToNetworkActionMap.get(offset);
 
-        code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+      code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+      code.pr(
+          "staa_lst[" + i + "]->STAA = " + CTypes.getInstance().getTargetTimeExpr(offset) + ";");
+      code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
+      code.pr(
+          "staa_lst["
+              + i
+              + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
+              + networkActions.size()
+              + ");");
+      var tableCount = 0;
+      for (Action action : networkActions) {
         code.pr(
             "staa_lst["
                 + i
-                + "]->STAA = "
-                + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
-                + ";");
-        code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
-        code.pr(
-            "staa_lst["
-                + i
-                + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
-                + networkActions.size()
-                + ");");
-        var tableCount = 0;
-        for (Action action : networkActions) {
-          code.pr(
-              "staa_lst["
-                  + i
-                  + "]->actions["
-                  + tableCount++
-                  + "] = _lf_action_table["
-                  + federate.networkMessageActions.indexOf(action)
-                  + "];");
-        }
+                + "]->actions["
+                + tableCount++
+                + "] = _lf_action_table["
+                + federate.networkMessageActions.indexOf(action)
+                + "];");
       }
+      i++;
     }
     return code.getCode();
   }
