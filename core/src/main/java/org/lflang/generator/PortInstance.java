@@ -215,8 +215,8 @@ public class PortInstance extends TriggerInstance<Port> {
   }
 
   /**
-   * Return the minimum of the levels of the reactions that are downstream of this port.
-   * If there are no reactions downstream of this port, this returns Integer.MAX_VALUE.
+   * Return the minimum of the levels of the reactions that are downstream of this port. If there
+   * are no reactions downstream of this port, this returns Integer.MAX_VALUE.
    */
   public int getLevelUpperBound(MixedRadixInt index) {
     // Normally, this function will not be used if there are no downstream reactions

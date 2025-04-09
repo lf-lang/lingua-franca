@@ -128,9 +128,8 @@ public class FedASTUtils {
   }
 
   /**
-   * Replace the specified connection with communication between federates.
-   * If the connection has no source reactions or no destination reactions,
-   * then return without doing anything.
+   * Replace the specified connection with communication between federates. If the connection has no
+   * source reactions or no destination reactions, then return without doing anything.
    *
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
