@@ -128,7 +128,54 @@ public class FedASTUtils {
   }
 
   /**
-   * Replace the specified connection with communication between federates.
+   * Return true if the given port has at least one source reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasSourceReaction(PortInstance port) {
+    var eventualSources = port.eventualSources();
+    for (var source : eventualSources) {
+      if (!source.instance.getDependsOnReactions().isEmpty()) {
+        // There is at least one source reaction.
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the given port has at least one destination reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasDestinationReaction(PortInstance port) {
+    var eventualDestinations = port.eventualDestinations();
+    for (var destination : eventualDestinations) {
+      for (var eventual : destination.destinations) {
+        if (!eventual.instance.getDependentReactions().isEmpty()) {
+          // There is at least one destination.
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the specified connection has at least one source reaction that can send data
+   * through the connection and at least one destination reaction that is triggered by or uses the
+   * data sent through the connection.
+   *
+   * @param connection The connection
+   */
+  private static boolean isConnectionLive(FedConnectionInstance connection) {
+    return hasSourceReaction(connection.getSourcePortInstance())
+        && hasDestinationReaction(connection.getDestinationPortInstance());
+  }
+
+  /**
+   * Replace the specified connection with communication between federates. If the connection has no
+   * source reactions or no destination reactions, then return without doing anything.
    *
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
@@ -140,6 +187,10 @@ public class FedASTUtils {
       Resource resource,
       CoordinationMode coordination,
       MessageReporter messageReporter) {
+
+    if (!isConnectionLive(connection)) {
+      return;
+    }
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
@@ -397,7 +448,13 @@ public class FedASTUtils {
     // that it is connected to, which both have the same downstream reaction, have the correct
     // ordering wrt each other.
     var ub = p.getLevelUpperBound(index);
-    e.setValue(String.valueOf(p.isInput() ? 2 * ub : 2 * ub - 1));
+    // Adjust the level so that input levels are even and output levels are odd, unless the level is
+    // Integer.MAX_VALUE, which occurs if a port has no dependent reactions.
+    int level = Integer.MAX_VALUE;
+    if (ub < Integer.MAX_VALUE / 2) {
+      level = p.isInput() ? 2 * ub : 2 * ub - 1;
+    }
+    e.setValue(String.valueOf(level));
     a.getAttrParms().add(e);
     instantiation.getAttributes().add(a);
   }
