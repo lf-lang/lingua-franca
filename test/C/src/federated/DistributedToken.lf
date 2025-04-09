@@ -73,7 +73,7 @@ reactor PrintMessage {
       printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
       exit(1);
     }
-  =} STP(0) {=
+  =} STAA(0) {=
     printf("PrintMessage: At (elapsed) tag " PRINTF_TAG ", receiver receives: %s\n"
       "Original intended tag was " PRINTF_TAG ".\n",
       lf_time_logical_elapsed(),

@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.MessageReporter;
@@ -271,11 +273,8 @@ public class FederateInstance {
   /** Cached result of analysis of which reactions to exclude from main. */
   private Set<Reaction> excludeReactions = null;
 
-  /** Keep a unique list of enabled serializers */
-  public List<TimeValue> staaOffsets = new ArrayList<>();
-
-  /** The STA offsets that have been recorded thus far. */
-  public Set<Long> currentSTAOffsets = new HashSet<>();
+  /** A list of unique STAA offsets over all input ports of this federate. */
+  public SortedSet<TimeValue> staaOffsets = new TreeSet<TimeValue>();
 
   /** Keep a map of STP values to a list of network actions */
   public HashMap<TimeValue, List<Action>> staToNetworkActionMap = new HashMap<>();
@@ -609,8 +608,12 @@ public class FederateInstance {
           if (end._isInZeroDelayCycle
               || (end == next && destination == next)
               || visited.contains(destination)) return;
-          visited.add(destination);
           if (setOfDelays.contains(null)) {
+            // Only if we have a zero-delay connection to destination do we add it to visited.
+            // If we have a delayed connection to destination, we should not skip a future
+            // zero-delay
+            // connection there.
+            visited.add(destination);
             // There is a zero-delay connection to destination.
             if (destination == end) {
               // Found a zero delay cycle.

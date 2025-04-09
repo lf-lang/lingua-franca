@@ -15,7 +15,6 @@
 [![CodeCov](https://codecov.io/gh/lf-lang/lingua-franca/branch/master/graph/badge.svg?token=b7LrpihI5a)](https://codecov.io/gh/lf-lang/lingua-franca)
 [![GitHub Contributors](https://img.shields.io/github/contributors/lf-lang/lingua-franca)](https://github.com/lf-lang/lingua-franca/graphs/contributors)
 [![Zulip](https://img.shields.io/badge/chat-zulip-informational)](https://lf-lang.zulipchat.com)
-[![Twitter](https://img.shields.io/twitter/follow/thelflang.svg?style=social&logo=twitter)](https://twitter.com/thelflang)
 
 
 # The Lingua Franca Coordination Language

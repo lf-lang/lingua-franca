@@ -49,9 +49,10 @@ class TSInstanceGenerator(
         var portID = 0
         for (childReactor in childReactors) {
             var tpoLevel = AttributeUtils.getFirstArgumentValue(AttributeUtils.findAttributeByName(childReactor, "_tpoLevel"));
-            val networkReactorAttributeValue = AttributeUtils.getFirstArgumentValue(AttributeUtils.findAttributeByName(childReactor.reactorClass, "_networkReactor"))
-            var isNetworkReceiver = networkReactorAttributeValue == "receiver"
-            var isNetworkSender = networkReactorAttributeValue == "sender"
+
+            var isNetworkReceiver = AttributeUtils.findAttributeByName(childReactor.reactorClass, "_network_receiver") != null
+            var isNetworkSender = AttributeUtils.findAttributeByName(childReactor.reactorClass, "_network_sender") != null
+            var isNetworkReactor = isNetworkReceiver || isNetworkSender
 
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")

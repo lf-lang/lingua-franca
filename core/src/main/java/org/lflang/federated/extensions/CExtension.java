@@ -234,11 +234,6 @@ public class CExtension implements FedTargetExtension {
   }
 
   @Override
-  public String inputInitializationBody() {
-    return "self->_lf__reaction_1.is_an_input_reaction = true;\n";
-  }
-
-  @Override
   public void addSenderIndexParameter(Reactor sender) {
     var tp = LfFactory.eINSTANCE.createTypeParm();
     tp.setLiteral("SENDERINDEXPARAMETER");
@@ -687,7 +682,7 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutexes",
             "lf_mutex_init(&lf_outbound_socket_mutex);",
-            "lf_mutex_init(&socket_mutex);",
+            "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.

@@ -6,11 +6,11 @@ target Python {
 
 reactor Destination(width=1) {
   state s = 6
-  input[width] _in
+  input[width] inp
 
-  reaction(_in) {=
+  reaction(inp) {=
     sm = 0;
-    for port in _in:
+    for port in inp:
       if port.is_present:
         sm += port.value
     print("Sum of received: ", sm)
@@ -34,8 +34,8 @@ main reactor MultiportFromReaction {
   state s = 0
   b = new Destination(width=4)
 
-  reaction(t) -> b._in {=
-    for (idx, port) in enumerate(b._in):
+  reaction(t) -> b.inp {=
+    for (idx, port) in enumerate(b.inp):
       print("Before SET, b.in[{:d}].is_present has value {:d}".format(idx, port.is_present))
       port.set(self.s)
       self.s += 1

@@ -31,7 +31,7 @@ reactor Platform(
         in->value
       );
     }
-  =} STP(stp_offset_param) {=
+  =} STAA(stp_offset_param) {=
     lf_print("Received %d late, as expected.", in->value);
     tag_t current_tag = lf_tag();
     lf_print("********* Lag is " PRINTF_TIME, current_tag.time - lf_time_physical());
@@ -58,7 +58,7 @@ reactor Delay(STP_offset: time = 250 ms) {
 
   reaction(in) -> out {=
     lf_set(out, in->value);
-  =} STP(0) {=
+  =} STAA(0) {=
     // With the 250ms above, STP violations shouldn't occur, but they do
     // occur sometimes in CI.  Here, we can just have the behavior be the
     // same as when it does not occur.
