@@ -382,7 +382,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    */
   private void assignPortLevel(Runtime current) {
     for (var sp : current.sourcePorts) {
-      sp.port().hasDependentReactionWithLevel(sp.index(), current.level);
+      sp.port().recordIndexForPortChannel(sp.index(), current.level);
     }
   }
 
