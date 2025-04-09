@@ -129,6 +129,8 @@ public class FedASTUtils {
 
   /**
    * Replace the specified connection with communication between federates.
+   * If the connection has no source reactions or no destination reactions,
+   * then return without doing anything.
    *
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
@@ -140,6 +142,11 @@ public class FedASTUtils {
       Resource resource,
       CoordinationMode coordination,
       MessageReporter messageReporter) {
+
+    if (connection.getSourcePortInstance().getDependsOnReactions().isEmpty()
+        || connection.getDestinationPortInstance().getDependentReactions().isEmpty()) {
+      return;
+    }
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
@@ -398,8 +405,7 @@ public class FedASTUtils {
     // ordering wrt each other.
     var ub = p.getLevelUpperBound(index);
     // Adjust the level so that input levels are even and output levels are odd, unless the level is
-    // Integer.MAX_VALUE,
-    // which occurs if a port has no dependent reactions.
+    // Integer.MAX_VALUE, which occurs if a port has no dependent reactions.
     int level = Integer.MAX_VALUE;
     if (ub < Integer.MAX_VALUE / 2) {
       level = p.isInput() ? 2 * ub : 2 * ub - 1;

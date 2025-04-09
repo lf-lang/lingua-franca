@@ -689,6 +689,8 @@ public class FedGenerator {
   private void insertIndexers(ReactorInstance mainInstance, Resource resource) {
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance input : child.inputs) {
+        // If there are no dependent reactions, skip this indexer.
+        if (input.getDependentReactions().isEmpty()) continue;
         var indexer = indexer(child, input, resource);
         var count = 0;
         for (FederateInstance federate : federatesByInstantiation.get(child.getDefinition())) {

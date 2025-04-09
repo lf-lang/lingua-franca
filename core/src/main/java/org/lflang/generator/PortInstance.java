@@ -209,15 +209,18 @@ public class PortInstance extends TriggerInstance<Port> {
    * Record that the {@code index}th sub-port of this has a dependent reaction of level {@code
    * level}.
    */
-  public void hasDependentReactionWithLevel(MixedRadixInt index, int level) {
+  public void recordIndexForPortChannel(MixedRadixInt index, int level) {
     levelUpperBounds.put(
         index, Math.min(levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE), level));
   }
 
-  /** Return the minimum of the levels of the reactions that are downstream of this port. */
+  /**
+   * Return the minimum of the levels of the reactions that are downstream of this port.
+   * If there are no reactions downstream of this port, this returns Integer.MAX_VALUE.
+   */
   public int getLevelUpperBound(MixedRadixInt index) {
-    // It should be uncommon for Integer.MAX_VALUE to be used and using it can mask bugs.
-    // It makes sense when there is no downstream reaction.
+    // Normally, this function will not be used if there are no downstream reactions
+    // because the connection gets optimized away.
     return levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE);
   }
 
