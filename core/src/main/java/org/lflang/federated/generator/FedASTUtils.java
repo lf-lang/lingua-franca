@@ -128,6 +128,52 @@ public class FedASTUtils {
   }
 
   /**
+   * Return true if the given port has at least one source reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasSourceReaction(PortInstance port) {
+    var eventualSources = port.eventualSources();
+    for (var source : eventualSources) {
+      if (!source.instance.getDependsOnReactions().isEmpty()) {
+        // There is at least one source reaction.
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the given port has at least one destination reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasDestinationReaction(PortInstance port) {
+    var eventualDestinations = port.eventualDestinations();
+    for (var destination : eventualDestinations) {
+      for (var eventual : destination.destinations) {
+        if (!eventual.instance.getDependentReactions().isEmpty()) {
+          // There is at least one destination.
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the specified connection has at least one source reaction that can send data
+   * through the connection and at least one destination reaction that is triggered by or uses the
+   * data sent through the connection.
+   *
+   * @param connection The connection
+   */
+  private static boolean isConnectionLive(FedConnectionInstance connection) {
+    return hasSourceReaction(connection.getSourcePortInstance())
+        && hasDestinationReaction(connection.getDestinationPortInstance());
+  }
+
+  /**
    * Replace the specified connection with communication between federates. If the connection has no
    * source reactions or no destination reactions, then return without doing anything.
    *
@@ -142,8 +188,7 @@ public class FedASTUtils {
       CoordinationMode coordination,
       MessageReporter messageReporter) {
 
-    if (connection.getSourcePortInstance().getDependsOnReactions().isEmpty()
-        || connection.getDestinationPortInstance().getDependentReactions().isEmpty()) {
+    if (!isConnectionLive(connection)) {
       return;
     }
 
