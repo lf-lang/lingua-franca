@@ -78,6 +78,16 @@ public class FederationFileConfig extends FileConfig {
     return getGenPath().resolve("src-gen");
   }
 
+  /** The directory in which to put a copy of reactor-c for compiling a RTI for this federation. */
+  public Path getRtiSrcGenPath() {
+    return getSrcGenPath().resolve("rti");
+  }
+
+  /** The path to the RTI binary that is compiled for this federation. */
+  public Path getRtiBinPath() {
+    return getFedBinPath().resolve("RTI");
+  }
+
   /**
    * Return the path to the root of a LF project generated on the basis of a federated LF program
    * currently under compilation.
