@@ -314,9 +314,9 @@ public class FedLauncherGenerator {
   private String getRtiCommand(List<FederateInstance> federates, boolean isRemote) {
     List<String> commands = new ArrayList<>();
     if (isRemote) {
-      commands.add("RTI -i '${FEDERATION_ID}' \\");
+      commands.add(this.fileConfig.getRtiBinPath() + " -i '${FEDERATION_ID}' \\");
     } else {
-      commands.add("RTI -i ${FEDERATION_ID} \\");
+      commands.add(this.fileConfig.getRtiBinPath() + " -i ${FEDERATION_ID} \\");
     }
     if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
@@ -355,14 +355,6 @@ public class FedLauncherGenerator {
     return String.join(
         "\n",
         "echo \"#### Launching the runtime infrastructure (RTI).\"",
-        "# First, check if the RTI is on the PATH",
-        "if ! command -v RTI &> /dev/null",
-        "then",
-        "    echo \"RTI could not be found.\"",
-        "    echo \"The source code can be obtained from"
-            + " https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI\"",
-        "    exit 1",
-        "fi                ",
         "# The RTI is started first to allow proper boot-up",
         "# before federates will try to connect.",
         "# The RTI will be brought back to foreground",

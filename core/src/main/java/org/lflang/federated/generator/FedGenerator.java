@@ -68,6 +68,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 
 public class FedGenerator {
 
@@ -176,11 +177,16 @@ public class FedGenerator {
               federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
-    // If the RTI is to be built locally, set up a build environment for it.
-    prepareRtiBuildEnvironment(context);
+    // If a RTI docker image is to be build locally. Set it up.
+    prepareRtiDockerBuildEnvironment(context);
+
+    // Prepare the native build of an RTI for this federation by copying reactor-c into
+    // the src-gen folder.
+    prepareRtiBuild(context);
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
+    // Compile federates
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
@@ -202,6 +208,9 @@ public class FedGenerator {
                 generateLaunchScript();
               }
             });
+
+    // Compile an RTI for this federation.
+    buildRti(context);
 
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
@@ -226,12 +235,45 @@ public class FedGenerator {
     }
   }
 
+  /** Compile an RTI for this federation using CMake. */
+  private void buildRti(LFGeneratorContext context) {
+    FederationFileConfig fileConfig = this.fileConfig;
+    Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
+    String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
+
+    var clean = LFCommand.get("rm", List.of("-rf", "build"), false, rtiSrcPath);
+    // FIXME: Add LOG_LEVEL to the RTI build.
+    // FIXME: Add auth-stuff to the RTI build.
+    var configure =
+        LFCommand.get(
+            "cmake",
+            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
+            false,
+            rtiSrcPath);
+    var build =
+        LFCommand.get(
+            "cmake",
+            List.of("--build", "build", "--target", "install", "--parallel", cores),
+            false,
+            rtiSrcPath);
+
+    if (clean.run() != 0) {
+      messageReporter.nowhere().error("Could not clean the RTI build folder.");
+    }
+    if (configure.run() != 0) {
+      messageReporter.nowhere().error("Could not configure the RTI build.");
+    }
+    if (build.run() != 0) {
+      messageReporter.nowhere().error("Could not compile the RTI build.");
+    }
+  }
+
   /**
    * Prepare a build environment for the rti alongside the generated sources of the federates.
    *
    * @param context The generator context.
    */
-  private void prepareRtiBuildEnvironment(LFGeneratorContext context) {
+  private void prepareRtiDockerBuildEnvironment(LFGeneratorContext context) {
     var rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
     if (rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
       var dest = context.getFileConfig().getSrcGenPath().resolve("rti");
@@ -245,6 +287,21 @@ public class FedGenerator {
       } catch (IOException e) {
         context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
       }
+    }
+  }
+
+  /** Copies reactor-c to `src-gen/rti`. */
+  private void prepareRtiBuild(LFGeneratorContext context) {
+    var dest = this.fileConfig.getRtiSrcGenPath();
+    // 1. Create the "rti" directory
+    try {
+      Files.createDirectories(dest);
+      // 2. Copy reactor-c source files into it
+      FileUtil.copyFromClassPath("/lib/c/reactor-c", dest, true, true);
+      // 3. Generate a Dockerfile for the rti
+      new RtiDockerGenerator(context).generateDockerData(dest).writeDockerFile();
+    } catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
     }
   }
 
