@@ -23,7 +23,7 @@ reactor Ping(count: size_t = 10, STA: time = 0) {
         self->pingsLeft = self->count;
         lf_set(finished, true);
     }
-  =} STP(1 hour) {=  =}
+  =} STAA(1 hour) {=  =}
 }
 
 reactor Pong(expected: size_t = 10) {
@@ -35,7 +35,7 @@ reactor Pong(expected: size_t = 10) {
     lf_print("**************************** Pong received and sent");
     self->count++;
     lf_set(send, receive->value);
-  =} STP(1 hour) {=  =}
+  =} STAA(1 hour) {=  =}
 
   reaction(shutdown) {=
     if (self->count != self->expected) {
