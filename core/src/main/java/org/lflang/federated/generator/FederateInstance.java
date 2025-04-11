@@ -787,7 +787,9 @@ public class FederateInstance {
         }
         for (var upstreamPort : port.getDependsOnPorts()) {
           var uDelay = minDelayFromPhysicalActionTo(visited, upstreamPort.instance);
-          replaceIfLess(visited, reaction, uDelay);
+          // Add the connection delay.
+          var connectionDelay = port.minDelayFrom(upstreamPort.instance);
+          replaceIfLess(visited, reaction, uDelay.add(connectionDelay));
         }
       }
     }

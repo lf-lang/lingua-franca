@@ -21,15 +21,15 @@ reactor Simple {
   reaction(b) -> a, out {=  =}
 }
 
-reactor Hard {
+reactor Hard(small_delay: time = 1 s, medium_delay: time = 2 s, large_delay: time = 10 s) {
   output out2: int
   @label(
       "We want to find THIS physical action from out2. The compiler should warn about min path delay = 2 sec.")
-  physical action d(1 sec)
+  physical action d(small_delay)
   @label("This physical action has a larger min delay. The compiler should ignore it.")
-  physical action e(10 sec)
+  physical action e(large_delay)
   @label("This physical is also not the one that leads to a minimal path.")
-  physical action f(2 sec)
+  physical action f(medium_delay)
   delay = new Delay(width=2)
   delay2 = new Delay(width=1)
   delay.out -> delay2.in after 1 sec

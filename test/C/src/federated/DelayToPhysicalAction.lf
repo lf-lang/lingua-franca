@@ -35,11 +35,11 @@ reactor R {
   =}
 }
 
-reactor Wrapper {
+reactor Wrapper(delay: time = 10 ms) {
   output out: int
 
   r = new R()
-  r.out -> out after 10 msec
+  r.out -> out after delay
 }
 
 reactor Print {
