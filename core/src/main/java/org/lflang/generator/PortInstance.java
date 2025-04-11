@@ -224,7 +224,8 @@ public class PortInstance extends TriggerInstance<Port> {
       var delay = connection.getDelay();
       if (delay != null) {
         // The delay may reference a parameter defined in the parent of the connection,
-        // which may not be the same as the parent of the port, so resolve the delay using that parent.
+        // which may not be the same as the parent of the port, so resolve the delay using that
+        // parent.
         var parent = upstreamPort.parent;
         if (!parent.getDefinition().equals(connection.eContainer())) {
           parent = upstreamPort.parent.parent;
