@@ -44,11 +44,12 @@ reactor Wrapper {
 
 reactor Print {
   input in: int
-  timer t (0, 100 ms)
+  timer t(0, 100 ms)
 
   reaction(in) {=
     lf_print("Received %d", in->value);
   =}
+
   reaction(t) {=
     lf_print("Timer.");
   =}
