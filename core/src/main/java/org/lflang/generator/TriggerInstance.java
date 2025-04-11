@@ -79,9 +79,10 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
   }
 
   /**
-   * Return the reaction instances that may send data via this port. If this port is an input, then
-   * the reaction instance belongs to parent of the port's parent. If it is an output, the reaction
-   * instance belongs to the port's parent.
+   * Return the reaction instances that may send data via this port or action. If this is an input
+   * port, then the reaction instance belongs to parent of the port's parent. If it is an output
+   * port, the reaction instance belongs to the port's parent. If it is an action, then the reaction
+   * belongs to the same parent as that of this action.
    */
   public Set<ReactionInstance> getDependsOnReactions() {
     return dependsOnReactions;
@@ -133,9 +134,10 @@ public class TriggerInstance<T extends Variable> extends NamedInstance<T> {
   Set<ReactionInstance> dependentReactions = new LinkedHashSet<>();
 
   /**
-   * Reaction instances that may send data via this port. If this port is an input, then the
-   * reaction instance belongs to parent of the port's parent. If it is an output, the reaction
-   * instance belongs to the port's parent.
+   * Reaction instances that may send data via this port or action. If this is an input port, then
+   * the reaction instance belongs to parent of the port's parent. If it is an output port, the
+   * reaction instance belongs to the port's parent. If it is an action, then the reaction belongs
+   * belongs to the same parent as this action.
    */
   Set<ReactionInstance> dependsOnReactions = new LinkedHashSet<>();
 
