@@ -1,0 +1,62 @@
+/**
+ * Test fix to STP violation issue: https://github.com/lf-lang/lingua-franca/issues/2473 Success is
+ * defined as compiling and executing without STP violations.
+ */
+target C {
+  timeout: 2 s
+}
+
+reactor Wrapper {
+  output[2] out: int
+  input[2] in: int
+
+  r = new R()
+
+  (r.out)+ -> out  // This connection statement causes STP violations
+
+  reaction(in) -> r.in {=
+    lf_set(r.in, 0);
+  =}
+}
+
+reactor R {
+  output out: int
+  input in: int
+  preamble {=
+    // Schedule an event roughly every 200 msec.
+    void* external(void* a) {
+      int i = 0;
+      while (i < 10) {
+        lf_sleep(MSEC(100));
+        lf_schedule_int(a, 0, i++);
+      }
+    }
+  =}
+
+  state thread_id: lf_thread_t = 0
+  physical action a: int
+  timer t(0, 10 msec)
+
+  reaction(startup) -> a {=
+    // Start a thread to schedule physical actions.
+    lf_thread_create(&self->thread_id, &external, a);
+  =}
+
+  reaction(a) -> out {=
+    interval_t elapsed_time = lf_time_logical_elapsed();
+    printf("Action triggered with %d at logical time %lld nsec after start.\n", a->value, elapsed_time);
+    lf_set(out, a->value);
+  =}
+
+  reaction(t) {=  =}
+
+  reaction(in) {=
+    printf("Received input at logical time %lld nsec after start.\n", lf_time_logical_elapsed());
+  =}
+}
+
+federated reactor {
+  r = new[2] Wrapper()
+
+  r.out -> interleaved(r.in)
+}

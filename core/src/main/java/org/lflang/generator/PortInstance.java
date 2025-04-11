@@ -27,10 +27,13 @@ package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import org.lflang.MessageReporter;
+import org.lflang.TimeValue;
+import org.lflang.lf.Connection;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -152,7 +155,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /**
    * Return a list of ranges of ports that send data to this port. If this port is directly written
-   * to by one more more reactions, then it is its own eventual source and only this port will be
+   * to by one or more reactions, then it is its own eventual source and only this port will be
    * represented in the result.
    *
    * <p>If this is not a multiport and is not within a bank, then the list will have only one item
@@ -177,12 +180,59 @@ public class PortInstance extends TriggerInstance<Port> {
   }
 
   /**
+   * For the given downstream port (the instance of a range returned by getDependentPorts()), return
+   * a list of connections to that port or null if there are no connections to that port.
+   *
+   * @param downstreamPort The downstream port.
+   */
+  public List<Connection> connectionsTo(PortInstance downstreamPort) {
+    return downstreamConnections.get(downstreamPort);
+  }
+
+  /**
    * Return the list of upstream ports that are connected to this port, or an empty set if there are
    * none. For an ordinary port, this list will have length 0 or 1. For a multiport, it can have a
    * larger size.
    */
   public List<RuntimeRange<PortInstance>> getDependsOnPorts() {
     return dependsOnPorts;
+  }
+
+  /**
+   * For the given upstream port (the instance of a range returned by getDependsOnPorts()), return a
+   * list of connections from that port or null if there are no connections from that port.
+   *
+   * @param upstreamPort The upstream port.
+   */
+  public List<Connection> connectionsFrom(PortInstance upstreamPort) {
+    return upstreamConnections.get(upstreamPort);
+  }
+
+  /**
+   * For the given upstream port (the instance of a range returned by getDependsOnPorts()), return
+   * the minimum of the `after` delays on connections from that port. This will be TimeValue.ZERO if
+   * there are no `after` delays or if the `after` delays are zero, and it will be
+   * TimeValue.MAX_VALUE if there are no connections from the port.
+   *
+   * @param upstreamPort The upstream port.
+   */
+  public TimeValue minDelayFrom(PortInstance upstreamPort) {
+    TimeValue result = TimeValue.MAX_VALUE;
+    var connections = connectionsFrom(upstreamPort);
+    if (connections == null) return result;
+    for (var connection : connections) {
+      var delay = connection.getDelay();
+      if (delay != null) {
+        var delayValue = upstreamPort.parent.getTimeValue(delay);
+        if (delayValue != null && delayValue.isEarlierThan(result)) {
+          result = delayValue;
+        }
+      } else {
+        // There is no delay on the connection.
+        result = TimeValue.ZERO;
+      }
+    }
+    return result;
   }
 
   /** Return true if the port is an input. */
@@ -238,12 +288,18 @@ public class PortInstance extends TriggerInstance<Port> {
    */
   List<SendRange> dependentPorts = new ArrayList<>();
 
+  /** Map from the ports listed in dependentPorts to the connection(s) to those ports. */
+  Map<PortInstance, List<Connection>> downstreamConnections = new LinkedHashMap<>(1);
+
   /**
    * Upstream ports that are connected directly to this port, if there are any. For an ordinary
    * port, this set will have size 0 or 1. For a multiport, it can have a larger size. This
    * initially has capacity 1 because that is by far the most common case.
    */
   List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<>(1);
+
+  /** Map from the ports listed in dependsOnPorts to the connection(s) from those ports. */
+  Map<PortInstance, List<Connection>> upstreamConnections = new LinkedHashMap<>(1);
 
   /** Indicator of whether this is a multiport. */
   boolean isMultiport = false;

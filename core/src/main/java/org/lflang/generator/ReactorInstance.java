@@ -935,6 +935,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     SendRange range = new SendRange(src, dst, src._interleaved, connection);
     src.instance.dependentPorts.add(range);
     dst.instance.dependsOnPorts.add(src);
+
+    // Record the connection in the source port instances.
+    List<Connection> downstreamConnections = src.instance.downstreamConnections.get(dst.instance);
+    if (downstreamConnections == null) {
+      downstreamConnections = new LinkedList<Connection>();
+      src.instance.downstreamConnections.put(src.instance, downstreamConnections);
+    }
+    downstreamConnections.add(connection);
+
+    // Record the connection in the destination port instances.
+    List<Connection> upstreamConnections = dst.instance.upstreamConnections.get(src.instance);
+    if (upstreamConnections == null) {
+      upstreamConnections = new LinkedList<Connection>();
+      dst.instance.upstreamConnections.put(src.instance, upstreamConnections);
+    }
+    upstreamConnections.add(connection);
   }
 
   /**
