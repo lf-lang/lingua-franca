@@ -1,7 +1,7 @@
 /**
  * Simple test that a delay between a physical action and a federate output is correctly handled.
- * Success is defined as compiling and executing without STP violations.
- * The recursive min delay search algorithm should search over each parallel path.
+ * Success is defined as compiling and executing without STP violations. The recursive min delay
+ * search algorithm should search over each parallel path.
  */
 target C {
   timeout: 2 s
