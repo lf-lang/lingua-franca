@@ -56,7 +56,7 @@ reactor Print {
 }
 
 federated reactor {
-  r = new Wrapper()
+  r = new Wrapper(delay = 1 ms)
   p = new Print()
 
   r.out -> p.in

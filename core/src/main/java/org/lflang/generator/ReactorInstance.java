@@ -175,13 +175,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
-  // An enclave object if this ReactorInstance is an enclave. null if not
+  /** An enclave object if this ReactorInstance is an enclave. null if not. */
   public EnclaveInfo enclaveInfo = null;
+
+  /** FIXME: What is this? */
   public TypeParameterizedReactor tpr;
 
   /**
-   * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
-   * annotation. TPO is total port order. See
+   * The Total Port Order level with which {@code this} was annotated, or {@code null} if there is
+   * no TPO annotation. TPO is total port order. See
    * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
   public final Integer tpoLevel;
