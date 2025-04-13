@@ -700,10 +700,10 @@ public class FederateInstance {
    * Return the shortest total delay from an upstream physical action to the specified output port
    * or TimeValue.MAX_VALUE if there is no upstream physical action.
    *
-   * @param output The output port.
+   * @param port A port (either input or output) wrt which the min delay is a calculated.
    */
   private TimeValue minDelayFromPhysicalActionTo(
-      Map<ReactionInstance, TimeValue> visited, PortInstance output) {
+      Map<ReactionInstance, TimeValue> visited, PortInstance port) {
     if (visited == null) {
       visited = new HashMap<ReactionInstance, TimeValue>();
     }
