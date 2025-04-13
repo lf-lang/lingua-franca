@@ -710,13 +710,13 @@ public class FederateInstance {
     // For each output port, it may depend on reactions or be connected to upstream ports or both.
     TimeValue result = TimeValue.MAX_VALUE;
     // Check reactions that write directly to this port first.
-    for (ReactionInstance reaction : output.getDependsOnReactions()) {
+    for (ReactionInstance reaction : port.getDependsOnReactions()) {
       TimeValue minDelay = minDelayFromPhysicalActionTo(visited, reaction);
       if (minDelay.isEarlierThan(result)) result = minDelay;
     }
     // Check upstream ports that connect to this port.
-    for (var upstreamPort : output.getDependsOnPorts()) {
-      var minDelayOnConnections = output.minDelayFrom(upstreamPort.instance);
+    for (var upstreamPort : port.getDependsOnPorts()) {
+      var minDelayOnConnections = port.minDelayFrom(upstreamPort.instance);
       for (var reaction : upstreamPort.instance.getDependsOnReactions()) {
         var minDelayToReaction =
             minDelayFromPhysicalActionTo(visited, reaction).add(minDelayOnConnections);
