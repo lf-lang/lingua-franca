@@ -813,13 +813,15 @@ public class CExtension implements FedTargetExtension {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
-      var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var main =
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
               messageReporter,
               1);
-      var instance = new ReactorInstance(federateClass, main, messageReporter);
+      // Use the instantiation to create a new ReactorInstance so that it gets the parameters of the
+      // original.
+      var instance =
+          new ReactorInstance(federate.instantiation, main, messageReporter, -1, List.of());
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;
       Output outputFound = null;
