@@ -80,7 +80,7 @@ public class FederationFileConfig extends FileConfig {
 
   /** The directory in which to put a copy of reactor-c for compiling a RTI for this federation. */
   public Path getRtiSrcGenPath() {
-    return getSrcGenPath().resolve("rti");
+    return getSrcGenPath().resolve("RTI");
   }
 
   /** The path to the RTI binary that is compiled for this federation. */

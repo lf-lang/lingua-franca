@@ -130,13 +130,22 @@ public class FedLauncherGenerator {
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
-      shCode.append(getLaunchCode(getRtiCommand(federates, false))).append("\n");
+      shCode
+          .append(
+              getLaunchCode(getRtiCommand(fileConfig.getRtiBinPath().toString(), federates, false)))
+          .append("\n");
     } else {
-      // Start the RTI on the remote machine.
+      // Copy the RTI to the remote machine and compile it there.
       // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
       // remote host?
       // Copy the source code onto the remote machine and compile it there.
       if (distCode.length() == 0) distCode.append(distHeader).append("\n");
+
+      distCode
+          .append(
+              getDistCode(
+                  rtiConfig.getDirectory(), "RTI", rtiConfig.getUser(), rtiConfig.getHost()))
+          .append("\n");
 
       String logFileName = String.format("log/%s_RTI.log", fileConfig.name);
 
@@ -155,7 +164,12 @@ public class FedLauncherGenerator {
       // the federate have had time to go out to the RTI through the socket.
 
       shCode
-          .append(getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true)))
+          .append(
+              getRemoteLaunchCode(
+                  host,
+                  target,
+                  logFileName,
+                  getRtiCommand(rtiConfig.getRtiBinPath(fileConfig), federates, true)))
           .append("\n");
     }
 
@@ -168,7 +182,10 @@ public class FedLauncherGenerator {
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
         if (distCode.isEmpty()) distCode.append(distHeader).append("\n");
         String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
-        distCode.append(getDistCode(rtiConfig.getDirectory(), federate)).append("\n");
+        distCode
+            .append(
+                getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
+            .append("\n");
         shCode
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
@@ -311,12 +328,13 @@ public class FedLauncherGenerator {
         "# set -o posix");
   }
 
-  private String getRtiCommand(List<FederateInstance> federates, boolean isRemote) {
+  private String getRtiCommand(
+      String rtiBinPath, List<FederateInstance> federates, boolean isRemote) {
     List<String> commands = new ArrayList<>();
     if (isRemote) {
-      commands.add(this.fileConfig.getRtiBinPath() + " -i '${FEDERATION_ID}' \\");
+      commands.add(rtiBinPath + " -i '${FEDERATION_ID}' \\");
     } else {
-      commands.add(this.fileConfig.getRtiBinPath() + " -i ${FEDERATION_ID} \\");
+      commands.add(rtiBinPath + " -i ${FEDERATION_ID} \\");
     }
     if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
@@ -416,25 +434,25 @@ public class FedLauncherGenerator {
    * @param remoteBase The root directory on the remote machine.
    * @param federate The federate to distribute.
    */
-  private String getDistCode(Path remoteBase, FederateInstance federate) {
+  private String getDistCode(Path remoteBase, String name, String user, String host) {
     String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
     String logDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/log";
     String remoteBuildLogFileName = logDirectory + "/build.log";
-    String buildShellFileName = "build_" + federate.name + ".sh";
-    String tarFileName = federate.name + ".tar.gz";
+    String buildShellFileName = "build_" + name + ".sh";
+    String tarFileName = name + ".tar.gz";
     return String.join(
         "\n",
         "echo \"Making directory "
             + remoteBase
             + " and subdirectories federate_name, bin, and log on host "
-            + getUserHost(federate.user, federate.host)
+            + getUserHost(user, host)
             + "\"",
-        "ssh " + getUserHost(federate.user, federate.host) + " '\\",
+        "ssh " + getUserHost(user, host) + " '\\",
         "    mkdir -p " + binDirectory + " " + logDirectory + "; \\",
         "    echo \"------Build of "
             + fileConfig.name
             + " "
-            + federate.name
+            + name
             + "\" >> "
             + remoteBuildLogFileName
             + "; \\",
@@ -442,12 +460,12 @@ public class FedLauncherGenerator {
         "'",
         "pushd " + fileConfig.getSrcGenPath() + " > /dev/null",
         "echo \"**** Bundling source files into " + tarFileName + "\"",
-        "tar -czf " + tarFileName + " --exclude build " + federate.name,
-        "echo \"**** Copying tarfile to host " + getUserHost(federate.user, federate.host) + "\"",
+        "tar -czf " + tarFileName + " --exclude build " + name,
+        "echo \"**** Copying tarfile to host " + getUserHost(user, host) + "\"",
         "scp -r "
             + tarFileName
             + " "
-            + getUserHost(federate.user, federate.host)
+            + getUserHost(user, host)
             + ":"
             + remoteBase
             + "/"
@@ -455,17 +473,15 @@ public class FedLauncherGenerator {
             + "/"
             + tarFileName,
         "rm " + tarFileName,
-        "ssh " + getUserHost(federate.user, federate.host) + " '\\",
+        "ssh " + getUserHost(user, host) + " '\\",
         "    cd ~/" + remoteBase + "/" + fileConfig.name + "; \\",
         "    tar -xzf " + tarFileName + "; \\",
         "    rm " + tarFileName + ";",
         "'",
         "popd > /dev/null",
-        "echo \"**** Generating and executing compile.sh on host "
-            + getUserHost(federate.user, federate.host)
-            + "\"",
+        "echo \"**** Generating and executing compile.sh on host " + getUserHost(user, host) + "\"",
         "ssh "
-            + getUserHost(federate.user, federate.host)
+            + getUserHost(user, host)
             + " '"
             + "cd "
             + remoteBase
@@ -485,7 +501,7 @@ public class FedLauncherGenerator {
             + "echo \"# Build commands for "
             + fileConfig.name
             + " "
-            + federate.name
+            + name
             + "\" >> "
             + buildShellFileName
             + "; "
@@ -494,7 +510,7 @@ public class FedLauncherGenerator {
             + "/"
             + fileConfig.name
             + "/"
-            + federate.name
+            + name
             + "\" >> "
             + buildShellFileName
             + "; "
@@ -506,7 +522,7 @@ public class FedLauncherGenerator {
             + buildShellFileName
             + "; "
             + "echo \"mv "
-            + federate.name
+            + name
             + " "
             + binDirectory
             + "\" >>  "

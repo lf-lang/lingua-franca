@@ -59,12 +59,10 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
-import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
@@ -242,27 +240,20 @@ public class FedGenerator {
     FederationFileConfig fileConfig = this.fileConfig;
     Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
-    var t = targetConfig.get(AuthProperty.INSTANCE);
-    var st = t ? "ON" : "OFF";
 
-    var clean = LFCommand.get("rm", List.of("-rf", "build"), false, rtiSrcPath);
+    var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
     var configure =
         LFCommand.get(
             "cmake",
-            List.of(
-                "-Bbuild",
-                "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(),
-                "-DLOG_LEVEL=" + targetConfig.get(LoggingProperty.INSTANCE).ordinal(),
-                "-DAUTH=" + (targetConfig.get(AuthProperty.INSTANCE).booleanValue() ? "ON" : "OFF"),
-                "."),
+            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
             false,
-            rtiSrcPath);
+            fileConfig.getRtiSrcGenPath());
     var build =
         LFCommand.get(
             "cmake",
             List.of("--build", "build", "--target", "install", "--parallel", cores),
             false,
-            rtiSrcPath);
+            fileConfig.getRtiSrcGenPath());
 
     if (clean.run() != 0) {
       messageReporter.nowhere().error("Could not clean the RTI build folder.");
@@ -304,9 +295,23 @@ public class FedGenerator {
     try {
       Files.createDirectories(dest);
       // 2. Copy reactor-c source files into it
-      FileUtil.copyFromClassPath("/lib/c/reactor-c", dest, true, true);
-      // 3. Generate a Dockerfile for the rti
-      new RtiDockerGenerator(context).generateDockerData(dest).writeDockerFile();
+      for (var directory :
+          List.of(
+              "core",
+              "include",
+              "lib",
+              "logging",
+              "platform",
+              "low_level_platform",
+              "trace",
+              "version",
+              "tag")) {
+        var entry = "/lib/c/reactor-c/" + directory;
+        FileUtil.copyFromClassPath(entry, dest, true, false);
+      }
+
+      // 3. Generate the CmakeLists.txt file
+      FileUtil.writeToFile(rtiConfig.getRtiCmake(targetConfig), dest.resolve("CMakeLists.txt"));
     } catch (IOException e) {
       context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
     }
