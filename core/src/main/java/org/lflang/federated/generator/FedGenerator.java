@@ -59,10 +59,12 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
@@ -240,14 +242,19 @@ public class FedGenerator {
     FederationFileConfig fileConfig = this.fileConfig;
     Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
+    var t = targetConfig.get(AuthProperty.INSTANCE);
+    var st = t ? "ON" : "OFF";
 
     var clean = LFCommand.get("rm", List.of("-rf", "build"), false, rtiSrcPath);
-    // FIXME: Add LOG_LEVEL to the RTI build.
-    // FIXME: Add auth-stuff to the RTI build.
     var configure =
         LFCommand.get(
             "cmake",
-            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
+            List.of(
+                "-Bbuild",
+                "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(),
+                "-DLOG_LEVEL=" + targetConfig.get(LoggingProperty.INSTANCE).ordinal(),
+                "-DAUTH=" + (targetConfig.get(AuthProperty.INSTANCE).booleanValue() ? "ON" : "OFF"),
+                "."),
             false,
             rtiSrcPath);
     var build =
