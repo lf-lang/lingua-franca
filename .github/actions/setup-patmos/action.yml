@@ -28,7 +28,7 @@ runs:
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
-        ./misc/build.sh -q toolchain1
+        ./misc/build.sh -q simulator gold llvm1 platin newlib argo soc-comm poseidon patmos
         patmos-clang --version
         which patmos-clang
       shell: bash
