@@ -59,10 +59,12 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
@@ -182,7 +184,7 @@ public class FedGenerator {
 
     // Prepare the native build of an RTI for this federation by copying reactor-c into
     // the src-gen folder.
-    prepareRtiBuild(context);
+    prepareRtiLocalBuild(context);
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
@@ -210,7 +212,7 @@ public class FedGenerator {
             });
 
     // Compile an RTI for this federation.
-    buildRti(context);
+    buildRtiLocally(context);
 
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
@@ -235,8 +237,8 @@ public class FedGenerator {
     }
   }
 
-  /** Compile an RTI for this federation using CMake. */
-  private void buildRti(LFGeneratorContext context) {
+  /** Compile an RTI locally for this federation using CMake. */
+  private void buildRtiLocally(LFGeneratorContext context) {
     FederationFileConfig fileConfig = this.fileConfig;
     Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
@@ -289,12 +291,12 @@ public class FedGenerator {
   }
 
   /** Copies reactor-c to `src-gen/rti`. */
-  private void prepareRtiBuild(LFGeneratorContext context) {
+  private void prepareRtiLocalBuild(LFGeneratorContext context) {
     var dest = this.fileConfig.getRtiSrcGenPath();
-    // 1. Create the "rti" directory
+    // 1. Create the "RTI" directory
     try {
       Files.createDirectories(dest);
-      // 2. Copy reactor-c source files into it
+      // 2. Copy the required subset of reactor-c source files into it
       for (var directory :
           List.of(
               "core",
@@ -311,7 +313,15 @@ public class FedGenerator {
       }
 
       // 3. Generate the CmakeLists.txt file
-      FileUtil.writeToFile(rtiConfig.getRtiCmake(targetConfig), dest.resolve("CMakeLists.txt"));
+      var rtiCMakeLists = String.join("\n",
+          "cmake_minimum_required(VERSION 3.12)",
+          "project(RTI VERSION 1.0.0 LANGUAGES C)",
+          "set(LOG_LEVEL " + targetConfig.get(LoggingProperty.INSTANCE).ordinal() + ")",
+          "set(AUTH " + (targetConfig.get(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
+          "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})",
+          "add_subdirectory(${CMAKE_SOURCE_DIR}/core/federated/RTI ${CMAKE_BINARY_DIR}/build_RTI)");
+
+      FileUtil.writeToFile(rtiCMakeLists, dest.resolve("CMakeLists.txt"));
     } catch (IOException e) {
       context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
     }
