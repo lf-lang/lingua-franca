@@ -1,0 +1,68 @@
+/**
+ * Simple test that a delay between a physical action and a federate output is correctly handled.
+ * Success is defined as compiling and executing without STP violations. The recursive min delay
+ * search algorithm should search over each parallel path.
+ */
+target C {
+  timeout: 2 s
+}
+
+reactor R {
+  output out: int
+
+  preamble {=
+    // Schedule an event roughly every 200 msec.
+    void* external(void* a) {
+      int i = 0;
+      while (i < 10) {
+        lf_sleep(MSEC(100));
+        lf_schedule_int(a, 0, i++);
+      }
+    }
+  =}
+
+  state thread_id: lf_thread_t = 0
+  physical action a: int
+  logical action b(10 msec): int
+  logical action c(0 msec): int
+  logical action d(5 msec): int
+
+  reaction(startup) -> a {=
+    // Start a thread to schedule physical actions.
+    lf_thread_create(&self->thread_id, &external, a);
+  =}
+
+  reaction(a) -> b, c, d {=
+    interval_t elapsed_time = lf_time_logical_elapsed();
+    printf("Action triggered with %d at logical time %lld nsec after start.\n", a->value, elapsed_time);
+    lf_schedule_int(b, 0, a->value);
+    lf_schedule_int(c, 0, a->value);
+    lf_schedule_int(d, 0, a->value);
+  =}
+
+  reaction(b, c, d) -> out {=
+    if (b->is_present) lf_set(out, b->value);
+    else if (c->is_present) lf_set(out, c->value);
+    else lf_set(out, d->value);
+  =}
+}
+
+reactor Print {
+  input in: int
+  timer t(0, 100 ms)
+
+  reaction(in) {=
+    lf_print("Received %d", in->value);
+  =}
+
+  reaction(t) {=
+    lf_print("Timer.");
+  =}
+}
+
+federated reactor {
+  r = new R()
+  p = new Print()
+
+  r.out -> p.in
+}
