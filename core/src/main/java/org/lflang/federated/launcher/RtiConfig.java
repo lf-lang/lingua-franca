@@ -2,9 +2,6 @@ package org.lflang.federated.launcher;
 
 import java.nio.file.Path;
 import org.lflang.FileConfig;
-import org.lflang.target.TargetConfig;
-import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.LoggingProperty;
 
 /**
  * Class for storing configuration settings pertaining to the RTI.

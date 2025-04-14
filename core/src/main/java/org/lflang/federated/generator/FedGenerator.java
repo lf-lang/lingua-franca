@@ -313,13 +313,16 @@ public class FedGenerator {
       }
 
       // 3. Generate the CmakeLists.txt file
-      var rtiCMakeLists = String.join("\n",
-          "cmake_minimum_required(VERSION 3.12)",
-          "project(RTI VERSION 1.0.0 LANGUAGES C)",
-          "set(LOG_LEVEL " + targetConfig.get(LoggingProperty.INSTANCE).ordinal() + ")",
-          "set(AUTH " + (targetConfig.get(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
-          "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})",
-          "add_subdirectory(${CMAKE_SOURCE_DIR}/core/federated/RTI ${CMAKE_BINARY_DIR}/build_RTI)");
+      var rtiCMakeLists =
+          String.join(
+              "\n",
+              "cmake_minimum_required(VERSION 3.12)",
+              "project(RTI VERSION 1.0.0 LANGUAGES C)",
+              "set(LOG_LEVEL " + targetConfig.get(LoggingProperty.INSTANCE).ordinal() + ")",
+              "set(AUTH " + (targetConfig.get(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
+              "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})",
+              "add_subdirectory(${CMAKE_SOURCE_DIR}/core/federated/RTI"
+                  + " ${CMAKE_BINARY_DIR}/build_RTI)");
 
       FileUtil.writeToFile(rtiCMakeLists, dest.resolve("CMakeLists.txt"));
     } catch (IOException e) {
