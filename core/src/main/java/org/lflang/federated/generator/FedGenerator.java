@@ -318,8 +318,8 @@ public class FedGenerator {
               "\n",
               "cmake_minimum_required(VERSION 3.12)",
               "project(RTI VERSION 1.0.0 LANGUAGES C)",
-              "set(LOG_LEVEL " + targetConfig.get(LoggingProperty.INSTANCE).ordinal() + ")",
-              "set(AUTH " + (targetConfig.get(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
+              "set(LOG_LEVEL " + targetConfig.getOrDefault(LoggingProperty.INSTANCE).ordinal() + ")",
+              "set(AUTH " + (targetConfig.getOrDefault(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
               "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})",
               "add_subdirectory(${CMAKE_SOURCE_DIR}/core/federated/RTI"
                   + " ${CMAKE_BINARY_DIR}/build_RTI)");
