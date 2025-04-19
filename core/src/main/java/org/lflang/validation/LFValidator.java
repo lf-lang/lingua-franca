@@ -698,11 +698,18 @@ public class LFValidator extends BaseLFValidator {
           }
         } else if (triggerVarRef.getVariable() instanceof Output) {
           if (triggerVarRef.getContainer() == null) {
+            // Enclaves in Cpp and C
             error(
                 String.format(
                     "Cannot have an output of this reactor as a trigger: %s",
                     triggerVarRef.getVariable().getName()),
                 Literals.REACTION__TRIGGERS);
+          } else if (AttributeUtils.getEnclaveAttribute(triggerVarRef.getContainer()) != null) {
+            error(
+                    String.format(
+                            "Triggering a reaction with the output of a contained enclave is not supported: %s",
+                            triggerVarRef.getVariable().getName()),
+                    Literals.REACTION__TRIGGERS);
           }
         }
       }
