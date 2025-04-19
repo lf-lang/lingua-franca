@@ -503,6 +503,11 @@ public class LFValidator extends BaseLFValidator {
               + instantiation.getReactorClass().getName(),
           Literals.INSTANTIATION__REACTOR_CLASS);
     }
+    if (AttributeUtils.getEnclaveAttribute(instantiation) != null && !target.supportsEnclaves()) {
+      error(
+          "This target does not support enclaves." + instantiation.getReactorClass().getName(),
+          Literals.INSTANTIATION__REACTOR_CLASS);
+    }
 
     // Report error if this instantiation is part of a cycle.
     // FIXME: improve error message.
@@ -698,13 +703,13 @@ public class LFValidator extends BaseLFValidator {
           }
         } else if (triggerVarRef.getVariable() instanceof Output) {
           if (triggerVarRef.getContainer() == null) {
-            // Enclaves in Cpp and C
             error(
                 String.format(
                     "Cannot have an output of this reactor as a trigger: %s",
                     triggerVarRef.getVariable().getName()),
                 Literals.REACTION__TRIGGERS);
           } else if (AttributeUtils.getEnclaveAttribute(triggerVarRef.getContainer()) != null) {
+            // Enclaves in Cpp, C, and Python
             error(
                 String.format(
                     "Triggering a reaction with the output of a contained enclave is not supported:"
