@@ -706,10 +706,11 @@ public class LFValidator extends BaseLFValidator {
                 Literals.REACTION__TRIGGERS);
           } else if (AttributeUtils.getEnclaveAttribute(triggerVarRef.getContainer()) != null) {
             error(
-                    String.format(
-                            "Triggering a reaction with the output of a contained enclave is not supported: %s",
-                            triggerVarRef.getVariable().getName()),
-                    Literals.REACTION__TRIGGERS);
+                String.format(
+                    "Triggering a reaction with the output of a contained enclave is not supported:"
+                        + " %s",
+                    triggerVarRef.getVariable().getName()),
+                Literals.REACTION__TRIGGERS);
           }
         }
       }
