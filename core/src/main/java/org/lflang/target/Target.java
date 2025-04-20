@@ -467,7 +467,10 @@ public enum Target {
 
   /** Return true if enclaves are supported by this target. */
   public boolean supportsEnclaves() {
-    return this.equals(Target.C) || this.equals(Target.CPP) || this.equals(Target.Python);
+    return this.equals(Target.C)
+        || this.equals(Target.CCPP)
+        || this.equals(Target.CPP)
+        || this.equals(Target.Python);
   }
 
   /**
