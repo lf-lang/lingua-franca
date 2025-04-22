@@ -43,12 +43,17 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run Patmos smoke tests
+      - name: Run Patmos tests
         run: |
           ./gradlew core:integrationTest \
             --tests org.lflang.tests.runtime.CPatmosTest.* \
             core:integrationTestCodeCoverageReport
           rm -rf test/C/src-gen
+      - name: Smoke tests
+        run: |
+          for file in $(ls $(pwd)/bin); do
+            pasim $(pwd)/bin/$file
+          done
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
