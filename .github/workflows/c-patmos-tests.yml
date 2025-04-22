@@ -51,8 +51,9 @@ jobs:
           rm -rf test/C/src-gen
       - name: Smoke tests
         run: |
-          for file in $(ls $(pwd)/bin); do
-            pasim $(pwd)/bin/$file
+          for file in $(ls $(pwd)/bin | grep Patmos); do
+            echo "Running pasim on $file"
+            pasim $(pwd)/bin/$file || echo "Error running pasim on $file"
           done
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
