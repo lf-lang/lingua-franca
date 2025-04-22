@@ -458,11 +458,19 @@ public enum Target {
   }
 
   /**
-   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
+   * Return true if reaction declarations (i.e., reactions without inlined code) are supported by
    * this target.
    */
   public boolean supportsReactionDeclarations() {
     return this.equals(Target.C) || this.equals(Target.CPP);
+  }
+
+  /** Return true if enclaves are supported by this target. */
+  public boolean supportsEnclaves() {
+    return this.equals(Target.C)
+        || this.equals(Target.CCPP)
+        || this.equals(Target.CPP)
+        || this.equals(Target.Python);
   }
 
   /**
