@@ -142,6 +142,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
     public static final String DESC_ARDUINO = "Running Arduino tests.";
     public static final String DESC_ZEPHYR = "Running Zephyr tests.";
+    public static final String DESC_PATMOS = "Running Patmos tests.";
     public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
     public static final String DESC_SINGLE_THREADED =
         "Run non-concurrent and non-federated tests with in single-threaded mode.";

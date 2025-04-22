@@ -40,11 +40,24 @@ public class CPatmosTest extends TestBase {
   }
 
   @Test
-  public void buildPatmosBasicTestsUnthreaded() {
+  public void buildPatmosUnthreadedTests() {
+    Assumptions.assumeTrue(isLinux(), "Patmos tests only run on Linux");
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_PATMOS,
+        TestCategory.PATMOS::equals,
+        Transformers::noChanges,
+        Configurators::makePatmosCompatibleUnthreaded,
+        TestLevel.BUILD,
+        false);
+  }
+
+  @Test
+  public void buildBasicTests() {
     Assumptions.assumeTrue(isLinux(), "Patmos tests only supported on Linux");
     super.runTestsFor(
         List.of(Target.C),
-        "Build basic tests for Patmos in single threaded mode.",
+        Message.DESC_PATMOS,
         TestCategory.BASIC::equals,
         Transformers::noChanges,
         Configurators::makePatmosCompatibleUnthreaded,
