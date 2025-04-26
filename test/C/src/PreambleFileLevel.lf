@@ -6,6 +6,11 @@ import FileLevelPreamble from "lib/FileLevelPreamble.lf"
 reactor B extends FileLevelPreamble {
 }
 
-main reactor {
+reactor C {
   b = new B()
+}
+
+main reactor {
+  // b = new B()
+  c = new C()
 }

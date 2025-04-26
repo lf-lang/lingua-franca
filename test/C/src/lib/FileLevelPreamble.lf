@@ -3,9 +3,11 @@ target C
 
 preamble {=
   #define FOO 2
+  typedef int NEW_TYPE_T;
 =}
 
 reactor FileLevelPreamble {
+  state a: NEW_TYPE_T
   reaction(startup) {=
     printf("FOO: %d\n", FOO);
   =}
