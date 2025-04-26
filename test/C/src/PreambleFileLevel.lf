@@ -11,6 +11,5 @@ reactor C {
 }
 
 main reactor {
-  // b = new B()
   c = new C()
 }
