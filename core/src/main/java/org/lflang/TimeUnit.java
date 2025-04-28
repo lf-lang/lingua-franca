@@ -39,13 +39,13 @@ import java.util.stream.Collectors;
  */
 public enum TimeUnit {
   /** Nanoseconds. */
-  NANO("nsec", "ns", "nsecs"),
+  NANO("ns", "nsec", "nsecs"),
   /** Microseconds. */
-  MICRO("usec", "us", "usecs"),
+  MICRO("us", "usec", "usecs"),
   /** Milliseconds. */
-  MILLI("msec", "ms", "msecs"),
+  MILLI("ms", "msec", "msecs"),
   /** Seconds. */
-  SECOND("sec", "s", "secs", "second", "seconds"),
+  SECOND("s", "sec", "secs", "second", "seconds"),
   /** Minute. */
   // NOTE: Do not use MIN as the first entry. Common macro for minimum.
   MINUTE("minute", "min", "mins", "minutes"),
