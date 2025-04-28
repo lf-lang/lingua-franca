@@ -39,13 +39,13 @@ import java.util.stream.Collectors;
  */
 public enum TimeUnit {
   /** Nanoseconds. */
-  NANO("ns", "nsec", "nsecs"),
+  NANO("nsec", "ns", "nsecs"),
   /** Microseconds. */
-  MICRO("us", "usec", "usecs"),
+  MICRO("usec", "us", "usecs"),
   /** Milliseconds. */
-  MILLI("ms", "msec", "msecs"),
+  MILLI("msec", "ms", "msecs"),
   /** Seconds. */
-  SECOND("s", "sec", "secs", "second", "seconds"),
+  SECOND("sec", "s", "secs", "second", "seconds"),
   /** Minute. */
   // NOTE: Do not use MIN as the first entry. Common macro for minimum.
   MINUTE("minute", "min", "mins", "minutes"),
@@ -58,9 +58,11 @@ public enum TimeUnit {
 
   private final Set<String> allNames;
   private final String canonicalName;
+  private final String siName;
 
-  TimeUnit(String canonicalName, String... aliases) {
+  TimeUnit(String canonicalName, String siName, String... aliases) {
     this.canonicalName = canonicalName;
+    this.siName = siName;
     this.allNames = immutableSetOf(canonicalName, aliases);
   }
 
@@ -105,6 +107,6 @@ public enum TimeUnit {
 
   @Override
   public String toString() {
-    return this.canonicalName;
+    return this.siName;
   }
 }
