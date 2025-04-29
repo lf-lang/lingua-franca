@@ -24,8 +24,6 @@
 
 package org.lflang;
 
-import static org.lflang.util.CollectionUtil.immutableSetOf;
-
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -54,7 +52,7 @@ public enum TimeUnit {
   HOUR("hour", "h", "hours"),
   /** Day. */
   DAY("day", "d", "days"),
-  WEEK("week", "wk","weeks"),
+  WEEK("week", "wk", "weeks"),
   ;
 
   private final Set<String> allNames;
@@ -63,6 +61,7 @@ public enum TimeUnit {
 
   /**
    * Construct a time unit.
+   *
    * @param canonicalName The name used in the generated code for the unit.
    * @param siName The SI unit name, if there is one, and otherwise a short name.
    * @param aliases Any number of alternative names for the unit.
