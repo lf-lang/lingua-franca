@@ -27,6 +27,7 @@ package org.lflang;
 import static org.lflang.util.CollectionUtil.immutableSetOf;
 
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -63,7 +64,11 @@ public enum TimeUnit {
   TimeUnit(String canonicalName, String siName, String... aliases) {
     this.canonicalName = canonicalName;
     this.siName = siName;
-    this.allNames = immutableSetOf(canonicalName, aliases);
+    var all = new LinkedHashSet<String>();
+    all.add(canonicalName);
+    all.add(siName);
+    all.addAll(Arrays.asList(aliases));
+    this.allNames = all;
   }
 
   /** Returns the name that is preferred when displaying this unit. */
