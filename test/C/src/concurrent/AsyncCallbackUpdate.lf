@@ -1,4 +1,4 @@
-// Test asynchronous callbacks that trigger a physical action with a "replace" policy. This test
+// Test asynchronous callbacks that trigger a physical action with a "update" policy. This test
 // case assumes that the target is multithreaded. This test will not work with the unthreaded C
 // target because that target does not implement any mutex protecting the event queue.
 target C {
@@ -41,7 +41,7 @@ main reactor {
   state expected_time: time = 100 msec
   state toggle: bool = false
 
-  physical action a(100 msec, 100 msec, "replace"): int
+  physical action a(100 msec, 100 msec, "update"): int
   state i: int = 0
 
   reaction(t) -> a {=
@@ -57,7 +57,7 @@ main reactor {
       exit(1);
     }
     if (a->value != 1) {
-      printf("ERROR: Received: %d, expected 1 because the second event should have replaced the first.\n", a->value);
+      printf("ERROR: Received: %d, expected 1 because the second event should have updated the first.\n", a->value);
       exit(2);
     }
     if (self->toggle) {

@@ -4,7 +4,7 @@ target Python {
 
 main reactor {
   timer t(0, 100 msec)
-  logical action a(1 msec, 300 msec, "replace")
+  logical action a(1 msec, 300 msec, "update")
   state c = 0
   state last = never
 
