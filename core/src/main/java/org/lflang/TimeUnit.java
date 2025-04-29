@@ -54,13 +54,19 @@ public enum TimeUnit {
   HOUR("hour", "h", "hours"),
   /** Day. */
   DAY("day", "d", "days"),
-  WEEK("week", "weeks"),
+  WEEK("week", "wk","weeks"),
   ;
 
   private final Set<String> allNames;
   private final String canonicalName;
   private final String siName;
 
+  /**
+   * Construct a time unit.
+   * @param canonicalName The name used in the generated code for the unit.
+   * @param siName The SI unit name, if there is one, and otherwise a short name.
+   * @param aliases Any number of alternative names for the unit.
+   */
   TimeUnit(String canonicalName, String siName, String... aliases) {
     this.canonicalName = canonicalName;
     this.siName = siName;
