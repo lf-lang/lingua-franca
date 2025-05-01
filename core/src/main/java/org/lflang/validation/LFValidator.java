@@ -1845,7 +1845,8 @@ public class LFValidator extends BaseLFValidator {
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
-  private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace", "update");
+  private static List<String> SPACING_VIOLATION_POLICIES =
+      List.of("defer", "drop", "replace", "update");
 
   private static String UNDERSCORE_MESSAGE =
       "Names of objects (inputs, outputs, actions, timers, parameters, "
