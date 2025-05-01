@@ -1395,7 +1395,7 @@ public class LFValidator extends BaseLFValidator {
                 }
               }
               // continue with inner
-              for (var innerInstance : check.getInstantiations()) {
+              for (var innerInstance : ASTUtils.allInstantiations(check)) {
                 var next = (Reactor) innerInstance.getReactorClass();
                 if (!checked.contains(next)) {
                   toCheck.push(next);
@@ -1469,7 +1469,7 @@ public class LFValidator extends BaseLFValidator {
                             .anyMatch(c -> c.getDelay() != null);
 
                 // continue with inner
-                for (var innerInstance : check.getInstantiations()) {
+                for (var innerInstance : ASTUtils.allInstantiations(check)) {
                   var next = (Reactor) innerInstance.getReactorClass();
                   if (!checked.contains(next)) {
                     toCheck.push(next);

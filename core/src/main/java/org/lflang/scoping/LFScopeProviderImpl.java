@@ -42,6 +42,7 @@ import org.eclipse.xtext.naming.SimpleNameProvider;
 import org.eclipse.xtext.scoping.IScope;
 import org.eclipse.xtext.scoping.Scopes;
 import org.eclipse.xtext.scoping.impl.SelectableBasedScope;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
@@ -197,7 +198,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
 
       if (variable.getContainer() != null) { // Resolve hierarchical port reference
         var instanceName = nameProvider.getFullyQualifiedName(variable.getContainer());
-        var instances = new ArrayList<Instantiation>(reactor.getInstantiations());
+        var instances = new ArrayList<Instantiation>(ASTUtils.allInstantiations(reactor));
         if (mode != null) {
           instances.addAll(mode.getInstantiations());
         }
