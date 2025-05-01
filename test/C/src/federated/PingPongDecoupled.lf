@@ -23,7 +23,7 @@ reactor Ping(count: size_t = 10, STA: time = 0) {
         self->pingsLeft = self->count;
         lf_set(finished, true);
     }
-  =} STAA(1 hour) {=  =}
+  =} STAA(forever) {=  =}
 }
 
 reactor Pong(expected: size_t = 10) {
