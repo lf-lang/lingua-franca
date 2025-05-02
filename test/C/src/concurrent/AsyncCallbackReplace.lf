@@ -57,7 +57,7 @@ main reactor {
       exit(1);
     }
     if (a->value != 1) {
-      printf("ERROR: Received: %d, expected 1 because the second event should have updated the first.\n", a->value);
+      printf("ERROR: Received: %d, expected 1 because the second event should have replaced the first.\n", a->value);
       exit(2);
     }
     if (self->toggle) {
