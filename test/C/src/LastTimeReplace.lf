@@ -1,12 +1,12 @@
 // Test for https://github.com/lf-lang/reactor-c/issues/145
-// This tests the update policy.
+// This tests the replace policy.
 target C {
   timeout: 1 s
 }
 
 main reactor {
   timer t(0, 100 ms)
-  logical action a(1 ms, 300 ms, "update"): int
+  logical action a(1 ms, 300 ms, "replace"): int
   state c: int = 0
   state last: time = never
 
