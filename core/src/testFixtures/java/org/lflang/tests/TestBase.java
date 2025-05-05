@@ -570,7 +570,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    *
    * @param test The test to get the execution command for.
    */
-  private ProcessBuilder getExecCommand(LFTest test) throws TestError {
+  protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
     LFCommand command = test.getFileConfig().getCommand();
     if (command == null) {
       throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);

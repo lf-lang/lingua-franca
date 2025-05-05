@@ -43,20 +43,12 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run Patmos tests
+      - name: Run Patmos Smoke tests
         run: |
           ./gradlew core:integrationTest \
-            --tests org.lflang.tests.runtime.CPatmosTest.* \
+            --tests --scan --debug org.lflang.tests.runtime.CPatmosTest.* \
             core:integrationTestCodeCoverageReport
           rm -rf test/C/src-gen
-      - name: Smoke tests
-        run: |
-          for file in $(find test/C/bin -type f -name '*Patmos*'); do
-            echo "Inspecting file: $file"
-            file "$file"
-            echo "Running pasim on $file"
-            pasim "$file" || echo "Error running pasim on $file"
-          done
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
