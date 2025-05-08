@@ -27,6 +27,7 @@
 
 package org.lflang.validation;
 
+import static org.lflang.ast.ASTUtils.allInstantiations;
 import static org.lflang.ast.ASTUtils.inferPortWidth;
 import static org.lflang.ast.ASTUtils.isGeneric;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -1395,7 +1396,7 @@ public class LFValidator extends BaseLFValidator {
                 }
               }
               // continue with inner
-              for (var innerInstance : check.getInstantiations()) {
+              for (var innerInstance : allInstantiations(check)) {
                 var next = (Reactor) innerInstance.getReactorClass();
                 if (!checked.contains(next)) {
                   toCheck.push(next);
@@ -1469,7 +1470,7 @@ public class LFValidator extends BaseLFValidator {
                             .anyMatch(c -> c.getDelay() != null);
 
                 // continue with inner
-                for (var innerInstance : check.getInstantiations()) {
+                for (var innerInstance : ASTUtils.allInstantiations(check)) {
                   var next = (Reactor) innerInstance.getReactorClass();
                   if (!checked.contains(next)) {
                     toCheck.push(next);
