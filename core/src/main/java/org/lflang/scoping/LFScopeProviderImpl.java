@@ -47,6 +47,7 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
+import org.lflang.lf.WidthTerm;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
@@ -102,6 +103,8 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       return getScopeForReactorDecl(context, reference);
     } else if (context instanceof ImportedReactor) {
       return getScopeForImportedReactor((ImportedReactor) context, reference);
+    } else if (context instanceof WidthTerm) {
+      return getScopeForWidthTerm((WidthTerm) context, reference);
     }
     return super.getScope(context, reference);
   }
@@ -163,6 +166,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       }
     }
     return Scopes.scopeFor(locals);
+  }
+
+  protected IScope getScopeForWidthTerm(WidthTerm term, EReference reference) {
+    return Scopes.scopeFor(allParameters((Reactor) term.eContainer().eContainer().eContainer()));
   }
 
   protected IScope getScopeForAssignment(Assignment assignment, EReference reference) {
