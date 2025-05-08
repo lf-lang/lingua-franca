@@ -107,7 +107,7 @@ public class CReactorHeaderFileGenerator {
     builder.pr("typedef struct " + userFacingSelfType(tpr) + "{");
     builder.indent();
     builder.pr("self_base_t base; // This field is only to be used by the runtime, not the user.");
-    for (Parameter p : tpr.reactor().getParameters()) {
+    for (Parameter p : ASTUtils.allParameters(tpr.reactor())) {
       builder.pr(types.getTargetType(p) + " " + p.getName() + ";");
     }
     for (StateVar s : tpr.reactor().getStateVars()) {
