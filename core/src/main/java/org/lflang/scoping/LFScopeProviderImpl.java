@@ -302,6 +302,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
 
   /**
    * Return the nearest enclosing reactor or null if one is not found.
+   *
    * @param term A term in the abstract syntax tree.
    */
   private Reactor enclosingReactor(EObject term) {
@@ -309,12 +310,13 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     while (reactor != null && !(reactor instanceof Reactor)) {
       reactor = reactor.eContainer();
     }
-    return (Reactor)reactor;
+    return (Reactor) reactor;
   }
 
   /**
-   * If the term is within a Mode before it is within a Reactor, then
-   * return that mode. Otherwise, return null.
+   * If the term is within a Mode before it is within a Reactor, then return that mode. Otherwise,
+   * return null.
+   *
    * @param term A term in the abstract syntax tree.
    */
   private Mode enclosingMode(EObject term) {
@@ -323,11 +325,12 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       if (mode instanceof Reactor) return null;
       mode = mode.eContainer();
     }
-    return (Mode)mode;
+    return (Mode) mode;
   }
 
   /**
    * Return the enclosing Model or null if one is not found.
+   *
    * @param term A term in the abstract syntax tree.
    */
   private Model enclosingModel(EObject term) {
@@ -335,6 +338,6 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     while (model != null && !(model instanceof Model)) {
       model = model.eContainer();
     }
-    return (Model)model;
+    return (Model) model;
   }
 }
