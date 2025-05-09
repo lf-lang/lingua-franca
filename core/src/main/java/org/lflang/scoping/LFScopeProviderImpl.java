@@ -28,6 +28,7 @@ package org.lflang.scoping;
 import static java.util.Collections.emptyList;
 import static org.lflang.ast.ASTUtils.allActions;
 import static org.lflang.ast.ASTUtils.allInputs;
+import static org.lflang.ast.ASTUtils.allInstantiations;
 import static org.lflang.ast.ASTUtils.allOutputs;
 import static org.lflang.ast.ASTUtils.allParameters;
 import static org.lflang.ast.ASTUtils.allTimers;
@@ -47,7 +48,6 @@ import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
-import org.lflang.lf.WidthTerm;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
@@ -57,6 +57,7 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Watchdog;
+import org.lflang.lf.WidthTerm;
 import org.lflang.util.ImportUtil;
 
 /**
@@ -169,7 +170,17 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
   }
 
   protected IScope getScopeForWidthTerm(WidthTerm term, EReference reference) {
-    return Scopes.scopeFor(allParameters((Reactor) term.eContainer().eContainer().eContainer()));
+    // Find the nearest containing reactor. A WidthTerm is within a WidthSpec,
+    // which is within a Port or an Instantiation.  So the nearest possibility
+    // is three levels up.
+    EObject reactor = term.eContainer().eContainer().eContainer();
+    while (!(reactor instanceof Reactor)) {
+      reactor = reactor.eContainer();
+      if (reactor == null) {
+        return Scopes.scopeFor(emptyList());
+      }
+    }
+    return Scopes.scopeFor(allParameters((Reactor) reactor));
   }
 
   protected IScope getScopeForAssignment(Assignment assignment, EReference reference) {
@@ -187,24 +198,24 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
   }
 
   protected IScope getScopeForVarRef(VarRef variable, EReference reference) {
-    if (reference == LfPackage.Literals.VAR_REF__VARIABLE) {
-      // Resolve hierarchical reference
-      Reactor reactor;
-      Mode mode = null;
-      if (variable.eContainer().eContainer() instanceof Reactor) {
-        reactor = (Reactor) variable.eContainer().eContainer();
-      } else if (variable.eContainer().eContainer() instanceof Mode) {
-        mode = (Mode) variable.eContainer().eContainer();
-        reactor = (Reactor) variable.eContainer().eContainer().eContainer();
-      } else {
-        return Scopes.scopeFor(emptyList());
-      }
+    Reactor reactor;
+    Mode mode = null;
+    if (variable.eContainer().eContainer() instanceof Reactor) {
+      reactor = (Reactor) variable.eContainer().eContainer();
+    } else if (variable.eContainer().eContainer() instanceof Mode) {
+      mode = (Mode) variable.eContainer().eContainer();
+      reactor = (Reactor) variable.eContainer().eContainer().eContainer();
+    } else {
+      return Scopes.scopeFor(emptyList());
+    }
 
+    if (reference == LfPackage.Literals.VAR_REF__VARIABLE) {
+      // Resolve variable reference
       RefType type = getRefType(variable);
 
       if (variable.getContainer() != null) { // Resolve hierarchical port reference
         var instanceName = nameProvider.getFullyQualifiedName(variable.getContainer());
-        var instances = new ArrayList<Instantiation>(reactor.getInstantiations());
+        var instances = new ArrayList<Instantiation>(allInstantiations(reactor));
         if (mode != null) {
           instances.addAll(mode.getInstantiations());
         }
@@ -268,6 +279,8 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             return Scopes.scopeFor(emptyList());
         }
       }
+    } else if (reference == LfPackage.Literals.VAR_REF__CONTAINER) {
+      return Scopes.scopeFor(allInstantiations(reactor));
     } else { // Resolve instance
       return super.getScope(variable, reference);
     }

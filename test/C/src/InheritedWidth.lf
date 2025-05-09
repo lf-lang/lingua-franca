@@ -1,10 +1,10 @@
 target C
 
-reactor Parent (n_triggers:int = 1) {
+reactor Parent(n_triggers: int = 1) {
 }
 
 reactor Child extends Parent {
-  input[n_triggers] in:int;
+  input[n_triggers] in: int
 
   reaction(in) {=
     lf_print("in: %d", in[0]->value);
@@ -15,7 +15,8 @@ reactor Child extends Parent {
 }
 
 main reactor {
-  c = new Child();
+  c = new Child()
+
   reaction(startup) -> c.in {=
     lf_set(c.in[0], 42);
   =}
