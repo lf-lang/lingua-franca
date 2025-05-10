@@ -39,7 +39,7 @@ main reactor {
   =}
   timer t(0, 200 msec)
   state thread_id: lf_thread_t = 0
-  state expected_time: time = 101 msec // 100 ms of min delay + 1 ms additional delay
+  state expected_time: time = 101 msec  // 100 ms of min delay + 1 ms additional delay
 
   // To observe a scenario when "update" is not in effect,
   // change min_spacing to a value less than 1 ms (e.g., 100 nsec),
