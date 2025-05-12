@@ -57,14 +57,9 @@ main reactor {
       exit(1);
     }
     if (a->value != 1) {
-      printf("ERROR: Received: %d, expected 1 because the second event should have replaced the first.\n", a->value);
+      printf("ERROR: Received: %d, expected 1 because the second event's payload should have replaced the first event's payload.\n", a->value);
       exit(2);
     }
-    if (self->toggle) {
-      self->toggle = false;
-      self->expected_time += 200000000LL;
-    } else {
-      self->toggle = true;
-    }
+    self->expected_time += 200000000LL;
   =}
 }

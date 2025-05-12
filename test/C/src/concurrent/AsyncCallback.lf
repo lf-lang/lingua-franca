@@ -62,6 +62,7 @@ main reactor AsyncCallback {
       printf("ERROR: Expected logical time to be larger than " PRINTF_TIME ".\n", self->expected_time);
       exit(1);
     }
+    // Use a toggle to increment expected time for every other a.
     if (self->toggle) {
       self->toggle = false;
       self->expected_time += 200000000LL;
