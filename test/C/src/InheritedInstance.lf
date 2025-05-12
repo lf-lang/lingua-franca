@@ -1,0 +1,35 @@
+target C
+
+reactor Foo {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
+}
+
+reactor Parent {
+  input in: int
+  output out: int
+
+  f = new Foo()
+}
+
+reactor Child extends Parent {
+  // Not Working
+  reaction(startup) -> f.in {=
+    lf_set(f.in, 42);
+  =}
+
+  reaction(f.out) {=
+    lf_print("out: %d", f.out->value);
+    if (f.out->value != 42) {
+        lf_print_error_and_exit("Expected 42");
+    }
+  =}
+}
+
+main reactor {
+  c = new Child()
+}
