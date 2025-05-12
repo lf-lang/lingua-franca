@@ -52,7 +52,6 @@ class TSInstanceGenerator(
 
             var isNetworkReceiver = AttributeUtils.findAttributeByName(childReactor.reactorClass, "_network_receiver") != null
             var isNetworkSender = AttributeUtils.findAttributeByName(childReactor.reactorClass, "_network_sender") != null
-            var isNetworkReactor = isNetworkReceiver || isNetworkSender
 
             val childReactorArguments = StringJoiner(", ")
             childReactorArguments.add("this")

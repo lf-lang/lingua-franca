@@ -814,7 +814,7 @@ public class CGenerator extends GeneratorBase {
           (builder, rr, userFacing) -> {
             generateAuxiliaryStructs(builder, rr, userFacing);
             if (userFacing) {
-              rr.reactor().getInstantiations().stream()
+              ASTUtils.allInstantiations(rr.reactor()).stream()
                   .map(
                       it ->
                           new TypeParameterizedReactorWithDecl(

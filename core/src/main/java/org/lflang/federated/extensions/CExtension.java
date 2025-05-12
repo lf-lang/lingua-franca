@@ -690,7 +690,7 @@ public class CExtension implements FedTargetExtension {
         == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var stpParam =
-          reactor.getParameters().stream()
+          ASTUtils.allParameters(reactor).stream()
               .filter(
                   param ->
                       (param.getName().equalsIgnoreCase("STP_offset")

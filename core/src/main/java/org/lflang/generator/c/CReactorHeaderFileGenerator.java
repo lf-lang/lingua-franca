@@ -159,7 +159,7 @@ public class CReactorHeaderFileGenerator {
                             it.getType(true).replaceFirst("\\*", ""),
                             it.getAlias(),
                             CReactionGenerator.maxContainedReactorBankWidth(
-                                reactor.reactor().getInstantiations().stream()
+                                ASTUtils.allInstantiations(reactor.reactor()).stream()
                                     .filter(
                                         instantiation ->
                                             new TypeParameterizedReactor(instantiation, reactor)
