@@ -39,7 +39,7 @@ public final class LfFormatStep {
     }
 
     @Override
-    public String format(@SuppressWarnings("NullableProblems") String rawUnix, File file)
+    public synchronized String format(@SuppressWarnings("NullableProblems") String rawUnix, File file)
         throws IOException, InterruptedException {
       initializeFormatter();
       StringBuilder output = new StringBuilder();
