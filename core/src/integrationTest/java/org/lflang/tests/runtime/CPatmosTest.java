@@ -24,14 +24,19 @@
  ***************/
 package org.lflang.tests.runtime;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
 import org.lflang.tests.Configurators;
+import org.lflang.tests.LFTest;
+import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestBase;
+import org.lflang.tests.TestError;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers;
+import org.lflang.util.LFCommand;
 
 public class CPatmosTest extends TestBase {
 
@@ -39,16 +44,47 @@ public class CPatmosTest extends TestBase {
     super(Target.C);
   }
 
+  @Override
+  protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
+    System.out.println("DEBUG: Entering getExecCommand");
+
+    LFCommand command = test.getFileConfig().getCommand();
+    if (command == null) {
+      System.err.println("ERROR: Command is null");
+      throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
+    }
+
+    List<String> fullCommand = new ArrayList<>();
+    fullCommand.add("pasim"); // Prepend "pasim" to the command
+    fullCommand.addAll(command.command()); // Add the rest of the command
+
+    System.out.println("DEBUG: Full command constructed: " + fullCommand);
+    System.out.println("DEBUG: Working directory: " + command.directory());
+
+    // Create the ProcessBuilder
+    ProcessBuilder processBuilder = new ProcessBuilder(fullCommand).directory(command.directory());
+
+    // Add the directory containing "pasim" to the PATH environment variable
+    String pasimPath = "$HOME/t-crest/local/bin"; // Replace with the actual path to "pasim"
+    processBuilder
+        .environment()
+        .put("PATH", processBuilder.environment().get("PATH") + ":" + pasimPath);
+
+    System.out.println("DEBUG: Updated PATH: " + processBuilder.environment().get("PATH"));
+
+    return processBuilder;
+  }
+
   @Test
-  public void buildPatmosBasicTestsUnthreaded() {
-    Assumptions.assumeTrue(isLinux(), "Patmos tests only supported on Linux");
+  public void runPatmosUnthreadedTests() {
+    Assumptions.assumeTrue(isLinux(), "Patmos tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
-        "Build basic tests for Patmos in single threaded mode.",
-        TestCategory.BASIC::equals,
+        Message.DESC_PATMOS,
+        TestCategory.PATMOS::equals,
         Transformers::noChanges,
         Configurators::makePatmosCompatibleUnthreaded,
-        TestLevel.BUILD,
+        TestLevel.EXECUTION,
         false);
   }
 }
