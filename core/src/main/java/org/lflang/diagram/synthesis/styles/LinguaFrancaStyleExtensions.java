@@ -127,8 +127,8 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
   }
 
   public void commentStyle(KRendering r) {
-    _kRenderingExtensions.setForeground(r, Colors.LIGHT_GOLDENROD);
-    _kRenderingExtensions.setBackground(r, Colors.PALE_GOLDENROD);
+    _kRenderingExtensions.setForeground(r, Colors.GOLDENROD); // Formerly LIGHT_GOLDENROD
+    _kRenderingExtensions.setBackground(r, Colors.WHITE); // Formerly PALE_GOLDENROD
     _kRenderingExtensions.setLineWidth(r, 1);
     _kRenderingExtensions.setSelectionLineWidth(r, 2);
 
