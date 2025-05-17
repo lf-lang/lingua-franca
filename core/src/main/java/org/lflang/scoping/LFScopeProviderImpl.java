@@ -52,6 +52,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -106,6 +107,8 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       return getScopeForImportedReactor((ImportedReactor) context, reference);
     } else if (context instanceof WidthTerm) {
       return getScopeForWidthTerm((WidthTerm) context, reference);
+    } else if (context instanceof ParameterReference) {
+      return getScopeForParameterReference((ParameterReference) context, reference);
     }
     return super.getScope(context, reference);
   }
@@ -166,6 +169,14 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     // Find the nearest containing reactor. A WidthTerm is within a WidthSpec,
     // which is within a Port or an Instantiation.  So the nearest possibility
     // is three levels up.
+    EObject reactor = enclosingReactor(term);
+    if (reactor == null) {
+      return Scopes.scopeFor(emptyList());
+    }
+    return Scopes.scopeFor(allParameters((Reactor) reactor));
+  }
+
+  protected IScope getScopeForParameterReference(ParameterReference term, EReference reference) {
     EObject reactor = enclosingReactor(term);
     if (reactor == null) {
       return Scopes.scopeFor(emptyList());
