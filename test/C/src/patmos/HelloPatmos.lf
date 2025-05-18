@@ -1,7 +1,6 @@
 target C {
   platform: "Patmos",
   single-threaded: true,
-  build-type: Debug
 }
 
 main reactor {
