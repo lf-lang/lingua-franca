@@ -1,0 +1,30 @@
+target C
+
+reactor Parent(a: int = 0) {
+}
+
+reactor T(b: int = 0) {
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_print("b: %d", self->b);
+    lf_set(out, self->b);
+  =}
+}
+
+reactor Child extends Parent {
+  output out: int
+  t = new T(b=a)
+  t.out -> out
+}
+
+main reactor {
+  c1 = new Child(a=42)
+
+  reaction(c1.out) {=
+    lf_print("c1.out: %d", c1.out->value);
+    if (c1.out->value != 42) {
+      lf_print_error_and_exit("Expected 42");
+    }
+  =}
+}
