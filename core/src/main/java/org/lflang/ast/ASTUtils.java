@@ -65,6 +65,8 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.NamedInstance;
+import org.lflang.generator.PortInstance;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
@@ -515,11 +517,49 @@ public class ASTUtils {
     return ASTUtils.collectElements(definition, featurePackage.getReactor_Modes());
   }
 
-  public static List<ReactorInstance> recursiveChildren(ReactorInstance r) {
+  /**
+   * A recursive method for returning all reactor instances
+   *
+   * @param r The reactor at which the search begins
+   * @return A list of reactors, including r and the recursively nested children of r
+   */
+  public static List<ReactorInstance> allReactorInstances(ReactorInstance r) {
     List<ReactorInstance> ret = new ArrayList<>();
     ret.add(r);
     for (var child : r.children) {
-      ret.addAll(recursiveChildren(child));
+      ret.addAll(allReactorInstances(child));
+    }
+    return ret;
+  }
+
+  /**
+   * A recursive method for returning all reaction instances under a parent reactor
+   *
+   * @param r The reactor at which the search begins
+   * @return A list of reactions, including those within r and in the recursively nested children of
+   *     r
+   */
+  public static List<ReactionInstance> allReactionInstances(ReactorInstance r) {
+    List<ReactionInstance> ret = new ArrayList<>();
+    ret.addAll(r.reactions);
+    for (var child : r.children) {
+      ret.addAll(allReactionInstances(child));
+    }
+    return ret;
+  }
+
+  /**
+   * A recursive method for returning all port instances under a parent reactor
+   *
+   * @param r The reactor at which the search begins
+   * @return A list of ports, including those within r and in the recursively nested children of r
+   */
+  public static List<PortInstance> allPortInstances(ReactorInstance r) {
+    List<PortInstance> ret = new ArrayList<>();
+    ret.addAll(r.inputs);
+    ret.addAll(r.outputs);
+    for (var child : r.children) {
+      ret.addAll(allPortInstances(child));
     }
     return ret;
   }

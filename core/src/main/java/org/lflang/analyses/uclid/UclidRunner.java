@@ -14,8 +14,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.lflang.MessageReporter;
+import org.lflang.TimeTag;
+import org.lflang.TimeValue;
 import org.lflang.analyses.statespace.StateInfo;
-import org.lflang.analyses.statespace.Tag;
 import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.util.LFCommand;
 
@@ -98,7 +99,8 @@ public class UclidRunner {
     // The rest falls into group 2.
     else tagStr = m.group(2).strip();
     String[] tag = tagStr.split("\\s+");
-    info.tag = new Tag(Long.parseLong(tag[0]), Long.parseLong(tag[1]), false);
+    info.tag =
+        new TimeTag(TimeValue.fromNanoSeconds(Long.parseLong(tag[0])), Long.parseLong(tag[1]));
 
     // Variables
     // Currently all integers.

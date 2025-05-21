@@ -235,7 +235,7 @@ public class CWatchdogGenerator {
    */
   private static String generateActionVariablesInHandler(
       Action action, TypeParameterizedReactor tpr) {
-    String structType = CGenerator.variableStructType(action, tpr, false);
+    String structType = CUtil.variableStructType(action, tpr, false);
     CodeBuilder builder = new CodeBuilder();
     builder.pr(
         "// Expose the action struct as a local variable whose name matches the action name.");
