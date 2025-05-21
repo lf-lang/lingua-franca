@@ -2079,7 +2079,7 @@ public class CGenerator extends GeneratorBase {
   /** Generate top-level preamble code. */
   protected String generateTopLevelPreambles(Reactor reactor) {
     CodeBuilder builder = new CodeBuilder();
-    var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
+    var guard = "TOP_LEVEL_PREAMBLE_" + reactor.hashCode() + "_H";
     builder.pr("#ifndef " + guard);
     builder.pr("#define " + guard);
     // Reactors that are instantiated by the specified reactor need to have
