@@ -5,22 +5,24 @@
 ### Running from the command line
 
 The simplest way to run integration tests for a specific target is the `targetTest` gradle task. For instance, you can use the following command to run all Rust tests:
+
 ```
 ./gradlew targetTest -Ptarget=Rust
 ```
-You can specify any valid target. If you run the task without specifying the target property, `./gradlew targetTest` will produce an error message and list all available targets.
+You can specify any valid target.
 
 The `targetTest` task is essentially a convenient shortcut for the following:
-```
-./gradlew core:integrationTest --tests org.lflang.tests.runtime.<target>Test.*
-```
-If you prefer have more control over which tests are executed, you can also use this more verbose version.
 
-On Zsh (Z shell), which is the default shell for macOS, make sure to add
-quotes if `*` is used to prevent Zsh from matching the test name against the
-filesystem and returning a `zsh: no matches found` error.
 ```
 ./gradlew core:integrationTest --tests "org.lflang.tests.runtime.<target>Test.*"
+```
+If you prefer have more control over which tests are executed, you can also use this more verbose version.
+Note that the quotation marks are necessary on some shells to prevent the shell from trying to match the `*` to file names.
+
+To run a single test case, use the `singleTest` gradle task along with the path to the test source file:
+
+```
+./gradlew singleTest -DsingleTest=test/C/src/Minimal.lf
 ```
 
 It is also possible to run a subset of the tests. For example, the C tests are organized into the following categories:
@@ -31,14 +33,14 @@ It is also possible to run a subset of the tests. For example, the C tests are o
 * **multiport** tests are `.lf` files located in `$LF/test/C/src/multiport`.
 
 To invoke only the C tests in the `concurrent` category, for example, do this:
+
 ```
 ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CTest.runConcurrentTests
 ```
 
-To run a single test case, use the `singleTest` gradle task along with the path to the test source file:
-```
-./gradlew singleTest -DsingleTest=test/C/src/Minimal.lf
-```
+Test categories are declared in the [TestCategory enum in TestRegistry.java](https://github.com/lf-lang/lingua-franca/blob/2611f38cb1e331afbf2fc18f0c9e9ec2758de348/org.lflang.tests/src/org/lflang/tests/TestRegistry.java#L130). Each `.lf` file is identified by the matching containing directory closest to it, or, if there is no such directory, it will be identified as `generic`. E.g., `test/C/src/multiport/Foo.lf` falls in the `multiport` category. 
+
+Tests are normally expected to compile without errors and return exit code `0` when executed. Some test categories (e.g., `arduino`) are not attempted to run and are only expected to compile as they might require the presence of particular hardware or exotic software configurations that are not manageable in GitHub Actions, our current platform for Continuous Integration (CI). Only pushes to [feature branches](#feature-branches) associated with an active [pull request](#pull-requests) trigger CI.
 
 ### LSP tests
 
