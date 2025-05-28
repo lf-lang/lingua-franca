@@ -14,11 +14,12 @@ You can work on the Lingua Franca code base in your favorite editor and build [u
 
 An integral part of contributing code is writing tests.
 
-**Unit tests** for the compiler are located in the `org.lflang.tests` package (found in the directory `core/src/test/java/org/lflang/tests`) and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
+**Unit tests** for the compiler are located in the `org.lflang.tests` package (found in the directory `core/src/test/java/org/lflang/tests`, in the `core` gradle subproject) and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
 
 ```
-./gradlew test --tests "org.lflang.tests.compiler.*"
+./gradlew :core:test --tests "org.lflang.tests.compiler.*"
 ```
+
 **Integration tests** consist of complete Lingua Franca programs that are located in the `test` directory in the root of the repository and are organized first by target, then by category. These tests get indexed automatically and are also invoked using Gradle. For instance, to run all the tests for the C target, use the following command:
 
 ```
