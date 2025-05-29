@@ -14,15 +14,19 @@ You can work on the Lingua Franca code base in your favorite editor and build [u
 
 An integral part of contributing code is writing tests.
 
-**Unit tests** for the compiler are located in the `org.lflang.tests` package and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
+**Unit tests** for the compiler are located in the `org.lflang.tests` package (found in the directory `core/src/test/java/org/lflang/tests`, in the `core` gradle subproject) and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the `org.lflang.tests.compiler` package, use the following command:
+
 ```
-./gradlew test --tests org.lflang.tests.compiler.*
+./gradlew :core:test --tests "org.lflang.tests.compiler.*"
 ```
+
 **Integration tests** consist of complete Lingua Franca programs that are located in the `test` directory in the root of the repository and are organized first by target, then by category. These tests get indexed automatically and are also invoked using Gradle. For instance, to run all the tests for the C target, use the following command:
+
 ```
- ./gradlew test --tests org.lflang.tests.runtime.CTest.*
- ```
-Test categories are declared in the [TestCategory enum in TestRegistry.java](https://github.com/lf-lang/lingua-franca/blob/2611f38cb1e331afbf2fc18f0c9e9ec2758de348/org.lflang.tests/src/org/lflang/tests/TestRegistry.java#L130). Each `.lf` file is identified by the matching containing directory closest to it, or, if there is no such directory, it will be identified as `generic`. E.g., `test/C/src/multiport/Foo.lf` falls in the `multiport` category. Tests are normally expected to compile without errors and return exit code `0` when executed. Some test categories (e.g., `arduino`) are not attempted to run and are only expected to compile as they might require the presence of particular hardware or exotic software configurations that are not manageable in GitHub Actions, our current platform for Continuous Integration (CI). Only pushes to [feature branches](#feature-branches) associated with an active [pull request](#pull-requests) trigger CI.
+./gradlew targetTest -Ptarget=C
+```
+
+For more details, see [test/README.md](test/README.md).
 
 ### Workflow
 All code contributions must go through a [pull request (PR)](https://github.com/lf-lang/.github/blob/main/CONTRIBUTING.md#pull-requests), pass all tests run in CI, and get an approving review before it is merged. Pushing to the `master` branch is restricted. All code review is conducted using the Github review system on PRs. Before requesting a code review, ensure that you have:
