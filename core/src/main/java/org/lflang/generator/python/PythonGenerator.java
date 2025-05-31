@@ -208,7 +208,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
             + " USEC,",
         "        USECS, WEEK, WEEKS",
         "    )",
-        "    from LinguaFrancaBase.classes import Make",
+        "    from LinguaFrancaBase.classes import Make, ReactorBase",
         "except ModuleNotFoundError:",
         "    print(\"No module named 'LinguaFrancaBase'. \"",
         "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
@@ -514,16 +514,17 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
     // Create a field in the Python object for the reactor called "lf_self" that contains the
     // C pointer to the C self struct.
     initializeTriggerObjects.pr(
-            String.join(
-                    "\n",
-                    "if (set_python_field_to_c_pointer(\"__main__\",",
-                    "    " + nameOfSelfStruct + "->_lf_name,",
-                    "    " + CUtil.runtimeIndex(instance) + ",",
-                    "    \"lf_self\",",
-                    "    " + nameOfSelfStruct + ")) {",
-                    "  lf_print_error_and_exit(\"Could not set lf_self pointer " + instance.getName() + "\");",
-                    "}"
-            ));
+        String.join(
+            "\n",
+            "if (set_python_field_to_c_pointer(\"__main__\",",
+            "    " + nameOfSelfStruct + "->_lf_name,",
+            "    " + CUtil.runtimeIndex(instance) + ",",
+            "    \"lf_self\",",
+            "    " + nameOfSelfStruct + ")) {",
+            "  lf_print_error_and_exit(\"Could not set lf_self pointer "
+                + instance.getName()
+                + "\");",
+            "}"));
   }
 
   /**

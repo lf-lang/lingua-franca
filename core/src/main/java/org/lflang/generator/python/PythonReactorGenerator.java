@@ -70,7 +70,9 @@ public class PythonReactorGenerator {
 
   private static String generatePythonClassHeader(String className) {
     return String.join(
-        "\n", "# Python class for reactor " + className + "", "class _" + className + ":");
+        "\n",
+        "# Python class for reactor " + className + "",
+        "class _" + className + "(ReactorBase):");
   }
 
   /**
