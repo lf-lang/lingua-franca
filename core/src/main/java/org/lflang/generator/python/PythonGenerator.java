@@ -197,7 +197,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
         "# so that these names will be assumed present without having to compile and install.",
         "# pylint: disable=no-name-in-module, import-error",
         "from " + pyModuleName + " import (",
-        "    Tag, action_capsule_t, port_capsule, request_stop, schedule_copy, start",
+        "    Tag, action_capsule_t, port_capsule, request_stop, start",
         ")",
         "# pylint: disable=c-extension-no-member",
         "import " + pyModuleName + " as lf",
@@ -208,7 +208,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
             + " USEC,",
         "        USECS, WEEK, WEEKS",
         "    )",
-        "    from LinguaFrancaBase.classes import Make",
+        "    from LinguaFrancaBase.classes import Make, ReactorBase",
         "except ModuleNotFoundError:",
         "    print(\"No module named 'LinguaFrancaBase'. \"",
         "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
@@ -510,6 +510,21 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   protected void generateReactorInstanceExtension(ReactorInstance instance) {
     initializeTriggerObjects.pr(
         PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
+    String nameOfSelfStruct = CUtil.reactorRef(instance);
+    // Create a field in the Python object for the reactor called "lf_self" that contains the
+    // C pointer to the C self struct.
+    initializeTriggerObjects.pr(
+        String.join(
+            "\n",
+            "if (set_python_field_to_c_pointer(\"__main__\",",
+            "    " + nameOfSelfStruct + "->_lf_name,",
+            "    " + CUtil.runtimeIndex(instance) + ",",
+            "    \"lf_self\",",
+            "    " + nameOfSelfStruct + ")) {",
+            "  lf_print_error_and_exit(\"Could not set lf_self pointer "
+                + instance.getName()
+                + "\");",
+            "}"));
   }
 
   /**
