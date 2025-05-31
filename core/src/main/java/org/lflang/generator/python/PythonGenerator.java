@@ -197,7 +197,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
         "# so that these names will be assumed present without having to compile and install.",
         "# pylint: disable=no-name-in-module, import-error",
         "from " + pyModuleName + " import (",
-        "    Tag, action_capsule_t, port_capsule, request_stop, schedule_copy, start",
+        "    Tag, action_capsule_t, port_capsule, request_stop, start",
         ")",
         "# pylint: disable=c-extension-no-member",
         "import " + pyModuleName + " as lf",
