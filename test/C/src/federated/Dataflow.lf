@@ -19,7 +19,7 @@ reactor Client(STP_offset: time = 1 day) {
       lf_request_stop();
     }
     lf_set(client_message, val);
-  =} STP(0) {=
+  =} STAA(0) {=
     // Zero STAA because STA is large and gets added.
     lf_print_error_and_exit("Client STP Violated!");
   =}
@@ -47,7 +47,7 @@ reactor Server(STP_offset: time = 1 day) {
       lf_request_stop();
     }
     lf_set(server_message, val);
-  =} STP(0) {=
+  =} STAA(0) {=
     // Zero STAA because STA is large and gets added.
     lf_print_error_and_exit("Server STP Violated!");
   =}

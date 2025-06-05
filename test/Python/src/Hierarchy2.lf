@@ -40,12 +40,12 @@ reactor Add {
 }
 
 reactor Print {
-  input _in
+  input inp
   state expected = 2
 
-  reaction(_in) {=
-    print("Received: ", _in.value)
-    if _in.value != self.expected:
+  reaction(inp) {=
+    print("Received: ", inp.value)
+    if inp.value != self.expected:
       sys.stderr.write("Expected {:d}.\n".format(self.expected))
       exit(1)
     self.expected+=1
@@ -53,11 +53,11 @@ reactor Print {
 }
 
 reactor AddCount {
-  input _in
+  input inp
   output out
   count = new Count()
   add = new Add()
-  _in -> add.in1
+  inp -> add.in1
   count.out -> add.in2
   add.out -> out
 }
@@ -66,6 +66,6 @@ main reactor Hierarchy2 {
   source = new Source()
   addCount = new AddCount()
   print = new Print()
-  source.out -> addCount._in
-  addCount.out -> print._in
+  source.out -> addCount.inp
+  addCount.out -> print.inp
 }

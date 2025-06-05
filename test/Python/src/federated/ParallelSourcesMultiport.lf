@@ -15,13 +15,13 @@ reactor Source {
 }
 
 reactor Destination1 {
-  input[3] in_
+  input[3] inp
 
   t1 = new TestCount(num_inputs=3)
   t2 = new TestCount(num_inputs=3)
   t3 = new TestCount(num_inputs=3)
 
-  in_ -> t1.in_, t2.in_, t3.in_
+  inp -> t1.inp, t2.inp, t3.inp
 }
 
 federated reactor {
@@ -30,5 +30,5 @@ federated reactor {
   d1 = new Destination1()
   t4 = new TestCount(num_inputs=3)
 
-  s1.out, s2.out -> d1.in_, t4.in_
+  s1.out, s2.out -> d1.inp, t4.inp
 }

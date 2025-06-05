@@ -43,6 +43,7 @@ import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.ReactorInstance;
@@ -60,6 +61,7 @@ import org.lflang.target.Target;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.DNETProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.SingleThreadedProperty;
@@ -229,11 +231,6 @@ public class CExtension implements FedTargetExtension {
            LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
            lf_enqueue_port_absent_reactions(self->base.environment);
            """;
-  }
-
-  @Override
-  public String inputInitializationBody() {
-    return "self->_lf__reaction_1.is_an_input_reaction = true;\n";
   }
 
   @Override
@@ -685,7 +682,7 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutexes",
             "lf_mutex_init(&lf_outbound_socket_mutex);",
-            "lf_mutex_init(&socket_mutex);",
+            "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
     // Find the STA (A.K.A. the global STP offset) for this federate.
@@ -693,7 +690,7 @@ public class CExtension implements FedTargetExtension {
         == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var stpParam =
-          reactor.getParameters().stream()
+          ASTUtils.allParameters(reactor).stream()
               .filter(
                   param ->
                       (param.getName().equalsIgnoreCase("STP_offset")
@@ -816,13 +813,15 @@ public class CExtension implements FedTargetExtension {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
-      var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var main =
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
               messageReporter,
               1);
-      var instance = new ReactorInstance(federateClass, main, messageReporter);
+      // Use the instantiation to create a new ReactorInstance so that it gets the parameters of the
+      // original.
+      var instance =
+          new ReactorInstance(federate.instantiation, main, messageReporter, -1, List.of());
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;
       Output outputFound = null;
@@ -831,6 +830,22 @@ public class CExtension implements FedTargetExtension {
         if (outputDelay.isEarlierThan(minDelay)) {
           minDelay = outputDelay;
           outputFound = output;
+        }
+      }
+      if (federate.targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
+        ActionInstance found = federate.findPhysicalAction(instance);
+        if (found != null) {
+          String warning =
+              String.join(
+                  "\n",
+                  "Found a physical action inside the federate "
+                      + addDoubleQuotes(instance.getName()),
+                  "and a signal downstream next event tag (DNET) will be used.",
+                  "The signal DNET may increase the lag, the time difference between ",
+                  "the time this physical action is scheduled and the time it is executed, ",
+                  "specifically when this federate has multiple upstream reactors.",
+                  "Consider disabling the signal DNET with a property {DNET: false}.");
+          messageReporter.at(found.getDefinition()).warning(warning);
         }
       }
       if (minDelay != TimeValue.MAX_VALUE) {

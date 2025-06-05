@@ -175,13 +175,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
-  // An enclave object if this ReactorInstance is an enclave. null if not
+  /** An enclave object if this ReactorInstance is an enclave. null if not. */
   public EnclaveInfo enclaveInfo = null;
+
+  /** FIXME: What is this? */
   public TypeParameterizedReactor tpr;
 
   /**
-   * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
-   * annotation. TPO is total port order. See
+   * The Total Port Order level with which {@code this} was annotated, or {@code null} if there is
+   * no TPO annotation. TPO is total port order. See
    * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
   public final Integer tpoLevel;
@@ -935,6 +937,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     SendRange range = new SendRange(src, dst, src._interleaved, connection);
     src.instance.dependentPorts.add(range);
     dst.instance.dependsOnPorts.add(src);
+
+    // Record the connection in the source port instances.
+    List<Connection> downstreamConnections = src.instance.downstreamConnections.get(dst.instance);
+    if (downstreamConnections == null) {
+      downstreamConnections = new LinkedList<Connection>();
+      src.instance.downstreamConnections.put(src.instance, downstreamConnections);
+    }
+    downstreamConnections.add(connection);
+
+    // Record the connection in the destination port instances.
+    List<Connection> upstreamConnections = dst.instance.upstreamConnections.get(src.instance);
+    if (upstreamConnections == null) {
+      upstreamConnections = new LinkedList<Connection>();
+      dst.instance.upstreamConnections.put(src.instance, upstreamConnections);
+    }
+    upstreamConnections.add(connection);
   }
 
   /**

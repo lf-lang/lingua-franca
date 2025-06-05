@@ -128,7 +128,54 @@ public class FedASTUtils {
   }
 
   /**
-   * Replace the specified connection with communication between federates.
+   * Return true if the given port has at least one source reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasSourceReaction(PortInstance port) {
+    var eventualSources = port.eventualSources();
+    for (var source : eventualSources) {
+      if (!source.instance.getDependsOnReactions().isEmpty()) {
+        // There is at least one source reaction.
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the given port has at least one destination reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasDestinationReaction(PortInstance port) {
+    var eventualDestinations = port.eventualDestinations();
+    for (var destination : eventualDestinations) {
+      for (var eventual : destination.destinations) {
+        if (!eventual.instance.getDependentReactions().isEmpty()) {
+          // There is at least one destination.
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the specified connection has at least one source reaction that can send data
+   * through the connection and at least one destination reaction that is triggered by or uses the
+   * data sent through the connection.
+   *
+   * @param connection The connection
+   */
+  private static boolean isConnectionLive(FedConnectionInstance connection) {
+    return hasSourceReaction(connection.getSourcePortInstance())
+        && hasDestinationReaction(connection.getDestinationPortInstance());
+  }
+
+  /**
+   * Replace the specified connection with communication between federates. If the connection has no
+   * source reactions or no destination reactions, then return without doing anything.
    *
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
@@ -140,6 +187,10 @@ public class FedASTUtils {
       Resource resource,
       CoordinationMode coordination,
       MessageReporter messageReporter) {
+
+    if (!isConnectionLive(connection)) {
+      return;
+    }
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
@@ -245,17 +296,10 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    // Add the attribute "_networkReactor" for the network receiver.
+    // Add the attribute "_network_receiver" for the network receiver.
     var a = factory.createAttribute();
-    a.setAttrName("_networkReactor");
-    var e = factory.createAttrParm();
-    e.setValue("\"receiver\"");
-    a.getAttrParms().add(e);
+    a.setAttrName("_network_receiver");
     receiver.getAttributes().add(a);
-
-    receiver
-        .getReactions()
-        .add(getInitializationReaction(extension, extension.inputInitializationBody()));
 
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
@@ -293,29 +337,16 @@ public class FedASTUtils {
     // Get the largest STAA for any reaction triggered by the destination port.
     TimeValue maxSTAA = findMaxSTAA(connection, coordination);
 
-    // Adjust this down by the delay on the connection, but do not go below zero.
-    TimeValue adjusted = maxSTAA;
-    TimeValue delay = ASTUtils.getLiteralTimeValue(connection.getDefinition().getDelay());
-    if (delay != null) {
-      adjusted = maxSTAA.subtract(delay);
-    }
+    // Add the maxSTAA to the sorted set of federate STAA offsets.
+    connection.dstFederate.staaOffsets.add(maxSTAA);
 
-    // Need to include even zero STAAs so that ports can be assumed absent right away.
-    // Consolodate all equal STAAs.
-    if (!connection.dstFederate.currentSTAOffsets.contains(adjusted.time)) {
-      connection.dstFederate.currentSTAOffsets.add(adjusted.time);
-      connection.dstFederate.staaOffsets.add(adjusted);
-      connection.dstFederate.staToNetworkActionMap.put(adjusted, new ArrayList<>());
-    } else {
-      // TODO: Find more efficient way to reuse timevalues
-      for (var offset : connection.dstFederate.staaOffsets) {
-        if (maxSTAA.time == offset.time) {
-          maxSTAA = offset;
-          break;
-        }
-      }
+    // Identify the networkActions associated with this maxSTAA.
+    var networkActions = connection.dstFederate.staToNetworkActionMap.get(maxSTAA);
+    if (networkActions == null) {
+      networkActions = new ArrayList<Action>();
+      connection.dstFederate.staToNetworkActionMap.put(maxSTAA, networkActions);
     }
-    connection.dstFederate.staToNetworkActionMap.get(adjusted).add(networkAction);
+    networkActions.add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
@@ -324,7 +355,6 @@ public class FedASTUtils {
     // these reactions to appear only in the federate whose bank ID matches.
     setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
-    // FIXME: do not create a new extension every time it is used
     extension.annotateReaction(networkReceiverReaction);
 
     // The connection is 'physical' if it uses the ~> notation.
@@ -418,7 +448,13 @@ public class FedASTUtils {
     // that it is connected to, which both have the same downstream reaction, have the correct
     // ordering wrt each other.
     var ub = p.getLevelUpperBound(index);
-    e.setValue(String.valueOf(p.isInput() ? 2 * ub : 2 * ub - 1));
+    // Adjust the level so that input levels are even and output levels are odd, unless the level is
+    // Integer.MAX_VALUE, which occurs if a port has no dependent reactions.
+    int level = Integer.MAX_VALUE;
+    if (ub < Integer.MAX_VALUE / 2) {
+      level = p.isInput() ? 2 * ub : 2 * ub - 1;
+    }
+    e.setValue(String.valueOf(level));
     a.getAttrParms().add(e);
     instantiation.getAttributes().add(a);
   }
@@ -515,13 +551,12 @@ public class FedASTUtils {
   }
 
   /**
-   * Find the maximum STP offset for the given 'port'.
-   *
-   * <p>An STP offset predicate can be nested in contained reactors in the federate.
-   *
+   * @brief Find the maximum STP offset (STAA) for the given 'port'.
+   *     <p>An STP offset (STAA) may be nested in contained reactors in the federate. This returns
+   *     TimeValue.ZERO if there are no STAA offsets for the port.
    * @param connection The connection to find the max STP offset for.
    * @param coordination The coordination scheme.
-   * @return The maximum STP as a TimeValue
+   * @return The maximum STP (STAA) as a TimeValue
    */
   private static TimeValue findMaxSTAA(
       FedConnectionInstance connection, CoordinationMode coordination) {
@@ -670,12 +705,9 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
-    // Add the attribute "_networkReactor" for the network sender.
+    // Add the attribute "_network_sender" for the network sender.
     var a = factory.createAttribute();
-    a.setAttrName("_networkReactor");
-    var e = factory.createAttrParm();
-    e.setValue("\"sender\"");
-    a.getAttrParms().add(e);
+    a.setAttrName("_network_sender");
     sender.getAttributes().add(a);
 
     Input in = factory.createInput();

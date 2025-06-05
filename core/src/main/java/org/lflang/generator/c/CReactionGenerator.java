@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -289,7 +290,7 @@ public class CReactionGenerator {
     }
     // Search for instances of the parent within the tail of the breadcrumbs list.
     Reactor container = ASTUtils.toDefinition(nestedBreadcrumbs.get(0).getReactorClass());
-    for (Instantiation instantiation : container.getInstantiations()) {
+    for (Instantiation instantiation : ASTUtils.allInstantiations(container)) {
       // Put this new instantiation at the head of the list.
       nestedBreadcrumbs.add(0, instantiation);
       if (ASTUtils.toDefinition(instantiation.getReactorClass()) == parent) {
@@ -929,6 +930,11 @@ public class CReactionGenerator {
                       + tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())
                       + "];"
                   : "self->_lf__reaction_" + reactionCount + ".mode = NULL;"));
+      // If the reactor is a network receiver, then set the is_an_input_reaction to true.
+      if (AttributeUtils.findAttributeByName(tpr.reactor(), "_network_receiver") != null) {
+        constructorCode.pr(
+            "self->_lf__reaction_" + reactionCount + ".is_an_input_reaction = true;");
+      }
       // Increment the reactionCount even if the reaction is not in the federate
       // so that reaction indices are consistent across federates.
       reactionCount++;

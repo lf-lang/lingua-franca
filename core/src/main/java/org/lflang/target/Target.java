@@ -350,7 +350,8 @@ public enum Target {
       // In our Rust implementation, the only reserved keywords
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
-      Arrays.asList("self", "true", "false"));
+      Arrays.asList("self", "true", "false")),
+  UC("uC", false, Arrays.asList());
 
   /** String representation of this target. */
   private final String displayName;
@@ -457,11 +458,19 @@ public enum Target {
   }
 
   /**
-   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
+   * Return true if reaction declarations (i.e., reactions without inlined code) are supported by
    * this target.
    */
   public boolean supportsReactionDeclarations() {
     return this.equals(Target.C) || this.equals(Target.CPP);
+  }
+
+  /** Return true if enclaves are supported by this target. */
+  public boolean supportsEnclaves() {
+    return this.equals(Target.C)
+        || this.equals(Target.CCPP)
+        || this.equals(Target.CPP)
+        || this.equals(Target.Python);
   }
 
   /**
@@ -561,6 +570,7 @@ public enum Target {
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
               CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
               DockerProperty.INSTANCE,
               FilesProperty.INSTANCE,
               KeepaliveProperty.INSTANCE,
