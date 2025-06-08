@@ -1,0 +1,50 @@
+/** Test reading a file at a location relative to the source file. */
+target Python {
+  timeout: 0 s
+}
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    file_path = os.path.join(
+      lf.source_directory(),
+      "..",
+      "lib",
+      "FileReader.txt"
+    )
+
+    try:
+      with open(file_path, "r") as file:
+        buffer = file.read()
+      out.set(buffer)
+    except Exception as e:
+      sys.stderr.write(f"Error reading file at path {file_path}: {str(e)}")
+      exit(1)
+  =}
+}
+
+reactor Check {
+  input inp
+  state received = False
+
+  reaction(inp) {=
+    print(f"Received: {inp.value}")
+    self.received = True
+    if inp.value != "Hello World":
+      sys.stderr.write("Expected 'Hello World'")
+      exit(1)
+  =}
+
+  reaction(shutdown) {=
+    if not self.received:
+      sys.stderr.write("No input received.")
+      exit(1)
+  =}
+}
+
+federated reactor {
+  s = new Source()
+  c = new Check()
+  s.out -> c.inp
+}
