@@ -15,7 +15,7 @@ concurrency:
 jobs:
   # Run the C++ benchmark tests.
   cpp-benchmark-tests:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fix-raw-pointer-ref
     with:
       target: "Cpp"
 
