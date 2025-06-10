@@ -18,7 +18,6 @@ jobs:
     uses: ./.github/workflows/rs-tests.yml
     with:
       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
-
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
     # FIXME: These started failing on 2025-06-08.
@@ -29,3 +28,4 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fix-raw-pointer-ref
     with:
       target: "Rust"
+
