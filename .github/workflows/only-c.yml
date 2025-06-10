@@ -19,12 +19,6 @@ jobs:
     with:
       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
-  # Run the C benchmark tests.
-  benchmarking:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
-    with:
-      target: "C"
-
   # Run the CCpp integration tests.
   ccpp:
     uses: ./.github/workflows/c-tests.yml
