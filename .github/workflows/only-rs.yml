@@ -28,4 +28,3 @@ jobs:
     uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fix-raw-pointer-ref
     with:
       target: "Rust"
-
