@@ -20,11 +20,6 @@ jobs:
       all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
   # Run the Rust benchmark tests.
   rs-benchmark-tests:
-    # FIXME: These started failing on 2025-06-08.
-    # Referring to a branch did not work.
-    # Fixes in the Rust benchmarks are in the branch, but those
-    # do not work either.
-    if: false  # Always skip benchmark tests
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fix-raw-pointer-ref
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: "Rust"

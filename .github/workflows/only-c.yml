@@ -21,7 +21,7 @@ jobs:
 
   # Run the C benchmark tests.
   benchmarking:
-    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@fix-raw-pointer-ref
+    uses: lf-lang/benchmarks-lingua-franca/.github/workflows/benchmark-tests.yml@main
     with:
       target: "C"
 
