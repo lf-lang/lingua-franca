@@ -3,6 +3,9 @@
 ## Continuous Integration
 The main two CI configurations can be found in [all-misc.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-misc.yml) and [all-targets.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-targets.yml). The [all-misc.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-misc.yml) workflow runs the non-target specific tests, and [all-targets.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/all-targets.yml) workflow runs the target specific tests. They get triggered by pushes to `master` and by pushes to branches involved in an open pull request.
 
+### Benchmark tests
+Benchmarks in the [benchmarks-lingua-franca repo](https://github.com/lf-lang/benchmarks-lingua-franca) are also tested.
+
 ### CLI tests
 The [lfc-tests.yml](https://github.com/lf-lang/lingua-franca/blob/master/.github/workflows/lfc-tests.yml) workflow tests command line access to the Lingua Franca compiler via `lfc`.
 ### Target-specific tests
