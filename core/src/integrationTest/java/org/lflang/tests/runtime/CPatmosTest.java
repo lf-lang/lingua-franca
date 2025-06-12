@@ -46,6 +46,8 @@ public class CPatmosTest extends TestBase {
 
   @Override
   protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
+    final String SIMULATOR = "patemu";
+    
     System.out.println("DEBUG: Entering getExecCommand");
 
     LFCommand command = test.getFileConfig().getCommand();
@@ -53,24 +55,56 @@ public class CPatmosTest extends TestBase {
       System.err.println("ERROR: Command is null");
       throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
     }
+    // Print which simulator command will be used
+    ProcessBuilder whichSim = new ProcessBuilder("which", SIMULATOR);
+    try {
+      Process proc = whichSim.start();
+      int exitCode = proc.waitFor();
+      if (exitCode == 0) {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+            new java.io.InputStreamReader(proc.getInputStream()))) {
+          String simLocation = reader.readLine();
+          System.out.println("DEBUG: Simulator found at: " + simLocation);
+        }
+      } else {
+        System.out.println("DEBUG: Simulator not found in PATH.");
+      }
+    } catch (Exception e) {
+      System.out.println("DEBUG: Exception while locating simulator: " + e.getMessage());
+    }
 
     List<String> fullCommand = new ArrayList<>();
-    fullCommand.add("pasim"); // Prepend "pasim" to the command
+    fullCommand.add(SIMULATOR); // Prepend simulator to the command
     fullCommand.addAll(command.command()); // Add the rest of the command
 
     System.out.println("DEBUG: Full command constructed: " + fullCommand);
     System.out.println("DEBUG: Working directory: " + command.directory());
+    
+    // Run the full command to check if it executes correctly
+    try {
+      Process testProc = new ProcessBuilder(fullCommand)
+        .directory(command.directory())
+        .inheritIO()
+        .start();
+      int testExit = testProc.waitFor();
+      System.out.println("DEBUG: Test command exited with code: " + testExit);
+    } catch (Exception e) {
+      System.out.println("DEBUG: Exception while running full command: " + e.getMessage());
+    }
 
     // Create the ProcessBuilder
     ProcessBuilder processBuilder = new ProcessBuilder(fullCommand).directory(command.directory());
 
-    // Add the directory containing "pasim" to the PATH environment variable
-    String pasimPath = "$HOME/t-crest/local/bin"; // Replace with the actual path to "pasim"
-    processBuilder
-        .environment()
-        .put("PATH", processBuilder.environment().get("PATH") + ":" + pasimPath);
+    // Add the directory containing simulator to the PATH environment variable
+    String simPath = System.getProperty("user.home") + "/t-crest/local/bin";
+    processBuilder.environment().put(
+        "PATH",
+        simPath + ":" + processBuilder.environment().get("PATH")
+    );
 
     System.out.println("DEBUG: Updated PATH: " + processBuilder.environment().get("PATH"));
+    System.out.println("DEBUG: ProcessBuilder command: " + processBuilder.command());
+    System.out.println("DEBUG: ProcessBuilder directory: " + processBuilder.directory());
 
     return processBuilder;
   }
