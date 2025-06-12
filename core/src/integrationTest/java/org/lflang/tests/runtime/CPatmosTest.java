@@ -47,7 +47,7 @@ public class CPatmosTest extends TestBase {
   @Override
   protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
     final String SIMULATOR = "patemu";
-    
+
     System.out.println("DEBUG: Entering getExecCommand");
 
     LFCommand command = test.getFileConfig().getCommand();
@@ -61,8 +61,8 @@ public class CPatmosTest extends TestBase {
       Process proc = whichSim.start();
       int exitCode = proc.waitFor();
       if (exitCode == 0) {
-        try (java.io.BufferedReader reader = new java.io.BufferedReader(
-            new java.io.InputStreamReader(proc.getInputStream()))) {
+        try (java.io.BufferedReader reader =
+            new java.io.BufferedReader(new java.io.InputStreamReader(proc.getInputStream()))) {
           String simLocation = reader.readLine();
           System.out.println("DEBUG: Simulator found at: " + simLocation);
         }
@@ -79,13 +79,11 @@ public class CPatmosTest extends TestBase {
 
     System.out.println("DEBUG: Full command constructed: " + fullCommand);
     System.out.println("DEBUG: Working directory: " + command.directory());
-    
+
     // Run the full command to check if it executes correctly
     try {
-      Process testProc = new ProcessBuilder(fullCommand)
-        .directory(command.directory())
-        .inheritIO()
-        .start();
+      Process testProc =
+          new ProcessBuilder(fullCommand).directory(command.directory()).inheritIO().start();
       int testExit = testProc.waitFor();
       System.out.println("DEBUG: Test command exited with code: " + testExit);
     } catch (Exception e) {
@@ -97,10 +95,9 @@ public class CPatmosTest extends TestBase {
 
     // Add the directory containing simulator to the PATH environment variable
     String simPath = System.getProperty("user.home") + "/t-crest/local/bin";
-    processBuilder.environment().put(
-        "PATH",
-        simPath + ":" + processBuilder.environment().get("PATH")
-    );
+    processBuilder
+        .environment()
+        .put("PATH", simPath + ":" + processBuilder.environment().get("PATH"));
 
     System.out.println("DEBUG: Updated PATH: " + processBuilder.environment().get("PATH"));
     System.out.println("DEBUG: ProcessBuilder command: " + processBuilder.command());
