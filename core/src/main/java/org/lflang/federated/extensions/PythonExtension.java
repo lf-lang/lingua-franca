@@ -239,11 +239,6 @@ public class PythonExtension extends CExtension {
       MessageReporter messageReporter)
       throws IOException {
     writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
-    return """
-           import gc
-           import atexit
-           gc.disable()
-           atexit.register(os._exit, 0)
-           """;
+    return "";
   }
 }
