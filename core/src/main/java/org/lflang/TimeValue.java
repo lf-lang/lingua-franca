@@ -176,7 +176,9 @@ public final class TimeValue implements Comparable<TimeValue> {
 
   /** Return a string representation of this time value. */
   public String toString() {
-    return unit != null ? time + " " + unit.getCanonicalName() : Long.toString(time);
+    if (this.equals(MAX_VALUE)) return "forever";
+    if (this.equals(MIN_VALUE)) return "never";
+    return unit != null ? time + " " + unit.toString() : Long.toString(time);
   }
 
   /** Return the latest of both values. */

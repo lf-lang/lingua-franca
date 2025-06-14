@@ -669,7 +669,7 @@ public class CUtil {
             node -> {
               if (node instanceof Reactor r) {
                 if (r.isFederated()) {
-                  r.getInstantiations().forEach(inst -> federateNames.add(inst.getName()));
+                  ASTUtils.allInstantiations(r).forEach(inst -> federateNames.add(inst.getName()));
                 }
               }
             });

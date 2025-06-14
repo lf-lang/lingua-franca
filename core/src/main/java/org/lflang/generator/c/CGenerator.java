@@ -88,6 +88,7 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
@@ -762,6 +763,15 @@ public class CGenerator extends GeneratorBase {
           true);
     }
 
+    if (targetConfig.isSet(CmakeInitIncludeProperty.INSTANCE)) {
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(CmakeInitIncludeProperty.INSTANCE),
+          destination,
+          fileConfig,
+          messageReporter,
+          true);
+    }
+
     try {
       var file = targetConfig.get(FedSetupProperty.INSTANCE);
       if (file != null) {
@@ -814,7 +824,7 @@ public class CGenerator extends GeneratorBase {
           (builder, rr, userFacing) -> {
             generateAuxiliaryStructs(builder, rr, userFacing);
             if (userFacing) {
-              rr.reactor().getInstantiations().stream()
+              ASTUtils.allInstantiations(rr.reactor()).stream()
                   .map(
                       it ->
                           new TypeParameterizedReactorWithDecl(

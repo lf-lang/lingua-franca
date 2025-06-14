@@ -53,7 +53,12 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 public class PythonExtension extends CExtension {
 
   @Override
-  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig) {}
+  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig)
+      throws IOException {
+    // Generate the CMake include file for the federate.
+    // This is needed to ensure that LF_SOURCE_DIRECTORY, etc. are defined.
+    CExtensionUtils.generateCMakeInclude(federate, fileConfig);
+  }
 
   @Override
   protected String generateSerializationIncludes(
@@ -234,11 +239,6 @@ public class PythonExtension extends CExtension {
       MessageReporter messageReporter)
       throws IOException {
     writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
-    return """
-           import gc
-           import atexit
-           gc.disable()
-           atexit.register(os._exit, 0)
-           """;
+    return "";
   }
 }

@@ -27,6 +27,7 @@
 
 package org.lflang.validation;
 
+import static org.lflang.ast.ASTUtils.allInstantiations;
 import static org.lflang.ast.ASTUtils.inferPortWidth;
 import static org.lflang.ast.ASTUtils.isGeneric;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -1395,7 +1396,7 @@ public class LFValidator extends BaseLFValidator {
                 }
               }
               // continue with inner
-              for (var innerInstance : check.getInstantiations()) {
+              for (var innerInstance : allInstantiations(check)) {
                 var next = (Reactor) innerInstance.getReactorClass();
                 if (!checked.contains(next)) {
                   toCheck.push(next);
@@ -1469,7 +1470,7 @@ public class LFValidator extends BaseLFValidator {
                             .anyMatch(c -> c.getDelay() != null);
 
                 // continue with inner
-                for (var innerInstance : check.getInstantiations()) {
+                for (var innerInstance : ASTUtils.allInstantiations(check)) {
                   var next = (Reactor) innerInstance.getReactorClass();
                   if (!checked.contains(next)) {
                     toCheck.push(next);
@@ -1845,7 +1846,8 @@ public class LFValidator extends BaseLFValidator {
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
-  private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace");
+  private static List<String> SPACING_VIOLATION_POLICIES =
+      List.of("defer", "drop", "replace", "update");
 
   private static String UNDERSCORE_MESSAGE =
       "Names of objects (inputs, outputs, actions, timers, parameters, "

@@ -1,0 +1,44 @@
+// Test for https://github.com/lf-lang/reactor-c/issues/145
+// This tests the update policy.
+target C {
+  timeout: 600 ms
+}
+
+main reactor {
+  timer t(0, 100 ms)
+  // An offset of 101ms ensures that two a's are scheduled
+  // and triggers the "update" policy before reaction 2 is invoked.
+  logical action a(101 ms, 300 ms, "update"): int
+  state c: int = 0
+
+  reaction(t) -> a {=
+    tag_t now = lf_tag();
+    instant_t start = lf_time_start();
+    lf_print("(Timer) Current: " PRINTF_TIME ", Scheduled: " PRINTF_TIME ", Count: %d",
+        now.time - start, now.time + MSEC(1) - start, self->c
+    );
+    // Only schedule a for three times, only the third event remains.
+    // The "update" policy drops the first two events.
+    // In the reaction to a, we check if the third reaction occurs
+    // at the right time with the correct payload.
+    if (self->c < 3) {
+      lf_schedule_int(a, 0, self->c++);
+    }
+  =}
+
+  reaction(a) {=
+    tag_t now = lf_tag();
+    instant_t start = lf_time_start();
+    lf_print("(Action) Current: " PRINTF_TIME ", Microstep: %d, Count: %d",
+        now.time - start, now.microstep, a->value
+    );
+    // The only invocation of a is expected to happen at t=301 ms
+    if (now.time - start != MSEC(301)) {
+        lf_print_error_and_exit("Expected elapsed logical time of 301ms was violated.");
+    }
+    // The value should be equal to the current state c before incrementing.
+    if (a->value != self->c - 1) {
+        lf_print_error_and_exit("Expected value %d", self->c - 1);
+    }
+  =}
+}

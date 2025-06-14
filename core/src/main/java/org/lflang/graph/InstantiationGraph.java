@@ -125,7 +125,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
    */
   public InstantiationGraph(final Model model, final boolean detectCycles) {
     for (final Reactor r : model.getReactors()) {
-      for (final Instantiation i : r.getInstantiations()) {
+      for (final Instantiation i : ASTUtils.allInstantiations(r)) {
         this.buildGraph(i, new HashSet<>());
       }
     }
@@ -152,7 +152,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         } else {
           this.addNode(reactor);
         }
-        for (final Instantiation inst : reactor.getInstantiations()) {
+        for (final Instantiation inst : ASTUtils.allInstantiations(reactor)) {
           this.buildGraph(inst, visited);
         }
         // Also have to look for instantiations inside modes.
