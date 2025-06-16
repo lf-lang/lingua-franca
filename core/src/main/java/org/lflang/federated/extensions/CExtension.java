@@ -172,7 +172,8 @@ public class CExtension implements FedTargetExtension {
     // This string is dynamically allocated, and type 'string' is to be
     // used only for statically allocated strings. This would force the
     // CGenerator to treat the port and action as token types.
-    if (types.getTargetType(action).equals("string")) {
+    var isString = types.getTargetType(action).equals("string");
+    if (isString) {
       action.getType().setCode(null);
       action.getType().setId("char*");
     }
@@ -186,7 +187,7 @@ public class CExtension implements FedTargetExtension {
         // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
         // So passing it downstream should be OK.
         value = action.getName() + "->value";
-        if (CUtil.isTokenType(type)) {
+        if (CUtil.isTokenType(type) || isString) {
           result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
         } else {
           result.pr("lf_set(" + receiveRef + ", " + value + ");");
