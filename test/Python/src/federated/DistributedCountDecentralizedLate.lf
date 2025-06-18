@@ -32,7 +32,7 @@ reactor Print {
       inp.intended_tag.microstep
       )
     )
-    if (lf.tag() == Tag(lf.time.start() + SEC(1), 0)):
+    if (lf.tag() == Tag(lf.time.start() + SEC(1) * self.c, 0)):
       self.success += 1 # Message was on-time
     self.c += 1
   =} STAA(0) {=
