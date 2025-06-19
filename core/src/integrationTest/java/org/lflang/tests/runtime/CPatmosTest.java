@@ -77,8 +77,7 @@ public class CPatmosTest extends TestBase {
     fullCommand.add(SIMULATOR); // Prepend simulator to the command
     fullCommand.addAll(command.command()); // Add the rest of the command
 
-    System.out.println("DEBUG: Full command constructed: " + fullCommand);
-    System.out.println("DEBUG: Working directory: " + command.directory());
+    System.out.println("DEBUG: Full command constructed: " + fullCommand + " in directory: " + command.directory());
 
     // Run the full command to check if it executes correctly
     try {
@@ -99,9 +98,7 @@ public class CPatmosTest extends TestBase {
         .environment()
         .put("PATH", simPath + ":" + processBuilder.environment().get("PATH"));
 
-    System.out.println("DEBUG: Updated PATH: " + processBuilder.environment().get("PATH"));
-    System.out.println("DEBUG: ProcessBuilder command: " + processBuilder.command());
-    System.out.println("DEBUG: ProcessBuilder directory: " + processBuilder.directory());
+    System.out.println("DEBUG: ProcessBuilder command: " + processBuilder.command() + " directory: " + processBuilder.directory());
 
     return processBuilder;
   }

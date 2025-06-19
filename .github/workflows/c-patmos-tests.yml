@@ -46,7 +46,7 @@ jobs:
       - name: Run Patmos Smoke tests
         run: |
           ./gradlew core:integrationTest \
-            --tests --scan --debug org.lflang.tests.runtime.CPatmosTest.* \
+            --tests org.lflang.tests.runtime.CPatmosTest.* \
             core:integrationTestCodeCoverageReport
           rm -rf test/C/src-gen
       - name: Report to CodeCov
