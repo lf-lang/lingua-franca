@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
@@ -2123,8 +2122,8 @@ public class CGenerator extends GeneratorBase {
       // is where top-level preambles reside. Hence, guard the preamble with an
       // identifier unique to the file.
       var preambles = ((Model) reactor.eContainer()).getPreambles();
-      var hasPreamble = !preambles.isEmpty()
-          || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
+      var hasPreamble =
+          !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
       if (hasPreamble) {
         var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
         builder.pr("#ifndef " + guard);
