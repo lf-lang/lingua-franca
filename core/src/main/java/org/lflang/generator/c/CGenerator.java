@@ -44,9 +44,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.FileConfig;
@@ -75,6 +78,7 @@ import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -2088,27 +2092,71 @@ public class CGenerator extends GeneratorBase {
 
   /** Generate top-level preamble code. */
   protected String generateTopLevelPreambles(Reactor reactor) {
-    CodeBuilder builder = new CodeBuilder();
-    var guard = "TOP_LEVEL_PREAMBLE_" + reactor.hashCode() + "_H";
-    builder.pr("#ifndef " + guard);
-    builder.pr("#define " + guard);
-    // Reactors that are instantiated by the specified reactor need to have
-    // their file-level preambles included.  This needs to also include file-level
-    // preambles of base classes of those reactors.
-    Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
-        .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
-        .collect(Collectors.toSet())
-        .forEach(it -> builder.pr(toText(it.getCode())));
-    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      var dotIndex = file.lastIndexOf(".");
-      var rootFilename = file;
-      if (dotIndex > 0) {
-        rootFilename = file.substring(0, dotIndex);
-      }
-      code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-      builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+    // Reactors that are instantiated or inherited by the specified reactor need to have
+    // their file-level preambles included. Avoid including the same preamble multiple times.
+    var visited = new LinkedHashSet<EObject>();
+    return generateTopLevelPreambles(reactor, visited);
+  }
+
+  private String generateTopLevelPreambles(Reactor reactor, Set<EObject> visited) {
+    if (visited.contains(reactor.eContainer())) {
+      // If we have already visited the container of this reactor, then we do not need to
+      // generate the preamble again.
+      return "";
     }
-    builder.pr("#endif");
+
+    CodeBuilder builder = new CodeBuilder();
+
+    // First, generate the preambles for the base classes of the specified reactor.
+    var superClasses = reactor.getSuperClasses();
+    if (superClasses != null) {
+      for (var superClass : superClasses) {
+        builder.pr(generateTopLevelPreambles(toDefinition(superClass), visited));
+      }
+    }
+    // These could have been in the same file, in which case we avoid generating again.
+    if (!visited.contains(reactor.eContainer())) {
+      visited.add(reactor.eContainer());
+      // Generate the preambles for the specified reactor.
+      // We need to guard it with a #ifndef.
+      // The eContainer() of the reactor is the file in which it is defined, which
+      // is where top-level preambles reside. Hence, guard the preamble with an
+      // identifier unique to the file.
+      var preambles = ((Model) reactor.eContainer()).getPreambles();
+      var hasPreamble = !preambles.isEmpty()
+          || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
+      if (hasPreamble) {
+        var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
+        builder.pr("#ifndef " + guard);
+        builder.pr("#define " + guard);
+
+        for (var preamble : preambles) {
+          var code = preamble.getCode();
+          if (code != null) {
+            var text = toText(code);
+            builder.pr(text);
+          }
+        }
+
+        // Also generate the preambles for all the .proto files that are used.
+        for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
+          var dotIndex = file.lastIndexOf(".");
+          var rootFilename = file;
+          if (dotIndex > 0) {
+            rootFilename = file.substring(0, dotIndex);
+          }
+          code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+          builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+        }
+
+        builder.pr("#endif // " + guard);
+      }
+    }
+    // Finally, generate the preambles for all the reactors that are instantiated.
+    for (var instantiation : ASTUtils.allInstantiations(reactor)) {
+      var instantiated = toDefinition(instantiation.getReactorClass());
+      builder.pr(generateTopLevelPreambles(toDefinition(instantiated), visited));
+    }
     return builder.toString();
   }
 
