@@ -1,0 +1,62 @@
+/**
+ * Test communicating strings between two federates.
+ * @author Edward A. Lee
+ */
+target C {
+  build-type: debug,
+  timeout: 1 sec
+}
+
+preamble {=
+  #include <string.h> // For strlen
+=}
+
+reactor Source {
+  output out: string
+  timer t(0, 200 ms)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    static char *messages[] = {"A", "B", "C", "D", "E"};
+    lf_print("**** Sending '%s' message from source federate.", messages[self->count]);
+    lf_set(out, messages[self->count++]);
+    if (self->count >= 5) {
+      self->count = 0;
+    }
+  =}
+}
+
+reactor Destination {
+  input in: string
+  state received: bool = false
+  state count: int = 0
+
+  reaction(in) {=
+    self->received = true;
+    static char *messages[] = {"A", "B", "C", "D", "E"};
+    lf_print("#### At logical time " PRINTF_TIME ", destination received: %s", lf_time_logical_elapsed(), in->value);
+    if (strncmp(in->value, messages[self->count], strlen(messages[self->count])) != 0) {
+      lf_print_error_and_exit("Destination received incorrect message. Expected: %s", messages[self->count]);
+    }
+    self->count++;
+    if (self->count >= 5) {
+      self->count = 0;
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!self->received) {
+      lf_print_error_and_exit("Destination did not receive messages.");
+    }
+  =}
+}
+
+federated reactor {
+  s = new Source()       // Reactor s is in federate Source
+  d = new Destination()  // Reactor d is in federate Destination
+  s.out -> d.in          // This version preserves the timestamp.
+
+  reaction(startup) {=
+    lf_print("Printing something in top-level federated reactor.");
+  =}
+}
