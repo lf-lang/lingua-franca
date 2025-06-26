@@ -216,7 +216,7 @@ public class CReactorHeaderFileGenerator {
     String getType(boolean userFacing) {
       var typeName =
           container == null
-              ? CGenerator.variableStructType(tv, r, userFacing)
+              ? CUtil.variableStructType(tv, r, userFacing)
               : CPortGenerator.localPortName(
                   new TypeParameterizedReactor(container, r),
                   container.getReactorClass(),

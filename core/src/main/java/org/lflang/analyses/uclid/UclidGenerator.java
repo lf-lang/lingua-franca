@@ -37,6 +37,7 @@ import java.util.Set;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.lflang.TimeTag;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.analyses.c.AstUtils;
@@ -48,7 +49,6 @@ import org.lflang.analyses.c.VariablePrecedenceVisitor;
 import org.lflang.analyses.statespace.StateSpaceDiagram;
 import org.lflang.analyses.statespace.StateSpaceExplorer;
 import org.lflang.analyses.statespace.StateSpaceNode;
-import org.lflang.analyses.statespace.Tag;
 import org.lflang.ast.ASTUtils;
 import org.lflang.dsl.CLexer;
 import org.lflang.dsl.CParser;
@@ -76,6 +76,7 @@ import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Time;
+import org.lflang.pretvm.ExecutionPhase;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
@@ -1611,11 +1612,12 @@ public class UclidGenerator extends GeneratorBase {
    */
   private void computeCT() {
 
-    StateSpaceExplorer explorer = new StateSpaceExplorer(this.main);
-    explorer.explore(
-        new Tag(this.horizon, 0, false), true // findLoop
-        );
-    StateSpaceDiagram diagram = explorer.diagram;
+    StateSpaceDiagram diagram =
+        StateSpaceExplorer.explore(
+            this.main,
+            new TimeTag(TimeValue.fromNanoSeconds(this.horizon), 0L),
+            ExecutionPhase.INIT_AND_PERIODIC,
+            targetConfig);
     diagram.display();
 
     // Generate a dot file.
@@ -1629,7 +1631,7 @@ public class UclidGenerator extends GeneratorBase {
     }
 
     //// Compute CT
-    if (!explorer.loopFound) {
+    if (!diagram.isCyclic()) {
       if (this.logicalTimeBased) this.CT = diagram.nodeCount();
       else {
         // FIXME: This could be much more efficient with
@@ -1647,20 +1649,21 @@ public class UclidGenerator extends GeneratorBase {
     else {
       // Subtract the non-periodic logical time
       // interval from the total horizon.
-      long horizonRemained = Math.subtractExact(this.horizon, diagram.loopNode.getTag().timestamp);
+      long horizonRemained =
+          Math.subtractExact(this.horizon, diagram.loopNode.getTag().time.toNanoSeconds());
 
       // Check how many loop iteration is required
       // to check the remaining horizon.
       int loopIterations = 0;
-      if (diagram.loopPeriod == 0 && horizonRemained != 0)
+      if (diagram.hyperperiod == 0 && horizonRemained != 0)
         throw new RuntimeException(
             "ERROR: Zeno behavior detected while the horizon is non-zero. The program has no"
                 + " finite CT.");
-      else if (diagram.loopPeriod == 0 && horizonRemained == 0) {
+      else if (diagram.hyperperiod == 0 && horizonRemained == 0) {
         // Handle this edge case.
         throw new RuntimeException("Unhandled case: both the horizon and period are 0!");
       } else {
-        loopIterations = (int) Math.ceil((double) horizonRemained / diagram.loopPeriod);
+        loopIterations = (int) Math.ceil((double) horizonRemained / diagram.hyperperiod);
       }
 
       if (this.logicalTimeBased) {
