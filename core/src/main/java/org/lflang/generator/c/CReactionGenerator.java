@@ -1,6 +1,7 @@
 package org.lflang.generator.c;
 
 import static org.lflang.generator.c.CUtil.generateWidthVariable;
+import static org.lflang.generator.c.CUtil.isFixedSizeArrayType;
 import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import java.util.LinkedHashMap;
@@ -992,6 +993,14 @@ public class CReactionGenerator {
               // Need to set the element_size in the trigger_t and the action struct.
               "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize + ";",
               "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"));
+      // Set the length field to the default 1 (for non-arrays or variable-size arrays) or,
+      // for fixed-length arrays, the actual length.
+      var arrayLength = CUtil.fixedSizeArrayTypeLength(ASTUtils.getInferredType(action));
+      constructorCode.pr(
+              String.join(
+                      "\n",
+                      "self->_lf__" + action.getName() + ".tmplt.length = " + arrayLength + ";",
+                      "self->_lf_" + action.getName() + ".length = " + arrayLength + ";"));
     }
 
     // Next handle inputs.

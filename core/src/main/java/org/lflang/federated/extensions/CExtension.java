@@ -190,7 +190,15 @@ public class CExtension implements FedTargetExtension {
         if (CUtil.isTokenType(type) || isString) {
           result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
         } else {
-          result.pr("lf_set(" + receiveRef + ", " + value + ");");
+          // Fixed size arrays need to be handled specially because the memory is allocated in the output port.
+          if (CUtil.isFixedSizeArrayType(type)) {
+            // For fixed size arrays, we need to copy the data from the action to the port.
+            result.pr("memcpy(" + receiveRef + "->value, " + action.getName() + "->token->value, " + action.getName() + "->length * "
+                + action.getName() + "->type.element_size);");
+            result.pr("lf_set_present(" + receiveRef + ");");
+          } else {
+            result.pr("lf_set(" + receiveRef + ", " + value + ");");
+          }
         }
       }
       case PROTO ->

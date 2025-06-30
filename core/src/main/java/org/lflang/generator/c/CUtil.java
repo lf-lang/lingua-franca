@@ -784,6 +784,35 @@ public class CUtil {
                 && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
   }
 
+  /**
+   * Given a type for an input or output, return true if it is a fixed-size array (declared with
+   * `type[int]`). For such types, the memory is allocated in the output struct.
+   *
+   * @param type The type specification.
+   */
+  public static boolean isFixedSizeArrayType(InferredType type) {
+    if (type.isUndefined()) return false;
+    return type.astType != null
+            && (type.astType.getCStyleArraySpec() != null
+            && !type.astType.getCStyleArraySpec().isOfVariableLength());
+  }
+
+  /**
+   * Given a type for an input or output, if it is a fixed-size array (declared with `type[int]`),
+   * then return the `int` and otherwise return 1, which is the default length for non-arrays and
+   * variable-size arrays.
+   * @param type The type specification
+   */
+  public static int fixedSizeArrayTypeLength(InferredType type) {
+    if (type.isUndefined()
+            || type.astType == null
+            || type.astType.getCStyleArraySpec() == null
+            || type.astType.getCStyleArraySpec().isOfVariableLength()) {
+      return 1;
+    }
+    return type.astType.getCStyleArraySpec().getLength();
+  }
+
   public static String generateWidthVariable(String var) {
     return var + "_width";
   }
