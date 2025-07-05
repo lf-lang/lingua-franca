@@ -172,7 +172,8 @@ public class CExtension implements FedTargetExtension {
     // This string is dynamically allocated, and type 'string' is to be
     // used only for statically allocated strings. This would force the
     // CGenerator to treat the port and action as token types.
-    var isString = types.getTargetType(action).equals("string");
+    var targetType = types.getTargetType(action);
+    var isString = targetType.equals("string");
     if (isString) {
       action.getType().setCode(null);
       action.getType().setId("char*");
