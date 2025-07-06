@@ -89,12 +89,12 @@ public class CActionGenerator {
       String selfStruct, String actionName, String payloadSize) {
     return String.join(
         "\n",
-            "_lf_initialize_template((token_template_t*)",
-            "        &(" + selfStruct + "->_lf__" + actionName + "),",
-            payloadSize + ");",
-            "_lf_initialize_template((token_template_t*)",
-            "        &(" + selfStruct + "->_lf_" + actionName + "),",
-            payloadSize + ");",
+        "_lf_initialize_template((token_template_t*)",
+        "        &(" + selfStruct + "->_lf__" + actionName + "),",
+        payloadSize + ");",
+        "_lf_initialize_template((token_template_t*)",
+        "        &(" + selfStruct + "->_lf_" + actionName + "),",
+        payloadSize + ");",
         selfStruct + "->_lf__" + actionName + ".status = absent;");
   }
 
