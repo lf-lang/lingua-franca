@@ -1967,7 +1967,7 @@ public class CGenerator extends GeneratorBase {
     var reactorSelfStruct = CUtil.reactorRef(reactor);
     for (PortInstance output : reactor.outputs) {
       initializeTriggerObjects.pr(
-          CPortGenerator.initializeOutputMultiport(output, reactorSelfStruct));
+          CPortGenerator.initializeOutputMultiport(output, reactorSelfStruct, types));
     }
   }
 

@@ -397,15 +397,23 @@ public class CExtension implements FedTargetExtension {
         // Handle native types.
         if (CUtil.isTokenType(type)) {
           // NOTE: Transporting token types this way is likely to only work if the sender and
-          // receiver
-          // both have the same endianness. Otherwise, you have to use protobufs or some other
-          // serialization scheme.
+          // receiver both have the same endianness. Otherwise, you have to use protobufs or some
+          // other serialization scheme.
           result.pr(
               "size_t _lf_message_length = "
                   + sendRef
                   + "->length * "
                   + sendRef
                   + "->token->type->element_size;");
+          result.pr(
+              sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
+        } else if (CUtil.isFixedSizeArrayType(type)) {
+          result.pr(
+              "size_t _lf_message_length = "
+                  + CUtil.fixedSizeArrayTypeLength(type)
+                  + " * "
+                  + sendRef
+                  + "->type.element_size;");
           result.pr(
               sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
         } else {
@@ -429,9 +437,9 @@ public class CExtension implements FedTargetExtension {
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
-        if (CUtil.isTokenType(type)) {
+        if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
           throw new UnsupportedOperationException(
-              "Cannot handle ROS serialization when ports are pointers.");
+              "Cannot handle ROS serialization when ports are pointers or arrays.");
         } else if (CExtensionUtils.isSharedPtrType(type, types)) {
           var matcher = CExtensionUtils.sharedPointerVariable.matcher(typeStr);
           if (matcher.find()) {
