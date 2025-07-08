@@ -1978,8 +1978,7 @@ public class ASTUtils {
   public static void overrideParameter(ParameterInstance param, CodeExpr expr) {
     Assignment existing = param.getOverride();
     Initializer init = factory.createInitializer();
-    init.setBraces(true);
-    init.getExprs().add(expr);
+    init.setExpr(expr);
     if (existing != null) {
       existing.setRhs(init);
     } else {
