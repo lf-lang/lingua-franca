@@ -3,7 +3,7 @@
 // nothing further with it. This test checks that the memory gets freed automatically even with the
 // mutable input.
 target C {
-  timeout: 1 sec,
+  timeout: 1 sec
 }
 
 import Source, Print from "../ArrayPrint.lf"
