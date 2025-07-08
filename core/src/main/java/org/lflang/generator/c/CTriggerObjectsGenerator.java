@@ -77,7 +77,7 @@ public class CTriggerObjectsGenerator {
             "int modal_reactor_count["
                 + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
                 + "] = {0};"
-                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);"));
+                + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);",
             "int watchdog_count["
                 + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
                 + "] = {0};"
