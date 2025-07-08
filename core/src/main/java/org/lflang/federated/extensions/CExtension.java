@@ -172,7 +172,9 @@ public class CExtension implements FedTargetExtension {
     // This string is dynamically allocated, and type 'string' is to be
     // used only for statically allocated strings. This would force the
     // CGenerator to treat the port and action as token types.
-    if (types.getTargetType(action).equals("string")) {
+    var targetType = types.getTargetType(action);
+    var isString = targetType.equals("string");
+    if (isString) {
       action.getType().setCode(null);
       action.getType().setId("char*");
     }
@@ -186,10 +188,27 @@ public class CExtension implements FedTargetExtension {
         // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
         // So passing it downstream should be OK.
         value = action.getName() + "->value";
-        if (CUtil.isTokenType(type)) {
+        if (CUtil.isTokenType(type) || isString) {
           result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
         } else {
-          result.pr("lf_set(" + receiveRef + ", " + value + ");");
+          // Fixed size arrays need to be handled specially because the memory is allocated in the
+          // output port.
+          if (CUtil.isFixedSizeArrayType(type)) {
+            // For fixed size arrays, we need to copy the data from the action to the port.
+            result.pr(
+                "memcpy("
+                    + receiveRef
+                    + "->value, "
+                    + action.getName()
+                    + "->token->value, "
+                    + action.getName()
+                    + "->length * "
+                    + action.getName()
+                    + "->type.element_size);");
+            result.pr("lf_set_present(" + receiveRef + ");");
+          } else {
+            result.pr("lf_set(" + receiveRef + ", " + value + ");");
+          }
         }
       }
       case PROTO ->
@@ -378,15 +397,23 @@ public class CExtension implements FedTargetExtension {
         // Handle native types.
         if (CUtil.isTokenType(type)) {
           // NOTE: Transporting token types this way is likely to only work if the sender and
-          // receiver
-          // both have the same endianness. Otherwise, you have to use protobufs or some other
-          // serialization scheme.
+          // receiver both have the same endianness. Otherwise, you have to use protobufs or some
+          // other serialization scheme.
           result.pr(
               "size_t _lf_message_length = "
                   + sendRef
                   + "->length * "
                   + sendRef
                   + "->token->type->element_size;");
+          result.pr(
+              sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
+        } else if (CUtil.isFixedSizeArrayType(type)) {
+          result.pr(
+              "size_t _lf_message_length = "
+                  + CUtil.fixedSizeArrayTypeLength(type)
+                  + " * "
+                  + sendRef
+                  + "->type.element_size;");
           result.pr(
               sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
         } else {
@@ -410,9 +437,9 @@ public class CExtension implements FedTargetExtension {
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
-        if (CUtil.isTokenType(type)) {
+        if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
           throw new UnsupportedOperationException(
-              "Cannot handle ROS serialization when ports are pointers.");
+              "Cannot handle ROS serialization when ports are pointers or arrays.");
         } else if (CExtensionUtils.isSharedPtrType(type, types)) {
           var matcher = CExtensionUtils.sharedPointerVariable.matcher(typeStr);
           if (matcher.find()) {
