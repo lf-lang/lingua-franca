@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -39,6 +40,7 @@ import org.lflang.util.StringUtil;
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
+
   // not exist (#1687)
 
   /**
@@ -278,14 +280,17 @@ public class CReactionGenerator {
       nestedBreadcrumbs.add(mainDef);
     }
     int result = max;
-    Reactor parent = (Reactor) containedReactor.eContainer();
+    Reactor parent =
+        containedReactor.eContainer() instanceof Mode
+            ? (Reactor) containedReactor.eContainer().eContainer()
+            : (Reactor) containedReactor.eContainer();
     if (parent == ASTUtils.toDefinition(mainDef.getReactorClass())) {
       // The parent is main, so there can't be any other instantiations of it.
       return ASTUtils.width(containedReactor.getWidthSpec(), null);
     }
     // Search for instances of the parent within the tail of the breadcrumbs list.
     Reactor container = ASTUtils.toDefinition(nestedBreadcrumbs.get(0).getReactorClass());
-    for (Instantiation instantiation : container.getInstantiations()) {
+    for (Instantiation instantiation : ASTUtils.allInstantiations(container)) {
       // Put this new instantiation at the head of the list.
       nestedBreadcrumbs.add(0, instantiation);
       if (ASTUtils.toDefinition(instantiation.getReactorClass()) == parent) {
@@ -897,7 +902,6 @@ public class CReactionGenerator {
       // Set the defaults of the reaction_t struct in the constructor.
       // Since the self struct is allocated using calloc, there is no need to set:
       // self->_lf__reaction_"+reactionCount+".index = 0;
-      // self->_lf__reaction_"+reactionCount+".chain_id = 0;
       // self->_lf__reaction_"+reactionCount+".pos = 0;
       // self->_lf__reaction_"+reactionCount+".status = inactive;
       // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
@@ -926,6 +930,11 @@ public class CReactionGenerator {
                       + tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())
                       + "];"
                   : "self->_lf__reaction_" + reactionCount + ".mode = NULL;"));
+      // If the reactor is a network receiver, then set the is_an_input_reaction to true.
+      if (AttributeUtils.findAttributeByName(tpr.reactor(), "_network_receiver") != null) {
+        constructorCode.pr(
+            "self->_lf__reaction_" + reactionCount + ".is_an_input_reaction = true;");
+      }
       // Increment the reactionCount even if the reaction is not in the federate
       // so that reaction indices are consistent across federates.
       reactionCount++;
@@ -983,6 +992,14 @@ public class CReactionGenerator {
               // Need to set the element_size in the trigger_t and the action struct.
               "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize + ";",
               "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"));
+      // Set the length field to the default 1 (for non-arrays or variable-size arrays) or,
+      // for fixed-length arrays, the actual length.
+      var arrayLength = CUtil.fixedSizeArrayTypeLength(ASTUtils.getInferredType(action));
+      constructorCode.pr(
+          String.join(
+              "\n",
+              "self->_lf__" + action.getName() + ".tmplt.length = " + arrayLength + ";",
+              "self->_lf_" + action.getName() + ".length = " + arrayLength + ";"));
     }
 
     // Next handle inputs.

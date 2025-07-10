@@ -40,7 +40,6 @@ import de.cau.cs.kieler.klighd.krendering.HorizontalAlignment;
 import de.cau.cs.kieler.klighd.krendering.KArc;
 import de.cau.cs.kieler.klighd.krendering.KAreaPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KContainerRendering;
-import de.cau.cs.kieler.klighd.krendering.KDecoratorPlacementData;
 import de.cau.cs.kieler.klighd.krendering.KEllipse;
 import de.cau.cs.kieler.klighd.krendering.KGridPlacement;
 import de.cau.cs.kieler.klighd.krendering.KPolygon;
@@ -91,6 +90,10 @@ import org.lflang.lf.StateVar;
  */
 @ViewSynthesisShared
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
+
+  public static final Colors ENCLAVE_BORDER_COLOR = Colors.CORAL_3;
+  public static final Colors DEADLINE_COLOR = Colors.WHITE; // Formerly Colors.BROWN
+  public static final Colors CODE_COLOR = Colors.BLACK;
 
   public static final float REACTION_POINTINESS = 6; // arrow point length
   // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the
@@ -181,10 +184,12 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       KNode node, ReactorInstance reactorInstance, String text) {
     int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
 
+    var color = (reactorInstance.enclaveInfo == null) ? Colors.GRAY : ENCLAVE_BORDER_COLOR;
+
     Function1<KRoundedRectangle, KRendering> style =
         r -> {
           _kRenderingExtensions.setLineWidth(r, 1);
-          _kRenderingExtensions.setForeground(r, Colors.GRAY);
+          _kRenderingExtensions.setForeground(r, color);
           _kRenderingExtensions.setBackground(r, Colors.GRAY_95);
           return _linguaFrancaStyleExtensions.boldLineSelectionStyle(r);
         };
@@ -445,6 +450,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
               contentContainer, _utilityExtensions.trimCode(reaction.getDefinition().getCode()));
       associateWith(hasCodeText, reaction);
       _kRenderingExtensions.setFontSize(hasCodeText, 6);
+      _kRenderingExtensions.setForeground(hasCodeText, CODE_COLOR);
       _kRenderingExtensions.setFontName(hasCodeText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
       _linguaFrancaStyleExtensions.noSelectionStyle(hasCodeText);
       _kRenderingExtensions.setHorizontalAlignment(hasCodeText, HorizontalAlignment.LEFT);
@@ -515,7 +521,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
           _kContainerRenderingExtensions.addText(
               labelContainer, reaction.declaredDeadline.maxDelay.toString());
       associateWith(stopWatchText, reaction.getDefinition().getDeadline().getDelay());
-      _kRenderingExtensions.setForeground(stopWatchText, Colors.BROWN);
+      _kRenderingExtensions.setForeground(stopWatchText, DEADLINE_COLOR);
       _kRenderingExtensions.setFontBold(stopWatchText, true);
       _kRenderingExtensions.setFontSize(stopWatchText, 7);
       _linguaFrancaStyleExtensions.underlineSelectionStyle(stopWatchText);
@@ -528,7 +534,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 contentContainer,
                 _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
         associateWith(contentContainerText, reaction.declaredDeadline);
-        _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
+        _kRenderingExtensions.setForeground(contentContainerText, CODE_COLOR);
         _kRenderingExtensions.setFontSize(contentContainerText, 6);
         _kRenderingExtensions.setFontName(
             contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
@@ -582,7 +588,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 3, 0.5f, TOP, (-2), 0),
                 _kRenderingExtensions.createKPosition(LEFT, (-3), 0.5f, TOP, (-2), 0)));
-    _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+    _kRenderingExtensions.setForeground(polyline, DEADLINE_COLOR);
 
     polyline =
         _kContainerRenderingExtensions.addPolyline(
@@ -591,11 +597,11 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, (-2), 0),
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 1, 0)));
-    _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+    _kRenderingExtensions.setForeground(polyline, DEADLINE_COLOR);
 
     KEllipse body = _kContainerRenderingExtensions.addEllipse(container);
     _kRenderingExtensions.setLineWidth(body, 1);
-    _kRenderingExtensions.setForeground(body, Colors.BROWN);
+    _kRenderingExtensions.setForeground(body, DEADLINE_COLOR);
     _kRenderingExtensions.<KEllipse>setPointPlacementData(
         body,
         _kRenderingExtensions.LEFT,
@@ -617,7 +623,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     arc.setArcAngle(110);
     arc.setArcType(Arc.PIE);
     _kRenderingExtensions.setLineWidth(arc, 0);
-    _kRenderingExtensions.setBackground(arc, Colors.BROWN);
+    _kRenderingExtensions.setBackground(arc, DEADLINE_COLOR);
     _kRenderingExtensions.setPointPlacementData(
         arc,
         _kRenderingExtensions.LEFT,
@@ -670,6 +676,47 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
           node, "(" + String.join(", ", labelParts) + ")", 8);
     }
     return figure;
+  }
+
+  /** Creates the rectangular node with text and ports. */
+  public Pair<KPort, KPort> addWatchdogFigureAndPorts(KNode node) {
+    final float size = 18;
+    _kNodeExtensions.setMinimalNodeSize(node, size, size);
+    KRectangle figure = _kRenderingExtensions.addRectangle(node);
+    _kRenderingExtensions.setBackground(figure, Colors.WHITE);
+    _linguaFrancaStyleExtensions.boldLineSelectionStyle(figure);
+
+    // Add text to the watchdog figure
+    KText textToAdd = _kContainerRenderingExtensions.addText(figure, "W");
+    _kRenderingExtensions.setFontSize(textToAdd, 8);
+    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
+    DiagramSyntheses.suppressSelectability(textToAdd);
+    _kRenderingExtensions.setPointPlacementData(
+        textToAdd,
+        _kRenderingExtensions.LEFT,
+        0,
+        0.5f,
+        _kRenderingExtensions.TOP,
+        (size * 0.15f),
+        0.5f,
+        _kRenderingExtensions.H_CENTRAL,
+        _kRenderingExtensions.V_CENTRAL,
+        0,
+        0,
+        size,
+        size);
+
+    // Add input port
+    KPort in = _kPortExtensions.createPort();
+    node.getPorts().add(in);
+    in.setSize(0, 0);
+    DiagramSyntheses.setLayoutOption(in, CoreOptions.PORT_SIDE, PortSide.WEST);
+
+    // Add output port
+    KPort out = _kPortExtensions.createPort();
+    node.getPorts().add(out);
+    DiagramSyntheses.setLayoutOption(out, CoreOptions.PORT_SIDE, PortSide.EAST);
+    return new Pair<KPort, KPort>(in, out);
   }
 
   /** Creates the visual representation of a startup trigger. */
@@ -837,53 +884,6 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     _kRenderingExtensions.setFontSize(textToAdd, 8);
     _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
     return textToAdd;
-  }
-
-  /** Creates the triangular line decorator with text. */
-  public KPolygon addActionDecorator(KPolyline line, String text) {
-    final float size = 18;
-
-    // Create action decorator
-    KPolygon actionDecorator = _kContainerRenderingExtensions.addPolygon(line);
-    _kRenderingExtensions.setBackground(actionDecorator, Colors.WHITE);
-    List<KPosition> pointsToAdd =
-        List.of(
-            _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 0, 0),
-            _kRenderingExtensions.createKPosition(RIGHT, 0, 0, BOTTOM, 0, 0),
-            _kRenderingExtensions.createKPosition(LEFT, 0, 0, BOTTOM, 0, 0));
-    actionDecorator.getPoints().addAll(pointsToAdd);
-
-    // Set placement data of the action decorator
-    KDecoratorPlacementData placementData = _kRenderingFactory.createKDecoratorPlacementData();
-    placementData.setRelative(0.5f);
-    placementData.setAbsolute(-size / 2);
-    placementData.setWidth(size);
-    placementData.setHeight(size);
-    placementData.setYOffset(-size * 0.66f);
-    placementData.setRotateWithLine(true);
-    actionDecorator.setPlacementData(placementData);
-
-    // Add text to the action decorator
-    KText textToAdd = _kContainerRenderingExtensions.addText(actionDecorator, text);
-    _kRenderingExtensions.setFontSize(textToAdd, 8);
-    _linguaFrancaStyleExtensions.noSelectionStyle(textToAdd);
-    DiagramSyntheses.suppressSelectability(textToAdd);
-    _kRenderingExtensions.setPointPlacementData(
-        textToAdd,
-        _kRenderingExtensions.LEFT,
-        0,
-        0.5f,
-        _kRenderingExtensions.TOP,
-        size * 0.15f,
-        0.5f,
-        _kRenderingExtensions.H_CENTRAL,
-        _kRenderingExtensions.V_CENTRAL,
-        0,
-        0,
-        size,
-        size);
-
-    return actionDecorator;
   }
 
   /** Creates the triangular action node with text and ports. */

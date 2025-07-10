@@ -31,20 +31,20 @@ reactor Sender {
 }
 
 reactor Receiver {
-  input in_
+  input inp
   state success(0)
 
-  reaction(in_) {=
+  reaction(inp) {=
     tag_t current_tag = lf.tag();
     if (current_tag.time == (start_time + MSEC(10))) {
-      if (current_tag.microstep == 0 && in_->value == 1) {
+      if (current_tag.microstep == 0 && inp->value == 1) {
         self->success++;
-      } else if (current_tag.microstep == 1 && in_->value == 2) {
+      } else if (current_tag.microstep == 1 && inp->value == 2) {
         self->success++;
       }
     }
     printf("Received %d at tag (" PRINTF_TIME ", %u).\n",
-         in_->value,
+         inp->value,
          current_tag.time,
          current_tag.microstep);
   =}
@@ -62,5 +62,5 @@ federated reactor DistributedNetworkOrder {
   sender = new Sender()
   receiver = new Receiver()
 
-  sender.out -> receiver.in_
+  sender.out -> receiver.inp
 }

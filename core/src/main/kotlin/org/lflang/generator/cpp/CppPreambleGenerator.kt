@@ -60,6 +60,8 @@ class CppPreambleGenerator(
                 |#include "reactor-cpp/reactor-cpp.hh"
             ${" |"..includes.joinToString(separator = "\n", prefix = "// include the preambles from imported files \n")}
                 |
+                |using namespace std::chrono_literals;
+                |
             ${" |"..publicPreambles.joinToString(separator = "\n") { it.code.toText() }}
             """.trimMargin()
         }

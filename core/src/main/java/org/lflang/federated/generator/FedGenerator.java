@@ -1,6 +1,7 @@
 package org.lflang.federated.generator;
 
 import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
+import static org.lflang.target.property.type.PlatformType.Platform.supportsFederated;
 
 import com.google.inject.Injector;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -57,14 +59,18 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 
 public class FedGenerator {
 
@@ -120,7 +126,7 @@ public class FedGenerator {
    * @return False if no errors have occurred, true otherwise.
    */
   public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
-    if (!federatedExecutionIsSupported(resource)) return true;
+    if (!federatedExecutionIsSupported(resource, context)) return true;
     cleanIfNeeded(context);
 
     // In a federated execution, we need keepalive to be true,
@@ -166,20 +172,23 @@ public class FedGenerator {
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
-      lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(context, federate, federates.size()));
+      lf2lfCodeMapMap.putAll(
+          fedEmitter.generateFederate(
+              context,
+              federate,
+              federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
-    // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
-      context.finish(Status.GENERATED, lf2lfCodeMapMap);
-      return false;
-    }
+    // If a RTI docker image is to be build locally. Set it up.
+    prepareRtiDockerBuildEnvironment(context);
 
-    // If the RTI is to be built locally, set up a build environment for it.
-    prepareRtiBuildEnvironment(context);
+    // Prepare the native build of an RTI for this federation by copying reactor-c into
+    // the src-gen folder.
+    prepareRtiLocalBuild(context);
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
+    // Compile federates
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
@@ -202,6 +211,9 @@ public class FedGenerator {
               }
             });
 
+    // Compile an RTI for this federation.
+    buildRtiLocally(context);
+
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
   }
@@ -216,11 +228,7 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
-      if (dockerGen.build()) {
-        dockerGen.createLauncher();
-      } else {
-        context.getErrorReporter().nowhere().error("Docker build failed.");
-      }
+      dockerGen.buildIfRequested();
     } catch (IOException e) {
       context
           .getErrorReporter()
@@ -229,12 +237,43 @@ public class FedGenerator {
     }
   }
 
+  /** Compile an RTI locally for this federation using CMake. */
+  private void buildRtiLocally(LFGeneratorContext context) {
+    FederationFileConfig fileConfig = this.fileConfig;
+    Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
+    String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
+
+    var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
+    var configure =
+        LFCommand.get(
+            "cmake",
+            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
+            false,
+            fileConfig.getRtiSrcGenPath());
+    var build =
+        LFCommand.get(
+            "cmake",
+            List.of("--build", "build", "--target", "install", "--parallel", cores),
+            false,
+            fileConfig.getRtiSrcGenPath());
+
+    if (clean.run() != 0) {
+      messageReporter.nowhere().error("Could not clean the RTI build folder.");
+    }
+    if (configure.run() != 0) {
+      messageReporter.nowhere().error("Could not configure the RTI build.");
+    }
+    if (build.run() != 0) {
+      messageReporter.nowhere().error("Could not compile the RTI build.");
+    }
+  }
+
   /**
    * Prepare a build environment for the rti alongside the generated sources of the federates.
    *
    * @param context The generator context.
    */
-  private void prepareRtiBuildEnvironment(LFGeneratorContext context) {
+  private void prepareRtiDockerBuildEnvironment(LFGeneratorContext context) {
     var rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
     if (rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
       var dest = context.getFileConfig().getSrcGenPath().resolve("rti");
@@ -248,6 +287,48 @@ public class FedGenerator {
       } catch (IOException e) {
         context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
       }
+    }
+  }
+
+  /** Copies reactor-c to `src-gen/rti`. */
+  private void prepareRtiLocalBuild(LFGeneratorContext context) {
+    var dest = this.fileConfig.getRtiSrcGenPath();
+    // 1. Create the "RTI" directory
+    try {
+      Files.createDirectories(dest);
+      // 2. Copy the required subset of reactor-c source files into it
+      for (var directory :
+          List.of(
+              "core",
+              "include",
+              "lib",
+              "logging",
+              "platform",
+              "low_level_platform",
+              "trace",
+              "version",
+              "tag")) {
+        var entry = "/lib/c/reactor-c/" + directory;
+        FileUtil.copyFromClassPath(entry, dest, true, false);
+      }
+
+      // 3. Generate the CmakeLists.txt file
+      var rtiCMakeLists =
+          String.join(
+              "\n",
+              "cmake_minimum_required(VERSION 3.12)",
+              "project(RTI VERSION 1.0.0 LANGUAGES C)",
+              "set(LOG_LEVEL "
+                  + targetConfig.getOrDefault(LoggingProperty.INSTANCE).ordinal()
+                  + ")",
+              "set(AUTH " + (targetConfig.getOrDefault(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
+              "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})",
+              "add_subdirectory(${CMAKE_SOURCE_DIR}/core/federated/RTI"
+                  + " ${CMAKE_BINARY_DIR}/build_RTI)");
+
+      FileUtil.writeToFile(rtiCMakeLists, dest.resolve("CMakeLists.txt"));
+    } catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
     }
   }
 
@@ -274,6 +355,7 @@ public class FedGenerator {
       var dockerData = dockerGenerator.generateDockerData();
       try {
         dockerData.writeDockerFile();
+        dockerData.copyScripts(context);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
@@ -298,7 +380,7 @@ public class FedGenerator {
   }
 
   /** Return whether federated execution is supported for {@code resource}. */
-  private boolean federatedExecutionIsSupported(Resource resource) {
+  private boolean federatedExecutionIsSupported(Resource resource, LFGeneratorContext context) {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
@@ -313,6 +395,17 @@ public class FedGenerator {
           .at(targetDecl)
           .error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
+    }
+    if (target.equals(Target.C) || target.equals(Target.CCPP)) {
+      // Currently, only the C runtime has a platform abstraction.
+      var platform = context.getTargetConfig().get(PlatformProperty.INSTANCE).platform();
+      if (!supportsFederated(platform)) {
+        messageReporter
+            .at(targetDecl)
+            .error(
+                "Federations are not supported by the " + platform.getcMakeName() + " platform.");
+        targetOK = false;
+      }
     }
 
     return targetOK;
@@ -361,9 +454,7 @@ public class FedGenerator {
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
 
-            if (targetConfig.get(DockerProperty.INSTANCE).enabled()
-                    && targetConfig.target.buildsUsingDocker()
-                || fed.isRemote) {
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled() || fed.isRemote) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
             // Disabled Docker for the federate and put federation in charge.
@@ -682,6 +773,8 @@ public class FedGenerator {
   private void insertIndexers(ReactorInstance mainInstance, Resource resource) {
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance input : child.inputs) {
+        // If there are no dependent reactions, skip this indexer.
+        if (!FedASTUtils.hasDestinationReaction(input)) continue;
         var indexer = indexer(child, input, resource);
         var count = 0;
         for (FederateInstance federate : federatesByInstantiation.get(child.getDefinition())) {

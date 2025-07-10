@@ -18,11 +18,11 @@ reactor Source {
 
 reactor Destination {
   state s = 15
-  input[2] _in
+  input[2] inp
 
-  reaction(_in) {=
+  reaction(inp) {=
     sm = 0
-    for port in _in:
+    for port in inp:
       if port.is_present:
         sm += sum(port.value)
 
@@ -45,5 +45,5 @@ reactor Destination {
 main reactor MultiportToMultiportArray {
   a = new Source()
   b = new Destination()
-  a.out -> b._in
+  a.out -> b.inp
 }

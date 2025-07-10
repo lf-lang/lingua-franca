@@ -2,7 +2,9 @@
 target Python {
   timeout: 1 sec,
   coordination: centralized,
-  docker: true
+  docker: {
+    rti-image: "rti:local"
+  }
 }
 
 import Source, Destination from "../../federated/DistributedMultiport.lf"
@@ -10,5 +12,5 @@ import Source, Destination from "../../federated/DistributedMultiport.lf"
 federated reactor DistributedMultiportContainerized at rti {
   s = new Source()
   d = new Destination()
-  s.out -> d.in_
+  s.out -> d.inp
 }

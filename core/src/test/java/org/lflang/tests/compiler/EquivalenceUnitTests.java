@@ -18,33 +18,33 @@ public class EquivalenceUnitTests {
   public void testSimple() {
     assertSelfEquivalence(
         """
-                target C
+        target C
 
-                reactor Destination {
-                    input ok: bool
-                    input in: int
-                    state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
-                }
-                """);
+        reactor Destination {
+            input ok: bool
+            input in: int
+            state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
+        }
+        """);
   }
 
   @Test
   public void testCodeExprEqItselfModuloIndent() {
     assertEquivalent(
         """
-                target C
-                reactor Destination {
-                    state s: tag_t = {=
-                        NEVER_TAG_INITIALIZER
-                    =}
-                }
-                """,
+        target C
+        reactor Destination {
+            state s: tag_t = {=
+                NEVER_TAG_INITIALIZER
+            =}
+        }
+        """,
         """
-                target C
-                reactor Destination {
-                    state s: tag_t = {= NEVER_TAG_INITIALIZER =}
-                }
-                """);
+        target C
+        reactor Destination {
+            state s: tag_t = {= NEVER_TAG_INITIALIZER =}
+        }
+        """);
   }
 
   private void assertSelfEquivalence(String input) {

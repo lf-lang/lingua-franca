@@ -1,0 +1,52 @@
+target C {
+  timeout: 0 s,
+  files: ["include/array.h"]
+}
+
+import TokenSource from "lib/Token.lf"
+
+preamble {=
+  #include "array.h"
+=}
+
+reactor R(width: int = 4) {
+  // Pathetically, the Windows C compiler doesn't support arrays on the stack with a variable size.
+  // So we have to give a constant here instead of the parameter width.
+  mutable input[2] in: int_array_t*
+  output[width] out: int_array_t*
+
+  reaction(in) -> out {=
+    for(int i = 0; i < self->width; i++) {
+      for (int j = 0; j < in[i]->value->length; j++) {
+        in[i]->value->data[j] = in[i]->value->data[j] * 2;
+      }
+      lf_set_token(out[i], in[i]->token);
+    }
+  =}
+}
+
+main reactor {
+  s = new[2] TokenSource()
+  r = new R(width=2)
+  s.out -> r.in
+
+  reaction(r.out) {=
+    lf_print("Received from R [%d, %d, %d], [%d, %d, %d]",
+             r.out[0]->value->data[0], r.out[0]->value->data[1], r.out[0]->value->data[2],
+             r.out[1]->value->data[0], r.out[1]->value->data[1], r.out[1]->value->data[2]);
+    if (r.out[0]->value->data[0] != 0 || r.out[0]->value->data[1] != 2 || r.out[0]->value->data[2] != 4
+        || r.out[1]->value->data[0] != 0 || r.out[1]->value->data[1] != 2 || r.out[1]->value->data[2] != 4) {
+      lf_print_error_and_exit("Expected [0, 2, 4].");
+    }
+  =}
+
+  reaction(s.out) {=
+    lf_print("Received from S [%d, %d, %d], [%d, %d, %d]",
+             s[0].out->value->data[0], s[0].out->value->data[1], s[0].out->value->data[2],
+             s[1].out->value->data[0], s[1].out->value->data[1], s[1].out->value->data[2]);
+    if (s[0].out->value->data[0] != 0 || s[0].out->value->data[1] != 1 || s[0].out->value->data[2] != 2
+        || s[1].out->value->data[0] != 0 || s[1].out->value->data[1] != 1 || s[1].out->value->data[2] != 2) {
+      lf_print_error_and_exit("Expected [0, 2, 4].");
+    }
+  =}
+}

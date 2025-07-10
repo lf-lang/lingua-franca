@@ -1,5 +1,7 @@
 target Python {
-  docker: true
+  docker: {
+    rti-image: "rti:local"
+  }
 }
 
 import HelloWorld2 from "../HelloWorld.lf"

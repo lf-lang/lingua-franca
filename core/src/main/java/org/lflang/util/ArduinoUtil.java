@@ -57,12 +57,12 @@ public class ArduinoUtil {
 
     var srcGenPath = fileConfig.getSrcGenPath();
     String board =
-        targetConfig.get(PlatformProperty.INSTANCE).board() != null
-            ? targetConfig.get(PlatformProperty.INSTANCE).board()
+        targetConfig.get(PlatformProperty.INSTANCE).board().setByUser()
+            ? targetConfig.get(PlatformProperty.INSTANCE).board().value()
             : "arduino:avr:leonardo";
 
     String compileDefs =
-        (targetConfig.get(PlatformProperty.INSTANCE).board().contains("mbed")
+        (targetConfig.get(PlatformProperty.INSTANCE).board().value().contains("mbed")
                 ? ""
                 : "-DLF_SINGLE_THREADED")
             + " -DPLATFORM_ARDUINO"
@@ -109,8 +109,8 @@ public class ArduinoUtil {
             "SUCCESS: Compiling generated code for "
                 + fileConfig.name
                 + " finished with no errors.");
-    if (targetConfig.get(PlatformProperty.INSTANCE).flash()) {
-      if (targetConfig.get(PlatformProperty.INSTANCE).port() != null) {
+    if (targetConfig.get(PlatformProperty.INSTANCE).flash().value()) {
+      if (targetConfig.get(PlatformProperty.INSTANCE).port().value() != null) {
         messageReporter.nowhere().info("Invoking flash command for Arduino");
         LFCommand flash =
             commandFactory.createCommand(
@@ -118,9 +118,9 @@ public class ArduinoUtil {
                 List.of(
                     "upload",
                     "-b",
-                    targetConfig.get(PlatformProperty.INSTANCE).board(),
+                    targetConfig.get(PlatformProperty.INSTANCE).board().value(),
                     "-p",
-                    targetConfig.get(PlatformProperty.INSTANCE).port()),
+                    targetConfig.get(PlatformProperty.INSTANCE).port().value()),
                 fileConfig.getSrcGenPath());
         if (flash == null) {
           messageReporter.nowhere().error("Could not create arduino-cli flash command.");

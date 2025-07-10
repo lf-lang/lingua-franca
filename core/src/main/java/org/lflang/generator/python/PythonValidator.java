@@ -35,10 +35,12 @@ public class PythonValidator extends org.lflang.generator.Validator {
   /** The pattern that diagnostics from the Python compiler typically follow. */
   private static final Pattern DIAGNOSTIC_MESSAGE_PATTERN =
       Pattern.compile("(\\*\\*\\*)?\\s*File \"(?<path>.*?\\.py)\", line (?<line>\\d+)");
+
   /**
    * The pattern typically followed by the message that typically follows the main diagnostic line.
    */
   private static final Pattern MESSAGE = Pattern.compile("\\w*Error: .*");
+
   /** An alternative pattern that at least some diagnostics from the Python compiler may follow. */
   private static final Pattern ALT_DIAGNOSTIC_MESSAGE_PATTERN =
       Pattern.compile(".*Error:.*line (?<line>\\d+)\\)");

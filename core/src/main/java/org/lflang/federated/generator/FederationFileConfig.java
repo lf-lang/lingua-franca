@@ -33,6 +33,7 @@ import java.util.List;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.FileConfig;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.util.FileUtil;
@@ -78,6 +79,16 @@ public class FederationFileConfig extends FileConfig {
     return getGenPath().resolve("src-gen");
   }
 
+  /** The directory in which to put a copy of reactor-c for compiling a RTI for this federation. */
+  public Path getRtiSrcGenPath() {
+    return getSrcGenPath().resolve("RTI");
+  }
+
+  /** The path to the RTI binary that is compiled for this federation. */
+  public Path getRtiBinPath() {
+    return getFedBinPath().resolve("RTI");
+  }
+
   /**
    * Return the path to the root of a LF project generated on the basis of a federated LF program
    * currently under compilation.
@@ -102,7 +113,11 @@ public class FederationFileConfig extends FileConfig {
    * the generated .lf file for the federate.
    */
   public void relativizePaths(FederateTargetConfig targetConfig) {
-    List.of(ProtobufsProperty.INSTANCE, FilesProperty.INSTANCE, CmakeIncludeProperty.INSTANCE)
+    List.of(
+            ProtobufsProperty.INSTANCE,
+            FilesProperty.INSTANCE,
+            CmakeIncludeProperty.INSTANCE,
+            CmakeInitIncludeProperty.INSTANCE)
         .forEach(
             p -> {
               if (targetConfig.isSet(p)) {

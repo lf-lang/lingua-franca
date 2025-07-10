@@ -39,7 +39,7 @@ import org.lflang.lf.LfPackage;
 /**
  * Global scope provider that limits access to only those files that were explicitly imported.
  *
- * <p>Adapted from from Xtext manual, Chapter 8.7.
+ * <p>Adapted from Xtext manual, Chapter 8.7.
  *
  * @author Marten Lohstroh
  * @see <a href="https://www.eclipse.org/Xtext/documentation/2.6.0/Xtext%20Documentation.pdf">xtext

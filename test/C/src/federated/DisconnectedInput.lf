@@ -1,0 +1,34 @@
+/**
+ * Verify that an unconnected input port does not cause a spurious cyclic dependency. Success is
+ * just compiling and running without error.
+ */
+target C {
+  timeout: 100 ms
+}
+
+reactor A {
+  input in: int
+  output out: int
+  timer t(0, 25 ms)
+
+  reaction(t) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor B {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_print("B received %d", in->value);
+    lf_set(out, in->value);
+  =}
+}
+
+federated reactor {
+  a = new A()
+  b = new B()
+  a.out -> b.in
+  b.out -> a.in
+}

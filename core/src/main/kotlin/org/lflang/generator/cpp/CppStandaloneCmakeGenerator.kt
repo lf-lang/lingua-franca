@@ -28,10 +28,7 @@ import org.lflang.FileConfig
 import org.lflang.target.TargetConfig
 import org.lflang.generator.PrependOperator
 import org.lflang.joinWithLn
-import org.lflang.target.property.BuildTypeProperty
-import org.lflang.target.property.CmakeIncludeProperty
-import org.lflang.target.property.ExternalRuntimePathProperty
-import org.lflang.target.property.RuntimeVersionProperty
+import org.lflang.target.property.*
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -60,7 +57,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             |    find_program(LCOV_BIN lcov)
             |    if(LCOV_BIN MATCHES "lcov$S")
-            |      set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage")
+            |      set(CMAKE_CXX_FLAGS "$S{CMAKE_CXX_FLAGS} --coverage -fprofile-arcs -ftest-coverage -fprofile-update=atomic")
             |    else()
             |      message("Not producing code coverage information since lcov was not found")
             |    endif()
@@ -140,7 +137,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
 
     fun generateCmake(sources: List<Path>): String {
         // Resolve path to the cmake include files if any was provided
-        val includeFiles = targetConfig.get(CmakeIncludeProperty.INSTANCE)?.map { fileConfig.srcPath.resolve(it).toUnixString() }
+        val includeFiles = (targetConfig.get(CmakeIncludeProperty.INSTANCE) + targetConfig.get(CmakeInitIncludeProperty.INSTANCE))?.map { fileConfig.srcPath.resolve(it).toUnixString() }
 
         val reactorCppTarget = when {
             targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE) -> "reactor-cpp"

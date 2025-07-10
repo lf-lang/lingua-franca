@@ -12,7 +12,7 @@ reactor MetaCounter {
   output[2] always: int
   output[2] mode1: int
   output[2] mode2: int
-  output[2] never: int
+  output[2] neverp: int
 
   outer_counters = new[2] CounterCycle()
   (next)+ -> outer_counters.next
@@ -46,7 +46,7 @@ reactor MetaCounter {
     mode3_counters = new[2] CounterCycle()
 
     (next)+ -> mode3_counters.next
-    mode3_counters.count -> never
+    mode3_counters.count -> neverp
   }
 }
 
@@ -72,7 +72,7 @@ main reactor {
       250000000,1,1,1,1,1,1,1,1,0,3,0,3,0,3,0,3,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0
     }, training = false)
 
-  counters.always, counters.mode1, counters.mode2, counters.never -> test.events
+  counters.always, counters.mode1, counters.mode2, counters.neverp -> test.events
 
   // Trigger
   reaction(stepper) -> counters.next {=

@@ -1,6 +1,10 @@
 name: Language server tests
 
 on:
+  schedule:
+  # * is a special character in YAML so you have to quote this string
+    - cron: '0 8 * * 6'
+  workflow_dispatch:
   workflow_call:
     inputs:
       all-platforms:
@@ -12,7 +16,7 @@ jobs:
   test-lsp:
     strategy:
       matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-latest", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-latest"]') }}
+        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-24.04", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-24.04"]') }}
     runs-on: ${{ matrix.platform }}
     steps:
       # Uninstall operations are needed because the language server is able to use multiple
@@ -30,9 +34,6 @@ jobs:
       - name: Uninstall packages Ubuntu
         run: sudo apt-get remove clang-*
         if: ${{ runner.os == 'Linux' }}
-      - name: Uninstall packages MacOS
-        run: brew uninstall --ignore-dependencies gcc
-        if: ${{ runner.os == 'macOS' }}
       - name: Uninstall packages Windows
         shell: pwsh
         run: |
@@ -46,7 +47,7 @@ jobs:
       - name: Install pnpm
         run: npm i -g pnpm
       - name: Cache .pnpm-store
-        uses: actions/cache@v3.2.5
+        uses: actions/cache@v4
         with:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('core/src/main/resources/lib/ts/package.json') }}
@@ -68,7 +69,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.12"
       - name: Run language server Python tests without PyLint
         run: ./gradlew core:integrationTest --tests org.lflang.tests.lsp.LspTests.pythonValidationTestSyntaxOnly core:integrationTestCodeCoverageReport
       - name: Install pylint

@@ -1,6 +1,7 @@
 package org.lflang.federated.launcher;
 
 import java.nio.file.Path;
+import org.lflang.FileConfig;
 
 /**
  * Class for storing configuration settings pertaining to the RTI.
@@ -45,6 +46,11 @@ public class RtiConfig {
   /** Return the username used to gain access to the host where the RTI is to be spawned. */
   public String getUser() {
     return user;
+  }
+
+  /** Return the path to the RTI binary on the remote host. */
+  public String getRtiBinPath(FileConfig fileConfig) {
+    return "~/" + directory.resolve(fileConfig.name).resolve("bin/RTI").toString();
   }
 
   /** Set the directory to create on the remote host. */

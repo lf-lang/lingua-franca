@@ -49,6 +49,11 @@ public class CppTest extends RuntimeTest {
     return true;
   }
 
+  @Override
+  protected boolean supportsDockerOption() {
+    return true;
+  }
+
   @Test
   @Override
   public void runBasicTests() {

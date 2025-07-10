@@ -46,11 +46,11 @@ public class LfdCliTest {
 
   private static final String VALID_FILE =
       """
-        target Python
-        main reactor {
-          reaction(startup) {==}
-        }
-        """;
+      target Python
+      main reactor {
+        reaction(startup) {==}
+      }
+      """;
   LfdTestFixture lfdTester = new LfdTestFixture();
 
   @Test

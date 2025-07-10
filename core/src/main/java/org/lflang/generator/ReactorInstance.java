@@ -178,11 +178,13 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
+  /** FIXME: What is this? */
   public TypeParameterizedReactor tpr;
 
   /**
-   * The TPO level with which {@code this} was annotated, or {@code null} if there is no TPO
-   * annotation.
+   * The Total Port Order level with which {@code this} was annotated, or {@code null} if there is
+   * no TPO annotation. TPO is total port order. See
+   * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
   public final Integer tpoLevel;
 
@@ -205,22 +207,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     if (cachedReactionLoopGraph == null) {
       cachedReactionLoopGraph = new ReactionInstanceGraph(this);
     }
-    return cachedReactionLoopGraph;
-  }
-
-  /**
-   * This function assigns/propagates deadlines through the Reaction Instance Graph. It performs
-   * Kahn's algorithm in reverse, starting from the leaf nodes and propagates deadlines upstream. To
-   * reduce cost, it should only be invoked when there are user-specified deadlines in the program.
-   *
-   * @return
-   */
-  public ReactionInstanceGraph assignDeadlines() {
-    if (depth != 0) return root().assignDeadlines();
-    if (cachedReactionLoopGraph == null) {
-      cachedReactionLoopGraph = new ReactionInstanceGraph(this);
-    }
-    cachedReactionLoopGraph.rebuildAndAssignDeadlines();
     return cachedReactionLoopGraph;
   }
 
@@ -710,6 +696,23 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     return null;
   }
 
+  /**
+   * Return the watchdog instance within this reactor instance corresponding to the specified
+   * watchdog reference.
+   *
+   * @param watchdog The watchdog as an AST node.
+   * @return The corresponding watchdog instance or null if the watchdog does not belong to this
+   *     reactor.
+   */
+  public WatchdogInstance lookupWatchdogInstance(Watchdog watchdog) {
+    for (WatchdogInstance watchdogInstance : watchdogs) {
+      if (watchdogInstance.getDefinition() == watchdog) {
+        return watchdogInstance;
+      }
+    }
+    return null;
+  }
+
   /** Return a descriptive string. */
   @Override
   public String toString() {
@@ -893,6 +896,8 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
         this.actions.add(new ActionInstance(actionDecl, this));
       }
 
+      createWatchdogInstances();
+
       establishPortConnections();
 
       // Create the reaction instances in this reactor instance.
@@ -931,6 +936,22 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     SendRange range = new SendRange(src, dst, src._interleaved, connection);
     src.instance.dependentPorts.add(range);
     dst.instance.dependsOnPorts.add(src);
+
+    // Record the connection in the source port instances.
+    List<Connection> downstreamConnections = src.instance.downstreamConnections.get(dst.instance);
+    if (downstreamConnections == null) {
+      downstreamConnections = new LinkedList<Connection>();
+      src.instance.downstreamConnections.put(src.instance, downstreamConnections);
+    }
+    downstreamConnections.add(connection);
+
+    // Record the connection in the destination port instances.
+    List<Connection> upstreamConnections = dst.instance.upstreamConnections.get(src.instance);
+    if (upstreamConnections == null) {
+      upstreamConnections = new LinkedList<Connection>();
+      dst.instance.upstreamConnections.put(src.instance, upstreamConnections);
+    }
+    upstreamConnections.add(connection);
   }
 
   /**

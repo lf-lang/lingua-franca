@@ -52,7 +52,7 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
 
   @Override
   protected TracingOptions fromString(String string, MessageReporter reporter) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    return new TracingOptions(Boolean.parseBoolean(string));
   }
 
   @Override
@@ -151,6 +151,11 @@ public class TracingProperty extends TargetProperty<TracingOptions, UnionType> {
 
     public boolean isEnabled() {
       return enabled;
+    }
+
+    @Override
+    public String toString() {
+      return Boolean.toString(this.enabled);
     }
   }
 

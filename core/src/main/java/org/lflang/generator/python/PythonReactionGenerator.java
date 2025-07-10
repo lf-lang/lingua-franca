@@ -102,10 +102,16 @@ public class PythonReactionGenerator {
                 + "."
                 + pythonFunctionName
                 + "\");",
+            "PyObject *arglist = Py_BuildValue(\"("
+                + "O".repeat(pyObjects.size())
+                + ")\""
+                + pyObjectsJoined
+                + ");",
             "PyObject *rValue = PyObject_CallObject(",
             "    self->" + cpythonFunctionName + ", ",
-            "    Py_BuildValue(\"(" + "O".repeat(pyObjects.size()) + ")\"" + pyObjectsJoined + ")",
+            "    arglist",
             ");",
+            "Py_DECREF(arglist);",
             "if (rValue == NULL) {",
             "    lf_print_error(\"FATAL: Calling reaction "
                 + reactorDeclName
@@ -118,8 +124,7 @@ public class PythonReactionGenerator {
                 + " code again",
             "    }",
             "    " + PyUtil.generateGILReleaseCode(),
-            "    Py_FinalizeEx();",
-            "    exit(1);",
+            "    exit(1);", // NOTE: Used to call Py_FinalizeEx() before exit, but it segfaults.
             "}",
             "",
             "/* Release the thread. No Python API allowed beyond this point. */",

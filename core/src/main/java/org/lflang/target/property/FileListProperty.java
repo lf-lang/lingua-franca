@@ -48,4 +48,9 @@ public abstract class FileListProperty extends TargetProperty<List<String>, Unio
   public Element toAstElement(List<String> value) {
     return ASTUtils.toElement(value);
   }
+
+  @Override
+  public boolean loadFromImport() {
+    return true;
+  }
 }

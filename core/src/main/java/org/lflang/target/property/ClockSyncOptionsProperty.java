@@ -40,8 +40,8 @@ public final class ClockSyncOptionsProperty
         switch (option) {
           case ATTENUATION -> options.attenuation = ASTUtils.toInteger(entry.getValue());
           case COLLECT_STATS -> options.collectStats = ASTUtils.toBoolean(entry.getValue());
-          case LOCAL_FEDERATES_ON -> options.localFederatesOn =
-              ASTUtils.toBoolean(entry.getValue());
+          case LOCAL_FEDERATES_ON ->
+              options.localFederatesOn = ASTUtils.toBoolean(entry.getValue());
           case PERIOD -> options.period = ASTUtils.toTimeValue(entry.getValue());
           case TEST_OFFSET -> options.testOffset = ASTUtils.toTimeValue(entry.getValue());
           case TRIALS -> options.trials = ASTUtils.toInteger(entry.getValue());

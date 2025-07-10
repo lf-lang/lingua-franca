@@ -1,0 +1,58 @@
+target C {
+  build-type: debug
+}
+
+preamble {=
+  #include <string.h>
+=}
+
+reactor A(parent_bank_index: size_t = 0) {
+  reaction(startup) {=
+    const char* name = lf_reactor_full_name(self);
+    lf_print("name: %s", name);
+    char buffer[20];
+    snprintf(buffer, 20, "ReactorName.b[%zu].a", self->parent_bank_index);
+    if (strcmp(buffer, name) != 0) {
+      lf_print_error_and_exit("full name does not match");
+    }
+    name = lf_reactor_name(self);
+    if (strcmp("a", name) != 0) {
+      lf_print_error_and_exit("name does not match");
+    }
+  =}
+}
+
+reactor B(bank_index: size_t = 0) {
+  a = new A(parent_bank_index=bank_index)
+
+  reaction(startup) {=
+    const char* name = lf_reactor_full_name(self);
+    lf_print("name: %s", name);
+    char buffer[20];
+    snprintf(buffer, 20, "ReactorName.b[%zu]", self->bank_index);
+    if (strcmp(buffer, name) != 0) {
+      lf_print_error_and_exit("full name does not match");
+    }
+    name = lf_reactor_name(self);
+    snprintf(buffer, 20, "b[%zu]", self->bank_index);
+    if (strcmp(buffer, name) != 0) {
+      lf_print_error_and_exit("name does not match");
+    }
+  =}
+}
+
+main reactor {
+  b = new[3] B()
+
+  reaction(startup) {=
+    const char* name = lf_reactor_full_name(self);
+    lf_print("name: %s", name);
+    if (strcmp("ReactorName", name) != 0) {
+      lf_print_error_and_exit("full name does not match");
+    }
+    name = lf_reactor_name(self);
+    if (strcmp("ReactorName", name) != 0) {
+      lf_print_error_and_exit("name does not match");
+    }
+  =}
+}

@@ -15,7 +15,7 @@ jobs:
   run:
     strategy:
       matrix:
-        platform: [ubuntu-latest]
+        platform: [ubuntu-24.04]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Check out lingua-franca repository
@@ -34,6 +34,10 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
+      - name: Setup Scala
+        uses: olafurpg/setup-scala@v11
+        with:
+          java-version: openjdk@1.17.0
       - name: Check out Uclid5 repository
         uses: actions/checkout@v3
         with:
@@ -54,6 +58,7 @@ jobs:
       - name: Install Uclid5
         working-directory: uclid/
         run: |
+
           sbt update clean compile
           sbt universal:packageBin
           cd target/universal/

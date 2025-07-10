@@ -26,6 +26,7 @@ public class MainContext implements LFGeneratorContext {
 
   /** The indicator that shows whether this build process is canceled. */
   private final CancelIndicator cancelIndicator;
+
   /** The {@code ReportProgress} function of {@code this}. */
   private final ReportProgress reportProgress;
 

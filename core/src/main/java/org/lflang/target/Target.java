@@ -26,40 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CargoDependenciesProperty;
-import org.lflang.target.property.CargoFeaturesProperty;
-import org.lflang.target.property.ClockSyncModeProperty;
-import org.lflang.target.property.ClockSyncOptionsProperty;
-import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.CoordinationOptionsProperty;
-import org.lflang.target.property.CoordinationProperty;
-import org.lflang.target.property.DockerProperty;
-import org.lflang.target.property.ExportDependencyGraphProperty;
-import org.lflang.target.property.ExportToYamlProperty;
-import org.lflang.target.property.ExternalRuntimePathProperty;
-import org.lflang.target.property.FilesProperty;
-import org.lflang.target.property.KeepaliveProperty;
-import org.lflang.target.property.NoRuntimeValidationProperty;
-import org.lflang.target.property.NoSourceMappingProperty;
-import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.PrintStatisticsProperty;
-import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.Ros2DependenciesProperty;
-import org.lflang.target.property.Ros2Property;
-import org.lflang.target.property.RuntimeVersionProperty;
-import org.lflang.target.property.RustIncludeProperty;
-import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.SingleFileProjectProperty;
-import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.TracePluginProperty;
-import org.lflang.target.property.TracingProperty;
-import org.lflang.target.property.VerifyProperty;
-import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.*;
 
 /**
  * Enumeration of targets and their associated properties.
@@ -383,7 +350,8 @@ public enum Target {
       // In our Rust implementation, the only reserved keywords
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
-      Arrays.asList("self", "true", "false"));
+      Arrays.asList("self", "true", "false")),
+  UC("uC", false, Arrays.asList());
 
   /** String representation of this target. */
   private final String displayName;
@@ -490,19 +458,19 @@ public enum Target {
   }
 
   /**
-   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
+   * Return true if reaction declarations (i.e., reactions without inlined code) are supported by
    * this target.
    */
   public boolean supportsReactionDeclarations() {
     return this.equals(Target.C) || this.equals(Target.CPP);
   }
 
-  /** Return true if this code for this target should be built using Docker if Docker is used. */
-  public boolean buildsUsingDocker() {
-    return switch (this) {
-      case TS -> false;
-      case C, CCPP, CPP, Python, Rust -> true;
-    };
+  /** Return true if enclaves are supported by this target. */
+  public boolean supportsEnclaves() {
+    return this.equals(Target.C)
+        || this.equals(Target.CCPP)
+        || this.equals(Target.CPP)
+        || this.equals(Target.Python);
   }
 
   /**
@@ -589,80 +557,92 @@ public enum Target {
 
   public void initialize(TargetConfig config) {
     switch (this) {
-      case C, CCPP -> config.register(
-          AuthProperty.INSTANCE,
-          BuildCommandsProperty.INSTANCE,
-          BuildTypeProperty.INSTANCE,
-          ClockSyncModeProperty.INSTANCE,
-          ClockSyncOptionsProperty.INSTANCE,
-          CmakeIncludeProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE,
-          CompilerProperty.INSTANCE,
-          CoordinationOptionsProperty.INSTANCE,
-          CoordinationProperty.INSTANCE,
-          DockerProperty.INSTANCE,
-          FilesProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          NoSourceMappingProperty.INSTANCE,
-          PlatformProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE,
-          SchedulerProperty.INSTANCE,
-          SingleThreadedProperty.INSTANCE,
-          TracingProperty.INSTANCE,
-          TracePluginProperty.INSTANCE,
-          VerifyProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case CPP -> config.register(
-          BuildTypeProperty.INSTANCE,
-          CmakeIncludeProperty.INSTANCE,
-          CompilerProperty.INSTANCE,
-          ExportDependencyGraphProperty.INSTANCE,
-          ExportToYamlProperty.INSTANCE,
-          ExternalRuntimePathProperty.INSTANCE,
-          NoRuntimeValidationProperty.INSTANCE,
-          PrintStatisticsProperty.INSTANCE,
-          Ros2DependenciesProperty.INSTANCE,
-          Ros2Property.INSTANCE,
-          RuntimeVersionProperty.INSTANCE,
-          TracingProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case Python -> config.register(
-          AuthProperty.INSTANCE,
-          BuildCommandsProperty.INSTANCE,
-          BuildTypeProperty.INSTANCE,
-          ClockSyncModeProperty.INSTANCE,
-          ClockSyncOptionsProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE,
-          CoordinationOptionsProperty.INSTANCE,
-          CoordinationProperty.INSTANCE,
-          DockerProperty.INSTANCE,
-          FilesProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          NoSourceMappingProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE,
-          SchedulerProperty.INSTANCE,
-          SingleThreadedProperty.INSTANCE,
-          TracingProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case Rust -> config.register(
-          BuildTypeProperty.INSTANCE,
-          CargoDependenciesProperty.INSTANCE,
-          CargoFeaturesProperty.INSTANCE,
-          ExportDependencyGraphProperty.INSTANCE,
-          ExternalRuntimePathProperty.INSTANCE,
-          RustIncludeProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          RuntimeVersionProperty.INSTANCE,
-          SingleFileProjectProperty.INSTANCE,
-          SingleThreadedProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case TS -> config.register(
-          CoordinationOptionsProperty.INSTANCE,
-          CoordinationProperty.INSTANCE,
-          DockerProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE,
-          RuntimeVersionProperty.INSTANCE);
+      case C, CCPP ->
+          config.register(
+              AuthProperty.INSTANCE,
+              BuildCommandsProperty.INSTANCE,
+              BuildTypeProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
+              ClockSyncOptionsProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              CmakeInitIncludeProperty.INSTANCE,
+              CompileDefinitionsProperty.INSTANCE,
+              CompilerProperty.INSTANCE,
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              FilesProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              NoSourceMappingProperty.INSTANCE,
+              PlatformProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              SchedulerProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE,
+              TracingProperty.INSTANCE,
+              TracePluginProperty.INSTANCE,
+              VerifyProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case CPP ->
+          config.register(
+              BuildTypeProperty.INSTANCE,
+              CmakeInitIncludeProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              CompilerProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              ExportDependencyGraphProperty.INSTANCE,
+              ExternalRuntimePathProperty.INSTANCE,
+              NoRuntimeValidationProperty.INSTANCE,
+              PrintStatisticsProperty.INSTANCE,
+              Ros2DependenciesProperty.INSTANCE,
+              Ros2Property.INSTANCE,
+              RuntimeVersionProperty.INSTANCE,
+              TracingProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case Python ->
+          config.register(
+              AuthProperty.INSTANCE,
+              BuildCommandsProperty.INSTANCE,
+              BuildTypeProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
+              ClockSyncOptionsProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              CompileDefinitionsProperty.INSTANCE,
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              FilesProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              NoSourceMappingProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              PythonVersionProperty.INSTANCE,
+              SchedulerProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE,
+              TracingProperty.INSTANCE,
+              TracePluginProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case Rust ->
+          config.register(
+              BuildTypeProperty.INSTANCE,
+              CargoDependenciesProperty.INSTANCE,
+              CargoFeaturesProperty.INSTANCE,
+              ExportDependencyGraphProperty.INSTANCE,
+              ExternalRuntimePathProperty.INSTANCE,
+              RustIncludeProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              RuntimeVersionProperty.INSTANCE,
+              SingleFileProjectProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case TS ->
+          config.register(
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              RuntimeVersionProperty.INSTANCE);
     }
   }
 }

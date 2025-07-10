@@ -153,19 +153,19 @@ class LinguaFrancaDependencyAnalysisTest {
   public void circularInstantiation() throws Exception {
     String testCase =
         """
-             target C;
+            target C;
 
-             reactor X {
-                 reaction() {=
-                 //
-                 =}
-                 p = new Y();
-             }
+            reactor X {
+                reaction() {=
+                //
+                =}
+                p = new Y();
+            }
 
-             reactor Y {
-                 q = new X();
-             }
-         """;
+            reactor Y {
+                q = new X();
+            }
+        """;
     Model model = parser.parse(testCase);
 
     Assertions.assertNotNull(model);

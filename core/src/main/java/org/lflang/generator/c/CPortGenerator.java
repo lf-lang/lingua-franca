@@ -150,9 +150,20 @@ public class CPortGenerator {
    * @param output The output port
    * @param reactorSelfStruct The name of the self struct
    */
-  public static String initializeOutputMultiport(PortInstance output, String reactorSelfStruct) {
+  public static String initializeOutputMultiport(
+      PortInstance output, String reactorSelfStruct, CTypes types) {
     var portRefName = CUtil.portRefName(output);
     var portStructType = variableStructType(output);
+
+    // To support generics, we have to do a song and dance here.
+    var type = output.getParent().tpr.resolveType(ASTUtils.getInferredType(output.getDefinition()));
+    String rootType = CUtil.rootType(types.getTargetType(type));
+    // Since the self struct is allocated using calloc, there is no need to set falsy fields.
+    // If the input type is 'void', we need to avoid generating the code
+    // 'sizeof(void)', which some compilers reject.
+    var elementSize = (rootType.equals("void")) ? "0" : "sizeof(" + rootType + ")";
+    var isFixedSizeArrayType = CUtil.isFixedSizeArrayType(type);
+
     return output.isMultiport()
         ? String.join(
             "\n",
@@ -167,10 +178,30 @@ public class CPortGenerator {
             "// Assign each output port pointer to be used in",
             "// reactions to facilitate user access to output ports",
             "for(int i=0; i < " + output.getWidth() + "; i++) {",
+            isFixedSizeArrayType
+                ? "        " + portRefName + "[i].type.element_size = " + elementSize + ";"
+                : "",
+            isFixedSizeArrayType
+                ? "        "
+                    + portRefName
+                    + "[i].length = "
+                    + CUtil.fixedSizeArrayTypeLength(type)
+                    + ";"
+                : "",
             "        " + portRefName + "_pointers[i] = &(" + portRefName + "[i]);",
             "}")
         : String.join(
             "\n",
+            isFixedSizeArrayType
+                ? "        " + portRefName + ".type.element_size = " + elementSize + ";"
+                : "",
+            isFixedSizeArrayType
+                ? "        "
+                    + portRefName
+                    + ".length = "
+                    + CUtil.fixedSizeArrayTypeLength(type)
+                    + ";"
+                : "",
             "// width of -2 indicates that it is not a multiport.",
             portRefName + "_width = -2;");
   }

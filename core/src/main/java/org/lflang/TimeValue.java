@@ -35,6 +35,10 @@ public final class TimeValue implements Comparable<TimeValue> {
 
   /** The maximum value of this type. This is approximately equal to 292 years. */
   public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
+
+  /** The minimum value of this type. */
+  public static final TimeValue MIN_VALUE = new TimeValue(Long.MIN_VALUE, TimeUnit.NANO);
+
   /** A time value equal to zero. */
   public static final TimeValue ZERO = new TimeValue(0, null);
   /** A time value representing NEVER, which is less than any other time value. */
@@ -176,7 +180,9 @@ public final class TimeValue implements Comparable<TimeValue> {
 
   /** Return a string representation of this time value. */
   public String toString() {
-    return unit != null ? time + " " + unit.getCanonicalName() : Long.toString(time);
+    if (this.equals(MAX_VALUE)) return "forever";
+    if (this.equals(MIN_VALUE)) return "never";
+    return unit != null ? time + " " + unit.toString() : Long.toString(time);
   }
 
   /** Return the latest of both values. */

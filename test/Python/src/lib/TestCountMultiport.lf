@@ -19,7 +19,7 @@ reactor TestCountMultiport(start=1, stride=1, num_inputs=1, width=2) {
   input[width] inp
 
   reaction(inp) {=
-    for i in range(in_width):
+    for i in range(inp.width):
       if not inp[i].is_present:
         print("No input on channel {}.".format(i))
         self.sys.exit(1)

@@ -8,7 +8,7 @@ preamble {=
 =}
 
 reactor DelayPointer(delay = 100 msec) {
-  input _in
+  input inp
   output out
   logical action a
 
@@ -16,10 +16,10 @@ reactor DelayPointer(delay = 100 msec) {
     out.set(a.value);
   =}
 
-  reaction(_in) -> a {=
+  reaction(inp) -> a {=
     # Schedule the actual token from the input rather than
     # a new token with a copy of the input value.
-    a.schedule(self.delay, _in.value);
+    a.schedule(self.delay, inp.value);
   =}
 }
 
@@ -33,11 +33,11 @@ reactor Source {
 
 # expected parameter is for testing.
 reactor Print(expected=42) {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
-    if _in.value.value != self.expected:
+  reaction(inp) {=
+    print("Received: name = {:s}, value = {:d}".format(inp.value.name, inp.value.value))
+    if inp.value.value != self.expected:
       sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
       exit(1)
   =}
@@ -47,6 +47,6 @@ main reactor DelayStruct {
   s = new Source()
   d = new DelayPointer()
   p = new Print()
-  s.out -> d._in
-  d.out -> p._in
+  s.out -> d.inp
+  d.out -> p.inp
 }

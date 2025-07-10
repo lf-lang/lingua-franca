@@ -1,0 +1,19 @@
+target C {
+  logging: DEBUG,
+  timeout: 1 s,
+  coordination: centralized,
+  docker: {
+    rti-image: "rti:local",
+    pre-build-script: "foo ish.sh"
+  }
+}
+
+reactor Hello {
+  reaction(startup) {=
+    printf("Hello World!\n");
+  =}
+}
+
+federated reactor {
+  a = new Hello()
+}

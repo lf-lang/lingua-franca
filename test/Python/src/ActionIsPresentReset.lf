@@ -1,0 +1,29 @@
+target Python {
+  timeout: 7 msecs,
+  fast: true
+}
+
+main reactor {
+  logical action a
+  logical action b
+
+  reaction(startup) -> a {=
+    a.schedule(MSEC(1))
+  =}
+
+  reaction(a, b) -> a, b {=
+    if (a.is_present) :
+        print("A", end="")
+        b.schedule(MSEC(2))
+
+    if (b.is_present) :
+        print("B", end="")
+        a.schedule(MSEC(1))
+
+
+    print(f" at {lf.time.logical_elapsed() / MSEC(1)} msecs with triggers ({a.is_present},{b.is_present})")
+
+    if (a.is_present and b.is_present) :
+      lf_print_error_and_exit("Both triggers should not be present")
+  =}
+}

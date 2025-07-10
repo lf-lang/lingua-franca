@@ -30,7 +30,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       skip: ${{ steps.should-skip.outputs.skip == 'true' }}
       run_c: ${{ steps.do.outputs.changed_c == 1 || !github.event.pull_request.draft }}

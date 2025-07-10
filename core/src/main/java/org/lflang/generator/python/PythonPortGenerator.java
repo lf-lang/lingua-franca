@@ -177,7 +177,6 @@ public class PythonPortGenerator {
         "    }",
         "    /* Release the thread. No Python API allowed beyond this point. */",
         "    PyGILState_Release(gstate);",
-        "    Py_FinalizeEx();",
         "    exit(1);",
         "}",
         "for (int i = 0; i < " + generateWidthVariable(reactorName) + "; i++) {",
@@ -193,7 +192,6 @@ public class PythonPortGenerator {
         "        }",
         "        /* Release the thread. No Python API allowed beyond this point. */",
         "        PyGILState_Release(gstate);",
-        "        Py_FinalizeEx();",
         "        exit(1);",
         "    }",
         "}");

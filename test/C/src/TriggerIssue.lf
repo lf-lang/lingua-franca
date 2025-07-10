@@ -1,0 +1,38 @@
+/** Testing that unconnected port does not block triggering. */
+target C {
+  logging: debug
+}
+
+reactor Source {
+  output x: bool
+  output y: bool
+
+  reaction(startup) -> x, y {=
+    lf_print("S");
+    lf_set(y, true);
+  =}
+}
+
+reactor Destination {
+  input y: bool
+
+  state gotY: bool = false
+
+  reaction(y) {=
+    lf_print("Y");
+    self->gotY = true;
+  =}
+
+  reaction(shutdown) {=
+    if (!self->gotY) {
+        lf_print_error_and_exit("No reaction to Y!");
+    }
+  =}
+}
+
+main reactor {
+  ui = new Source()
+  dlc = new Destination()
+
+  ui.y -> dlc.y
+}

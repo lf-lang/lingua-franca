@@ -1,0 +1,45 @@
+target C
+
+reactor S(width: int = 4) {
+  output[width] out: int
+
+  reaction(startup) -> out {=
+    for(int i = 0; i < self->width; i++) {
+      lf_set(out[i], 0);
+    }
+  =}
+}
+
+reactor R(width: int = 4) {
+  // Pathetically, the Windows C compiler doesn't support arrays on the stack with a variable size.
+  // So we have to give a constant here instead of the parameter width.
+  mutable input[2] in: int
+  output[width] out: int
+
+  reaction(in) -> out {=
+    for(int i = 0; i < self->width; i++) {
+      in[i]->value = (i + 1) * 2;
+      lf_set(out[i], in[i]->value);
+    }
+  =}
+}
+
+main reactor {
+  s = new S(width=2)
+  r = new R(width=2)
+  s.out -> r.in
+
+  reaction(r.out) {=
+    lf_print("Received from R %d, %d", r.out[0]->value, r.out[1]->value);
+    if (r.out[0]->value != 2 || r.out[1]->value != 4) {
+      lf_print_error_and_exit("Expected 2 and 4.");
+    }
+  =}
+
+  reaction(s.out) {=
+    lf_print("Received from S %d, %d", s.out[0]->value, s.out[1]->value);
+    if (s.out[0]->value != 0 || s.out[1]->value != 0) {
+      lf_print_error_and_exit("Expected zeros.");
+    }
+  =}
+}

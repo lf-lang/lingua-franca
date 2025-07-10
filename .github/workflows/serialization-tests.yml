@@ -9,7 +9,7 @@ on:
 
 jobs:
   serialization-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -28,11 +28,16 @@ jobs:
       - name: Install Protobuf Ubuntu
         run: |
           sudo apt-get update
-          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev python3-protobuf
+          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+          npm install -g protoc-gen-js
       - name: Install LinguaFrancaBase
-        run: pip3 install LinguaFrancaBase
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install LinguaFrancaBase protobuf
       - name: Run serialization tests;
         run: |
+          source .venv/bin/activate
           source /opt/ros/*/setup.bash
           ./gradlew core:integrationTest --tests org.lflang.tests.serialization.SerializationTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov

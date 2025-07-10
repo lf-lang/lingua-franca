@@ -1,0 +1,11 @@
+// Test that importing from a file with a reactor that is only instantiated in
+// a mode does not trigger a NPE.
+target C {
+  timeout: 0 s
+}
+
+import B from "lib/InstanceInMode.lf"
+
+main reactor {
+  b = new B()
+}

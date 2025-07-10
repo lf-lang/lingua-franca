@@ -19,78 +19,78 @@ public class FormattingUnitTests {
   public void testSimple() {
     assertFormatsTo(
         """
-                target C
-                reactor Main{ }
-                """,
+        target C
+        reactor Main{ }
+        """,
         """
-                target C
+        target C
 
-                reactor Main {
-                }
-                """);
+        reactor Main {
+        }
+        """);
   }
 
   @Test
   public void testAssignments() {
     assertFormatsTo(
         """
-                target C
+        target C
 
-                reactor Destination {
-                    input ok: bool
-                    input in: int
-                    state last_invoked: tag_t=   {= NEVER_TAG_INITIALIZER =}
-                }
-                """,
+        reactor Destination {
+            input ok: bool
+            input in: int
+            state last_invoked: tag_t=   {= NEVER_TAG_INITIALIZER =}
+        }
+        """,
         """
-                target C
+        target C
 
-                reactor Destination {
-                  input ok: bool
-                  input in: int
-                  state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
-                }
-                """);
+        reactor Destination {
+          input ok: bool
+          input in: int
+          state last_invoked: tag_t = {= NEVER_TAG_INITIALIZER =}
+        }
+        """);
   }
 
   @Test
   public void testState() {
     assertFormatsTo(
         """
-                target Python
+        target Python
 
-                reactor Destination {
-                    state  one_init: tag_t   = {=NEVER_TAG_INITIALIZER=}
-                    state no_init:   tag_t
-                     state list_init = [1,2] // comment
-                }
-                """,
+        reactor Destination {
+            state  one_init: tag_t   = {=NEVER_TAG_INITIALIZER=}
+            state no_init:   tag_t
+             state list_init = [1,2] // comment
+        }
+        """,
         """
-                target Python
+        target Python
 
-                reactor Destination {
-                  state one_init: tag_t = {= NEVER_TAG_INITIALIZER =}
-                  state no_init: tag_t
-                  state list_init = [1, 2]  # comment
-                }
-                """);
+        reactor Destination {
+          state one_init: tag_t = {= NEVER_TAG_INITIALIZER =}
+          state no_init: tag_t
+          state list_init = [1, 2]  # comment
+        }
+        """);
   }
 
   @Test
   public void testCppInits() {
     assertIsFormatted(
         """
-                target Cpp
+        target Cpp
 
-                reactor Destination {
-                  state one_init: tag_t({= NEVER_TAG_INITIALIZER =})
-                  state no_init: tag_t
-                  state assign: int = 0
-                  state paren: int(0)
-                  state brace: std::vector<int>{1, 2}
-                  state paren_list: std::vector<int>(1, 2)
-                }
-                """);
+        reactor Destination {
+          state one_init: tag_t({= NEVER_TAG_INITIALIZER =})
+          state no_init: tag_t
+          state assign: int = 0
+          state paren: int(0)
+          state brace: std::vector<int>{1, 2}
+          state paren_list: std::vector<int>(1, 2)
+        }
+        """);
   }
 
   @Inject LfParsingTestHelper parser;

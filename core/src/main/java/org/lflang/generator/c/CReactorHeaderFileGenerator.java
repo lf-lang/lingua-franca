@@ -87,15 +87,15 @@ public class CReactorHeaderFileGenerator {
   private static void appendPoundIncludes(CodeBuilder builder) {
     builder.pr(
         """
-            #ifdef __cplusplus
-            extern "C" {
-            #endif
-            #include "../include/api/schedule.h"
-            #include "../include/core/reactor.h"
-            #ifdef __cplusplus
-            }
-            #endif
-            """);
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        #include "../include/api/schedule.h"
+        #include "../include/core/reactor.h"
+        #ifdef __cplusplus
+        }
+        #endif
+        """);
   }
 
   /**
@@ -155,15 +155,15 @@ public class CReactorHeaderFileGenerator {
                             it.getType(false), it.getAlias(), it.getType(false), it.getRvalue())
                         : String.format(
                             """
-                    %s %s[%s];
-                    for (int i = 0; i < %s; i++) {
-                        %s[i] = (%s) self->_lf_%s[i].%s;
-                    }
-                    """,
+                            %s %s[%s];
+                            for (int i = 0; i < %s; i++) {
+                                %s[i] = (%s) self->_lf_%s[i].%s;
+                            }
+                            """,
                             it.getType(true).replaceFirst("\\*", ""),
                             it.getAlias(),
                             CReactionGenerator.maxContainedReactorBankWidth(
-                                reactor.reactor().getInstantiations().stream()
+                                ASTUtils.allInstantiations(reactor.reactor()).stream()
                                     .filter(
                                         instantiation ->
                                             new TypeParameterizedReactor(instantiation, reactor)
@@ -233,20 +233,24 @@ public class CReactorHeaderFileGenerator {
                   .orElseThrow());
       return typeName + "*" + (getWidth() != null ? "*" : "") + (isMultiport ? "*" : "");
     }
+
     /** The name of the variable as it appears in the LF source. */
     String getName() {
       return tv.getName();
     }
+
     /** The alias of the variable that should be used in code generation. */
     String getAlias() {
       return getName(); // TODO: avoid naming conflicts
     }
+
     /** The width of the container, if applicable. */
     String getWidth() {
       return container == null || container.getWidthSpec() == null
           ? null
           : "self->_lf_" + r.getName() + "_width";
     }
+
     /** The representation of this port as used by the LF programmer. */
     String getRvalue() {
       return container == null ? getName() : container.getName() + "." + getName();

@@ -397,9 +397,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         .append("import ")
         // TODO: This is a place where we can use conditional parentheses.
         .append(list(", ", "", "", false, true, true, object.getReactorClasses()))
-        .append(" from \"")
-        .append(object.getImportURI())
-        .append("\"")
+        .append(" from ")
+        .append(
+            object.getImportURI() != null
+                ? "\"" + object.getImportURI() + "\""
+                : "<" + object.getImportPackage() + ">")
         .get();
   }
 
@@ -738,7 +740,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   @Override
   public MalleableString caseSTP(STP object) {
     // 'STP' '(' value=Expression ')' code=Code
-    return handler(object, "STP", STP::getValue, STP::getCode);
+    return handler(object, "STAA", STP::getValue, STP::getCode);
   }
 
   private <T extends EObject> MalleableString handler(

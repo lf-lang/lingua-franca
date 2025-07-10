@@ -28,7 +28,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
   }
 
   @Override
-  public String baseImage() {
+  public String builderBase() {
     return defaultImage();
   }
 }

@@ -282,7 +282,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of level " + level + " and ",
                 "// deadline " + inferredDeadline.toNanoSeconds() + " shifted left 16 bits.",
                 CUtil.reactionRef(r) + ".index = " + reactionIndex + ";"));
@@ -291,7 +290,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
@@ -308,7 +306,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
@@ -325,7 +322,6 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
@@ -957,6 +953,9 @@ public class CTriggerObjectsGenerator {
       // If the port is a multiport, then we need to create an entry for each
       // individual channel.
 
+      // If this port does not have any destinations, do not generate code for it.
+      if (effect.eventualDestinations().isEmpty()) continue;
+
       // If the port is an input of a contained reactor, then, if that
       // contained reactor is a bank, we will have to iterate over bank
       // members.
@@ -1131,6 +1130,60 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
+   * Set the parent pointer and reactor name. If the reactor is in a bank, the name will be the
+   * instance name with [index] appended.
+   *
+   * @param reactor The reactor instance.
+   */
+  private static String deferredSetParentAndName(ReactorInstance reactor) {
+    var code = new CodeBuilder();
+    if (reactor.isBank()) {
+      // First, generate code to determine the size of the memory needed for the name.
+      code.pr("char* format = \"%s[%d]\";");
+      code.pr(
+          "int length = snprintf(NULL, 0, format, \""
+              + reactor.getName()
+              + "\", "
+              + CUtil.bankIndexName(reactor)
+              + ");\n");
+      code.pr(
+          CUtil.reactorRef(reactor)
+              + "->base.name = (char*)lf_allocate(length + 1, sizeof(char),"
+              + " (allocation_record_t**)&((self_base_t*)"
+              + CUtil.reactorRef(reactor)
+              + ")->allocations);");
+      code.pr(
+          "if("
+              + CUtil.reactorRef(reactor)
+              + "->base.name != NULL) {"); // Will be NULL if lf_allocate fails.
+      code.indent();
+      code.pr(
+          "snprintf("
+              + CUtil.reactorRef(reactor)
+              + "->base.name, length + 1, format, \""
+              + reactor.getName()
+              + "\", "
+              + CUtil.bankIndexName(reactor)
+              + ");");
+      code.unindent();
+      code.pr("}");
+    } else {
+      code.pr(CUtil.reactorRef(reactor) + "->base.name = \"" + reactor.getName() + "\";");
+    }
+    ReactorInstance parent = reactor.getParent();
+    if (parent == null) {
+      code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)NULL;");
+    } else {
+      code.pr(
+          CUtil.reactorRef(reactor)
+              + "->base.parent = (self_base_t*)"
+              + CUtil.reactorRef(parent)
+              + ";");
+    }
+    return code.toString();
+  }
+
+  /**
    * Perform initialization functions that must be performed after all reactor runtime instances
    * have been created. This function creates nested loops over nested banks.
    *
@@ -1146,6 +1199,9 @@ public class CTriggerObjectsGenerator {
     // First batch of initializations is within a for loop iterating
     // over bank members for the reactor's parent.
     code.startScopedBlock(reactor);
+
+    // Set the parent pointer and name for the reactor.
+    code.pr(deferredSetParentAndName(reactor));
 
     // If the child has a multiport that is an effect of some reaction in its container,
     // then we have to generate code to allocate memory for arrays pointing to

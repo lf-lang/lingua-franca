@@ -1,0 +1,31 @@
+target C {
+  logging: WARN,
+  timeout: 1 s,
+  coordination: centralized,
+  docker: {
+    rti-image: "rti:local",
+    pre-build-script: "foo.sh",
+    pre-run-script: "bar.sh",
+    post-build-script: "baz.sh",
+    no-build: false,
+    env-file: ".env"
+  },
+  cmake-include: "cmake-check-environment-variable.cmake"
+}
+
+reactor Hello {
+  reaction(startup) {=
+    printf("Hello World!\n");
+    // crash if env var "bar" is not set
+    if (getenv("BAR") == NULL) {
+      printf("bar is not set\n");
+      exit(1);
+    }
+    printf("success: bar = %s\n", getenv("BAR"));
+  =}
+}
+
+federated reactor {
+  a = new Hello()
+  b = new Hello()
+}

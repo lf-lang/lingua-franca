@@ -76,10 +76,13 @@ class ErrorInserter {
 
     /** The zero-based indices of the touched lines. */
     private final List<Integer> badLines;
+
     /** The original test on which this is based. */
     private final Path srcFile;
+
     /** The content of this test. */
     private final LinkedList<String> lines;
+
     /** Whether the error inserter is permitted to insert a line before the current line. */
     private final Predicate<ListIterator<String>> insertCondition;
 

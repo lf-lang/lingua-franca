@@ -93,9 +93,9 @@ public class CUtil {
   }
 
   /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program. If the instance is not a bank,
+   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This has
+   * the form uniqueID_i, where uniqueID is an identifier for the instance that is guaranteed to be
+   * different from the ID of any other instance in the program. If the instance is not a bank,
    * return "0".
    *
    * @param instance A reactor instance.
@@ -106,9 +106,9 @@ public class CUtil {
   }
 
   /**
-   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This is
-   * has the form uniqueID_i where uniqueID is an identifier for the instance that is guaranteed to
-   * be different from the ID of any other instance in the program.
+   * Return a default name of a variable to refer to the bank index of a reactor in a bank. This has
+   * the form uniqueID_i, where uniqueID is an identifier for the instance that is guaranteed to be
+   * different from the ID of any other instance in the program.
    *
    * @param instance A reactor instance.
    */
@@ -669,7 +669,7 @@ public class CUtil {
             node -> {
               if (node instanceof Reactor r) {
                 if (r.isFederated()) {
-                  r.getInstantiations().forEach(inst -> federateNames.add(inst.getName()));
+                  ASTUtils.allInstantiations(r).forEach(inst -> federateNames.add(inst.getName()));
                 }
               }
             });
@@ -755,7 +755,7 @@ public class CUtil {
         if (!((Port) variable).getWidthSpec().isOfVariableLength()) {
           for (WidthTerm term : ((Port) variable).getWidthSpec().getTerms()) {
             if (term.getParameter() != null) {
-              result.add(getTargetReference(term.getParameter()));
+              result.add("self->" + getTargetReference(term.getParameter()));
             } else {
               result.add(String.valueOf(term.getWidth()));
             }
@@ -782,6 +782,36 @@ public class CUtil {
             || !type.astType.getStars().isEmpty()
             || type.astType.getCode() != null
                 && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
+  }
+
+  /**
+   * Given a type for an input or output, return true if it is a fixed-size array (declared with
+   * `type[int]`). For such types, the memory is allocated in the output struct.
+   *
+   * @param type The type specification.
+   */
+  public static boolean isFixedSizeArrayType(InferredType type) {
+    if (type.isUndefined()) return false;
+    return type.astType != null
+        && (type.astType.getCStyleArraySpec() != null
+            && !type.astType.getCStyleArraySpec().isOfVariableLength());
+  }
+
+  /**
+   * Given a type for an input or output, if it is a fixed-size array (declared with `type[int]`),
+   * then return the `int` and otherwise return 1, which is the default length for non-arrays and
+   * variable-size arrays.
+   *
+   * @param type The type specification
+   */
+  public static int fixedSizeArrayTypeLength(InferredType type) {
+    if (type.isUndefined()
+        || type.astType == null
+        || type.astType.getCStyleArraySpec() == null
+        || type.astType.getCStyleArraySpec().isOfVariableLength()) {
+      return 1;
+    }
+    return type.astType.getCStyleArraySpec().getLength();
   }
 
   public static String generateWidthVariable(String var) {

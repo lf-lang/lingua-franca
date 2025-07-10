@@ -154,7 +154,7 @@ public final class StringUtil {
   }
 
   public static String addDoubleQuotes(String str) {
-    return "\"" + str + "\"";
+    return "\"" + str.replace("\"", "\\\"") + "\"";
   }
 
   public static <T> String joinObjects(List<T> things, String delimiter) {

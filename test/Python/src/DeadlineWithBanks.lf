@@ -1,0 +1,50 @@
+target Python {
+  single-threaded: true,
+  timeout: 300 msec,
+  build-type: Debug
+}
+
+preamble {=
+  global_cnt = 0
+=}
+
+reactor Bank(bank_index=0) {
+  timer t(0, 100 msec)
+  output out
+
+  reaction(t) -> out {=
+    global global_cnt
+    exp_cnt = 0
+    if self.bank_index == 0:
+      exp_cnt = 3
+    elif self.bank_index == 1:
+      exp_cnt = 1
+    elif self.bank_index == 2:
+      exp_cnt = 0
+    elif self.bank_index == 3:
+      exp_cnt = 2
+
+    if global_cnt != exp_cnt:
+      lf_print_error_and_exit("global_cnt=%i expected=%i\n" % (global_cnt, exp_cnt))
+    global_cnt += 1
+
+    if self.bank_index == 0:
+      global_cnt = 0
+  =}
+}
+
+reactor Sink(dead=0) {
+  input inp
+
+  reaction(inp) {=  =} deadline(dead) {=  =}
+}
+
+main reactor {
+  rp = new[4] Bank()
+  s1 = new Sink(dead = 14 msec)
+  s2 = new Sink(dead = 12 msec)
+  s3 = new Sink(dead = 11 msec)
+  s4 = new Sink(dead = 13 msec)
+
+  rp.out -> s1.inp, s2.inp, s3.inp, s4.inp
+}

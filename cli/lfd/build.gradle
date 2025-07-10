@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     implementation project(':cli:base')
-    implementation("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.standalone:$klighdVersion") {
+    implementation("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.setup:$klighdVersion") {
         exclude group: 'de.cau.cs.kieler.swt.mock'
     }
     implementation("de.cau.cs.kieler.klighd:de.cau.cs.kieler.klighd.piccolo:${klighdVersion}") {

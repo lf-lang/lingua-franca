@@ -1,0 +1,53 @@
+target Cpp {
+  timeout: 1 s
+}
+
+public preamble {=
+  inline reactor::Duration get_delay() { return 200ms; }
+=}
+
+reactor Foo(foo: time = {= get_delay() =}) {
+  timer t(0, foo)
+
+  state timer_triggered: bool = false
+
+  reaction(t) {=
+    timer_triggered = true;
+    if (get_elapsed_logical_time() % 200ms != reactor::Duration::zero()) {
+      std::cerr << "ERROR: timer triggered at an unexpected time\n";
+      exit(4);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!timer_triggered) {
+      std::cerr << "ERROR: timer did not trigger\n";
+      exit(1);
+    }
+  =}
+}
+
+main reactor {
+  foo = new Foo()
+
+  state timer_triggered: bool = false
+
+  timer t(0, {= get_delay() + 200ms =})
+
+  reaction(t) {=
+    timer_triggered = true;
+    if (get_elapsed_logical_time() % 400ms != reactor::Duration::zero()) {
+      std::cerr << "ERROR: timer triggered at an unexpected time\n";
+      exit(4);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!timer_triggered) {
+      std::cerr << "ERROR: timer did not trigger\n";
+      exit(2);
+    }
+
+    std::cout << "Success\n";
+  =}
+}

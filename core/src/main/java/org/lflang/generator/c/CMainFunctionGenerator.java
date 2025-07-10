@@ -13,6 +13,7 @@ import org.lflang.util.StringUtil;
 
 public class CMainFunctionGenerator {
   private TargetConfig targetConfig;
+
   /** The command to run the generated code if specified in the target directive. */
   private List<String> runCommand;
 
@@ -57,7 +58,9 @@ public class CMainFunctionGenerator {
             "}\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-            "\tSerial.begin(" + targetConfig.get(PlatformProperty.INSTANCE).baudRate() + ");",
+            "\tSerial.begin("
+                + targetConfig.get(PlatformProperty.INSTANCE).baudRate().value()
+                + ");",
             "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
             "\tlf_reactor_c_main(0, NULL);",
             "}\n",
@@ -98,8 +101,8 @@ public class CMainFunctionGenerator {
         ? String.join(
             "\n",
             "const char* _lf_default_argv[] = { "
-                + StringUtil.addDoubleQuotes(
-                    StringUtil.joinObjects(runCommand, StringUtil.addDoubleQuotes(", ")))
+                + StringUtil.joinObjects(
+                    runCommand.stream().map(StringUtil::addDoubleQuotes).toList(), ", ")
                 + " };",
             "void lf_set_default_command_line_options() {",
             "        default_argc = " + runCommand.size() + ";",
