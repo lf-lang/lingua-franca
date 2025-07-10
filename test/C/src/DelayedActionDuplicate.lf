@@ -5,8 +5,7 @@ target C {
 
 main reactor {
   timer t(0, 1 sec)
-  // Default should be the same as a(0, 0, "defer").
-  logical action a: int
+  logical action a: int  // Default should be the same as a(0, 0, "defer").
   logical action b(0, 0, "drop"): int
   logical action c(0, 0, "replace"): int
   state count_a: int = 0
