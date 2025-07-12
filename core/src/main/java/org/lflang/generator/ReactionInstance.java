@@ -312,7 +312,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
   /**
    * Return a set of deadlines that runtime instances of this reaction have. A ReactionInstance may
-   * have more than one deadline if it lies within.
+   * have more than one deadline if it lies within a bank.
    */
   public Set<TimeValue> getInferredDeadlines() {
     Set<TimeValue> result = new LinkedHashSet<>();
@@ -342,7 +342,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return a list of the deadlines that runtime instances of this reaction have. The size of this
    * list is the total number of runtime instances. A ReactionInstance may have more than one
-   * deadline if it lies within
+   * deadline if it lies within a bank.
    */
   public List<TimeValue> getInferredDeadlinesList() {
     List<TimeValue> result = new LinkedList<>();
@@ -405,65 +405,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   @Override
   public String toString() {
     return getName() + " of " + parent.getFullName();
-  }
-
-  /**
-   * Determine logical execution time for each reaction during compile time based on immediate
-   * downstream logical delays (after delays and actions) and label each reaction with the minimum
-   * of all such delays.
-   */
-  public TimeValue assignLogicalExecutionTime() {
-    if (this.let != null) {
-      return this.let;
-    }
-
-    if (this.parent.isGeneratedDelay()) {
-      return this.let = TimeValue.ZERO;
-    }
-
-    TimeValue let = null;
-
-    // Iterate over effect and find minimum delay.
-    for (TriggerInstance<? extends Variable> effect : effects) {
-      if (effect instanceof PortInstance) {
-        var afters =
-            this.parent.getParent().children.stream()
-                .filter(
-                    c -> {
-                      if (c.isGeneratedDelay()) {
-                        return c.inputs
-                            .get(0)
-                            .getDependsOnPorts()
-                            .get(0)
-                            .instance
-                            .equals((PortInstance) effect);
-                      }
-                      return false;
-                    })
-                .map(c -> c.actions.get(0).getMinDelay())
-                .min(TimeValue::compare);
-
-        if (afters.isPresent()) {
-          if (let == null) {
-            let = afters.get();
-          } else {
-            let = TimeValue.min(afters.get(), let);
-          }
-        }
-      } else if (effect instanceof ActionInstance) {
-        var action = ((ActionInstance) effect).getMinDelay();
-        if (let == null) {
-          let = action;
-        } else {
-          let = TimeValue.min(action, let);
-        }
-      }
-    }
-
-    if (let == null) {
-      let = TimeValue.ZERO;
-    }
-    return this.let = let;
   }
 
   //////////////////////////////////////////////////////

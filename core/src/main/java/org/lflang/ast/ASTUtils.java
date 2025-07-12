@@ -25,6 +25,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang.ast;
 
+import static org.lflang.AttributeUtils.isEnclave;
+
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -33,9 +35,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -53,8 +57,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.util.Pair;
-import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
@@ -65,10 +67,12 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.NamedInstance;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
@@ -103,6 +107,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.util.Pair;
 import org.lflang.util.StringUtil;
 
 /**
@@ -199,7 +204,7 @@ public class ASTUtils {
         for (var rea : allReactions(reactor)) {
           for (var eff : rea.getEffects()) {
             if (eff.getVariable() instanceof Port) {
-              allWriters.put(Tuples.pair(eff.getContainer(), eff.getVariable()), rea);
+              allWriters.put(new Pair<>(eff.getContainer(), eff.getVariable()), rea);
             }
           }
         }
@@ -207,7 +212,7 @@ public class ASTUtils {
             ASTUtils.<Connection>collectElements(
                 reactor, featurePackage.getReactor_Connections(), false, true)) {
           for (var port : con.getRightPorts()) {
-            allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
+            allWriters.put(new Pair<>(port.getContainer(), port.getVariable()), con);
           }
         }
 
@@ -627,14 +632,12 @@ public class ASTUtils {
         return main; // Avoid NPE.
       }
       // Inform the run-time of the breadth/parallelism of the reaction graph
-      var breadth = reactionInstanceGraph.getBreadth();
+      var breadth = reactionInstanceGraph.getBreadth(main);
       if (breadth == 0) {
         messageReporter.nowhere().warning("The program has no reactions");
       } else {
         CompileDefinitionsProperty.INSTANCE.update(
-            targetConfig,
-            Map.of(
-                "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
+            targetConfig, Map.of("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth)));
       }
       return main;
     }
@@ -1395,20 +1398,30 @@ public class ASTUtils {
   }
 
   /**
+   * Return the delay denoted by {@code delay} or {@code null} if the delay cannot be determined.
+   */
+  public static TimeValue getDelayAsTimeValue(Expression delay) {
+    TimeValue ret = null;
+    if (delay != null) {
+      if (delay instanceof ParameterReference) {
+        // The parameter has to be parameter of the main reactor.
+        // And that value has to be a Time.
+        ret = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
+      } else {
+        ret = ASTUtils.getLiteralTimeValue(delay);
+      }
+    }
+    return ret;
+  }
+
+  /**
    * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
    * be determined.
    */
   public static Long getDelay(Expression delay) {
     Long ret = null;
     if (delay != null) {
-      TimeValue tv;
-      if (delay instanceof ParameterReference) {
-        // The parameter has to be parameter of the main reactor.
-        // And that value has to be a Time.
-        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
-      } else {
-        tv = ASTUtils.getLiteralTimeValue(delay);
-      }
+      TimeValue tv = getDelayAsTimeValue(delay);
       ret = tv == null ? null : tv.toNanoSeconds();
     }
     return ret;
@@ -1902,5 +1915,127 @@ public class ASTUtils {
     var fedAttr = factory.createAttribute();
     fedAttr.setAttrName(name);
     reaction.getAttributes().add(fedAttr);
+  }
+
+  /**
+   * Given a reactor definition, e.g. the main reactor, returns the set of reactor instantiations
+   * contained in this definition.
+   *
+   * @param top The reactor definition to search in.
+   * @return The set of reactor instantiations within top.
+   */
+  public static Set<Instantiation> getEnclaves(Reactor top) {
+    Set<Instantiation> enclaves = new HashSet<>();
+    Queue<Reactor> queue = new LinkedList<>();
+    queue.add(top);
+
+    while (!queue.isEmpty()) {
+      Reactor inst = queue.poll();
+      for (Instantiation child : ASTUtils.allInstantiations(inst)) {
+        if (isEnclave(child)) {
+          enclaves.add(child);
+        }
+        queue.add(ASTUtils.toDefinition(child.getReactorClass()));
+      }
+    }
+    return enclaves;
+  }
+
+  /**
+   * Given a list of pairs of an old connection and a newly created instantiation. For eac pair,
+   * create two connections to reroute specified connection to instead go through the specified
+   * instantiation. This is used when code-generating after-delay reactors and enclave connections.
+   * This assumes that the specified instantiation has at least one input port and at least one
+   * output port and uses the first of such ports. This returns a list of the two created
+   * connections. instantiation. This is used when code-generating after-delay reactors and enclaved
+   * connections. It inserts the added connections and the instantiations into the AST and removes
+   * the old connection.
+   *
+   * @param conns The list of pairs to reroute.
+   */
+  public static void rerouteViaInstance(List<Pair<Connection, Instantiation>> conns) {
+
+    List<Pair<EObject, Connection>> newConnections = new ArrayList<>();
+    List<Pair<EObject, Connection>> oldConnections = new ArrayList<>();
+
+    for (var pair : conns) {
+      Connection connection = pair.first();
+      EObject parent = connection.eContainer();
+      Instantiation inst = pair.second();
+      Connection upstream = factory.createConnection();
+      Connection downstream = factory.createConnection();
+      VarRef input = factory.createVarRef();
+      VarRef output = factory.createVarRef();
+
+      Reactor delayClass = ASTUtils.toDefinition(inst.getReactorClass());
+
+      // Establish references to the involved ports.
+      input.setContainer(inst);
+      input.setVariable(delayClass.getInputs().get(0));
+      output.setContainer(inst);
+      output.setVariable(delayClass.getOutputs().get(0));
+      upstream.getLeftPorts().addAll(connection.getLeftPorts());
+      upstream.getRightPorts().add(input);
+      downstream.getLeftPorts().add(output);
+      downstream.getRightPorts().addAll(connection.getRightPorts());
+      downstream.setIterated(connection.isIterated());
+      newConnections.add(new Pair<>(parent, upstream));
+      newConnections.add(new Pair<>(parent, downstream));
+      oldConnections.add(new Pair<>(parent, connection));
+    }
+
+    // Insert the instances which we rerouted through.
+    conns.forEach(
+        (pair) -> {
+          Instantiation instantiation = pair.second();
+          EObject container = pair.first().eContainer();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getInstantiations().add(instantiation);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getInstantiations().add(instantiation);
+          }
+        });
+
+    // Remove old connections; insert new ones.
+    oldConnections.forEach(
+        (pair) -> {
+          EObject container = pair.first();
+          Connection connection = pair.second();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getConnections().remove(connection);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getConnections().remove(connection);
+          }
+        });
+    newConnections.forEach(
+        pair -> {
+          EObject container = pair.first();
+          Connection connection = pair.second();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getConnections().add(connection);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getConnections().add(connection);
+          }
+        });
+  }
+
+  /**
+   * Override the parameter initializer with a code expression.
+   *
+   * @param param
+   * @param expr
+   */
+  public static void overrideParameter(ParameterInstance param, CodeExpr expr) {
+    Assignment existing = param.getOverride();
+    Initializer init = factory.createInitializer();
+    init.setExpr(expr);
+    if (existing != null) {
+      existing.setRhs(init);
+    } else {
+      Assignment a = factory.createAssignment();
+      a.setLhs(param.getDefinition());
+      a.setRhs(init);
+      param.getParent().getDefinition().getParameters().add(a);
+    }
   }
 }

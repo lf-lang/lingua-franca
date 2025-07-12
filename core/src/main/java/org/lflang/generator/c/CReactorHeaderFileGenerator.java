@@ -98,8 +98,12 @@ public class CReactorHeaderFileGenerator {
         """);
   }
 
+  /**
+   * Return a String with the user facing type of TypeParameterized Reactor. `*` is replaced with
+   * `Ptr`.
+   */
   private static String userFacingSelfType(TypeParameterizedReactor tpr) {
-    return tpr.getName().toLowerCase() + "_self_t";
+    return tpr.getName().toLowerCase().replace("*", "Ptr") + "_self_t";
   }
 
   private static void appendSelfStruct(

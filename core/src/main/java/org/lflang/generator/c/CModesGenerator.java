@@ -124,9 +124,9 @@ public class CModesGenerator {
     if (!instance.modes.isEmpty()) {
       code.pr("// Register for transition handling");
       code.pr(
-          CUtil.getEnvironmentStruct(instance)
+          CUtil.getEnvironmentStruct(instance.containingEnclave)
               + ".modes->modal_reactor_states[modal_reactor_count["
-              + CUtil.getEnvironmentId(instance)
+              + CUtil.getEnvironmentId(instance.containingEnclave)
               + "]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
@@ -149,8 +149,8 @@ public class CModesGenerator {
       String varName,
       String source,
       String type) {
-    var env = CUtil.getEnvironmentStruct(instance);
-    var envId = CUtil.getEnvironmentId(instance);
+    var env = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var envId = CUtil.getEnvironmentId(instance.containingEnclave);
     return String.join(
         "\n",
         "// Register for automatic reset",
