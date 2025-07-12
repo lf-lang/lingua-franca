@@ -73,8 +73,7 @@ public class CModesGenerator {
    * @param instance The reactor instance.
    * @param code The code builder.
    */
-  public static void generateModeStructure(
-      ReactorInstance instance, CodeBuilder code) {
+  public static void generateModeStructure(ReactorInstance instance, CodeBuilder code) {
     var parentMode = instance.getMode(false);
     var nameOfSelfStruct = CUtil.reactorRef(instance);
     // If this instance is enclosed in another mode

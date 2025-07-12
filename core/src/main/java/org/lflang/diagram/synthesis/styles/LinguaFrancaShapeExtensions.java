@@ -184,7 +184,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       KNode node, ReactorInstance reactorInstance, String text) {
     int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
 
-    var color = (reactorInstance.containingEnclaveReactor != reactorInstance) ? Colors.GRAY : ENCLAVE_BORDER_COLOR;
+    var color =
+        (reactorInstance.containingEnclaveReactor != reactorInstance)
+            ? Colors.GRAY
+            : ENCLAVE_BORDER_COLOR;
 
     Function1<KRoundedRectangle, KRendering> style =
         r -> {

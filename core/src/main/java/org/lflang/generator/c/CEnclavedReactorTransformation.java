@@ -108,6 +108,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
    */
   public final ConnectionGraph<Instantiation, EnclaveConnection> connGraph =
       new ConnectionGraph<>();
+
   /**
    * We also expose a map of Instantiations of EnclavedConnection reactors to their upstream and
    * downstream Instantiations

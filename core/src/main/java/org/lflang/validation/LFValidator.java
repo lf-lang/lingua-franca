@@ -482,7 +482,7 @@ public class LFValidator extends BaseLFValidator {
         }
         if (output.getType().getCStyleArraySpec() != null) {
           error(
-                  "Enclaves do not currently support ports with array types in the C target",
+              "Enclaves do not currently support ports with array types in the C target",
               Literals.WIDTH_SPEC__TERMS);
         }
       }

@@ -320,6 +320,7 @@ public class CGenerator extends GeneratorBase {
 
   /** A code-generator for enclave-specific code, */
   private CEnclaveGenerator enclaveGenerator;
+
   /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
   private final CEnclavedReactorTransformation enclaveAST;
 
@@ -334,8 +335,7 @@ public class CGenerator extends GeneratorBase {
     this.cppMode = cppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
-    this.enclaveAST =
-        new CEnclavedReactorTransformation(fileConfig.resource, types);
+    this.enclaveAST = new CEnclavedReactorTransformation(fileConfig.resource, types);
 
     registerTransformation(this.enclaveAST);
 
@@ -447,9 +447,8 @@ public class CGenerator extends GeneratorBase {
     // Inform the runtime of the number of watchdogs (needed for Zephyr support to create threads).
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
     // since we need main to get all enclaves.
-    var nWatchdogs = enclaveGenerator.getEnclaves().stream()
-            .map(it -> it.numWatchdogs)
-            .reduce(0, Integer::sum);
+    var nWatchdogs =
+        enclaveGenerator.getEnclaves().stream().map(it -> it.numWatchdogs).reduce(0, Integer::sum);
     CompileDefinitionsProperty.INSTANCE.update(
         targetConfig, Map.of("NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
 
@@ -1527,7 +1526,8 @@ public class CGenerator extends GeneratorBase {
                       + con
                       + "intended_tag;"));
 
-          instance.containingEnclave.numIsPresentFields += port.getParent().getTotalWidth() * port.getWidth();
+          instance.containingEnclave.numIsPresentFields +=
+              port.getParent().getTotalWidth() * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
@@ -1670,7 +1670,8 @@ public class CGenerator extends GeneratorBase {
   private void generateTimerInitializations(ReactorInstance instance) {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
-        initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer, instance.containingEnclave));
+        initializeTriggerObjects.pr(
+            CTimerGenerator.generateInitializer(timer, instance.containingEnclave));
         instance.containingEnclave.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
@@ -2053,8 +2054,7 @@ public class CGenerator extends GeneratorBase {
 
     // Create the enclave generator. This step will also check for zero-delay cycles in the
     // enclave graph.
-    enclaveGenerator =
-            new CEnclaveGenerator(main, enclaveAST, fileConfig.name, messageReporter);
+    enclaveGenerator = new CEnclaveGenerator(main, enclaveAST, fileConfig.name, messageReporter);
 
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:

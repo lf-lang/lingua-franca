@@ -1398,8 +1398,7 @@ public class ASTUtils {
   }
 
   /**
-   * Return the delay denoted by {@code delay} or {@code null} if the delay cannot
-   * be determined.
+   * Return the delay denoted by {@code delay} or {@code null} if the delay cannot be determined.
    */
   public static TimeValue getDelayAsTimeValue(Expression delay) {
     TimeValue ret = null;

@@ -438,13 +438,14 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Adjust {@link #numReactionsPerEnclavePerLevel} at index <code>level</code> by
-   * adding to the previously recorded number <code>valueToAdd</code>.
-   * If there is no previously recorded number for this level, then
-   * create one with index <code>level</code> and value <code>valueToAdd</code>.
+   * Adjust {@link #numReactionsPerEnclavePerLevel} at index <code>level</code> by adding to the
+   * previously recorded number <code>valueToAdd</code>. If there is no previously recorded number
+   * for this level, then create one with index <code>level</code> and value <code>valueToAdd</code>
+   * .
+   *
    * @param level The level.
-   * @param enclave The enclave with which to increment the level count.
-   * FIXME: This has conflict with changes Peter has done
+   * @param enclave The enclave with which to increment the level count. FIXME: This has conflict
+   *     with changes Peter has done
    */
   private void adjustNumReactionsPerLevel(int level, ReactorInstance enclave) {
     while (numReactionsPerEnclavePerLevel.size() <= level) {

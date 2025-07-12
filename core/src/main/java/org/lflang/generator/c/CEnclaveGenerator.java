@@ -1,5 +1,8 @@
 package org.lflang.generator.c;
 
+import static org.lflang.AttributeUtils.getEnclaveNumWorkersFromAttribute;
+import static org.lflang.AttributeUtils.isEnclave;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,9 +13,6 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CEnclaveGraph.EnclaveConnection;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty;
-
-import static org.lflang.AttributeUtils.getEnclaveNumWorkersFromAttribute;
-import static org.lflang.AttributeUtils.isEnclave;
 
 /**
  * This class is in charge of code generating functions and global variables related to the enclaves
@@ -53,9 +53,7 @@ public class CEnclaveGenerator {
     return this.enclaves.size();
   }
 
-  /**
-   * Return the set of enclaves in the program.
-   */
+  /** Return the set of enclaves in the program. */
   public Set<CEnclaveInstance> getEnclaves() {
     return enclaves;
   }
@@ -91,9 +89,9 @@ public class CEnclaveGenerator {
 
   /**
    * @brief Create enclaves instances and update reactor instances to point to them.
-   *
-   * For the specified instance and parent, create CEnclaveInstance, if the reactor
-   * is an enclave, and set the fields containingEnclave of the reactor and all its contained reactors.
+   *     <p>For the specified instance and parent, create CEnclaveInstance, if the reactor is an
+   *     enclave, and set the fields containingEnclave of the reactor and all its contained
+   *     reactors.
    * @param instance The reactor.
    */
   private void build(ReactorInstance instance) {
@@ -105,7 +103,8 @@ public class CEnclaveGenerator {
       instance.containingEnclave = enc;
     } else if (isEnclave(instance.getDefinition())) {
       // Not top-level, but an enclave.
-      CEnclaveInstance enc = new CEnclaveInstance(
+      CEnclaveInstance enc =
+          new CEnclaveInstance(
               instance, getEnclaveNumWorkersFromAttribute(instance.getDefinition()));
       enclaves.add(enc);
       instance.containingEnclave = enc;

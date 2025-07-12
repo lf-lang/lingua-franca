@@ -37,9 +37,7 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
  * @author Hou Seng Wong
  */
 public class CTriggerObjectsGenerator {
-  /**
-   * Generate the _lf_initialize_trigger_objects function for 'federate'.
-   */
+  /** Generate the _lf_initialize_trigger_objects function for 'federate'. */
   public static String generateInitializeTriggerObjects(
       ReactorInstance main,
       Set<CEnclaveInstance> enclaves,
