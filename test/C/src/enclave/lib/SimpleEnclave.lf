@@ -18,6 +18,8 @@ reactor EnclaveSink(
   state tCnt: int = 0
 
   reaction(in) {=
+    lf_print("EnclaveSink received " PRINTF_TIME " at tag " PRINTF_TAG, in->value,
+        lf_time_logical_elapsed(), lf_tag().microstep);
     instant_t expected_in = lf_time_logical_elapsed() - self->afterDelay;
     LF_ASSERT(in->value == (expected_in), "EnclaveSink failed. Got: " PRINTF_TIME " expected: " PRINTF_TIME, in->value, expected_in);
     LF_ASSERT(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);

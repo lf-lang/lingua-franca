@@ -11,7 +11,7 @@ reactor Src {
 
   reaction(t) -> out {=
     tag_t tag = lf_tag();
-    lf_print("Source writing to port at tag: " PRINTF_TAG, tag);
+    lf_print("Source writing to port at tag: " PRINTF_TAG, lf_time_logical_elapsed(), tag.microstep);
     lf_set(out, 42);
   =}
 }
@@ -24,7 +24,7 @@ reactor Sink {
   reaction(in) {=
     LF_ASSERT(in->value == 42, "Expected 42");
     tag_t tag = lf_tag();
-    lf_print("Sink received value at tag: " PRINTF_TAG, tag);
+    lf_print("Sink received value at tag: " PRINTF_TAG, lf_time_logical_elapsed(), tag.microstep);
     LF_ASSERT(tag.microstep == 0, "Expected microstep 0");
     self->check=true;
   =}

@@ -59,7 +59,10 @@ reactor _EnclaveConnection<T>(
     #endif
   =}
 
-  /** The delay-reaction. It takes an event from the input port and schedules
+  /**
+   * @brief The delay-reaction.
+   * 
+   * This takes an event from the input port and schedules
    * an event on the correct action within the destinaton environment.
    */
   reaction(in) -> logAction, phyAction {=
@@ -68,22 +71,12 @@ reactor _EnclaveConnection<T>(
       // Schedule event onto the physical action.
       #if defined T_IS_TOKEN_TYPE
         // If we have a token-type, simply schedule the token at the desired tag"
-        if(!_lf_schedule(self->dest_env, phyAction->_base.trigger, self->delay, in->token)) {
+        if(!lf_schedule(self->dest_env, phyAction->_base.trigger, self->delay, in->token)) {
           lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
         }
       #else
         // If we have a native type:
-        int length = 1;
-        if (in->token) length = in->length; // FIXME: Is this line necessary?
-        // The following is copied from `lf_schedule_copy` except for using"
-        //  `_lf_schedule_at_tag`:
-        token_template_t* tmplate = (token_template_t*)phyAction;
-        lf_token_t* token = _lf_initialize_token(tmplate, length);
-        memcpy(token->value, &(in->value), tmplate->type.element_size * length);
-        // Schedule event to the destination environment.
-        if (!_lf_schedule(self->dest_env, phyAction->_base.trigger, self->delay, token)) {
-          lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
-        }
+        lf_schedule_copy(phyAction->_base.trigger, self->delay, &in->value, 1);
       #endif
         // Notify the main thread in case it is waiting for physical time to elapse
         lf_notify_of_event(self->dest_env);
@@ -109,8 +102,8 @@ reactor _EnclaveConnection<T>(
         lf_token_t* token = _lf_initialize_token(tmplate, length);
         memcpy(token->value, &(in->value), tmplate->type.element_size * length);
         // Schedule event to the destination environment.
-        if(!_lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, token)) {
-          lf_print_warning("Could not schedule event onto downstream enclave. It might be past timeout");
+        if(!lf_is_tag_after_stop_tag(self->dest_env, target_tag) && !_lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, token)) {
+          lf_print_warning("Could not schedule event onto downstream enclave.");
         }
         // Notify the main thread in case it is waiting for physical time to elapse
       #endif

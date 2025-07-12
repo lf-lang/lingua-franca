@@ -173,7 +173,7 @@ public class CEnclaveGenerator {
   private String generateCreateEnvironments(TargetConfig targetConfig) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// 'Create' and initialize the environments in the program");
-    code.pr("void _lf_create_environments() {");
+    code.pr("void lf_create_environments() {");
     code.indent();
     for (CEnclaveInstance enclave : enclaves) {
       // Decide the number of workers to use. If this is the top-level
@@ -393,7 +393,7 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Generate the `_lf_get_downstream_of` function which points the `result` argument to the
+   * Generate the `lf_get_downstream_of` function which points the `result` argument to the
    * beginning of an array of the id`s of the enclaves downstream of `enclave_id`.
    */
   private String generateGetDownstreamOf() {
@@ -401,7 +401,7 @@ public class CEnclaveGenerator {
     code.prComment(
         "Writes a pointer to the array of downstream enclaves into `result` and returns the"
             + " length");
-    code.pr("int _lf_get_downstream_of(int enclave_id, int ** result) {");
+    code.pr("int lf_get_downstream_of(int enclave_id, int ** result) {");
     code.indent();
     code.pr("int num_downstream;");
     code.pr("int* downstream;");
@@ -431,14 +431,14 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Generate the function `_lf_get_upstream_of` which points `result` to an array of enclaves
+   * Generate the function `lf_get_upstream_of` which points `result` to an array of enclaves
    * upstream of `enclave_id`.
    */
   private String generateGetUpstreamOf() {
     CodeBuilder code = new CodeBuilder();
     code.prComment(
         "Writes a pointer to the array of upstream enclaves into `result` and returns the length");
-    code.pr("int _lf_get_upstream_of(int enclave_id, int ** result) {");
+    code.pr("int lf_get_upstream_of(int enclave_id, int ** result) {");
     code.indent();
     code.pr("int num_upstream;");
     code.pr("int* upstream;");
@@ -468,14 +468,14 @@ public class CEnclaveGenerator {
   }
 
   /**
-   * Generate the `_lf_get_upstream_delay_of()` function which points `result` to an array of the
+   * Generate the `lf_get_upstream_delay_of()` function which points `result` to an array of the
    * upstream delays for `enclave_id`.
    */
   private String generateGetUpstreamDelayOf() {
     CodeBuilder code = new CodeBuilder();
     code.prComment(
         "Writes a pointer to the array of upstream delays into `result` and returns the length");
-    code.pr("int _lf_get_upstream_delay_of(int enclave_id, interval_t ** result) {");
+    code.pr("int lf_get_upstream_delay_of(int enclave_id, interval_t ** result) {");
     code.indent();
     code.pr("int num_upstream;");
     code.pr("interval_t* delay;");
