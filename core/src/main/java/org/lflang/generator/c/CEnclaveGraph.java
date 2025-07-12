@@ -66,10 +66,10 @@ public class CEnclaveGraph {
    * knows how the Reactor Instantiations are connected, but we must translate it to how Reactor
    * Instances are connected.
    *
-   * @param main
-   * @param enclaveMap
+   * @param main The main reactor, top-level enclave.
+   * @param enclaves The set of enclaves to build the graph for.
    */
-  public void build(ReactorInstance main, ReactorEnclaveMap enclaveMap) {
+  public void build(ReactorInstance main, Set<CEnclaveInstance> enclaves) {
     Queue<ReactorInstance> queue = new LinkedList<>();
     queue.add(main);
     while (!queue.isEmpty()) {
@@ -78,7 +78,7 @@ public class CEnclaveGraph {
         Instantiation inst = child.getDefinition();
         if (isEnclave(inst)) {
           // Get the Enclave instance associated with the reactor instance
-          CEnclaveInstance enc = enclaveMap.get(child);
+          CEnclaveInstance enc = child.containingEnclave;
           // Get all instantiations that are downstream of the instantitation associated with the
           // reactor instance.
           var downStreamMap = ast.connGraph.getDownstreamOf(inst);
@@ -87,8 +87,7 @@ public class CEnclaveGraph {
             if (downstream.equals(ast.PARENT)) {
               // We have a special instantiation which represents that the enclave is connected to
               // its parent.
-              CEnclaveInstance downEnclave = enclaveMap.get(current.enclave);
-              graph.addEdges(enc, downEnclave, downStreamMap.get(downstream));
+              graph.addEdges(enc, current.containingEnclave, downStreamMap.get(downstream));
             } else {
               // Find the reactor instance which is connected to this instantiation.
               ReactorInstance down =
@@ -96,27 +95,25 @@ public class CEnclaveGraph {
                       .filter(i -> i.getDefinition() == downstream)
                       .findFirst()
                       .get();
-              CEnclaveInstance downEnclave = enclaveMap.get(down);
+              CEnclaveInstance downEnclave = down.containingEnclave;
               graph.addEdges(enc, downEnclave, downStreamMap.get(downstream));
             }
           }
-          // Redo the steps to find upstream reactor instances. Not that adding both upstream
+          // Redo the steps to find upstream reactor instances. Note that adding both upstream
           // and downstream edges will lead to duplicates. But these are ignored by the underlying
           // graph implementation.
           var upstreamMap = ast.connGraph.getUpstreamOf(inst);
           for (Instantiation upstream : upstreamMap.keySet()) {
             if (upstream.equals(ast.PARENT)) {
               // If upstream was `null` then we have a connection to the parent.
-              CEnclaveInstance upEnclave = enclaveMap.get(current.enclave);
-              graph.addEdges(upEnclave, enc, upstreamMap.get(upstream));
+              graph.addEdges(current.containingEnclave, enc, upstreamMap.get(upstream));
             } else {
               ReactorInstance up =
                   current.children.stream()
                       .filter(i -> i.getDefinition() == upstream)
                       .findFirst()
                       .get();
-              CEnclaveInstance upEnclave = enclaveMap.get(up);
-              graph.addEdges(upEnclave, enc, upstreamMap.get(upstream));
+              graph.addEdges(up.containingEnclave, enc, upstreamMap.get(upstream));
             }
           }
         } else if (ast.enclavedConnections.containsKey(inst)) {

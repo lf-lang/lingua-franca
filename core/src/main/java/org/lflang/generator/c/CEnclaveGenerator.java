@@ -1,5 +1,6 @@
 package org.lflang.generator.c;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.lflang.MessageReporter;
@@ -10,6 +11,9 @@ import org.lflang.generator.c.CEnclaveGraph.EnclaveConnection;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.TracingProperty;
 
+import static org.lflang.AttributeUtils.getEnclaveNumWorkersFromAttribute;
+import static org.lflang.AttributeUtils.isEnclave;
+
 /**
  * This class is in charge of code generating functions and global variables related to the enclaves
  * and environments. An environment is the context in which an enclave exists. Each enclave has its
@@ -19,22 +23,22 @@ public class CEnclaveGenerator {
 
   /**
    * @param main The main reactor instance of the program
-   * @param enclaveMap A mapping from reactor instances to enclave instances
    * @param ast The AST transformation which has info about the enclave topology
    * @param lfModuleName
    * @param messageReporter
    */
   public CEnclaveGenerator(
       ReactorInstance main,
-      ReactorEnclaveMap enclaveMap,
       CEnclavedReactorTransformation ast,
       String lfModuleName,
       MessageReporter messageReporter) {
-    this.enclaveMap = enclaveMap;
+    // Search for enclaves and build a mapping from reactor instance to enclave instances.
+    this.build(main);
+
     this.connGraph = new CEnclaveGraph(ast);
     this.lfModuleName = lfModuleName;
     this.messageReporter = messageReporter;
-    this.connGraph.build(main, enclaveMap);
+    this.connGraph.build(main, enclaves);
 
     // Here we test for zero-delay cycles in the enclave graph.
     if (connGraph.hasZeroDelayCycle()) {
@@ -46,7 +50,14 @@ public class CEnclaveGenerator {
 
   /** Return the number of enclaves in the program. */
   public int numEnclaves() {
-    return this.enclaveMap.numEnclaves();
+    return this.enclaves.size();
+  }
+
+  /**
+   * Return the set of enclaves in the program.
+   */
+  public Set<CEnclaveInstance> getEnclaves() {
+    return enclaves;
   }
 
   /** Return declarations associated with environments to be inserted into the main C file. */
@@ -69,13 +80,43 @@ public class CEnclaveGenerator {
     return code.toString();
   }
 
-  /** A map from reactor instance to enclave instance. */
-  private ReactorEnclaveMap enclaveMap;
+  /** The set of enclave instances. */
+  private final LinkedHashSet<CEnclaveInstance> enclaves = new LinkedHashSet<>();
+
   /** A graph of the enclave instances of the program. */
   private CEnclaveGraph connGraph;
 
   private final String lfModuleName;
   private final MessageReporter messageReporter;
+
+  /**
+   * @brief Create enclaves instances and update reactor instances to point to them.
+   *
+   * For the specified instance and parent, create CEnclaveInstance, if the reactor
+   * is an enclave, and set the fields containingEnclave of the reactor and all its contained reactors.
+   * @param instance The reactor.
+   */
+  private void build(ReactorInstance instance) {
+    ReactorInstance parent = instance.getParent();
+    if (parent == null) {
+      // Top-level reactor, so create a new enclave instance.
+      CEnclaveInstance enc = new CEnclaveInstance(instance, 0);
+      enclaves.add(enc);
+      instance.containingEnclave = enc;
+    } else if (isEnclave(instance.getDefinition())) {
+      // Not top-level, but an enclave.
+      CEnclaveInstance enc = new CEnclaveInstance(
+              instance, getEnclaveNumWorkersFromAttribute(instance.getDefinition()));
+      enclaves.add(enc);
+      instance.containingEnclave = enc;
+    } else {
+      // Not top-level and not an enclave.
+      instance.containingEnclave = parent.containingEnclave;
+    }
+    for (ReactorInstance child : instance.children) {
+      build(child);
+    }
+  }
 
   /**
    * Return the code defining a static array of environment structs whose length matches the number
@@ -115,7 +156,7 @@ public class CEnclaveGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr("typedef enum {");
     code.indent();
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       code.pr(enclave.getId() + ",");
     }
     code.pr(CUtil.NUM_ENVIRONMENT_VARIABLE_NAME);
@@ -134,7 +175,7 @@ public class CEnclaveGenerator {
     code.pr("// 'Create' and initialize the environments in the program");
     code.pr("void _lf_create_environments() {");
     code.indent();
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       // Decide the number of workers to use. If this is the top-level
       // use the global variable _lf_number_of_workers which accounts for federation etc.
       String numWorkers = String.valueOf(enclave.numWorkers);
@@ -187,7 +228,7 @@ public class CEnclaveGenerator {
               + ","
               + enclave.numModalResetStates
               + ","
-              + enclave.enclaveInfo.numWatchdogs
+              + enclave.numWatchdogs
               + ","
               + traceFileName
               + ");");
@@ -201,7 +242,7 @@ public class CEnclaveGenerator {
   private String generateConnectionTopologyInfo() {
     CodeBuilder code = new CodeBuilder();
 
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       code.pr(generateConnectionArrays(enclave));
     }
     code.pr(generateConnectionGetFunctions());
@@ -366,7 +407,7 @@ public class CEnclaveGenerator {
     code.pr("int* downstream;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       String enclaveNumDownstream = (enclave.getId() + "_num_downstream").toUpperCase();
       code.pr("case " + enclave.getId() + ":");
       code.indent();
@@ -403,7 +444,7 @@ public class CEnclaveGenerator {
     code.pr("int* upstream;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       String enclaveNumUpstream = (enclave.getId() + "_num_upstream").toUpperCase();
       code.pr("case " + enclave.getId() + ":");
       code.indent();
@@ -440,7 +481,7 @@ public class CEnclaveGenerator {
     code.pr("interval_t* delay;");
     code.pr("switch(enclave_id) { ");
     code.indent();
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       String enclaveNumUpstream = (enclave.getId() + "_num_upstream").toUpperCase();
       code.pr("case " + enclave.getId() + ":");
       code.indent();

@@ -41,7 +41,6 @@ public class CStateGenerator {
    */
   public static String generateInitializer(
       ReactorInstance instance,
-      CEnclaveInstance enc,
       String selfRef,
       StateVar stateVar,
       ModeInstance mode,
@@ -49,7 +48,7 @@ public class CStateGenerator {
     var initExpr = getInitializerExpr(stateVar, instance);
     String baseInitializer =
         generateBaseInitializer(instance.tpr, selfRef, stateVar, initExpr, types);
-    String modalReset = generateModalReset(instance, enc, selfRef, stateVar, initExpr, mode, types);
+    String modalReset = generateModalReset(instance, selfRef, stateVar, initExpr, mode, types);
     return String.join("\n", baseInitializer, modalReset);
   }
 
@@ -75,7 +74,6 @@ public class CStateGenerator {
 
   private static String generateModalReset(
       ReactorInstance instance,
-      CEnclaveInstance enc,
       String selfRef,
       StateVar stateVar,
       String initExpr,
@@ -94,7 +92,7 @@ public class CStateGenerator {
 
     if (ASTUtils.isParameterized(stateVar)) {
       return CModesGenerator.generateStateResetStructure(
-          instance, enc, modeRef, selfRef, stateVar.getName(), initExpr, type);
+          instance, modeRef, selfRef, stateVar.getName(), initExpr, type);
     } else {
       CodeBuilder code = new CodeBuilder();
       var source = "_initial";
@@ -106,7 +104,7 @@ public class CStateGenerator {
       code.pr("static " + declaration + " = " + initExpr + ";");
       code.pr(
           CModesGenerator.generateStateResetStructure(
-              instance, enc, modeRef, selfRef, stateVar.getName(), source, type));
+              instance, modeRef, selfRef, stateVar.getName(), source, type));
       code.unindent();
       code.pr("} // End scoping.");
       return code.toString();

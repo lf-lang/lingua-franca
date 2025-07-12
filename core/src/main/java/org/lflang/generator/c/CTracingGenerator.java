@@ -26,7 +26,7 @@ public class CTracingGenerator {
    *
    * @param instance The reactor instance.
    */
-  public static String generateTraceTableEntries(ReactorInstance instance, CEnclaveInstance enc) {
+  public static String generateTraceTableEntries(ReactorInstance instance) {
     List<String> code = new ArrayList<>();
     var description = CUtil.getShortenedName(instance);
     var selfStruct = CUtil.reactorRef(instance);

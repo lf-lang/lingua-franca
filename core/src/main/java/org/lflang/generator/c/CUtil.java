@@ -875,6 +875,6 @@ public class CUtil {
   }
 
   public static String getEnvironmentStructPtr(ReactorInstance inst) {
-    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.enclave.uniqueID() + "]";
+    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.containingEnclaveReactor.uniqueID() + "]";
   }
 }

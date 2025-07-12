@@ -32,8 +32,6 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.MessageReporter;
-import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
@@ -52,7 +50,6 @@ import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
-import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.util.Pair;
@@ -69,7 +66,6 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
   public static final LfFactory factory = ASTUtils.factory;
   private final Resource mainResource;
-  private final MessageReporter messageReporter;
   protected CTypes types;
 
   // The following fields must match the parameter names in the EnclavedConnection library reactor.
@@ -119,10 +115,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   public final Map<Instantiation, Pair<Instantiation, Instantiation>> enclavedConnections =
       new HashMap<>();
 
-  public CEnclavedReactorTransformation(
-      Resource mainResource, MessageReporter messageReporter, CTypes types) {
+  public CEnclavedReactorTransformation(Resource mainResource, CTypes types) {
     this.mainResource = mainResource;
-    this.messageReporter = messageReporter;
     this.types = types;
   }
 
@@ -155,7 +149,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
         if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
           Type type = ((Port) lhs.getVariable()).getType();
-          // Create an enclave connection instantiation and give it an unique name.
+          // Create an enclave connection instantiation and give it a unique name.
           Instantiation connInst =
               createEnclavedConnectionInstance(
                   type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
@@ -294,7 +288,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
       Assignment delayAssignment = factory.createAssignment();
       delayAssignment.setLhs(getParameter(def, delayParamName));
       Initializer init = factory.createInitializer();
-      init.getExprs().add(Objects.requireNonNull(delay));
+      init.setExpr(Objects.requireNonNull(delay));
       delayAssignment.setRhs(init);
       inst.getParameters().add(delayAssignment);
       exprHasAfter.getCode().setBody("true");
@@ -307,11 +301,11 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     } else {
       isPhysicalExpr.getCode().setBody("false");
     }
-    initHasAfter.getExprs().add(exprHasAfter);
+    initHasAfter.setExpr(exprHasAfter);
     hasAfterDelayAssignment.setRhs(initHasAfter);
     inst.getParameters().add(hasAfterDelayAssignment);
 
-    isPhysicalInit.getExprs().add(isPhysicalExpr);
+    isPhysicalInit.setExpr(isPhysicalExpr);
     isPhysicalAssignment.setRhs(isPhysicalInit);
     inst.getParameters().add(isPhysicalAssignment);
     return inst;

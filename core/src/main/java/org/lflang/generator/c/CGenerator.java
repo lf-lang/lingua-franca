@@ -322,8 +322,6 @@ public class CGenerator extends GeneratorBase {
   private CEnclaveGenerator enclaveGenerator;
   /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
   private final CEnclavedReactorTransformation enclaveAST;
-  /** A mapping from ReactorInstance to CEnclaveInstance */
-  private final ReactorEnclaveMap enclaveMap = new ReactorEnclaveMap();
 
   protected CGenerator(
       LFGeneratorContext context,
@@ -337,7 +335,7 @@ public class CGenerator extends GeneratorBase {
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
     this.enclaveAST =
-        new CEnclavedReactorTransformation(fileConfig.resource, context.getErrorReporter(), types);
+        new CEnclavedReactorTransformation(fileConfig.resource, types);
 
     registerTransformation(this.enclaveAST);
 
@@ -449,7 +447,7 @@ public class CGenerator extends GeneratorBase {
     // Inform the runtime of the number of watchdogs (needed for Zephyr support to create threads).
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
     // since we need main to get all enclaves.
-    var nWatchdogs = enclaveMap.getEnclaves().stream()
+    var nWatchdogs = enclaveGenerator.getEnclaves().stream()
             .map(it -> it.numWatchdogs)
             .reduce(0, Integer::sum);
     CompileDefinitionsProperty.INSTANCE.update(
@@ -636,7 +634,7 @@ public class CGenerator extends GeneratorBase {
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
               main,
-              enclaveMap,
+              enclaveGenerator.getEnclaves(),
               targetConfig,
               initializeTriggerObjects,
               startTimeStep,
@@ -1390,9 +1388,8 @@ public class CGenerator extends GeneratorBase {
     // For each reaction instance, allocate the arrays that will be used to
     // trigger downstream reactions.
 
-    var enclaveInfo = enclaveMap.get(instance);
-    var enclaveStruct = CUtil.getEnvironmentStruct(enclaveInfo);
-    var enclaveId = CUtil.getEnvironmentId(enclaveInfo);
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var enclaveId = CUtil.getEnvironmentId(instance.containingEnclave);
     for (ReactionInstance reaction : instance.reactions) {
       var reactor = reaction.getParent();
       var temp = new CodeBuilder();
@@ -1411,7 +1408,7 @@ public class CGenerator extends GeneratorBase {
                   + "]++] = &"
                   + reactionRef
                   + ";");
-          enclaveInfo.numStartupReactions += reactor.getTotalWidth();
+          reactor.containingEnclave.numStartupReactions += reactor.getTotalWidth();
           foundOne = true;
         } else if (trigger.isShutdown()) {
           temp.pr(
@@ -1422,7 +1419,7 @@ public class CGenerator extends GeneratorBase {
                   + reactionRef
                   + ";");
           foundOne = true;
-          enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
+          reactor.containingEnclave.numShutdownReactions += reactor.getTotalWidth();
 
           if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
@@ -1445,7 +1442,7 @@ public class CGenerator extends GeneratorBase {
                   + "]++] = &"
                   + reactionRef
                   + ";");
-          enclaveInfo.numResetReactions += reactor.getTotalWidth();
+          reactor.containingEnclave.numResetReactions += reactor.getTotalWidth();
           foundOne = true;
         }
       }
@@ -1462,8 +1459,7 @@ public class CGenerator extends GeneratorBase {
     var foundOne = false;
     var temp = new CodeBuilder();
     var containerSelfStructName = CUtil.reactorRef(instance);
-    var enclaveInfo = enclaveMap.get(instance);
-    var enclaveStruct = CUtil.getEnvironmentStruct(enclaveInfo);
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
 
     // Handle inputs that get sent data from a reaction rather than from
     // another contained reactor and reactions that are triggered by an
@@ -1505,7 +1501,7 @@ public class CGenerator extends GeneratorBase {
           var con = (port.isMultiport()) ? "->" : ".";
 
           var indexString =
-              String.valueOf(enclaveInfo.numIsPresentFields)
+              String.valueOf(instance.containingEnclave.numIsPresentFields)
                   + " + ("
                   + CUtil.runtimeIndex(instance.getParent())
                   + ") * "
@@ -1531,7 +1527,7 @@ public class CGenerator extends GeneratorBase {
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += port.getParent().getTotalWidth() * port.getWidth();
+          instance.containingEnclave.numIsPresentFields += port.getParent().getTotalWidth() * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
@@ -1553,7 +1549,7 @@ public class CGenerator extends GeneratorBase {
 
       // Build the index into `is_present_fields` for this action.
       var indexString =
-          String.valueOf(enclaveInfo.numIsPresentFields)
+          String.valueOf(instance.containingEnclave.numIsPresentFields)
               + " + ("
               + CUtil.runtimeIndex(instance.getParent())
               + ") * "
@@ -1588,7 +1584,7 @@ public class CGenerator extends GeneratorBase {
                       + action.getName()
                       + ".intended_tag;")));
 
-      enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
+      instance.containingEnclave.numIsPresentFields += action.getParent().getTotalWidth();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
     temp = new CodeBuilder();
@@ -1623,7 +1619,7 @@ public class CGenerator extends GeneratorBase {
                     + ") * "
                     + totalChannelCount * child.getWidth()
                     + " + "
-                    + enclaveInfo.numIsPresentFields
+                    + instance.containingEnclave.numIsPresentFields
                     + " + count";
 
             temp.pr(
@@ -1656,7 +1652,7 @@ public class CGenerator extends GeneratorBase {
         }
         temp.endScopedBlock();
         temp.endScopedBlock();
-        enclaveInfo.numIsPresentFields += totalChannelCount * child.getTotalWidth();
+        instance.containingEnclave.numIsPresentFields += totalChannelCount * child.getTotalWidth();
       }
     }
     if (foundOne) startTimeStep.pr(temp.toString());
@@ -1674,10 +1670,8 @@ public class CGenerator extends GeneratorBase {
   private void generateTimerInitializations(ReactorInstance instance) {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
-        CEnclaveInstance enc = enclaveMap.get(instance);
-        initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer, enc));
-        enc.numTimerTriggers += timer.getParent().getTotalWidth();
-        enclaveMap.set(enc);
+        initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer, instance.containingEnclave));
+        instance.containingEnclave.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
   }
@@ -1743,8 +1737,7 @@ public class CGenerator extends GeneratorBase {
    */
   private void generateTraceTableEntries(ReactorInstance instance) {
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
-      CEnclaveInstance enc = enclaveMap.get(instance);
-      initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance, enc));
+      initializeTriggerObjects.pr(CTracingGenerator.generateTraceTableEntries(instance));
     }
   }
 
@@ -1774,7 +1767,7 @@ public class CGenerator extends GeneratorBase {
             + "]->base.environment = &"
             + CUtil.ENVIRONMENT_VARIABLE_NAME
             + "["
-            + CUtil.getEnvironmentId(enclaveMap.get(instance))
+            + CUtil.getEnvironmentId(instance.containingEnclave)
             + "];");
     // Generate code to initialize the "self" struct in the
     // _lf_initialize_trigger_objects function.
@@ -1784,7 +1777,7 @@ public class CGenerator extends GeneratorBase {
     initializeOutputMultiports(instance);
     initializeInputMultiports(instance);
     recordBuiltinTriggers(instance);
-    CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance, enclaveMap);
+    CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
     // Next, initialize the "self" struct with state variables.
     // These values may be expressions that refer to the parameter values defined above.
@@ -1888,7 +1881,6 @@ public class CGenerator extends GeneratorBase {
   protected void generateStateVariableInitializations(ReactorInstance instance) {
     var reactorClass = instance.getDefinition().getReactorClass();
     var selfRef = CUtil.reactorRef(instance);
-    CEnclaveInstance enc = enclaveMap.get(instance);
     for (StateVar stateVar : allStateVars(toDefinition(reactorClass))) {
       if (isInitialized(stateVar)) {
         var mode =
@@ -1896,10 +1888,9 @@ public class CGenerator extends GeneratorBase {
                 ? instance.lookupModeInstance((Mode) stateVar.eContainer())
                 : instance.getMode(false);
         initializeTriggerObjects.pr(
-            CStateGenerator.generateInitializer(instance, enc, selfRef, stateVar, mode, types));
+            CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          enc.numModalResetStates += instance.getTotalWidth();
-          enclaveMap.set(enc);
+          instance.containingEnclave.numModalResetStates += instance.getTotalWidth();
         }
       }
     }
@@ -1951,11 +1942,9 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor instance.
    */
   private void generateModeStructure(ReactorInstance instance) {
-    CEnclaveInstance enc = enclaveMap.get(instance);
-    CModesGenerator.generateModeStructure(instance, enc, initializeTriggerObjects);
+    CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
     if (!instance.modes.isEmpty()) {
-      enc.numModalReactors += instance.getTotalWidth();
-      enclaveMap.set(enc);
+      instance.containingEnclave.numModalReactors += instance.getTotalWidth();
     }
   }
 
@@ -2061,13 +2050,11 @@ public class CGenerator extends GeneratorBase {
       // Something went wrong (causality cycle?). Stop.
       return false;
     }
-    // Search for enclaves and build a mapping from reactor instance to enclave instances.
-    enclaveMap.build(main);
 
     // Create the enclave generator. This step will also check for zero-delay cycles in the
     // enclave graph.
     enclaveGenerator =
-            new CEnclaveGenerator(main, enclaveMap, enclaveAST, fileConfig.name, messageReporter);
+            new CEnclaveGenerator(main, enclaveAST, fileConfig.name, messageReporter);
 
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:

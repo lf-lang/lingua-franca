@@ -12,6 +12,7 @@ import static org.lflang.util.StringUtil.joinObjects;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
@@ -36,10 +37,12 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
  * @author Hou Seng Wong
  */
 public class CTriggerObjectsGenerator {
-  /** Generate the _lf_initialize_trigger_objects function for 'federate'. */
+  /**
+   * Generate the _lf_initialize_trigger_objects function for 'federate'.
+   */
   public static String generateInitializeTriggerObjects(
       ReactorInstance main,
-      ReactorEnclaveMap enclaveMap,
+      Set<CEnclaveInstance> enclaves,
       TargetConfig targetConfig,
       CodeBuilder initializeTriggerObjects,
       CodeBuilder startTimeStep,
@@ -99,7 +102,7 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateSchedulerInitializerMain(main, enclaveMap, targetConfig));
+    code.pr(generateSchedulerInitializerMain(main, enclaves, targetConfig));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
@@ -119,13 +122,13 @@ public class CTriggerObjectsGenerator {
 
   /** Generate code to initialize the scheduler(s) for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
-      ReactorInstance main, ReactorEnclaveMap enclaveMap, TargetConfig targetConfig) {
+      ReactorInstance main, Set<CEnclaveInstance> enclaves, TargetConfig targetConfig) {
     if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
     var reactionInstanceGraph = main.assignLevels();
     var code = new CodeBuilder();
-    for (CEnclaveInstance enclave : enclaveMap.getEnclaves()) {
+    for (CEnclaveInstance enclave : enclaves) {
       code.pr(generateSchedulerInitializerEnclave(enclave, reactionInstanceGraph));
     }
 

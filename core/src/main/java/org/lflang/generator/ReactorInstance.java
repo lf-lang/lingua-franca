@@ -40,6 +40,7 @@ import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.CEnclaveInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
@@ -169,8 +170,15 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
   public final ReactorDecl reactorDeclaration;
 
-  /** The top-level reactor instance of the enclave which this reactor instance is part of. */
-  public final ReactorInstance enclave;
+  /** The nearest containing reactor instance that is an enclave. */
+  public final ReactorInstance containingEnclaveReactor;
+
+  /**
+   * @brief The enclave instance corresponding to the containing reactor that is an enclave.
+   *
+   * This is initialized by the build function in @Link ReactorEnclaveMap.
+   */
+  public CEnclaveInstance containingEnclave;
 
   /** The reactor after imports are resolve. */
   public final Reactor reactorDefinition;
@@ -825,9 +833,9 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
     // Set the enclave field to point to the top-level instance of the current enclave
     if (parent == null || isEnclave(definition)) {
-      enclave = this;
+      containingEnclaveReactor = this;
     } else {
-      enclave = parent.enclave;
+      containingEnclaveReactor = parent.containingEnclaveReactor;
     }
     // check for recursive instantiation
     var currentParent = parent;

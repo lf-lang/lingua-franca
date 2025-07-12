@@ -60,9 +60,9 @@ public class CWatchdogGenerator {
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     int watchdogCount = 0;
-    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
-    var enclaveId = CUtil.getEnvironmentId(instance);
+    var enclaveInfo = instance.containingEnclave;
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var enclaveId = CUtil.getEnvironmentId(instance.containingEnclave);
 
     for (Watchdog watchdog :
         ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
