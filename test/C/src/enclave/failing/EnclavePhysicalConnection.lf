@@ -19,8 +19,8 @@ reactor E2 {
   state received: int = 0
 
   reaction(in) {=
-    LF_ASSERT(in->value > lf_time_logical(), "Received tag" PRINTF_TIME " @ " PRINTF_TIME , in->value, lf_time_logical());
-    LF_ASSERT(self->cnt > 10, "Timer only fired %u times, expected >10", self->cnt);
+    LF_TEST(in->value > lf_time_logical(), "Received tag" PRINTF_TIME " @ " PRINTF_TIME , in->value, lf_time_logical());
+    LF_TEST(self->cnt > 10, "Timer only fired %u times, expected >10", self->cnt);
     lf_request_stop();
   =}
 

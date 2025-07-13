@@ -26,9 +26,9 @@ reactor Receiver {
     instant_t now = lf_time_logical_elapsed();
     lf_print("Received event t=" PRINTF_TIME ", count=%u", now, in->value);
 
-    LF_ASSERT(self->cnt == in->value, "recv=%u exp=%u", in->value, self->cnt);
+    LF_TEST(self->cnt == in->value, "recv=%u exp=%u", in->value, self->cnt);
     if (now != 0) {
-        LF_ASSERT(now - self->last == MSEC(50), "now=" PRINTF_TIME " last=" PRINTF_TIME, now, self->last);
+        LF_TEST(now - self->last == MSEC(50), "now=" PRINTF_TIME " last=" PRINTF_TIME, now, self->last);
     }
 
     self->last = now;

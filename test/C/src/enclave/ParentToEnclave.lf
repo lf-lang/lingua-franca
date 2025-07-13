@@ -29,19 +29,19 @@ reactor R {
   state tCnt: int = 0
 
   reaction(in1) {=
-    LF_ASSERT(in1->value == (lf_time_logical_elapsed()-MSEC(50)), "Failed in R2. Got" PRINTF_TIME " expected " PRINTF_TIME, in1->value, lf_time_logical_elapsed()-MSEC(50));
-    LF_ASSERT(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
+    LF_TEST(in1->value == (lf_time_logical_elapsed()-MSEC(50)), "Failed in R2. Got" PRINTF_TIME " expected " PRINTF_TIME, in1->value, lf_time_logical_elapsed()-MSEC(50));
+    LF_TEST(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
     self->inCnt++;
   =}
 
   reaction(t) {=
-    LF_ASSERT(self->inCnt == self->tCnt+1, "In1 didnt fire before timer");
+    LF_TEST(self->inCnt == self->tCnt+1, "In1 didnt fire before timer");
     self->tCnt++;
   =}
 
   reaction(shutdown) {=
-    LF_ASSERT(self->inCnt == 10, "Wrong inCnt. Got %u expected %u", self->inCnt, 10);
-    LF_ASSERT(self->tCnt == 10, "Wrong tCnt. Got %u expected %u", self->tCnt, 10);
+    LF_TEST(self->inCnt == 10, "Wrong inCnt. Got %u expected %u", self->inCnt, 10);
+    LF_TEST(self->tCnt == 10, "Wrong tCnt. Got %u expected %u", self->tCnt, 10);
   =}
 }
 
