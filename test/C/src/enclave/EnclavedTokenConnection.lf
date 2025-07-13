@@ -39,6 +39,7 @@ reactor Dest {
   state check: bool = false
 
   reaction(in) {=
+    lf_print("Received %d at " PRINTF_TAG, *in->value, lf_time_logical_elapsed(), lf_tag().microstep);
     LF_ASSERT(*in->value == 84, "Received wrong value");
     self->check = true;
   =}
