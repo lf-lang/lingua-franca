@@ -76,7 +76,7 @@ reactor _EnclaveConnection<T>(
         }
       #else
         // If we have a native type:
-        lf_schedule_copy(phyAction->_base.trigger, self->delay, &in->value, 1);
+        lf_schedule_copy(phyAction, self->delay, &in->value, 1);
       #endif
         // Notify the main thread in case it is waiting for physical time to elapse
         lf_notify_of_event(self->dest_env);
