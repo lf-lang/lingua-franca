@@ -4,7 +4,7 @@ target C {
   timeout: 1 sec
 }
 
-import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
+import EnclaveSink, EnclaveSource from "../lib/SimpleEnclave.lf"
 
 main reactor {
   @enclave
