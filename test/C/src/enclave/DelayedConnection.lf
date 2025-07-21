@@ -36,7 +36,7 @@ reactor Receiver {
   =}
 
   reaction(shutdown) {=
-    LF_TEST(self->cnt == 40, "Test did not run properly");
+    LF_TEST(self->cnt == 40, "Expected 40 events, got %u", self->cnt);
   =}
 }
 
