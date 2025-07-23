@@ -1,6 +1,5 @@
 package org.lflang.target.property;
 
-import org.lflang.LocalStrings;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
