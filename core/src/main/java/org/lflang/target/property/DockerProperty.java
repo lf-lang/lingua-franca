@@ -38,7 +38,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var noBuild = false;
     var builderBase = "";
     var runnerBase = "";
-    var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+    var rti = DockerOptions.LOCAL_RTI_IMAGE;
     var shell = DockerOptions.DEFAULT_SHELL;
     var preBuildScript = "";
     var postBuildScript = "";
