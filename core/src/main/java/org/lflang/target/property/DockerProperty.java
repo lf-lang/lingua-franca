@@ -149,17 +149,13 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       String envFile,
       String dockerConfigFile) {
 
-    /** Default location to pull the rti from. */
-    public static final String DOCKERHUB_RTI_IMAGE =
-        "lflang/rti:" + LocalStrings.VERSION.toLowerCase();
-
     public static final String DEFAULT_SHELL = "/bin/sh";
 
     /** String to indicate a local build of the rti. */
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "");
+      this(enabled, false, "", "", LOCAL_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "");
     }
   }
 
