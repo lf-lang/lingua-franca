@@ -37,6 +37,7 @@ reactor Dest {
 
   reaction(in) {=
     lf_print("Received %d at " PRINTF_TAG, *in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    self->check = true;
     LF_TEST(*in->value == 84, "Received wrong value: %d", *in->value);
     LF_TEST(lf_time_logical_elapsed() > 0, "Logical time has not advanced!");
   =}
