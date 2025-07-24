@@ -35,27 +35,31 @@ reactor _EnclaveConnection<T>(
     #endif
   =}
 
-  /** The forward-reaction. It takes the event which was scheduled to the
-   * action and writes it to the output port. */
-  reaction(logAction, phyAction) -> out {=
+  /**
+   * The forward-reaction for logical actions. It takes the event which was scheduled to the
+   * action and writes it to the output port.
+   */
+  reaction(logAction) -> out {=
     #if defined T_IS_TOKEN_TYPE
-      if (logAction->is_present) {
-        out->value = (T) logAction->token->value;
-        _lf_replace_template_token((token_template_t*)out, logAction->token);
-        out->is_present=true;
-      }
-      if (phyAction->is_present) {
-        out->value = (T) phyAction->token->value;
-        _lf_replace_template_token((token_template_t*)out, phyAction->token);
-        out->is_present=true;
-      }
+      out->value = (T) logAction->token->value;
+      _lf_replace_template_token((token_template_t*)out, logAction->token);
+      out->is_present=true;
     #else
-      if (logAction->is_present) {
-        lf_set(out, *(T*)(logAction->token->value));
-      }
-      if (phyAction->is_present) {
-        lf_set(out, *(T*)(phyAction->token->value));
-      }
+      lf_set(out, *(T*)(logAction->token->value));
+    #endif
+  =}
+
+  /**
+   * The forward-reaction for physical actions. It takes the event which was scheduled to the
+   * action and writes it to the output port.
+   */
+  reaction(phyAction) -> out {=
+    #if defined T_IS_TOKEN_TYPE
+      out->value = (T) phyAction->token->value;
+      _lf_replace_template_token((token_template_t*)out, phyAction->token);
+      out->is_present=true;
+    #else
+      lf_set(out, *(T*)(phyAction->token->value));
     #endif
   =}
 
@@ -69,19 +73,19 @@ reactor _EnclaveConnection<T>(
     lf_critical_section_enter(self->dest_env);
     if (self->is_physical) {
       // Schedule event onto the physical action.
-      if (in->token) {
+      #if defined T_IS_TOKEN_TYPE
         // If we have a token-type, simply schedule the token at the desired tag"
-        if(lf_schedule_token(phyAction, self->delay, in->token) < 0) {
+        if(_lf_schedule_token(self->dest_env, phyAction, self->delay, in->token) < 0) {
           lf_print_warning("Could not schedule event onto downstream enclave.");
         }
-      } else {
+      #else
         // If we have a native type:
-        if (lf_schedule_copy(phyAction, self->delay, &in->value, 1) < 0) {
+        if (_lf_schedule_copy(self->dest_env, phyAction, self->delay, &in->value, 1) < 0) {
           lf_print_warning("Could not schedule event onto downstream enclave.");
         }
-      }
-        // Notify the main thread in case it is waiting for physical time to elapse
-        lf_notify_of_event(self->dest_env);
+      #endif
+      // Notify the main thread in case it is waiting for physical time to elapse
+      lf_notify_of_event(self->dest_env);
     } else {
       // Schedule event onto the logical action.
       // Calculate the logical tag the event should get in the target environment.
@@ -90,12 +94,12 @@ reactor _EnclaveConnection<T>(
         target_tag = lf_delay_tag(self->source_env->current_tag, self->delay);
       }
       if(!lf_is_tag_after_stop_tag(self->dest_env, target_tag)) {
-        if (in->token) {
+        #if defined T_IS_TOKEN_TYPE
           // If we have a token-type, simply schedule the token at the desired tag"
           if (_lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, in->token) < 0) {
             lf_print_warning("Could not schedule event onto downstream enclave.");
           }
-        } else {
+        #else
           // If we have a native type:
           int length = 1;
           if (in->token) length = in->length;
@@ -108,8 +112,8 @@ reactor _EnclaveConnection<T>(
           if(_lf_schedule_at_tag(self->dest_env, logAction->_base.trigger, target_tag, token) < 0) {
             lf_print_warning("Could not schedule event onto downstream enclave.");
           }
-          // Notify the main thread in case it is waiting for physical time to elapse
-        }
+        #endif
+        // Notify the main thread in case it is waiting for physical time to elapse
         lf_notify_of_event(self->dest_env);
         // Notify the local RTI that we have scheduled something onto the event queue of another enclave
         rti_update_other_net_locked(self->source_env->enclave_info, self->dest_env->enclave_info, target_tag);
