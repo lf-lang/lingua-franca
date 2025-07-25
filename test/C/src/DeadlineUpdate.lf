@@ -1,0 +1,19 @@
+// Test whether the lf_set_deadline() function works.
+// This updates the daedline from 10 msecs to 20 msecs.
+target C
+
+reactor A {
+  reaction(startup) {=
+    lf_set_deadline(self, MSEC(20));
+    while(!lf_check_deadline(self, true)){
+        lf_print("\nDeadline violation not detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+        lf_sleep(MSEC(10));
+    }
+  =} deadline(10 msec) {=
+    lf_print("Deadline violation detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+  =}
+}
+
+main reactor {
+  a = new A()
+}
