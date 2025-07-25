@@ -1918,38 +1918,36 @@ public class ASTUtils {
   }
 
   /**
-   * Given a reactor definition, e.g. the main reactor, returns the set of reactor instantiations
-   * contained in this definition.
+   * @brief Return the set of enclave instantiations in the given reactor definition.
    *
    * @param top The reactor definition to search in.
-   * @return The set of reactor instantiations within top.
+   * @return The set of enclavereactor instantiations within top.
    */
   public static Set<Instantiation> getEnclaves(Reactor top) {
     Set<Instantiation> enclaves = new HashSet<>();
-    Queue<Reactor> queue = new LinkedList<>();
-    queue.add(top);
-
-    while (!queue.isEmpty()) {
-      Reactor inst = queue.poll();
-      for (Instantiation child : ASTUtils.allInstantiations(inst)) {
-        if (isEnclave(child)) {
-          enclaves.add(child);
-        }
-        queue.add(ASTUtils.toDefinition(child.getReactorClass()));
-      }
-    }
+    getEnclaves(enclaves, top);
     return enclaves;
   }
 
+  private static void getEnclaves(Set<Instantiation> enclaves, Reactor reactor) {
+    for (Instantiation child : ASTUtils.allInstantiations(reactor)) {
+      if (isEnclave(child)) {
+        enclaves.add(child);
+      }
+      getEnclaves(enclaves, ASTUtils.toDefinition(child.getReactorClass()));
+    }
+  }
+
   /**
-   * Given a list of pairs of an old connection and a newly created instantiation. For eac pair,
+   * @brief Reroute the given connection to go through the given instantiation.
+   * 
+   * For each given pair of a connection and a newly created instantiation,
    * create two connections to reroute specified connection to instead go through the specified
    * instantiation. This is used when code-generating after-delay reactors and enclave connections.
    * This assumes that the specified instantiation has at least one input port and at least one
-   * output port and uses the first of such ports. This returns a list of the two created
-   * connections. instantiation. This is used when code-generating after-delay reactors and enclaved
-   * connections. It inserts the added connections and the instantiations into the AST and removes
-   * the old connection.
+   * output port and uses the first of such ports. The old connection is removed.
+   * 
+   * If a connection is iterated, then the downstream new connection is iterated as well.
    *
    * @param conns The list of pairs to reroute.
    */
@@ -1967,13 +1965,13 @@ public class ASTUtils {
       VarRef input = factory.createVarRef();
       VarRef output = factory.createVarRef();
 
-      Reactor delayClass = ASTUtils.toDefinition(inst.getReactorClass());
+      Reactor instClass = ASTUtils.toDefinition(inst.getReactorClass());
 
       // Establish references to the involved ports.
       input.setContainer(inst);
-      input.setVariable(delayClass.getInputs().get(0));
+      input.setVariable(instClass.getInputs().get(0));
       output.setContainer(inst);
-      output.setVariable(delayClass.getOutputs().get(0));
+      output.setVariable(instClass.getOutputs().get(0));
       upstream.getLeftPorts().addAll(connection.getLeftPorts());
       upstream.getRightPorts().add(input);
       downstream.getLeftPorts().add(output);
