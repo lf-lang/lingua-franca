@@ -29,6 +29,8 @@ jobs:
     uses: ./.github/workflows/only-c.yml
     needs: check-diff
     if: ${{ needs.check-diff.outputs.run_c == 'true' }}
+    with:
+      runtime-ref: setup_deadline
 
   cpp:
     uses: ./.github/workflows/only-cpp.yml
