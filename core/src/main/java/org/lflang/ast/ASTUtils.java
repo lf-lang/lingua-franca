@@ -2018,10 +2018,10 @@ public class ASTUtils {
   }
 
   /**
-   * Override the parameter initializer with a code expression.
+   * @brief Override the parameter initializer with a code expression.
    *
-   * @param param
-   * @param expr
+   * @param param The parameter to override.
+   * @param expr The code expression to use as the initializer.
    */
   public static void overrideParameter(ParameterInstance param, CodeExpr expr) {
     Assignment existing = param.getOverride();
