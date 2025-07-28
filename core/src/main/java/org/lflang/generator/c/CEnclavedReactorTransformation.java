@@ -79,10 +79,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   public Instantiation PARENT = factory.createInstantiation();
 
   /**
-   * This function lets you update the environment pointers which are parameters to the enclave
-   * connection reactor. This is a utility function. It is put here with the AST because its
-   * functionality fits well here.
-   *
+   * @brief Set the environment pointers which are parameters to the enclave connection reactor.
    * @param conn The generated enclave connection reactor
    * @param source The upstream reactor
    * @param dest The downstream reactor
@@ -139,7 +136,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     // Iterate over the connections in the tree and find the ones to replace.
     for (Reactor container : reactors) {
       for (Connection connection : ASTUtils.allConnections(container)) {
-        // We only support enclaves connected with uni-connections
+        // FIXME: We only support enclaves connected with uni-connections
         if (connection.isIterated()
             || connection.getLeftPorts().size() > 1
             || connection.getRightPorts().size() > 1) {

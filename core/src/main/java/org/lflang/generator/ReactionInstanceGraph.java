@@ -26,8 +26,6 @@ package org.lflang.generator;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import org.lflang.AttributeUtils;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
@@ -85,7 +83,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
 
-  /** @brief Rebuild the graph and propagate and assign deadlines to all reactions. */
+  /**
+   * @brief Rebuild the graph and propagate and assign deadlines to all reactions.
+   */
   public void rebuildAndAssignDeadlines() {
     this.clear();
     addNodesAndEdges(main);
@@ -94,11 +94,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * @brief Get an array of non-negative integers representing the number of reactions per each level,
-   * where levels are indices of the array.
+   * @brief Get an array of non-negative integers representing the number of reactions per each
+   *     level, where levels are indices of the array.
    * @param enclave The enclave to get the number of reactions for.
    * @return An array of non-negative integers representing the number of reactions per each level,
-   * where levels are indices of the array, or an empty array if the enclave has no reactions.
+   *     where levels are indices of the array, or an empty array if the enclave has no reactions.
    */
   public Integer[] getNumReactionsPerLevel(ReactorInstance enclave) {
     List<Integer> res = numReactionsPerEnclavePerLevel.get(enclave);
@@ -297,10 +297,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   //// Private fields
 
   /**
-   * Map from an enclave to a list of number of reactions per level,
-   * where the level is the list index.
+   * Map from an enclave to a list of number of reactions per level, where the level is the list
+   * index.
    */
-  private Map<ReactorInstance, List<Integer>> numReactionsPerEnclavePerLevel = new LinkedHashMap<>();
+  private Map<ReactorInstance, List<Integer>> numReactionsPerEnclavePerLevel =
+      new LinkedHashMap<>();
 
   ///////////////////////////////////////////////////////////
   //// Private methods
@@ -452,8 +453,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
   /**
    * Adjust {@link #numReactionsPerEnclavePerLevel} at index <code>level</code> by adding one to the
-   * previously recorded number. If there is no previously recorded number for this level, then create
-   * one with index <code>level</code> and value 1.
+   * previously recorded number. If there is no previously recorded number for this level, then
+   * create one with index <code>level</code> and value 1.
    *
    * @param level The level.
    * @param enclave The enclave with which to increment the level count.

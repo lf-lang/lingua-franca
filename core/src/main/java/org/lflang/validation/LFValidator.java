@@ -526,6 +526,7 @@ public class LFValidator extends BaseLFValidator {
                           > 0)
               .toList();
       // Look for, multi-connections.
+      /*
       connections.forEach(
           c -> {
             if (c.getRightPorts().size() > 1 || c.getLeftPorts().size() > 1) {
@@ -534,6 +535,7 @@ public class LFValidator extends BaseLFValidator {
                   Literals.CONNECTION__LEFT_PORTS);
             }
           });
+      */
       // Look for, interleaved, multiport and bank connections inside these connections
       connections.stream()
           .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
@@ -1265,7 +1267,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     if (!type.getStars().isEmpty()
-        && !List.of(target.C, target.CPP, target.CCPP).contains(target)) {
+        && !List.of(Target.C, Target.CPP, Target.CCPP).contains(target)) {
       error("Pointer types are not allowed in this target.", Literals.TYPE__ID);
     }
   }

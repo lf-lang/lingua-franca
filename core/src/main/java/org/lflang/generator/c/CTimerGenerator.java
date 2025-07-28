@@ -20,7 +20,7 @@ public class CTimerGenerator {
     var offset = CTypes.getInstance().getTargetTimeExpr(timer.getOffset());
     var period = CTypes.getInstance().getTargetTimeExpr(timer.getPeriod());
     var mode = timer.getMode(false);
-    var envId = CUtil.getEnvironmentId(enc);
+    var envId = enc.getReactorInstance().uniqueID();
     var modeRef =
         mode != null
             ? "&"

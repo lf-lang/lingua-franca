@@ -1917,7 +1917,6 @@ public class ASTUtils {
 
   /**
    * @brief Return the set of enclave instantiations in the given reactor definition.
-   *
    * @param top The reactor definition to search in.
    * @return The set of enclavereactor instantiations within top.
    */
@@ -1938,15 +1937,12 @@ public class ASTUtils {
 
   /**
    * @brief Reroute the given connection to go through the given instantiation.
-   * 
-   * For each given pair of a connection and a newly created instantiation,
-   * create two connections to reroute specified connection to instead go through the specified
-   * instantiation. This is used when code-generating after-delay reactors and enclave connections.
-   * This assumes that the specified instantiation has at least one input port and at least one
-   * output port and uses the first of such ports. The old connection is removed.
-   * 
-   * If a connection is iterated, then the downstream new connection is iterated as well.
-   *
+   *     <p>For each given pair of a connection and a newly created instantiation, create two
+   *     connections to reroute specified connection to instead go through the specified
+   *     instantiation. This is used when code-generating after-delay reactors and enclave
+   *     connections. This assumes that the specified instantiation has at least one input port and
+   *     at least one output port and uses the first of such ports. The old connection is removed.
+   *     <p>If a connection is iterated, then the downstream new connection is iterated as well.
    * @param conns The list of pairs to reroute.
    */
   public static void rerouteViaInstance(List<Pair<Connection, Instantiation>> conns) {
@@ -2017,7 +2013,6 @@ public class ASTUtils {
 
   /**
    * @brief Override the parameter initializer with a code expression.
-   *
    * @param param The parameter to override.
    * @param expr The code expression to use as the initializer.
    */

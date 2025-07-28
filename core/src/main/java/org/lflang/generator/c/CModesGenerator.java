@@ -126,7 +126,7 @@ public class CModesGenerator {
       code.pr(
           CUtil.getEnvironmentStruct(instance.containingEnclave)
               + ".modes->modal_reactor_states[modal_reactor_count["
-              + CUtil.getEnvironmentId(instance.containingEnclave)
+              + instance.uniqueID()
               + "]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
@@ -150,7 +150,7 @@ public class CModesGenerator {
       String source,
       String type) {
     var env = CUtil.getEnvironmentStruct(instance.containingEnclave);
-    var envId = CUtil.getEnvironmentId(instance.containingEnclave);
+    var envId = instance.uniqueID();
     return String.join(
         "\n",
         "// Register for automatic reset",

@@ -150,7 +150,7 @@ public class CTriggerObjectsGenerator {
         Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
     code.pr(
         "// Initialize the scheduler for enclave `"
-            + CUtil.getEnvironmentId(enclave)
+            + enclave.getReactorInstance().uniqueID()
             + "` in a private scope");
     // Do it in a scoped block so we can use the same name for `sched_params` etc.
     code.pr("{");

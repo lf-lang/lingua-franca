@@ -54,18 +54,24 @@ public class CEnclaveGraph {
     this.ast = ast;
   }
 
+  /**
+   * @brief A record to store the information about an enclave connection.
+   * @param delay The delay of the connection.
+   * @param hasAfterDelay Whether the connection has an after delay.
+   * @param isPhysical Whether the connection is physical.
+   */
   public record EnclaveConnection(TimeValue delay, boolean hasAfterDelay, boolean isPhysical) {}
 
   /**
-   * This function takes the main reactor instance and a mapping between reactor instances and
-   * enclave instances. It does a breadth-first search. When a reactor instance which is annotated
-   * with @enclave is found, we check the AST transformation for what instantiations are connected
-   * to this reactor. We then look through the other reactor instances at the same level and find
-   * the corresponding reactor instance. Understanding this requires that you understand the
-   * difference between the Reactor Instances and Reactor Instantiations. The AST transformation
-   * knows how the Reactor Instantiations are connected, but we must translate it to how Reactor
-   * Instances are connected.
-   *
+   * @brief Build the enclave graph.
+   *     <p>This function takes the main reactor instance and the set of enclave instances and does
+   *     a breadth-first search. When a reactor instance which is annotated with @enclave is found,
+   *     we check the AST transformation for what instantiations are connected to this reactor. We
+   *     then look through the other reactor instances at the same level and find the corresponding
+   *     reactor instance. Understanding this requires that you understand the difference between
+   *     the Reactor Instances and Reactor Instantiations. The AST transformation knows how the
+   *     Reactor Instantiations are connected, but we must translate it to how Reactor Instances are
+   *     connected.
    * @param main The main reactor, top-level enclave.
    * @param enclaves The set of enclaves to build the graph for.
    */
@@ -117,6 +123,7 @@ public class CEnclaveGraph {
             }
           }
         } else if (ast.enclavedConnections.containsKey(inst)) {
+          // inst is the instantiation of the enclave connection reactor.
           // Now we have enough information to set the source_env and dest_env parameters
           // of the generated EnclavedConnection reactors.
           ReactorInstance source = null;

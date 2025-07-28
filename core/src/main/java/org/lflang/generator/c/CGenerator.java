@@ -1388,7 +1388,7 @@ public class CGenerator extends GeneratorBase {
     // trigger downstream reactions.
 
     var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
-    var enclaveId = CUtil.getEnvironmentId(instance.containingEnclave);
+    var enclaveId = instance.containingEnclaveReactor.uniqueID();
     for (ReactionInstance reaction : instance.reactions) {
       var reactor = reaction.getParent();
       var temp = new CodeBuilder();
@@ -1768,7 +1768,7 @@ public class CGenerator extends GeneratorBase {
             + "]->base.environment = &"
             + CUtil.ENVIRONMENT_VARIABLE_NAME
             + "["
-            + CUtil.getEnvironmentId(instance.containingEnclave)
+            + instance.containingEnclaveReactor.uniqueID()
             + "];");
     // Generate code to initialize the "self" struct in the
     // _lf_initialize_trigger_objects function.

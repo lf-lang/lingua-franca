@@ -852,28 +852,19 @@ public class CUtil {
   }
 
   /**
-   * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
-   *
-   * @param inst The instance
-   */
-  public static String getEnvironmentId(CEnclaveInstance inst) {
-    return inst.getReactorInstance().uniqueID();
-  }
-
-  /**
-   * Returns a string which represents a C variable which points to the struct of the environment of
-   * the ReactorInstance inst.
-   *
-   * @param inst The instance
+   * @brief Return a string representing a global C variable that is the struct of the environment
+   *     of the specified enclave.
+   * @param inst The enclave instance.
    */
   public static String getEnvironmentStruct(CEnclaveInstance inst) {
     return ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
 
-  public static String getEnvironmentStructPtr(CEnclaveInstance inst) {
-    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
-  }
-
+  /**
+   * @brief Return a string representing a pointer to the C variable that is the struct of the
+   *     environment of the specified enclave.
+   * @param inst The enclave instance.
+   */
   public static String getEnvironmentStructPtr(ReactorInstance inst) {
     return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.containingEnclaveReactor.uniqueID() + "]";
   }

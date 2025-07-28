@@ -10,6 +10,7 @@
  */
 target C;
 
+@_enclave_connection
 reactor _EnclaveConnection<T>(
   source_env: environment_t* = 0,
   dest_env: environment_t* = 0,
@@ -36,8 +37,10 @@ reactor _EnclaveConnection<T>(
   =}
 
   /**
-   * The forward-reaction for logical actions. It takes the event which was scheduled to the
-   * action and writes it to the output port.
+   * @brief The forward reaction for logical actions.
+   * 
+   * This reaction takes the event which was scheduled to the action and writes it to the output port.
+   * It executes in the destination environment.
    */
   reaction(logAction) -> out {=
     #if defined T_IS_TOKEN_TYPE
@@ -50,8 +53,10 @@ reactor _EnclaveConnection<T>(
   =}
 
   /**
-   * The forward-reaction for physical actions. It takes the event which was scheduled to the
-   * action and writes it to the output port.
+   * @brief The forward reaction for physical actions.
+   * 
+   * This reaction takes the event which was scheduled to the action and writes it to the output port.
+   * It executes in the destination environment.
    */
   reaction(phyAction) -> out {=
     #if defined T_IS_TOKEN_TYPE
@@ -64,10 +69,11 @@ reactor _EnclaveConnection<T>(
   =}
 
   /**
-   * @brief The delay-reaction.
+   * @brief The input reaction.
    * 
    * This takes an event from the input port and schedules
    * an event on the correct action within the destinaton environment.
+   * This reaction executes in the source environment.
    */
   reaction(in) -> logAction, phyAction {=
     lf_critical_section_enter(self->dest_env);

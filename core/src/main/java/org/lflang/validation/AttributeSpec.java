@@ -52,9 +52,6 @@ public class AttributeSpec {
   public static final String WORKERS_ATTR = "workers";
   public static final String OPTION_ATTR = "option";
 
-  public static final String DELAY_ATTR = "delay";
-  public static final String IS_PHYSICAL_ATTR = "is_physical";
-
   /** A map from a string to a supported AttributeSpec */
   public static final Map<String, AttributeSpec> ATTRIBUTE_SPECS_BY_NAME = new HashMap<>();
 
@@ -228,12 +225,7 @@ public class AttributeSpec {
                 new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true),
                 new AttrParamSpec(WORKERS_ATTR, AttrParamType.INT, true))));
 
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "_enclaved_connection",
-        new AttributeSpec(
-            List.of(
-                new AttrParamSpec(DELAY_ATTR, AttrParamType.INT, false),
-                new AttrParamSpec(IS_PHYSICAL_ATTR, AttrParamType.BOOLEAN, false))));
+    ATTRIBUTE_SPECS_BY_NAME.put("_enclave_connection", new AttributeSpec(null));
 
     // attributes that are used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
@@ -257,6 +249,7 @@ public class AttributeSpec {
                 new AttrParamSpec("CT", AttrParamType.INT, true),
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
+
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));

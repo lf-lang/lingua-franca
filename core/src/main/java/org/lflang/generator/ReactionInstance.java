@@ -289,10 +289,9 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
   /**
    * @brief Return the reactor that is the enclave in charge of this reaction.
-   * 
-   * If the containing reactor is an enclave connection reactor, then the enclave in charge of this
-   * reaction depends on which reaction this is. The first two reactions use the enclave of the
-   * destination reactor, while the last reaction uses the enclave of the source reactor.
+   *     <p>If the containing reactor is an enclave connection reactor, then the enclave in charge
+   *     of this reaction depends on which reaction this is. The first two reactions use the enclave
+   *     of the destination reactor, while the last reaction uses the enclave of the source reactor.
    */
   public ReactorInstance getContainingEnclaveReactor() {
     if (AttributeUtils.isEnclaveConnection(parent.getDefinition())) {
@@ -317,7 +316,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
               return sourceRange.instance.parent.containingEnclaveReactor;
             }
           }
-        } 
+        }
       }
     }
     // The containing reactor is not an enclave connection reactor or the enclave connection
