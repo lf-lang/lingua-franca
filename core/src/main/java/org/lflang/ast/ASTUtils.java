@@ -35,11 +35,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -634,7 +632,7 @@ public class ASTUtils {
       // Inform the run-time of the breadth/parallelism of the reaction graph
       var breadth = reactionInstanceGraph.getBreadth(main);
       if (breadth == 0) {
-        messageReporter.nowhere().warning("The program has no reactions");
+        messageReporter.nowhere().warning("The main program has no reactions");
       } else {
         CompileDefinitionsProperty.INSTANCE.update(
             targetConfig, Map.of("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth)));
@@ -1724,7 +1722,7 @@ public class ASTUtils {
    *
    * @param instance The instance to check.
    */
-  public static boolean isTopLevel(NamedInstance instance) {
+  public static boolean isTopLevel(NamedInstance<?> instance) {
     return instance.getParent() == null;
   }
 
