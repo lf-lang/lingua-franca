@@ -62,7 +62,7 @@ public class CWatchdogGenerator {
     int watchdogCount = 0;
     var enclaveInfo = instance.containingEnclave;
     var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
-    var enclaveId = instance.uniqueID();
+    var enclaveId = instance.containingEnclaveReactor.uniqueID();
 
     for (Watchdog watchdog :
         ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {

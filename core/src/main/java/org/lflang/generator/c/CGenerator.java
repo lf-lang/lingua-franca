@@ -309,8 +309,6 @@ public class CGenerator extends GeneratorBase {
   /** Place to collect code to execute at the start of a time step. */
   private final CodeBuilder startTimeStep = new CodeBuilder();
 
-  private int watchdogCount = 0;
-
   // Indicate whether the generator is in Cpp mode or not
   private final boolean cppMode;
 
@@ -1923,7 +1921,7 @@ public class CGenerator extends GeneratorBase {
   private void initializeReactorMutex(ReactorInstance instance) {
     var selfRef = CUtil.reactorRef(instance);
     if (this.enclaveAST.enclavedConnections.containsKey(instance.getDefinition())
-        || watchdogCount > 0) {
+        || instance.containingEnclave.numWatchdogs > 0) {
       initializeTriggerObjects.pr(
           String.join(
               "\n",
