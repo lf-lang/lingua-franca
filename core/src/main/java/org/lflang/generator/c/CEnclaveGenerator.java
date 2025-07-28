@@ -89,10 +89,11 @@ public class CEnclaveGenerator {
 
   /**
    * @brief Create enclaves instances and update reactor instances to point to them.
-   *     <p>For the specified instance and parent, create CEnclaveInstance, if the reactor is an
-   *     enclave, and set the fields containingEnclave of the reactor and all its contained
-   *     reactors.
-   * @param instance The reactor.
+   * 
+   * For the specified instance and parent, create CEnclaveInstance, if the reactor is an
+   * enclave, and set the fields containingEnclave of the reactor and all its contained
+   * reactors.
+   * @param instance The reactor instance
    */
   private void build(ReactorInstance instance) {
     ReactorInstance parent = instance.getParent();
@@ -175,10 +176,11 @@ public class CEnclaveGenerator {
     code.pr("void lf_create_environments() {");
     code.indent();
     for (CEnclaveInstance enclave : enclaves) {
+      var reactorInstance = enclave.getReactorInstance();
       // Decide the number of workers to use. If this is the top-level
       // use the global variable _lf_number_of_workers which accounts for federation etc.
       String numWorkers = String.valueOf(enclave.numWorkers);
-      if (enclave.getReactorInstance().isMainOrFederated()) {
+      if (reactorInstance.isMainOrFederated()) {
         numWorkers = "_lf_number_of_workers";
       }
 
@@ -187,13 +189,13 @@ public class CEnclaveGenerator {
       var tracing = targetConfig.get(TracingProperty.INSTANCE);
       if (tracing.isEnabled()) {
         if (tracing.traceFileName != null) {
-          if (enclave.getReactorInstance().isMainOrFederated()) {
+          if (reactorInstance.isMainOrFederated()) {
             traceFileName = "\"" + tracing.traceFileName + ".lft\"";
           } else {
             traceFileName = "\"" + tracing.traceFileName + enclave.getId() + ".lft\"";
           }
         } else {
-          if (enclave.getReactorInstance().isMainOrFederated()) {
+          if (reactorInstance.isMainOrFederated()) {
             traceFileName = "\"" + lfModuleName + ".lft\"";
           } else {
             traceFileName = "\"" + lfModuleName + enclave.getId() + ".lft\"";
@@ -202,8 +204,8 @@ public class CEnclaveGenerator {
       }
 
       code.pr(
-          "environment_init(&"
-              + CUtil.getEnvironmentStruct(enclave)
+          "environment_init("
+              + CUtil.getEnvironmentStructPtr(reactorInstance)
               + ","
               + "\""
               + enclave.getId()
