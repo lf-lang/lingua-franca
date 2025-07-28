@@ -175,7 +175,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /**
    * @brief The enclave instance corresponding to the containing reactor that is an enclave.
-   *     <p>This is initialized by the build function in @Link ReactorEnclaveMap.
    */
   public CEnclaveInstance containingEnclave;
 
