@@ -619,7 +619,9 @@ public class CGenerator extends GeneratorBase {
       generateSelfStructs(main);
       generateReactorInstance(main);
 
+      if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
       code.pr(enclaveGenerator.generateDefinitions(targetConfig));
+      if (targetLanguageIsCpp()) code.pr("}");
 
       if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
