@@ -150,7 +150,7 @@ public class CModesGenerator {
       String source,
       String type) {
     var env = CUtil.getEnvironmentStruct(instance.containingEnclave);
-    var envId = instance.uniqueID();
+    var envId = instance.containingEnclaveReactor.uniqueID();
     return String.join(
         "\n",
         "// Register for automatic reset",
