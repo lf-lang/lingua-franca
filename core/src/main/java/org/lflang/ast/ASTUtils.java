@@ -1396,7 +1396,10 @@ public class ASTUtils {
   }
 
   /**
-   * Return the delay denoted by {@code delay} or {@code null} if the delay cannot be determined.
+   * @brief Return the delay denoted by {@code delay} or {@code null} if the delay cannot be
+   *     determined.
+   * @param delay The delay to get the time value from.
+   * @return The delay time value or null if the delay cannot be determined.
    */
   public static TimeValue getDelayAsTimeValue(Expression delay) {
     TimeValue ret = null;
@@ -1413,8 +1416,10 @@ public class ASTUtils {
   }
 
   /**
-   * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
-   * be determined.
+   * @brief Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay
+   *     cannot be determined.
+   * @param delay The delay to get the time value from.
+   * @return The delay time value or null if the delay cannot be determined.
    */
   public static Long getDelay(Expression delay) {
     Long ret = null;
@@ -1426,18 +1431,18 @@ public class ASTUtils {
   }
 
   /**
-   * Given the width specification of port or instantiation and an (optional) list of nested
-   * instantiations, return the width if it can be determined and -1 if not. It will not be able to
-   * be determined if either the width is variable (in which case you should use {@link
-   * #inferPortWidth(VarRef, Connection, List)} ) or the list of instantiations is incomplete or
-   * missing. If there are parameter references in the width, they are evaluated to the extent
-   * possible given the instantiations list.
+   * @brief Given the width specification of port or instantiation and an (optional) list of nested
+   * instantiations, return the width if it can be determined and -1 if not.
    *
-   * <p>The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec belongs
-   * to an instantiation (for a bank of reactors), then the first element on this list should be the
+   * This will not be able to be determined if either the width is variable (in which case you
+   * should use {@link #inferPortWidth(VarRef, Connection, List)} ) or the list of instantiations is
+   * incomplete or missing. If there are parameter references in the width, they are evaluated to the
+   * extent possible given the instantiations list.
+   *
+   * The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec belongs to
+   * an instantiation (for a bank of reactors), then the first element on this list should be the
    * instantiation that contains this instantiation. If the spec belongs to a port, then the first
    * element on the list should be the instantiation of the reactor that contains the port.
-   *
    * @param spec The width specification or null (to return 1).
    * @param instantiations The (optional) list of instantiations.
    * @return The width, or -1 if the width could not be determined.
@@ -1909,6 +1914,11 @@ public class ASTUtils {
     return -1;
   }
 
+  /**
+   * @brief Add an attribute to the given reaction.
+   * @param reaction The reaction to add the attribute to.
+   * @param name The name of the attribute to add.
+   */
   public static void addReactionAttribute(Reaction reaction, String name) {
     var fedAttr = factory.createAttribute();
     fedAttr.setAttrName(name);

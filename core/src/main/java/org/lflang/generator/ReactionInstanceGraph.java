@@ -32,19 +32,19 @@ import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
 
 /**
- * This class analyzes the dependencies between reaction runtime instances. For each
- * ReactionInstance, there may be more than one runtime instance because the ReactionInstance may be
- * nested within one or more banks. In the worst case, of these runtime instances may have distinct
- * dependencies, and hence distinct levels in the graph. Moreover, some of these instances may be
- * involved in cycles while others are not.
+ * @brief Analyze dependencies between reaction runtime instances.
  *
- * <p>Upon construction of this class, the runtime instances are created if necessary, stored each
- * ReactionInstance, and assigned levels (maximum number of upstream reaction instances), deadlines,
- * and single dominating reactions.
+ * For each ReactionInstance, there may be more than one runtime instance because the
+ * ReactionInstance may be nested within one or more banks. In the worst case, of these runtime
+ * instances may have distinct dependencies, and hence distinct levels in the graph. Moreover,
+ * some of these instances may be involved in cycles while others are not.
  *
- * <p>After creation, the resulting graph will be empty unless there are causality cycles, in which
+ * Upon construction of this class, the runtime instances are created if necessary, stored in
+ * each ReactionInstance, and assigned levels (maximum number of upstream reaction instances),
+ * deadlines, and single dominating reactions.
+ *
+ * After creation, the resulting graph will be empty unless there are causality cycles, in which
  * case, the resulting graph is a graph of runtime reaction instances that form cycles.
- *
  * @author Marten Lohstroh
  * @author Edward A. Lee
  */
@@ -382,7 +382,6 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         toRemove.add(effect);
 
         // Update level of downstream node.
-        // FIXME: Skip this effect and origin both belong to an enclave connection reactor.
         if (effect.level <= origin.level) {
           effect.level = origin.level + 1;
         }
