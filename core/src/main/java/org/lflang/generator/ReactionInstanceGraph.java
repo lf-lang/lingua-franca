@@ -33,18 +33,15 @@ import org.lflang.lf.Variable;
 
 /**
  * @brief Analyze dependencies between reaction runtime instances.
- *
- * For each ReactionInstance, there may be more than one runtime instance because the
- * ReactionInstance may be nested within one or more banks. In the worst case, of these runtime
- * instances may have distinct dependencies, and hence distinct levels in the graph. Moreover,
- * some of these instances may be involved in cycles while others are not.
- *
- * Upon construction of this class, the runtime instances are created if necessary, stored in
- * each ReactionInstance, and assigned levels (maximum number of upstream reaction instances),
- * deadlines, and single dominating reactions.
- *
- * After creation, the resulting graph will be empty unless there are causality cycles, in which
- * case, the resulting graph is a graph of runtime reaction instances that form cycles.
+ *     <p>For each ReactionInstance, there may be more than one runtime instance because the
+ *     ReactionInstance may be nested within one or more banks. In the worst case, of these runtime
+ *     instances may have distinct dependencies, and hence distinct levels in the graph. Moreover,
+ *     some of these instances may be involved in cycles while others are not.
+ *     <p>Upon construction of this class, the runtime instances are created if necessary, stored in
+ *     each ReactionInstance, and assigned levels (maximum number of upstream reaction instances),
+ *     deadlines, and single dominating reactions.
+ *     <p>After creation, the resulting graph will be empty unless there are causality cycles, in
+ *     which case, the resulting graph is a graph of runtime reaction instances that form cycles.
  * @author Marten Lohstroh
  * @author Edward A. Lee
  */

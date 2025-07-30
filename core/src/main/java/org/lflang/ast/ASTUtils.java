@@ -1432,17 +1432,16 @@ public class ASTUtils {
 
   /**
    * @brief Given the width specification of port or instantiation and an (optional) list of nested
-   * instantiations, return the width if it can be determined and -1 if not.
-   *
-   * This will not be able to be determined if either the width is variable (in which case you
-   * should use {@link #inferPortWidth(VarRef, Connection, List)} ) or the list of instantiations is
-   * incomplete or missing. If there are parameter references in the width, they are evaluated to the
-   * extent possible given the instantiations list.
-   *
-   * The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec belongs to
-   * an instantiation (for a bank of reactors), then the first element on this list should be the
-   * instantiation that contains this instantiation. If the spec belongs to a port, then the first
-   * element on the list should be the instantiation of the reactor that contains the port.
+   *     instantiations, return the width if it can be determined and -1 if not.
+   *     <p>This will not be able to be determined if either the width is variable (in which case
+   *     you should use {@link #inferPortWidth(VarRef, Connection, List)} ) or the list of
+   *     instantiations is incomplete or missing. If there are parameter references in the width,
+   *     they are evaluated to the extent possible given the instantiations list.
+   *     <p>The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec
+   *     belongs to an instantiation (for a bank of reactors), then the first element on this list
+   *     should be the instantiation that contains this instantiation. If the spec belongs to a
+   *     port, then the first element on the list should be the instantiation of the reactor that
+   *     contains the port.
    * @param spec The width specification or null (to return 1).
    * @param instantiations The (optional) list of instantiations.
    * @return The width, or -1 if the width could not be determined.
