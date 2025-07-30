@@ -26,6 +26,7 @@ package org.lflang.generator;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.lflang.AttributeUtils;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
@@ -227,7 +228,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
           }
         }
       }
-      previousReaction = reaction;
+      // Enclave connections are special. There is no need for dependencies between reactions.
+      if (AttributeUtils.findAttributeByName(reactor.reactorDefinition, "_enclave_connection")
+          == null) {
+        previousReaction = reaction;
+      }
 
       // Add downstream reactions. Note that this is sufficient.
       // We don't need to also add upstream reactions because this reaction
