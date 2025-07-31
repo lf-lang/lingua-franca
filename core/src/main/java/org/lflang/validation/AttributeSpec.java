@@ -235,7 +235,7 @@ public class AttributeSpec {
             List.of(
                 new AttrParamSpec(OPTION_ATTR, AttrParamType.STRING, false),
                 new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    
+
     // Attribute used for formal verification experiments.
     // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
     // SMTL is the safety fragment of Metric Temporal Logic (MTL).
