@@ -487,7 +487,7 @@ public class LFValidator extends BaseLFValidator {
         }
       }
 
-      // 4. Disallow enclave ports as triggers, sources or effects
+      // 4. Disallow enclave ports as triggers, sources or effects of reactions of the parent.
       Reactor parent = (Reactor) inst.eContainer();
       for (Reaction r : parent.getReactions()) {
         for (VarRef effect : r.getEffects()) {
@@ -525,8 +525,7 @@ public class LFValidator extends BaseLFValidator {
                               .size()
                           > 0)
               .toList();
-      // Look for, multi-connections.
-      /*
+      // Look for multi-connections.
       connections.forEach(
           c -> {
             if (c.getRightPorts().size() > 1 || c.getLeftPorts().size() > 1) {
@@ -535,25 +534,24 @@ public class LFValidator extends BaseLFValidator {
                   Literals.CONNECTION__LEFT_PORTS);
             }
           });
-      */
-      // Look for, interleaved, multiport and bank connections inside these connections
+      // Look for interleaved, multiport and bank connections inside these connections
       connections.stream()
           .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
           .forEach(
               p -> {
                 if (p.isInterleaved()) {
                   error(
-                      "Enclaves can not be involved in interleaved connections",
+                      "Enclaves cannot be involved in interleaved connections",
                       Literals.CONNECTION__LEFT_PORTS);
                 }
                 if (((Port) p.getVariable()).getWidthSpec() != null) {
                   error(
-                      "Enclaves can not be involved in multiport connections",
+                      "Enclaves cannot be involved in multiport connections",
                       Literals.CONNECTION__LEFT_PORTS);
                 }
                 if (p.getContainer().getWidthSpec() != null) {
                   error(
-                      "Enclaves can not be involved in bank connections",
+                      "Enclaves cannot be involved in bank connections",
                       Literals.CONNECTION__LEFT_PORTS);
                 }
               });
@@ -561,9 +559,6 @@ public class LFValidator extends BaseLFValidator {
       // 6. Look for zero-delay cycles between enclaves
       //  This is done in CEnclaveGenerator.java
     }
-
-    // Disallow enclaves in modes. Find the main reactor
-    if (isCBasedTarget() && ASTUtils.getEnclosingReactor(inst.eContainer()).isMain()) {}
   }
 
   @Check(CheckType.FAST)

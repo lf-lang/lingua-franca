@@ -225,10 +225,9 @@ public class AttributeSpec {
                 new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true),
                 new AttrParamSpec(WORKERS_ATTR, AttrParamType.INT, true))));
 
+    // Attribute marking an enclave connection reactor class, which has unordered reactions.
     ATTRIBUTE_SPECS_BY_NAME.put("_enclave_connection", new AttributeSpec(null));
 
-    // attributes that are used internally only by the federated code generation
-    ATTRIBUTE_SPECS_BY_NAME.put("_unordered", new AttributeSpec(null));
     // @layout(option="string", value="any") e.g. @layout(option="port.side", value="WEST")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "layout",
@@ -236,7 +235,8 @@ public class AttributeSpec {
             List.of(
                 new AttrParamSpec(OPTION_ATTR, AttrParamType.STRING, false),
                 new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
+    
+    // Attribute used for formal verification experiments.
     // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
     // SMTL is the safety fragment of Metric Temporal Logic (MTL).
     ATTRIBUTE_SPECS_BY_NAME.put(
@@ -250,10 +250,15 @@ public class AttributeSpec {
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
 
+    // Attributes used internally only by the federated code generation
+    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
+    // Marker for total port order (TPO) levels.
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+    // Marker for network sender.
     ATTRIBUTE_SPECS_BY_NAME.put("_network_sender", new AttributeSpec(null));
+    // Marker for network receiver.
     ATTRIBUTE_SPECS_BY_NAME.put("_network_receiver", new AttributeSpec(null));
   }
 }

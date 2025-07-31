@@ -1,4 +1,4 @@
-// This tests that we the right number of workers are allocated
+// Test that we get the right number of workers allocated.
 target C {
   timeout: 1 sec
 }

@@ -846,10 +846,9 @@ public class FileUtil {
   /**
    * Fetch a resource from the jar.
    *
-   * @param resourceSet The resource-set
+   * @param resourceSet The resource set
    * @param entry The path to the resource within the jar
-   * @return
-   * @throws IOException
+   * @throws IOException If the resource cannot be found.
    */
   public static Resource getResourceFromClassPath(ResourceSet resourceSet, final String entry)
       throws IOException {

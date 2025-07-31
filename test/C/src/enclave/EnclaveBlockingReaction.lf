@@ -1,7 +1,6 @@
 /** Test that a blocking reaction in one enclave does not block the main enclave. */
 target C {
   keepalive: true,
-  build-type: debug,
   timeout: 2 sec
 }
 

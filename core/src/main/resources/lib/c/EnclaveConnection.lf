@@ -7,6 +7,12 @@
  *
  * It supports sending events carrying primitive types and token types. It does
  * not support array types.
+ *
+ * The reactions of this reactor are unordered. The reaction to the input port
+ * is executed in the source environment, and the reactions that write to the
+ * output ports are executed in the destination environment. Only one of the
+ * output reactions will ever be executed, depending on whether the connection
+ * is physical or logical.
  */
 target C;
 
