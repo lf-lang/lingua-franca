@@ -99,12 +99,12 @@ public class TypeParameterizedReactor {
     return ret;
   }
 
-  /** Return the name of the reactor given its type arguments. */
+  /** Return the name of the reactor given its type arguments. `*` is replaced with `Ptr`. */
   public String getName() {
     return reactor.getName() + argsString();
   }
 
-  /** Return a string representation of the type args of this. */
+  /** Return a string representation of the type args of this. `*` is replaced with `Ptr`. */
   public String argsString() {
     var stringRepresentation = new StringBuilder();
     int hash = 0;
@@ -132,24 +132,21 @@ public class TypeParameterizedReactor {
     return stringRepresentation.toString();
   }
 
-  /** #define type names as concrete types. */
+  /**
+   * #define type names as concrete types and define a flag indicating whether the type is token
+   * type.
+   */
   public void doDefines(CodeBuilder b) {
     typeArgs.forEach(
-        (literal, concreteType) ->
-            b.pr(
-                "#if defined "
-                    + literal
-                    + "\n"
-                    + "#undef "
-                    + literal
-                    + "\n"
-                    + "#endif // "
-                    + literal
-                    + "\n"
-                    + "#define "
-                    + literal
-                    + " "
-                    + ASTUtils.toOriginalText(concreteType)));
+        (literal, concreteType) -> {
+          b.pr("#if defined " + literal);
+          b.pr("#undef " + literal);
+          b.pr("#endif");
+          b.pr("#define " + literal + " " + ASTUtils.toOriginalText(concreteType));
+          if (concreteType.getStars().size() > 0) {
+            b.pr("#define " + literal + "_IS_TOKEN_TYPE");
+          }
+        });
   }
 
   /** Resolve type arguments if the given type is defined in terms of generics. */

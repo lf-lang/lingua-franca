@@ -12,6 +12,7 @@ import static org.lflang.util.StringUtil.joinObjects;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
@@ -19,6 +20,7 @@ import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
@@ -38,6 +40,7 @@ public class CTriggerObjectsGenerator {
   /** Generate the _lf_initialize_trigger_objects function for 'federate'. */
   public static String generateInitializeTriggerObjects(
       ReactorInstance main,
+      Set<CEnclaveInstance> enclaves,
       TargetConfig targetConfig,
       CodeBuilder initializeTriggerObjects,
       CodeBuilder startTimeStep,
@@ -52,19 +55,33 @@ public class CTriggerObjectsGenerator {
     code.pr(
         String.join(
             "\n",
-            "int startup_reaction_count[_num_enclaves] = {0};"
+            "int startup_reaction_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(startup_reaction_count);",
-            "int shutdown_reaction_count[_num_enclaves] = {0};"
+            "int shutdown_reaction_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(shutdown_reaction_count);",
-            "int reset_reaction_count[_num_enclaves] = {0};"
+            "int reset_reaction_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(reset_reaction_count);",
-            "int timer_triggers_count[_num_enclaves] = {0};"
+            "int timer_triggers_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(timer_triggers_count);",
-            "int modal_state_reset_count[_num_enclaves] = {0};"
+            "int modal_state_reset_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
-            "int modal_reactor_count[_num_enclaves] = {0};"
+            "int modal_reactor_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);",
-            "int watchdog_count[_num_enclaves] = {0};"
+            "int watchdog_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(watchdog_count);"));
 
     // Create the table to initialize intended tag fields to 0 between time
@@ -83,13 +100,13 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateSchedulerInitializerMain(main, targetConfig));
+    code.pr(generateSchedulerInitializerMain(main, enclaves, targetConfig));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
         """
         #ifdef EXECUTABLE_PREAMBLE
-        _lf_executable_preamble(&envs[0]);
+        _lf_executable_preamble(&environments[0]);
         #endif
         """);
 
@@ -101,45 +118,71 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  /** Generate code to initialize the scheduler for the threaded C runtime. */
+  /** Generate code to initialize the scheduler(s) for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
-      ReactorInstance main, TargetConfig targetConfig) {
+      ReactorInstance main, Set<CEnclaveInstance> enclaves, TargetConfig targetConfig) {
     if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
+    var reactionInstanceGraph = main.assignLevels();
     var code = new CodeBuilder();
-    var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
-    var numReactionsPerLevelJoined =
-        Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
-    // FIXME: We want to calculate levels for each enclave independently
-    code.pr(
-        String.join(
-            "\n",
-            "// Initialize the scheduler",
-            "size_t num_reactions_per_level[" + numReactionsPerLevel.length + "] = ",
-            "    {" + numReactionsPerLevelJoined + "};",
-            "sched_params_t sched_params = (sched_params_t) {",
-            "                        .num_reactions_per_level = &num_reactions_per_level[0],",
-            "                        .num_reactions_per_level_size = (size_t) "
-                + numReactionsPerLevel.length
-                + "};"));
-
-    for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
-      code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
+    for (CEnclaveInstance enclave : enclaves) {
+      code.pr(generateSchedulerInitializerEnclave(enclave, reactionInstanceGraph));
     }
 
     return code.toString();
   }
 
+  /**
+   * Generate code to initialize the scheduler for a particular enclave. The main reactor is by
+   * convention an enclave.
+   *
+   * @param enclave enclave instance
+   * @param reactionInstanceGraph The reaction instance graph
+   * @return Code to initialize the scheduler.
+   */
   public static String generateSchedulerInitializerEnclave(
-      ReactorInstance enclave, TargetConfig targetConfig) {
-    return String.join(
-        "\n",
-        "lf_sched_init(",
-        "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
-        "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
-        "    &sched_params",
-        ");");
+      CEnclaveInstance enclave, ReactionInstanceGraph reactionInstanceGraph) {
+    var code = new CodeBuilder();
+    var numReactionsPerLevel =
+        reactionInstanceGraph.getNumReactionsPerLevel(enclave.getReactorInstance());
+    var numReactionsPerLevelJoined =
+        Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
+    code.pr(
+        "// Initialize the scheduler for enclave `"
+            + enclave.getReactorInstance().uniqueID()
+            + "` in a private scope");
+    // Do it in a scoped block so we can use the same name for `sched_params` etc.
+    code.pr("{");
+    if (numReactionsPerLevel.length > 0) {
+      code.indent();
+      code.pr(
+          "size_t num_reactions_per_level["
+              + numReactionsPerLevel.length
+              + "] = {"
+              + numReactionsPerLevelJoined
+              + "};");
+      code.pr("sched_params_t sched_params = (sched_params_t) {");
+      code.indent();
+      code.pr(".num_reactions_per_level = &num_reactions_per_level[0],");
+      code.pr(".num_reactions_per_level_size = (size_t) " + numReactionsPerLevel.length);
+      code.unindent();
+      code.pr("};");
+    } else {
+      code.pr("sched_params_t sched_params = (sched_params_t) {0,0};");
+    }
+    // Init scheduler
+    code.pr(
+        String.join(
+            "\n",
+            "lf_sched_init(",
+            "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
+            "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
+            "    &sched_params",
+            ");"));
+    code.unindent();
+    code.pr("}");
+    return code.toString();
   }
 
   /**

@@ -60,9 +60,9 @@ public class CWatchdogGenerator {
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     int watchdogCount = 0;
-    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
-    var enclaveId = CUtil.getEnvironmentId(instance);
+    var enclaveInfo = instance.containingEnclave;
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var enclaveId = instance.containingEnclaveReactor.uniqueID();
 
     for (Watchdog watchdog :
         ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
@@ -91,7 +91,6 @@ public class CWatchdogGenerator {
       watchdogCount += 1;
       foundOne = true;
     }
-    // temp.pr("#endif");
     if (foundOne) {
       code.pr(temp.toString());
     }
