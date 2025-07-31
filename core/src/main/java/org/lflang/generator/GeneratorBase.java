@@ -27,6 +27,7 @@ package org.lflang.generator;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.lflang.TimeValue;
 import org.eclipse.core.resources.IMarker;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -472,6 +474,39 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /** Hook for additional post-processing of the model. */
   protected void additionalPostProcessingForModes() {
     // Do nothing
+  }
+
+  /**
+   * Generate a file containing all inferred deadlines from the main reactor instance.
+   * The file is placed in the src-gen/ModelName directory with one deadline per line.
+   */
+  protected void generateDeadlinesFile() {
+    try {
+      // Get all deadlines from the main reactor instance
+      Set<TimeValue> allDeadlines = main.getAllInferredDeadlines();
+      
+      // Create the src-gen directory path
+      Path srcGenPath = context.getFileConfig().getSrcGenPath();
+      
+      // Create the deadlines file path
+      Path deadlinesFile = srcGenPath.resolve("deadlines.txt");
+      
+      // Convert deadlines to strings, one per line
+      List<String> deadlineLines = allDeadlines.stream()
+          .map(TimeValue::toString)
+          .collect(Collectors.toList());
+      
+      // Write the deadlines to the file
+      Files.write(deadlinesFile, deadlineLines);
+      
+      messageReporter.at(main.definition).info(
+          "Generated deadlines file: " + deadlinesFile.toString() + 
+          " with " + deadlineLines.size() + " deadlines");
+          
+    } catch (IOException e) {
+      messageReporter.at(main.definition).error(
+          "Failed to generate deadlines file: " + e.getMessage());
+    }
   }
 
   /** Parsed error message from a compiler is returned here. */
