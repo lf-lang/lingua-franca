@@ -436,6 +436,28 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     return triggers;
   }
 
+  /**
+   * Return a Set containing all TimeValue objects from all reactions of this ReactorInstance
+   * and all its children ReactorInstances, recursively.
+   *
+   * @return A Set of TimeValue objects from all reactions in this reactor and its children.
+   */
+  public Set<TimeValue> getAllInferredDeadlines() {
+    Set<TimeValue> allDeadlines = new LinkedHashSet<>();
+    
+    // Add deadlines from reactions in this reactor
+    for (ReactionInstance reaction : this.reactions) {
+      allDeadlines.addAll(reaction.getInferredDeadlines());
+    }
+    
+    // Recursively add deadlines from child reactors
+    for (ReactorInstance child : this.children) {
+      allDeadlines.addAll(child.getAllInferredDeadlines());
+    }
+    
+    return allDeadlines;
+  }
+
   /** Return true if the top-level parent of this reactor has causality cycles. */
   public boolean hasCycles() {
     return assignLevels().nodeCount() != 0;

@@ -417,12 +417,17 @@ public class CGenerator extends GeneratorBase {
       // Failure.
       return;
     }
-
+    
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getIncludePath().toFile());
     handleProtoFiles();
 
+    // Generate deadlines file if main reactor instance exists
+    if (main != null) {
+      generateDeadlinesFile();
+    }
+    
     // Derive target filename from the .lf filename.
     var lfModuleName = fileConfig.name;
     var cFilename = CCompiler.getTargetFileName(lfModuleName, this.cppMode, targetConfig);
