@@ -1,4 +1,42 @@
 # Changelog
+ 
+## [v0.10.1](https://github.com/lf-lang/lingua-franca/tree/v0.10.1) (2025-08-03)
+
+**Highlights**
+
+This patch release includes two key changes:
+
+* A fix for an occasional segfault that could occur in federated execution during shutdown.
+* A change in the default Docker configuration to build the RTI by default rather than to import it from DockerHub.
+
+There are also a few other minor fixes, some of which are steps towards support for scheduling enclaves, which is still quite incomplete.
+
+**✨ Enhancements**
+
+- Make local build of the RTI the default [\#2530](https://github.com/lf-lang/lingua-franca/pull/2530) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**✨ Enhancements**
+
+- Preliminary support for enclaves in the C target [\#308](https://github.com/lf-lang/reactor-c/pull/308) (@erlingrj)
+
+**🔧 Fixes**
+
+- Fix for race condition creating a possible segfault [\#540](https://github.com/lf-lang/reactor-c/pull/540) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.10.0](https://github.com/lf-lang/lingua-franca/tree/v0.10.0) (2025-07-21)
 
