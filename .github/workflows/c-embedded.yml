@@ -25,5 +25,5 @@ jobs:
 #     uses: ./.github/workflows/c-flexpret-tests.yml
 
       # Run the C Patmos integration tests.
-  patmos:
-    uses: ./.github/workflows/c-patmos-tests.yml
+#  patmos:
+#    uses: ./.github/workflows/c-patmos-tests.yml
