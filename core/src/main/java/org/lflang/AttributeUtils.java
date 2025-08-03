@@ -25,8 +25,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 package org.lflang;
 
-import static org.lflang.ast.ASTUtils.factory;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +36,10 @@ import org.eclipse.xtext.resource.XtextResource;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
 import org.lflang.util.StringUtil;
+import org.lflang.validation.AttributeSpec;
 
 /**
- * A helper class for processing attributes in the AST.
- *
+ * @brief A helper class for processing attributes in the AST.
  * @author Shaokai Lin
  * @author Clément Fournier
  * @author Alexander Schulz-Rosengarten
@@ -49,10 +47,8 @@ import org.lflang.util.StringUtil;
 public class AttributeUtils {
 
   /**
-   * Return the attributes declared on the given node. Throws if the node does not support declaring
-   * attributes.
-   *
-   * @throws IllegalArgumentException If the node cannot have attributes
+   * @brief Return the attributes declared on the given node or null if the node does not support
+   *     declaring attributes.
    */
   public static List<Attribute> getAttributes(EObject node) {
     if (node instanceof Reactor) {
@@ -76,16 +72,22 @@ public class AttributeUtils {
     } else if (node instanceof Watchdog) {
       return ((Watchdog) node).getAttributes();
     }
-    throw new IllegalArgumentException("Not annotatable: " + node);
+    return null;
   }
 
   /**
-   * Return the attribute with the given name if present, otherwise return null.
-   *
-   * @throws IllegalArgumentException If the node cannot have attributes
+   * @brief Return the attribute with the given name if present, otherwise return null.
+   *     <p>If there are multiple attributes with the same name, this returns the first one.
+   * @param node The node to search for the attribute.
+   * @param name The name of the attribute to search for.
+   * @return The attribute with the given name or null if it is not found.
+   * @see findAttributesByName
    */
   public static Attribute findAttributeByName(EObject node, String name) {
     List<Attribute> attrs = getAttributes(node);
+    if (attrs == null) {
+      return null;
+    }
     return attrs.stream()
         .filter(
             it ->
@@ -96,12 +98,15 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the attributes with the given name.
-   *
-   * @throws IllegalArgumentException If the node cannot have attributes
+   * @brief Return all attributes with the given name or null if the node does not support declaring
+   *     attributes.
+   * @see findAttributeByName
    */
   public static List<Attribute> findAttributesByName(EObject node, String name) {
     List<Attribute> attrs = getAttributes(node);
+    if (attrs == null) {
+      return null;
+    }
     return attrs.stream()
         .filter(
             it ->
@@ -111,10 +116,12 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the first argument specified for the attribute.
-   *
-   * <p>This should be used if the attribute is expected to have a single argument. If there is no
-   * argument, null is returned.
+   * @brief Return the first argument specified for the attribute or null if the attribute is not
+   *     found or if it does not have any arguments.
+   *     <p>This should be used only if the attribute is expected to have a single argument.
+   * @param attr The attribute to get the first argument from.
+   * @return The first argument of the attribute or null if the attribute is not found or if it does
+   *     not have any arguments.
    */
   public static String getFirstArgumentValue(Attribute attr) {
     if (attr == null || attr.getAttrParms().isEmpty()) {
@@ -124,12 +131,14 @@ public class AttributeUtils {
   }
 
   /**
-   * Search for an attribute with the given name on the given AST node and return its first argument
-   * as a String.
-   *
-   * <p>This should only be used on attributes that are expected to have a single argument.
-   *
-   * <p>Returns null if the attribute is not found or if it does not have any arguments.
+   * @brief Search for an attribute with the given name on the given AST node and return its first
+   *     argument as a String or null if the attribute is not found or if it does not have any
+   *     arguments.
+   *     <p>This should only be used on attributes that are expected to have a single argument.
+   * @param node The node to search for the attribute.
+   * @param attrName The name of the attribute to search for.
+   * @return The first argument of the attribute or null if the attribute is not found or if it does
+   *     not have any arguments.
    */
   public static String getAttributeValue(EObject node, String attrName) {
     final var attr = findAttributeByName(node, attrName);
@@ -143,15 +152,21 @@ public class AttributeUtils {
   }
 
   /**
-   * Search for an attribute with the given name on the given AST node and return its first argument
-   * as a String.
-   *
-   * <p>This should only be used on attributes that are expected to have a single argument.
-   *
-   * <p>Returns null if the attribute is not found or if it does not have any arguments.
+   * @brief For an attribute with the given name on the given AST node, return a map of the
+   *     attribute parameters to their values.
+   *     <p>This should only be used on attributes that are expected to have a single argument. This
+   *     returns null if the given node does not support declaring attributes, and returns an empty
+   *     map if the attribute is not found or if it does not have any arguments.
+   * @param node The node to search for the attribute.
+   * @param attrName The name of the attribute to search for.
+   * @return A map of the attribute parameters to their values or null if the attribute is not found
+   *     or if it does not have any arguments.
    */
   public static Map<String, String> getAttributeValues(EObject node, String attrName) {
     final List<Attribute> attrs = findAttributesByName(node, attrName);
+    if (attrs == null) {
+      return null;
+    }
     HashMap<String, String> layoutOptions = new HashMap<>();
     for (Attribute attribute : attrs) {
       layoutOptions.put(
@@ -162,13 +177,14 @@ public class AttributeUtils {
   }
 
   /**
-   * Retrieve a specific annotation in a comment associated with the given model element in the AST.
-   *
-   * <p>This will look for a comment. If one is found, it searches for the given annotation {@code
-   * key}. and extracts any string that follows the annotation marker.
-   *
-   * @param object the AST model element to search a comment for
-   * @param key the specific annotation key to be extracted
+   * @brief Retrieve a specific annotation in a comment associated with the given model element in
+   *     the AST.
+   *     <p>This will look for a comment. If one is found, it searches for the given annotation
+   *     {@code key} and extracts any string that follows the annotation marker. Note that
+   *     annotations in comments are deprecated, but we still check for them for backwards
+   *     compatibility.
+   * @param object The AST model element to search a comment for.
+   * @param key The specific annotation key to be extracted.
    * @return {@code null} if no JavaDoc style comment was found or if it does not contain the given
    *     key. The string immediately following the annotation marker otherwise.
    */
@@ -186,9 +202,11 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the parameter of the given attribute with the given name.
-   *
-   * <p>Returns null if no such parameter is found.
+   * @brief Return the parameter of the given attribute with the given name.
+   *     <p>Return null if no such parameter is found.
+   * @param attribute The attribute to get the parameter from.
+   * @param parameterName The name of the parameter to get.
+   * @return The parameter value or null if no such parameter is found.
    */
   public static String getAttributeParameter(Attribute attribute, String parameterName) {
     return (attribute == null)
@@ -202,9 +220,12 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the parameter of the given attribute with the given name and interpret it as a boolean.
-   *
-   * <p>Returns null if no such parameter is found.
+   * @brief Return the parameter of the given attribute with the given name and interpret it as a
+   *     boolean.
+   *     <p>Returns null if no such parameter is found.
+   * @param attribute The attribute to get the parameter from.
+   * @param parameterName The name of the parameter to get.
+   * @return The parameter value or null if no such parameter is found.
    */
   public static Boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
     if (attribute == null || parameterName == null) {
@@ -218,79 +239,121 @@ public class AttributeUtils {
   }
 
   /**
-   * Return true if the specified node is an Input and has an {@code @sparse} attribute.
-   *
+   * @brief Return true if the specified node is an Input and has an {@code @sparse} attribute.
    * @param node An AST node.
+   * @return True if the specified node is an Input and has an {@code @sparse} attribute.
    */
   public static boolean isSparse(EObject node) {
     return findAttributeByName(node, "sparse") != null;
   }
 
-  /** Return true if the reactor is marked to be a federate. */
+  /**
+   * @brief Return true if the reactor is marked to be a federate.
+   * @param reactor The reactor to check.
+   * @return True if the reactor is marked to be a federate.
+   */
   public static boolean isFederate(Reactor reactor) {
     return findAttributeByName(reactor, "_fed_config") != null;
   }
 
   /**
-   * Return true if the reaction is marked to have a C code body.
-   *
-   * <p>Currently, this is only used for synthesized reactions in the context of federated execution
-   * in Python.
+   * @brief Return true if the reaction is marked to have a C code body.
+   *     <p>Currently, this is only used for synthesized reactions in the context of federated
+   *     execution in Python.
+   * @param reaction The reaction to check.
+   * @return True if the reaction is marked to have a C code body.
    */
   public static boolean hasCBody(Reaction reaction) {
     return findAttributeByName(reaction, "_c_body") != null;
   }
 
-  /** Return the declared label of the node, as given by the @label annotation. */
+  /**
+   * @brief Return the declared label of the node, as given by the @label annotation.
+   * @param node The node to get the label from.
+   * @return The label of the node or null if there is no such annotation.
+   */
   public static String getLabel(EObject node) {
     return getAttributeValue(node, "label");
   }
 
-  /** Return the declared icon of the node, as given by the @icon annotation. */
+  /**
+   * @brief Return the declared icon of the node, as given by the @icon annotation, or null if there
+   *     is no such annotation.
+   * @param node The node to get the icon path from.
+   * @return The icon path of the node or null if there is no such annotation.
+   */
   public static String getIconPath(EObject node) {
     return getAttributeValue(node, "icon");
   }
 
   /**
-   * Return the {@code @side} annotation for the given node (presumably a port) or null if there is
-   * no such annotation.
+   * @brief Return the {@code @side} annotation for the given node (presumably a port) or null if
+   *     there is no such annotation.
+   * @param node The node to get the port side from.
+   * @return The port side of the node or null if there is no such annotation.
    */
   public static String getPortSide(EObject node) {
     return getAttributeValue(node, "side");
   }
 
   /**
-   * Return the {@code layout} annotation for the given element or null if there is no such
-   * annotation.
+   * @brief Return the {@code layout} annotation for the given element or null if there is no such
+   *     annotation.
+   * @param node The node to get the layout option from.
+   * @return The layout option of the node or null if there is no such annotation.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
     return getAttributeValues(node, "layout");
   }
 
   /**
-   * Return the {@code @enclave} attribute annotated on the given node.
-   *
-   * <p>Returns null if there is no such attribute.
+   * @brief Return the {@code @enclave} attribute annotated on the given node.
+   *     <p>Return null if there is no such attribute.
+   * @param node The node to get the enclave attribute from.
+   * @return The enclave attribute of the node or null if there is no such attribute.
    */
   public static Attribute getEnclaveAttribute(Instantiation node) {
     return findAttributeByName(node, "enclave");
   }
 
-  /** Return true if the specified instance has an {@code @enclave} attribute. */
+  /**
+   * @brief Return true if the specified instance has an {@code @enclave} attribute.
+   * @param node The node to check.
+   * @return True if the specified instance has an {@code @enclave} attribute.
+   */
   public static boolean isEnclave(Instantiation node) {
     return getEnclaveAttribute(node) != null;
   }
 
   /**
-   * Annotate @{code node} with enclave @attribute
-   *
-   * @param node
+   * @brief Return true if the specified instantiation is of an EnclaveConnection reactor.
+   * @param node The node to check.
+   * @return True if the specified instantiation is of an EnclaveConnection reactor.
    */
-  public static void setEnclaveAttribute(Instantiation node) {
-    if (!isEnclave(node)) {
-      Attribute enclaveAttr = factory.createAttribute();
-      enclaveAttr.setAttrName("enclave");
-      node.getAttributes().add(enclaveAttr);
+  public static boolean isEnclaveConnection(Instantiation node) {
+    return findAttributeByName(node.getReactorClass(), "_enclave_connection") != null;
+  }
+
+  /**
+   * @brief Retrieve the number of worker parameter from an enclave attribute.
+   *     <p>Return 1 if not specified or has illegal value
+   * @param node The node to get the number of workers from.
+   * @return The number of workers or 1 if not specified or has illegal value.
+   */
+  public static int getEnclaveNumWorkersFromAttribute(Instantiation node) {
+    Attribute enclaveAttr = getEnclaveAttribute(node);
+    if (enclaveAttr != null) {
+      for (AttrParm attrParm : enclaveAttr.getAttrParms()) {
+        if (attrParm.getName().equals(AttributeSpec.WORKERS_ATTR)) {
+          int value = Integer.valueOf(attrParm.getValue());
+          if (value > 0) {
+            return value;
+          } else {
+            return 1;
+          }
+        }
+      }
     }
+    return 1; // Not specified
   }
 }

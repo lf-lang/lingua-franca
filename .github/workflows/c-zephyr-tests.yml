@@ -39,7 +39,7 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run Zephyr smoke tests
+      - name: Run integration tests on the Zephyr platform
         run: |
           ./gradlew core:integrationTest \
             --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrUnthreaded* \

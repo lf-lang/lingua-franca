@@ -30,8 +30,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
-import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Port;
@@ -68,8 +68,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public ReactionInstance(Reaction definition, ReactorInstance parent, int index) {
     super(definition, parent);
     this.index = index;
-
-    String body = ASTUtils.toText(definition.getCode());
 
     // Identify the dependencies for this reaction.
     // First handle the triggers.
@@ -270,10 +268,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (index > 0) {
       // Find the previous ordered reaction in the parent's reaction list.
       int earlierIndex = index - 1;
-      ReactionInstance earlierOrderedReaction = parent.reactions.get(earlierIndex);
-      while (--earlierIndex >= 0) {
-        earlierOrderedReaction = parent.reactions.get(earlierIndex);
-      }
       if (earlierIndex >= 0) {
         dependsOnReactionsCache.add(parent.reactions.get(index - 1));
       }
@@ -294,6 +288,43 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   }
 
   /**
+   * @brief Return the reactor that is the enclave in charge of this reaction.
+   *     <p>If the containing reactor is an enclave connection reactor, then the enclave in charge
+   *     of this reaction depends on which reaction this is. The first two reactions use the enclave
+   *     of the destination reactor, while the last reaction uses the enclave of the source reactor.
+   */
+  public ReactorInstance getContainingEnclaveReactor() {
+    if (AttributeUtils.isEnclaveConnection(parent.getDefinition())) {
+      if (index < 2) {
+        // The first two reactions use the enclave of the destination reactor.
+        // There should be only effect and only one eventual destination, so we return
+        // the first one we find.
+        for (var effect : effects) {
+          if (effect instanceof PortInstance) {
+            var portInstance = (PortInstance) effect;
+            for (var destination : portInstance.eventualDestinations()) {
+              return destination.instance.parent.containingEnclaveReactor;
+            }
+          }
+        }
+      } else {
+        // The last reaction uses the enclave of the source reactor.
+        for (var source : sources) {
+          if (source instanceof PortInstance) {
+            var portInstance = (PortInstance) source;
+            for (var sourceRange : portInstance.eventualSources()) {
+              return sourceRange.instance.parent.containingEnclaveReactor;
+            }
+          }
+        }
+      }
+    }
+    // The containing reactor is not an enclave connection reactor or the enclave connection
+    // reactor is not property structured.
+    return parent.containingEnclaveReactor;
+  }
+
+  /**
    * Return a set of levels that runtime instances of this reaction have. A ReactionInstance may
    * have more than one level if it lies within a bank and its dependencies on other reactions pass
    * through multiports.
@@ -301,9 +332,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public Set<Integer> getLevels() {
     Set<Integer> result = new LinkedHashSet<>();
     // Force calculation of levels if it has not been done.
-    // FIXME: Comment out this as I think it is redundant.
-    //  If it is NOT redundant then deadline propagation is not correct
-    // parent.assignLevels();
     for (Runtime runtime : runtimeInstances) {
       result.add(runtime.level);
     }
@@ -312,7 +340,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
   /**
    * Return a set of deadlines that runtime instances of this reaction have. A ReactionInstance may
-   * have more than one deadline if it lies within.
+   * have more than one deadline if it lies within a bank.
    */
   public Set<TimeValue> getInferredDeadlines() {
     Set<TimeValue> result = new LinkedHashSet<>();
@@ -330,9 +358,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public List<Integer> getLevelsList() {
     List<Integer> result = new LinkedList<>();
     // Force calculation of levels if it has not been done.
-    // FIXME: Comment out this as I think it is redundant.
-    //  If it is NOT redundant then deadline propagation is not correct
-    // parent.assignLevels();
     for (Runtime runtime : runtimeInstances) {
       result.add(runtime.level);
     }
@@ -342,7 +367,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return a list of the deadlines that runtime instances of this reaction have. The size of this
    * list is the total number of runtime instances. A ReactionInstance may have more than one
-   * deadline if it lies within
+   * deadline if it lies within a bank.
    */
   public List<TimeValue> getInferredDeadlinesList() {
     List<TimeValue> result = new LinkedList<>();
@@ -407,65 +432,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     return getName() + " of " + parent.getFullName();
   }
 
-  /**
-   * Determine logical execution time for each reaction during compile time based on immediate
-   * downstream logical delays (after delays and actions) and label each reaction with the minimum
-   * of all such delays.
-   */
-  public TimeValue assignLogicalExecutionTime() {
-    if (this.let != null) {
-      return this.let;
-    }
-
-    if (this.parent.isGeneratedDelay()) {
-      return this.let = TimeValue.ZERO;
-    }
-
-    TimeValue let = null;
-
-    // Iterate over effect and find minimum delay.
-    for (TriggerInstance<? extends Variable> effect : effects) {
-      if (effect instanceof PortInstance) {
-        var afters =
-            this.parent.getParent().children.stream()
-                .filter(
-                    c -> {
-                      if (c.isGeneratedDelay()) {
-                        return c.inputs
-                            .get(0)
-                            .getDependsOnPorts()
-                            .get(0)
-                            .instance
-                            .equals((PortInstance) effect);
-                      }
-                      return false;
-                    })
-                .map(c -> c.actions.get(0).getMinDelay())
-                .min(TimeValue::compare);
-
-        if (afters.isPresent()) {
-          if (let == null) {
-            let = afters.get();
-          } else {
-            let = TimeValue.min(afters.get(), let);
-          }
-        }
-      } else if (effect instanceof ActionInstance) {
-        var action = ((ActionInstance) effect).getMinDelay();
-        if (let == null) {
-          let = action;
-        } else {
-          let = TimeValue.min(action, let);
-        }
-      }
-    }
-
-    if (let == null) {
-      let = TimeValue.ZERO;
-    }
-    return this.let = let;
-  }
-
   //////////////////////////////////////////////////////
   //// Private variables.
 
@@ -485,12 +451,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    */
   private List<Runtime> runtimeInstances;
 
-  private TimeValue let = null;
-
   ///////////////////////////////////////////////////////////
   //// Inner classes
-
-  public record SourcePort(PortInstance port, int index) {}
 
   /** Inner class representing a runtime instance of a reaction. */
   public class Runtime {

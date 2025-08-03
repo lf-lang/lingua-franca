@@ -40,6 +40,7 @@ import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.CEnclaveInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
@@ -169,14 +170,19 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
   public final ReactorDecl reactorDeclaration;
 
+  /** The nearest containing reactor instance that is an enclave. */
+  public final ReactorInstance containingEnclaveReactor;
+
+  /**
+   * @brief The enclave instance corresponding to the containing reactor that is an enclave.
+   */
+  public CEnclaveInstance containingEnclave;
+
   /** The reactor after imports are resolve. */
   public final Reactor reactorDefinition;
 
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
-
-  /** An enclave object if this ReactorInstance is an enclave. null if not. */
-  public EnclaveInfo enclaveInfo = null;
 
   /** FIXME: What is this? */
   public TypeParameterizedReactor tpr;
@@ -823,13 +829,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
 
-    // If this instance is an enclave (or the main reactor). Create an
-    // enclaveInfo object to track information about the enclave needed for
-    // later code-generation
-    if (isEnclave(definition) || this.isMainOrFederated()) {
-      enclaveInfo = new EnclaveInfo(this);
+    // Set the enclave field to point to the top-level instance of the current enclave
+    if (parent == null || isEnclave(definition)) {
+      containingEnclaveReactor = this;
+    } else {
+      containingEnclaveReactor = parent.containingEnclaveReactor;
     }
-
     // check for recursive instantiation
     var currentParent = parent;
     var foundSelfAsParent = false;

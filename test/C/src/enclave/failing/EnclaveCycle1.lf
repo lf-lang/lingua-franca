@@ -1,0 +1,28 @@
+// This tests that we can detect simple cycles between enclaves
+target C;
+
+
+
+reactor R1 {
+    output out: int
+    input in: int
+}
+
+reactor R2 {
+    output out: int
+    input in: int
+}
+
+
+main reactor {
+
+    @enclave
+    r1 = new R1()
+
+    @enclave
+    r2 = new R2()
+
+    r1.out -> r2.in
+    r2.out -> r1.in
+
+}
