@@ -10,6 +10,8 @@ import org.eclipse.xtext.util.Modules2;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Key;
+
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 
@@ -22,7 +24,7 @@ public class LFIdeSetup extends LFStandaloneSetup {
     // LFIdeModule in it. If this is the case, reinitialize the injector and the EMF registration.
     if (injector == null) {
       injector = new LFIdeSetup().createInjectorAndDoEMFRegistration();
-    } else if (injector.getInstance(LFIdeModule.class) == null) {
+    } else if (injector.getExistingBinding(Key.get(LFIdeModule.class)) == null) {
       injector = new LFIdeSetup().createInjectorAndDoEMFRegistration();
     }
     return injector;
