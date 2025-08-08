@@ -1,9 +1,10 @@
 package org.lflang.diagram.lsp;
 
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
@@ -14,19 +15,15 @@ import org.eclipse.xtext.ide.server.ILanguageServerExtension;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
 import org.eclipse.xtext.resource.XtextResourceSet;
-
 import org.lflang.ast.ToSExpr;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.IntegratedBuilder;
+import org.lflang.ide.LFIdeSetup;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.util.LFCommand;
-import org.lflang.ide.LFIdeSetup;
-
-import com.google.inject.Inject;
-import com.google.inject.Injector;
 
 /**
  * Provide Lingua-Franca-specific extensions to the language server's behavior.
@@ -37,9 +34,7 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
   /** The IntegratedBuilder instance that handles all build requests for the current session. */
   private static final IntegratedBuilder builder =
-      new LFIdeSetup()
-          .createInjectorAndDoEMFRegistration()
-          .getInstance(IntegratedBuilder.class);
+      new LFIdeSetup().createInjectorAndDoEMFRegistration().getInstance(IntegratedBuilder.class);
 
   /** The access point for reading documents, communicating with the language client, etc. */
   private LFLanguageClient client;

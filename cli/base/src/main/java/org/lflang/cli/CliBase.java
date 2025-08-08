@@ -3,7 +3,6 @@ package org.lflang.cli;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
-import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
@@ -22,14 +21,10 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.util.CancelIndicator;
-import org.eclipse.xtext.util.Modules2;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
-import org.lflang.ide.LFIdeModule;
 import org.lflang.util.FileUtil;
 import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
@@ -137,8 +132,7 @@ public abstract class CliBase implements Runnable {
     final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
 
     // Injector used to obtain Main instance.
-    return new LFCliSetup(reporter, io)
-        .createInjectorAndDoEMFRegistration();
+    return new LFCliSetup(reporter, io).createInjectorAndDoEMFRegistration();
   }
 
   /** Resolve to an absolute path, in the given {@link #io} context. */
