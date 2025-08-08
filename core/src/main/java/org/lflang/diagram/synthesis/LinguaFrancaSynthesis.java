@@ -1381,16 +1381,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       setLayoutOption(startupNode, LayeredOptions.POSITION, new KVector(0, 0));
       setLayoutOption(startupNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
       _layoutPostProcessing.configureAction(startupNode);
-
-      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
-        KPort port = addInvisiblePort(startupNode);
-        startupNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
     }
     if (shutdown != null) {
       _linguaFrancaShapeExtensions.addShutdownFigure(shutdownNode);
@@ -1404,16 +1394,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           shutdownNode,
           LayeredOptions.POSITION,
           new KVector(0, reactorInstance.reactions.size() + 1));
-
-      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
-        KPort port = addInvisiblePort(shutdownNode);
-        shutdownNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
     }
     if (reset != null) {
       _linguaFrancaShapeExtensions.addResetFigure(resetNode);
@@ -1424,29 +1404,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       // try to order with reactions vertically if in one layer
       setLayoutOption(resetNode, LayeredOptions.POSITION, new KVector(0, 0.5));
       setLayoutOption(resetNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
-
-      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
-        KPort port = addInvisiblePort(resetNode);
-        resetNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
-    }
-
-    // Postprocess timer nodes
-    if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
-      for (KNode timerNode : timerNodes.values()) {
-        KPort port = addInvisiblePort(timerNode);
-        timerNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
     }
 
     // Add reaction order edges (add last to have them on top of other edges)
