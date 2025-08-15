@@ -733,14 +733,18 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
 
       if (!_utilityExtensions.isRoot(instance)) {
-        // If all reactors are being shown, then only put the label on
+        // If all reactors are being shown, then only put any reactor definition label on
         // the reactor definition, not on its instances. Otherwise,
         // add the annotation now.
         if (!getBooleanValue(SHOW_ALL_REACTORS)) {
           Iterables.addAll(nodes, createUserComments(reactor, node));
         }
+        // Also add any labels put on the instantiation.
+        Iterables.addAll(nodes, createUserComments(reactorInstance.getDefinition(), node));
       } else {
         Iterables.addAll(nodes, createUserComments(reactor, node));
+        // Also add any labels put on the instantiation.
+        Iterables.addAll(nodes, createUserComments(reactorInstance.getDefinition(), node));
       }
       configureReactorNodeLayout(node, false);
       _layoutPostProcessing.configureReactor(node);
@@ -1497,7 +1501,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     b.append(param.getName());
     String t = param.type.toOriginalText();
     if (!StringExtensions.isNullOrEmpty(t)) {
-      b.append(":").append(t);
+      b.append(" : ").append(t);
     }
     var init = param.getActualValue();
     if (init != null) {
