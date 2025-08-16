@@ -12,7 +12,7 @@ target C {
 }
 
 // Pi needs an STP_offset because its event queue is usually empty and otherwise it will advance to the stop time.
-reactor Pi(STP_offset: time = 1 day) {
+reactor Pi(maxwait: time = 1 day) {
   input trigger: bool
   output out: int
 
@@ -20,7 +20,7 @@ reactor Pi(STP_offset: time = 1 day) {
     tag_t now = lf_tag();
     lf_print("***** at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
     lf_set(out, 42);
-  =} STAA(30 s) {=
+  =} maxwait(30 s) {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Pi at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}
