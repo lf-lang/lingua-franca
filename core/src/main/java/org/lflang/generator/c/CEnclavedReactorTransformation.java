@@ -46,6 +46,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Initializer;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
@@ -131,64 +132,158 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   private void insertEnclavedConnections(List<Reactor> reactors) {
-    List<Pair<Connection, Instantiation>> toReroute = new ArrayList<>();
+    List<Pair<Connection, List<Instantiation>>> toReroute = new ArrayList<>();
 
     // Iterate over the connections in the tree and find the ones to replace.
     for (Reactor container : reactors) {
       for (Connection connection : ASTUtils.allConnections(container)) {
-        // FIXME: We only support enclaves connected with uni-connections
-        if (connection.isIterated()
-            || connection.getLeftPorts().size() > 1
-            || connection.getRightPorts().size() > 1) {
-          continue;
+        List<Instantiation> newInstantiations = new ArrayList<>();
+        var lhsPorts = connection.getLeftPorts();
+        var rhsPorts = connection.getRightPorts();
+        var lhsIndex = 0;
+        // The following will become true if any connection between enclaves is found.
+        var isEnclaveConnection = false;
+        for (var rhsIndex = 0; rhsIndex < rhsPorts.size(); rhsIndex++) {
+          VarRef lhs = lhsPorts.get(lhsIndex++);
+          VarRef rhs = rhsPorts.get(rhsIndex);
+
+          if (lhsIndex >= connection.getLeftPorts().size()) {
+            // Assume the LHS is iterated (checked by the validator, so don't need to check here).
+            lhsIndex = 0;
+          }
+
+          if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
+            isEnclaveConnection = true;
+            Type type = ((Port) lhs.getVariable()).getType();
+            // Create an enclave connection instantiation and give it a unique name.
+            Instantiation connInst =
+                createEnclavedConnectionInstance(
+                    type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
+            connInst.setName(ASTUtils.getUniqueIdentifier(container, "enclave_conn"));
+
+            // Get delay info and whether it is physical
+            TimeValue delay = TimeValue.NEVER;
+            boolean hasAfterDelay = connection.getDelay() != null;
+            boolean isPhysical = connection.isPhysical();
+
+            if (hasAfterDelay) {
+              delay = ASTUtils.getDelayAsTimeValue(connection.getDelay());
+            }
+
+            EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
+
+            // Store connection info for the code-generator to use later. If the enclave is connected
+            // to its parent. We store a placeholder instantiation.
+            Instantiation src = lhs.getContainer();
+            if (src == null) {
+              src = PARENT;
+            }
+            Instantiation dst = rhs.getContainer();
+            if (dst == null) {
+              dst = PARENT;
+            }
+
+            // If this is a normal logical connection. Store this info for later code-generation.
+            // If it is a physical connection, the runtime does not need to know about it.
+            if (!isPhysical) {
+              connGraph.addEdge(src, dst, edge);
+            }
+            // Store a mapping from the connection reactor to its upstream/downstream. To be used
+            // in code-gen later.
+            enclavedConnections.put(connInst, new Pair<>(src, dst));
+            newInstantiations.add(connInst);
+          } else {
+            newInstantiations.add(null);
+          }
         }
-        VarRef lhs = connection.getLeftPorts().get(0);
-        VarRef rhs = connection.getRightPorts().get(0);
-
-        if (isEnclavePort(lhs) || isEnclavePort(rhs)) {
-          Type type = ((Port) lhs.getVariable()).getType();
-          // Create an enclave connection instantiation and give it a unique name.
-          Instantiation connInst =
-              createEnclavedConnectionInstance(
-                  type, EcoreUtil.copy(connection.getDelay()), connection.isPhysical());
-          connInst.setName(ASTUtils.getUniqueIdentifier(container, "enclave_conn"));
-
-          // Get delay info and whether it is physical
-          TimeValue delay = TimeValue.NEVER;
-          boolean hasAfterDelay = connection.getDelay() != null;
-          boolean isPhysical = connection.isPhysical();
-
-          if (hasAfterDelay) {
-            delay = ASTUtils.getDelayAsTimeValue(connection.getDelay());
-          }
-
-          EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
-
-          // Store connection info for the code-generator to use later. If the enclave is connected
-          // to its parent. We store a placeholder instantiation.
-          Instantiation src = lhs.getContainer();
-          if (src == null) {
-            src = PARENT;
-          }
-          Instantiation dst = rhs.getContainer();
-          if (dst == null) {
-            dst = PARENT;
-          }
-
-          // If this is a normal logical connection. Store this info for later code-generation.
-          // If it is a physical connection, the runtime does not need to know about it.
-          if (!isPhysical) {
-            connGraph.addEdge(src, dst, edge);
-          }
-          // Store a mapping from the connection reactor to its upstream/downstream. To be used
-          // in code-gen later.
-          enclavedConnections.put(connInst, new Pair<>(src, dst));
-          toReroute.add(new Pair<>(connection, connInst));
+        if (isEnclaveConnection) {
+          toReroute.add(new Pair<>(connection, newInstantiations));
         }
       }
     }
     // Reroute all the connections via the newly created enclave connection instantiations.
-    ASTUtils.rerouteViaInstance(toReroute);
+    rerouteViaInstance(toReroute);
+  }
+
+  /**
+   * Reroute the given connections to go through their given list of instantiations.
+   * For each instantiation in the list, create two connections to reroute specified connection
+   * to instead go through the specified instantiation.
+   * 
+   * Note that this is somewhat similar to ASTUtils.rerouteViaInstance, but does not assume
+   * that the replacement instantiation is a bank.
+   * @param conns A list of pairs of connections and lists of instantiations.
+   */
+  private static void rerouteViaInstance(List<Pair<Connection, List<Instantiation>>> conns) {
+    for (var pair : conns) {
+      Connection connection = pair.first();
+      EObject parent = connection.eContainer();
+
+      var leftPorts = connection.getLeftPorts();
+      var rightPorts = connection.getRightPorts();
+      var leftIndex = 0;
+      var rightIndex = 0;
+      for (var inst : pair.second()) {
+        if (inst == null) {
+          // This is not a connection between enclaves.
+          // Replace with an ordinary connection bridging the original ports.
+          Connection newConnection = factory.createConnection();
+          newConnection.getLeftPorts().add(leftPorts.get(leftIndex));
+          newConnection.getRightPorts().add(rightPorts.get(rightIndex));
+          newConnection.setDelay(connection.getDelay());
+          newConnection.setPhysical(connection.isPhysical());
+          if (parent instanceof Reactor) {
+            ((Reactor) parent).getConnections().add(newConnection);
+          } else {
+            // Parent must be a Mode.
+            ((Mode) parent).getConnections().add(newConnection);
+          }
+        } else {
+          // This is a connection between enclaves.
+          // Create a connection reactor and two connections to reroute the original connection
+          // to go through the new connection reactor.
+          Connection upstream = factory.createConnection();
+          Connection downstream = factory.createConnection();
+          VarRef input = factory.createVarRef();
+          VarRef output = factory.createVarRef();
+          Reactor instClass = ASTUtils.toDefinition(inst.getReactorClass());
+          // Establish references to the involved ports.
+          input.setContainer(inst);
+          input.setVariable(instClass.getInputs().get(0));
+          output.setContainer(inst);
+          output.setVariable(instClass.getOutputs().get(0));
+          upstream.getLeftPorts().add(leftPorts.get(leftIndex));
+          upstream.getRightPorts().add(input);
+          downstream.getLeftPorts().add(output);
+          downstream.getRightPorts().add(rightPorts.get(rightIndex));
+
+          // Insert new connection reactor and connections into the parent.
+          if (parent instanceof Reactor) {
+            ((Reactor) parent).getInstantiations().add(inst);
+            ((Reactor) parent).getConnections().add(upstream);
+            ((Reactor) parent).getConnections().add(downstream);
+          } else {
+            // Parent must be a Mode.
+            ((Mode) parent).getInstantiations().add(inst);
+            ((Mode) parent).getConnections().add(upstream);
+            ((Mode) parent).getConnections().add(downstream);
+          }
+        }
+        leftIndex++;
+        rightIndex++;
+        if (leftIndex >= leftPorts.size()) {
+          // Assume the connection is iterated.
+          leftIndex = 0;
+        }
+      }
+      // Remove old connection.
+      if (parent instanceof Reactor) {
+        ((Reactor) parent).getConnections().remove(connection);
+      } else {
+        // Parent must be a Mode.
+        ((Mode) parent).getConnections().remove(connection);
+      }
+    }
   }
 
   /**
