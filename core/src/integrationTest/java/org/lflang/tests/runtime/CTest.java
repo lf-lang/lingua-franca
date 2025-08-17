@@ -124,6 +124,12 @@ public class CTest extends RuntimeTest {
   }
 
   @Test
+  public void runFederatedTestsWithRustRti() {
+    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+    super.runFederatedTestsWithRustRti();
+  }
+
+  @Test
   public void runModalTests() {
     super.runModalTests();
   }

@@ -142,6 +142,18 @@ public abstract class RuntimeTest extends TestBase {
         false);
   }
 
+  @Test
+  public void runFederatedTestsWithRustRti() {
+    Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+    runTestsForTargetsWithRustRti(
+        Message.DESC_FEDERATED_WITH_RUST_RTI,
+        TestCategory.FEDERATED::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
   /** Run the tests for modal reactors. */
   @Test
   public void runModalTests() {
