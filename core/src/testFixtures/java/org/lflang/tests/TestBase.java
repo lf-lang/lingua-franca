@@ -33,7 +33,6 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
-import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult;
@@ -285,8 +284,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    */
   public static void runSingleTestAndPrintResults(
       LFTest test, Class<? extends TestBase> testClass, TestLevel level) {
-    Injector injector =
-        new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+    Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
     TestBase runner;
     try {
       @SuppressWarnings("unchecked")
