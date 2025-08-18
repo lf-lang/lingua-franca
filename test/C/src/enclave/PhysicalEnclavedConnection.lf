@@ -1,5 +1,5 @@
 target C {
-  timeout: 2 s
+  timeout: 1 s
 }
 
 reactor Src {

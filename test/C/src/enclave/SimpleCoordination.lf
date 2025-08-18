@@ -1,7 +1,7 @@
 target C {
   timeout: 1 s,
   scheduler: gedf_np,
-  build-type: Debug
+  fast: true
 }
 
 preamble {=
