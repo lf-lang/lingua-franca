@@ -14,8 +14,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -599,6 +599,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     class Timing {
       final String name;
       final long nanos;
+
       Timing(String name, long nanos) {
         this.name = name;
         this.nanos = nanos;
@@ -638,8 +639,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       timings.stream()
           .sorted((a, b) -> Long.compare(b.nanos, a.nanos))
           .limit(10)
-          .forEach(
-              t -> System.out.printf(" - %s: %.2f seconds%n", t.name, t.nanos / 1.0e9));
+          .forEach(t -> System.out.printf(" - %s: %.2f seconds%n", t.name, t.nanos / 1.0e9));
       System.out.print(THIN_LINE);
     }
 
