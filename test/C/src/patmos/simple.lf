@@ -1,0 +1,62 @@
+/*
+This file is an LF sample code, which is equivalent to the following ForSyDe code. For more information refer to this paper: https://ieeexplore.ieee.org/document/11121303
+
+import ForSyDe.Shallow
+system :: Signal Integer 
+       -> Signal Integer
+system input = output where 
+  output   = adder input internal
+  adder    = zipWithSY (+)
+  internal = delaySY 5 output 
+
+*/
+
+target C {
+    timeout: 10 msec,
+    build-type: Debug,
+    single-threaded: true, 
+}
+
+reactor Source {
+  output out:int
+  timer t(0, 1 msec)
+  state s:int = 1
+  reaction(t) -> out {=
+      lf_set(out, self->s);
+      ++self->s;
+  =}
+}
+
+reactor Sink {
+  input in:int
+  state last_received:int = 0
+  reaction(in) {=
+    self->last_received = in->value;
+    lf_print("Received %d", in->value);
+  =}
+}
+
+reactor Adder {
+  input in1:int
+  input in2:int 
+  output out:int
+  state result:int
+  reaction(in1, in2) -> out {=
+    if (in2->is_present) {
+       self->result = in1->value+in2->value; 
+    }
+    else {
+      self->result = in1->value + 5; 
+    }
+    lf_set(out, self->result); 
+  =} 
+}
+
+main reactor {
+  source = new Source()
+  sink = new Sink()
+  adder = new Adder()
+  source.out -> adder.in1
+  adder.out -> adder.in2 after 1 msec
+  adder.out -> sink.in
+}
