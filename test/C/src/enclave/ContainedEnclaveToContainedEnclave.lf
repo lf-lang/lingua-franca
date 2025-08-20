@@ -1,13 +1,11 @@
 // This tests enclave connections spanning multiple levels of hierarchy. We have two contained enclaves communicating
 // through the ports of their parents. The naive implementation will create an EnclaveConnectionReactor also in the
 // parent and effectively create three coordinated enclaves
-
-// FIXME: This test sometimes deadlocks with the GEDF_NP scheduler.
 target C {
   timeout: 1 s
 }
 
-import EnclaveSink, EnclaveSource from "../lib/SimpleEnclave.lf"
+import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
 
 reactor Source {
   output out: instant_t

@@ -1,5 +1,3 @@
-// FIXME: Deadlocks on Windows with all schedulers.
-
 target C {
   timeout: 2 sec,
   fast: true
