@@ -7,6 +7,7 @@
  * internal = delaySY 5 output
  */
 target C {
+  platform: "Patmos",
   timeout: 10 msec,
   build-type: Debug,
   single-threaded: true
