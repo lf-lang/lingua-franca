@@ -1,4 +1,4 @@
-package org.lflang.ide;
+package org.lflang.cli;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -12,9 +12,23 @@ import org.eclipse.xtext.resource.impl.BinaryGrammarResourceFactoryImpl;
 import org.eclipse.xtext.util.Modules2;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
+import org.lflang.ide.LFIdeModule;
+import org.lflang.ide.LFIdeSetup;
 
-/** Initialization support for running Xtext languages as language servers. */
-public class LFIdeSetup extends LFStandaloneSetup {
+/**
+ * Setup for Cli module registration.
+ *
+ * @author Soeren Domroes
+ */
+public class LFCliSetup extends LFStandaloneSetup {
+
+  protected ReportingBackend reporter;
+  protected Io io;
+
+  public LFCliSetup(ReportingBackend reporter, Io io) {
+    this.reporter = reporter;
+    this.io = io;
+  }
 
   public static Injector doSetup() {
     // Check whether the current injector is already an injector created by this class.
@@ -29,7 +43,8 @@ public class LFIdeSetup extends LFStandaloneSetup {
   }
 
   public Injector createInjector() {
-    return Guice.createInjector(Modules2.mixin(new LFRuntimeModule(), new LFIdeModule()));
+    return Guice.createInjector(
+        Modules2.mixin(new LFRuntimeModule(), new LFStandaloneModule(reporter, io)));
   }
 
   @Override

@@ -721,7 +721,8 @@ public class CExtension implements FedTargetExtension {
               .filter(
                   param ->
                       (param.getName().equalsIgnoreCase("STP_offset")
-                              || param.getName().equalsIgnoreCase("STA"))
+                              || param.getName().equalsIgnoreCase("STA")
+                              || param.getName().equalsIgnoreCase("maxwait"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
