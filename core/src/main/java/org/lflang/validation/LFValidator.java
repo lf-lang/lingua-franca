@@ -65,6 +65,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.GeneratorArguments;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -119,7 +120,6 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
-import org.lflang.generator.GeneratorUtils;
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -566,7 +566,8 @@ public class LFValidator extends BaseLFValidator {
   public void checkEnclaveOnWindows(Instantiation inst) {
     if (isEnclave(inst) && GeneratorUtils.isHostWindows()) {
       warning(
-          "Enclaves are not supported on Windows platforms. This may cause compilation or runtime errors.",
+          "Enclaves are not supported on Windows platforms. This may cause compilation or runtime"
+              + " errors.",
           Literals.INSTANTIATION__REACTOR_CLASS);
     }
   }
