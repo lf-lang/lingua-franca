@@ -8,7 +8,6 @@
  */
 target C {
   platform: "Patmos",
-  timeout: 10 msec,
   build-type: Debug,
   single-threaded: true
 }
@@ -19,8 +18,13 @@ reactor Source {
   state s: int = 1
 
   reaction(t) -> out {=
-    lf_set(out, self->s);
-    ++self->s;
+    if (self->s <= 10) {
+      lf_set(out, self->s);
+      ++self->s;
+    }
+    else {
+      exit(1);
+    }
   =}
 }
 
