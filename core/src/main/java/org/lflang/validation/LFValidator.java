@@ -119,6 +119,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.util.FileUtil;
+import org.lflang.generator.GeneratorUtils;
 
 /**
  * Custom validation checks for Lingua Franca programs.
@@ -558,6 +559,15 @@ public class LFValidator extends BaseLFValidator {
 
       // 6. Look for zero-delay cycles between enclaves
       //  This is done in CEnclaveGenerator.java
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkEnclaveOnWindows(Instantiation inst) {
+    if (isEnclave(inst) && GeneratorUtils.isHostWindows()) {
+      warning(
+          "Enclaves are not supported on Windows platforms. This may cause compilation or runtime errors.",
+          Literals.INSTANTIATION__REACTOR_CLASS);
     }
   }
 
