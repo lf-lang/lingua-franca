@@ -1,6 +1,6 @@
 // This tests verifies that enclaved scheduling is working by having two independent
 // enclaves synchronize on a global variable. This test could fail if the CI
-// runs extremely slow, but I think sleeping for 5 seconds in Slow should be
+// runs extremely slow, but I think sleeping for 1 second in Slow should be
 // enough to guranatee that always Fast completes before.
 target C {
   scheduler: NP
@@ -19,7 +19,7 @@ reactor Slow {
 
   reaction(t) {=
     lf_print("Slow start");
-        lf_sleep(SEC(5));
+        lf_sleep(SEC(1));
         global_flag = 1;
         lf_print("Slow finish");
   =}

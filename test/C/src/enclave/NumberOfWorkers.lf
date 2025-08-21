@@ -1,6 +1,7 @@
 // Test that we get the right number of workers allocated.
 target C {
-  timeout: 1 sec
+  timeout: 1 sec,
+  fast: true
 }
 
 preamble {=
