@@ -7,6 +7,7 @@ import java.util.List;
  * listed as arguments of each function.
  *
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CCoreFilesUtils {
 
