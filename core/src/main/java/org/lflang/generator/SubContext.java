@@ -11,6 +11,7 @@ import org.lflang.target.TargetConfig;
  * complete build.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public class SubContext implements LFGeneratorContext {
 

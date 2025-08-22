@@ -4,6 +4,11 @@ import java.util.stream.Collectors;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.Model;
 
+/**
+ * Helper class to generate reactor definitions for a federate.
+ *
+ * @ingroup Federated
+ */
 public class FedReactorEmitter {
 
   public FedReactorEmitter() {}

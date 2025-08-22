@@ -38,7 +38,9 @@ import org.lflang.util.Pair;
 
 /**
  * This class implements AST transformations for delayed connections. There are two types of delayed
- * connections: 1) Connections with {@code after}-delays 2) Physical connections
+ * connections: 1) Connections with {@code after}-delays 2) Physical connections.
+ *
+ * @ingroup Utilities
  */
 public class DelayedConnectionTransformation implements AstTransformation {
 

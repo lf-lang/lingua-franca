@@ -6,6 +6,7 @@ import org.lflang.generator.IntegratedBuilder;
  * Collect progress reports and check that they have the expected properties.
  *
  * @author Peter Donovan
+ * @ingroup Tests
  */
 public class MockReportProgress implements IntegratedBuilder.ReportProgress {
   private int previousPercentProgress;

@@ -9,10 +9,11 @@ import org.lflang.lf.Connection;
 /**
  * Class representing a federated connection.
  *
- * <p>This is an undocumented class written by a previous contributor who is no longer active. It
- * merely serves as a record, presumably to make it easier to pass around information around.
+ * This is an undocumented class written by a previous contributor who is no longer active. It merely
+ * serves as a record, presumably to make it easier to pass around information around.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedConnectionInstance {
 

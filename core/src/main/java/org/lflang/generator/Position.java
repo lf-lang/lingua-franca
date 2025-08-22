@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
  * position other than the origin.
  *
  * @author Peter Donovan
+ * @ingroup Utilities
  */
 public class Position implements Comparable<Position> {
   public static final Pattern PATTERN = Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");

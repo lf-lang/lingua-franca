@@ -1,29 +1,3 @@
-/* A representation for a mixed radix number. */
-
-/*
-Copyright (c) 2019-2021, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
 package org.lflang.generator;
 
 import com.google.common.collect.ImmutableList;
@@ -40,22 +14,23 @@ import java.util.Set;
  * numbers, r0, r1, ... , rn, where r0 is the radix of the lowest-order digit and rn is the radix of
  * the highest order digit that has a specified radix.
  *
- * <p>A PMR is a mixed radix number that, when incremented, increments the digits in the order given
+ * A PMR is a mixed radix number that, when incremented, increments the digits in the order given
  * by the permutation matrix. For an ordinary mixed radix number, the permutation matrix is [0, 1,
  * ..., n-1]. The permutation matrix may be any permutation of these digits, [d0, d1, ..., dn-1], in
  * which case, when incremented, the d0 digit will be incremented first. If it overflows, it will be
  * set to 0 and the d1 digit will be incremented. If it overflows, the next digit is incremented. If
  * the last digit overflows, then the number wraps around so that all digits become zero.
  *
- * <p>This implementation realizes a finite set of numbers, where incrementing past the end of the
+ * This implementation realizes a finite set of numbers, where incrementing past the end of the
  * range wraps around to the beginning. As a consequence, the increment() function from any starting
  * point is guaranteed to eventually cover all possible values.
  *
- * <p>The {@link #toString()} method gives a string representation of the number where each digit is
+ * The {@link #toString()} method gives a string representation of the number where each digit is
  * represented by the string "d%r", where d is the digit and r is the radix. For example, the number
  * "1%2, 2%3, 1%4" has value 11, 1 + (2*2) + (1*2*3).
  *
  * @author Edward A. Lee
+ * @ingroup Utilities
  */
 public class MixedRadixInt {
 

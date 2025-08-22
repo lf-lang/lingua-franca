@@ -17,6 +17,7 @@ import org.lflang.diagram.synthesis.util.NamedInstanceUtil;
  * Registration of all diagram synthesis related classes in Klighd.
  *
  * @author Alexander Schulz-Rosengarten
+ * @ingroup Diagram
  */
 public class SynthesisRegistration implements IKlighdStartupHook {
 

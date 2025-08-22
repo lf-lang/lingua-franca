@@ -6,7 +6,9 @@ import com.google.inject.Injector;
 /**
  * Initialization support for running Xtext languages without Equinox extension registry.
  *
- * <p>See {@link LFRuntimeModule}, the base Guice module for LF services.
+ * See {@link LFRuntimeModule}, the base Guice module for LF services.
+ *
+ * @ingroup Infrastructure
  */
 public class LFStandaloneSetup extends LFStandaloneSetupGenerated {
 

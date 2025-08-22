@@ -75,6 +75,10 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
 
+/**
+ * Converts an LF model to an S-expression.
+ * @ingroup Utilities
+ */
 public class ToSExpr extends LfSwitch<SExpr> {
 
   /**

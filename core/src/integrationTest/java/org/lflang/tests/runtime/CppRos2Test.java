@@ -12,9 +12,10 @@ import org.lflang.tests.Transformers;
 /**
  * Run C++ tests using the ROS2 platform.
  *
- * <p>NOTE: This test does not inherit any tests because it directly extends TestBase.
+ * NOTE: This test does not inherit any tests because it directly extends TestBase.
  *
  * @author Christian Menard
+ * @ingroup Tests
  */
 public class CppRos2Test extends TestBase {
 

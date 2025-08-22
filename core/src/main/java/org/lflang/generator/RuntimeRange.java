@@ -1,28 +1,3 @@
-/* A representation of a range of runtime instances for a NamedInstance. */
-
-/*
-Copyright (c) 2019-2021, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 package org.lflang.generator;
 
 import java.util.ArrayList;
@@ -32,15 +7,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Class representing a range of runtime instance objects (port channels, reactors, reactions,
+ * Representation of a range of runtime instance objects (port channels, reactors, reactions,
  * etc.). This class and its derived classes have the most detailed information about the structure
  * of a Lingua Franca program. There are three levels of detail:
  *
- * <ul>
- *   <li>The abstract syntax tree (AST).
- *   <li>The compile-time instance graph (CIG).
- *   <li>The runtime instance graph (RIG).
- * </ul>
+ * * The abstract syntax tree (AST).
+ * * The compile-time instance graph (CIG).
+ * * The runtime instance graph (RIG).
  *
  * In the AST, each reactor class is represented once. In the CIG, each reactor class is represented
  * as many times as it is instantiated, except that a bank has only one representation (as in the
@@ -49,7 +22,7 @@ import java.util.Set;
  * classes. In the RIG, each bank is expanded so each bank member and each port channel is
  * represented.
  *
- * <p>In general, determining dependencies between reactions requires analysis at the level of the
+ * In general, determining dependencies between reactions requires analysis at the level of the
  * RIG. But a brute-force representation of the RIG can get very large, and for most programs it has
  * a great deal of redundancy. In a fully detailed representation of the RIG, for example, a bank of
  * width N that contains a bank of width M within which there is a reactor R with port P will have
@@ -57,59 +30,65 @@ import java.util.Set;
  * edges connected to instances of that port, each of which may go to a distinct set of other remote
  * runtime port instances.
  *
- * <p>This class and its subclasses give a more compact representation of the RIG in most common
+ * This class and its subclasses give a more compact representation of the RIG in most common
  * cases where collections of runtime instances all have the same dependencies or dependencies form
  * a range that can be represented compactly.
  *
- * <p>A RuntimeRange represents an adjacent set of RIG objects (port channels, reactions reactors).
+ * A RuntimeRange represents an adjacent set of RIG objects (port channels, reactions reactors).
  * For example, it can represent port channels 2 through 5 in a multiport of width 10. The width in
  * this case is 4. If such a port is contained by one or more banks of reactors, then channels 2
  * through 5 of one bank member form a contiguous range. If you want channels 2 through 5 of all
  * bank members, then this needs to be represented with multiple ranges.
  *
- * <p>The maxWidth is the width of the instance multiplied by the widths of each of its containers.
+ * The maxWidth is the width of the instance multiplied by the widths of each of its containers.
  * For example, if a port of width 4 is contained by a bank of width 2 that is then contained by a
  * bank of width 3, then the maxWidth will be 2*3*4 = 24.
  *
- * <p>The function iterationOrder returns a list that includes the instance of this range and all
+ * The function iterationOrder returns a list that includes the instance of this range and all
  * its containers, except the top-level reactor (main or federated). The order of this list is the
  * order in which an iteration over the RIG objects represented by this range should be iterated. If
  * the instance is a PortInstance, then this order will depend on whether connections at any level
  * of the hierarchy are interleaved.
  *
- * <p>The simplest Ranges are those where the corresponding CIG node represents only one runtime
+ * The simplest Ranges are those where the corresponding CIG node represents only one runtime
  * instance (its instance is not (deeply) within a bank and is not a multiport). In this case, the
  * RuntimeRange and all the objects returned by iterationOrder will have width 1.
  *
- * <p>In a more complex instance, consider a bank A of width 2 that contains a bank B of width 2
+ * In a more complex instance, consider a bank A of width 2 that contains a bank B of width 2
  * that contains a port instance P with width 2. . There are a total of 8 instances of P, which we
  * can name:
  *
- * <p>A0.B0.P0 A0.B0.P1 A0.B1.P0 A0.B1.P1 A1.B0.P0 A1.B0.P1 A1.B1.P0 A1.B1.P1
+ * ```
+ * A0.B0.P0 A0.B0.P1 A0.B1.P0 A0.B1.P1 A1.B0.P0 A1.B0.P1 A1.B1.P0 A1.B1.P1
+ * ```
  *
- * <p>If there is no interleaving, iterationOrder() returns [P, B, A], indicating that they should
+ * If there is no interleaving, iterationOrder() returns `[P, B, A]`, indicating that they should
  * be iterated by incrementing the index of P first, then the index of B, then the index of A, as
  * done above.
  *
- * <p>If the connection within B to port P is interleaved, then the order of iteration order will be
- * [B, P, A], resulting in the list:
+ * If the connection within B to port P is interleaved, then the order of iteration order will be
+ * `[B, P, A]`, resulting in the list:
  *
- * <p>A0.B0.P0 A0.B1.P0 A0.B0.P1 A0.B1.P1 A1.B0.P0 A1.B1.P0 A1.B0.P1 A1.B1.P1
+ * ```
+ * A0.B0.P0 A0.B1.P0 A0.B0.P1 A0.B1.P1 A1.B0.P0 A1.B1.P0 A1.B0.P1 A1.B1.P1
+ * ```
  *
- * <p>If the connection within A to B is also interleaved, then the order will be [A, B, P],
+ * If the connection within A to B is also interleaved, then the order will be `[A, B, P]`,
  * resulting in the list:
  *
- * <p>A0.B0.P0 A1.B0.P0 A0.B1.P0 A1.B1.P0 A0.B0.P1 A1.B0.P1 A0.B1.P1 A1.B1.P1
+ * A0.B0.P0 A1.B0.P0 A0.B1.P0 A1.B1.P0 A0.B0.P1 A1.B0.P1 A0.B1.P1 A1.B1.P1
  *
- * <p>Finally, if the connection within A to B is interleaved, but not the connection within B to P,
- * then the order will be [A, P, B], resulting in the list:
+ * Finally, if the connection within A to B is interleaved, but not the connection within B to P,
+ * then the order will be `[A, P, B]`, resulting in the list:
  *
- * <p>A0.B0.P0 A1.B0.P0 A0.B0.P1 A1.B0.P1 A0.B1.P0 A1.B1.P0 A0.B1.P1 A1.B1.P1
+ * ```
+ * A0.B0.P0 A1.B0.P0 A0.B0.P1 A1.B0.P1 A0.B1.P0 A1.B1.P0 A0.B1.P1 A1.B1.P1
+ * ```
  *
- * <p>A RuntimeRange is a contiguous subset of one of the above lists, given by a start offset and a
+ * A RuntimeRange is a contiguous subset of one of the above lists, given by a start offset and a
  * width that is less than or equal to maxWidth.
  *
- * <p>Each element of the above lists can be represented as a permuted mixed-radix (PMR) number,
+ * Each element of the above lists can be represented as a permuted mixed-radix (PMR) number,
  * where the low-order digit has radix equal to the width of P, the second digit has radix equal to
  * the width of B, and the final digit has radix equal to the width of A. Each PMR has a permutation
  * vector that defines how to increment PMR number. This permutation vector is derived from the
@@ -119,12 +98,13 @@ import java.util.Set;
  * permutation vector is [2, 0, 1], indicating that digit 2 of the PMR (corresponding to A) should
  * be incremented first, then digit 0 (for P), then digit 1 (for B).
  *
- * <p>For a RuntimeRange with width greater than 1, the head() and tail() functions split the range.
+ * For a RuntimeRange with width greater than 1, the head() and tail() functions split the range.
  *
- * <p>This class and subclasses are designed to be immutable. Modifications always return a new
+ * This class and subclasses are designed to be immutable. Modifications always return a new
  * RuntimeRange.
  *
  * @author Edward A. Lee
+ * @ingroup Instances
  */
 public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<RuntimeRange<?>> {
 
@@ -291,14 +271,14 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
    * instance {@code n} levels above this {@link RuntimeRange}'s instance. If {@code n == 1}, for
    * example, then this return the identifiers for the parent ReactorInstance.
    *
-   * <p>This returns a list of <i>natural identifiers</i>, as defined below, for the instances
+   * This returns a list of <i>natural identifiers</i>, as defined below, for the instances
    * within the range.
    *
-   * <p>The resulting list can be used to count the number of distinct runtime instances of this
+   * The resulting list can be used to count the number of distinct runtime instances of this
    * RuntimeRange's instance (using {@code n == 0}) or any of its parents that lie within the range
    * and to provide an index into an array of runtime instances.
    *
-   * <p>Each <i>natural identifier</i> is the integer value of a mixed-radix number defined as
+   * Each <i>natural identifier</i> is the integer value of a mixed-radix number defined as
    * follows:
    *
    * <ul>

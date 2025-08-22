@@ -69,6 +69,8 @@ import org.lflang.lf.util.LfSwitch;
  * Switch class that checks if subtrees of the AST are semantically equivalent to each other. Return
  * {@code false} if they are not equivalent; return {@code true} or {@code false} (but preferably
  * {@code true}) if they are equivalent.
+ *
+ * @ingroup Utilities
  */
 public class IsEqual extends LfSwitch<Boolean> {
 
