@@ -1,0 +1,25 @@
+var classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions =
+[
+    [ "addArrayDecorator", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a5b39f3d3dc6a5e2a8bbcc20b4ffdca29", null ],
+    [ "addCloudIcon", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a1a378860676d6ce83754657b2a23cce5", null ],
+    [ "addCloudUploadIcon", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a09c6106ae11c6207042c93de9586cca8", null ],
+    [ "addFixedTailArrowDecorator", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a9d4a192f45227ff154dd8f9c16b63510", null ],
+    [ "applyOnEdgeDelayStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a2675445261edf13b6728fcaac1bc37b6", null ],
+    [ "applyOnEdgePysicalDelayStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#abba4436b9b796e28b9a65d901afea4e7", null ],
+    [ "applyOnEdgePysicalStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#aa99430a744bc5f4192ab7cb6455ac3b8", null ],
+    [ "applyOnEdgeStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a9ae0b8dcf1818f4dda829f64fe447932", null ],
+    [ "associateWith", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a5ad42c0b0087e4e49fd41619417235d4", null ],
+    [ "boldLineSelectionStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a856043a58b316cdb3d4626e7c3dbc859", null ],
+    [ "boldTextSelectionStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a3546fddade78beea3d81f22b21b0151b", null ],
+    [ "commentStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a6f661d42abbc34b4fd1e3dbacac0dae3", null ],
+    [ "errorStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a411ab32e4825be959b29f1c9a5dfdba9", null ],
+    [ "getBooleanValue", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a5661b8e2f017ad87ecf1a4fa87295fcf", null ],
+    [ "getFloatValue", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#ac9ab360bdc1ea27220ac2fc354ed258d", null ],
+    [ "getObjectValue", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#ab2f969539122fa5e31062950d251a9d5", null ],
+    [ "getRootSynthesis", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#abdef98c1a65d2fdb5511a1a6c680cb3b", null ],
+    [ "noSelectionStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a80dd5641c3183126757d5c9026d81444", null ],
+    [ "underlineSelectionStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#aea68c5425518179166daf37bcd67ce06", null ],
+    [ "LABEL_PARENT_BACKGROUND", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a93908da08da7719f15954e0a53d65551", null ],
+    [ "SELECTION_HIGHLIGHTING_COLOR", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#ac16c527c1cb7a4317ca27b0270bc3230", null ],
+    [ "SELECTION_HIGHLIGHTING_COLOR_LABEL", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#ab813a38cf8f841ac7d07a9a822db43cd", null ]
+];
