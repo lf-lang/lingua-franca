@@ -52,11 +52,11 @@ import org.lflang.util.LFCommand;
  * Generator for Python target. This class generates Python code defining each reactor class given
  * in the input .lf file and imported .lf files.
  *
- * Each class will contain all the reaction functions defined by the user in order, with the
+ * <p>Each class will contain all the reaction functions defined by the user in order, with the
  * necessary ports/actions given as parameters. Moreover, each class will contain all state
  * variables in native Python format.
  *
- * A backend is also generated using the CGenerator that interacts with the C code library (see
+ * <p>A backend is also generated using the CGenerator that interacts with the C code library (see
  * CGenerator.xtend). The backend is responsible for passing arguments to the Python reactor
  * functions.
  *

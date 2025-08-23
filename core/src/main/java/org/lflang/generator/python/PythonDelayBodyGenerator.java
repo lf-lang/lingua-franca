@@ -8,8 +8,8 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
 /**
- * Generate code for the bodies of reactions that handle connections with logical delays
- * specified with the `after` keyword.
+ * Generate code for the bodies of reactions that handle connections with logical delays specified
+ * with the `after` keyword.
  *
  * @ingroup Generator
  */

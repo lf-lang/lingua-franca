@@ -8,7 +8,7 @@ import org.lflang.generator.c.CFileConfig;
 
 /**
  * Python file configuration.
- * 
+ *
  * @ingroup Generator
  */
 public class PyFileConfig extends CFileConfig {

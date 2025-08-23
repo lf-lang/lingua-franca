@@ -19,8 +19,8 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.util.FileUtil;
 
 /**
- * Encapsulate data about the correspondence between ranges of generated code and ranges of a
- * Lingua Franca file.
+ * Encapsulate data about the correspondence between ranges of generated code and ranges of a Lingua
+ * Franca file.
  *
  * @ingroup Utilities
  */
