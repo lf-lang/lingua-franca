@@ -2,7 +2,11 @@ package org.lflang.generator.c;
 
 import org.lflang.generator.CodeBuilder;
 
-/** Generates C constructor code for a reactor. */
+/**
+ * Generates C constructor code for a reactor.
+ *
+ * @ingroup Generator
+ */
 public class CConstructorGenerator {
   /**
    * Generate a constructor for the specified reactor in the specified federate.

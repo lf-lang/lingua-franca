@@ -19,6 +19,7 @@ import org.lflang.target.Target;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CPortGenerator {
   /** Generate fields in the self struct for input and output ports */

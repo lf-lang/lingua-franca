@@ -14,6 +14,7 @@ import org.lflang.lf.Reactor;
  * @author Edward A. Lee
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CModesGenerator {
   /**

@@ -12,7 +12,11 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.*;
 
-/** A reactor class combined with concrete type arguments bound to its type parameters. */
+/**
+ * A reactor class combined with concrete type arguments bound to its type parameters.
+ *
+ * @ingroup Generator
+ */
 public class TypeParameterizedReactor {
   /** The syntactic reactor class definition. */
   private final Reactor reactor;

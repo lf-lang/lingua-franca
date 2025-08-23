@@ -5,6 +5,11 @@ import java.nio.file.Path;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.FileConfig;
 
+/**
+ * The file configuration for the C target.
+ *
+ * @ingroup Generator
+ */
 public class CFileConfig extends FileConfig {
   private final Path includePath;
 

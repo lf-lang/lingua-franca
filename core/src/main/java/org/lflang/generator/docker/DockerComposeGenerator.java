@@ -19,6 +19,7 @@ import org.lflang.util.LFCommand;
  *
  * @author Marten Lohstroh
  * @author Steven Wong
+ * @ingroup Docker
  */
 public class DockerComposeGenerator {
 

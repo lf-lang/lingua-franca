@@ -9,6 +9,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.ParameterReference;
 
+/**
+ * C-specific type information.
+ *
+ * @ingroup Generator
+ */
 public class CTypes implements TargetTypes {
 
   // Regular expression pattern for array types.
