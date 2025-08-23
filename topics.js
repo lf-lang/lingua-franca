@@ -1,13 +1,14 @@
 var topics =
 [
-    [ "CLI", "group__CLI.html", "group__CLI" ],
-    [ "Diagram", "group__Diagram.html", "group__Diagram" ],
-    [ "Federated", "group__Federated.html", "group__Federated" ],
-    [ "Generator", "group__Generator.html", "group__Generator" ],
-    [ "Infrastructure", "group__Infrastructure.html", "group__Infrastructure" ],
-    [ "Instances", "group__Instances.html", "group__Instances" ],
-    [ "LSP", "group__LSP.html", "group__LSP" ],
-    [ "Tests", "group__Tests.html", "group__Tests" ],
-    [ "Utilities", "group__Utilities.html", "group__Utilities" ],
-    [ "Validation", "group__Validation.html", "group__Validation" ]
+    [ "CLI", "group__CLI.html", null ],
+    [ "Diagram", "group__Diagram.html", null ],
+    [ "Docker", "group__Docker.html", null ],
+    [ "Federated", "group__Federated.html", null ],
+    [ "Generator", "group__Generator.html", null ],
+    [ "Infrastructure", "group__Infrastructure.html", null ],
+    [ "Instances", "group__Instances.html", null ],
+    [ "LSP", "group__LSP.html", null ],
+    [ "Tests", "group__Tests.html", null ],
+    [ "Utilities", "group__Utilities.html", null ],
+    [ "Validation", "group__Validation.html", null ]
 ];

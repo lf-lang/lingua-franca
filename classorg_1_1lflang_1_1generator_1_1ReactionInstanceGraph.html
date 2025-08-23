@@ -94,7 +94,7 @@ $(function(){initNavTree('classorg_1_1lflang_1_1generator_1_1ReactionInstanceGra
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.generator.ReactionInstanceGraph Class Reference<div class="ingroups"><a class="el" href="group__Instances.html">Instances</a></div></div></div>
+  <div class="headertitle"><div class="title">org.lflang.generator.ReactionInstanceGraph Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -184,10 +184,9 @@ Protected Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Analyze dependencies between reaction runtime instances. </p>
-<p>For each <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html" title="Representation of a compile-time instance of a reaction.">ReactionInstance</a>, there may be more than one runtime instance because the <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html" title="Representation of a compile-time instance of a reaction.">ReactionInstance</a> may be nested within one or more banks. In the worst case, of these runtime instances may have distinct dependencies, and hence distinct levels in the graph. Moreover, some of these instances may be involved in cycles while others are not.</p>
-<p>Upon construction of this class, the runtime instances are created if necessary, stored in each <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html" title="Representation of a compile-time instance of a reaction.">ReactionInstance</a>, and assigned levels (maximum number of upstream reaction instances), deadlines, and single dominating reactions.</p>
-<p>After creation, the resulting graph will be empty unless there are causality cycles, in which case, the resulting graph is a graph of runtime reaction instances that form cycles.</p>
-<dl class="section author"><dt>Author</dt><dd>Marten Lohstroh </dd>
+<p>For each <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html" title="Representation of a compile-time instance of a reaction.">ReactionInstance</a>, there may be more than one runtime instance because the <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html" title="Representation of a compile-time instance of a reaction.">ReactionInstance</a> may be nested within one or more banks. In the worst case, of these runtime instances may have distinct dependencies, and hence distinct levels in the graph. Moreover, some of these instances may be involved in cycles while others are not. </p>
+<p>Upon construction of this class, the runtime instances are created if necessary, stored in each <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html" title="Representation of a compile-time instance of a reaction.">ReactionInstance</a>, and assigned levels (maximum number of upstream reaction instances), deadlines, and single dominating reactions. </p>
+<p>After creation, the resulting graph will be empty unless there are causality cycles, in which case, the resulting graph is a graph of runtime reaction instances that form cycles. </p><dl class="section author"><dt>Author</dt><dd>Marten Lohstroh </dd>
 <dd>
 Edward A. Lee </dd></dl>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>

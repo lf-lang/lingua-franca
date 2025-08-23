@@ -4417,6 +4417,13 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>Docker</Name>
+      <APILanguage>java</APILanguage>
+    </TokenIdentifier>
+    <Path>group__Docker.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>Federated</Name>
       <APILanguage>java</APILanguage>
     </TokenIdentifier>
@@ -51017,8 +51024,8 @@
       <Type>func</Type>
       <Scope>org.lflang.generator</Scope>
     </TokenIdentifier>
-    <Path>group__Generator.html</Path>
-    <Anchor>gafe0f6415f88e4d19311019f3a8908b0a</Anchor>
+    <Path>namespaceorg_1_1lflang_1_1generator.html</Path>
+    <Anchor>afe0f6415f88e4d19311019f3a8908b0a</Anchor>
     <DeclaredIn>GeneratorArguments.java</DeclaredIn>
   </Token>
   <Token>
