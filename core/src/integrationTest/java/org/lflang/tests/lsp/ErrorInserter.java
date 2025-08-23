@@ -19,6 +19,7 @@ import java.util.stream.Stream;
  * Insert problems into integration tests.
  *
  * @author Peter Donovan
+ * @ingroup Tests
  */
 @SuppressWarnings("ClassCanBeRecord")
 class ErrorInserter {

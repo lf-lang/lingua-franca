@@ -16,11 +16,10 @@ import org.lflang.validation.LFNamesAreUniqueValidationHelper;
  * Binds services that are available both when running LFC standalone, and when running within the
  * IDE.
  *
- * <ul>
- *   <li>LfIdeModule overrides this module with additional bindings when running in the IDE.
- *   <li>{@code org.lflang.lfc.LFStandaloneModule} overrides this module when running LFC
- *       standalone.
- * </ul>
+ * <p>* LfIdeModule overrides this module with additional bindings when running in the IDE. * {@code
+ * org.lflang.lfc.LFStandaloneModule} overrides this module when running LFC standalone.
+ *
+ * @ingroup Infrastructure
  */
 public class LFRuntimeModule extends AbstractLFRuntimeModule {
 
