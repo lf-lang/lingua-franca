@@ -4,6 +4,11 @@ import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 
+/**
+ * Generate code for Python actions.
+ *
+ * @ingroup Generator
+ */
 public class PythonActionGenerator {
   public static String generateAliasTypeDef(
       TypeParameterizedReactor tpr, Action action, String genericActionType) {

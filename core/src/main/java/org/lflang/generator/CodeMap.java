@@ -19,8 +19,10 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.util.FileUtil;
 
 /**
- * Encapsulates data about the correspondence between ranges of generated code and ranges of a
+ * Encapsulate data about the correspondence between ranges of generated code and ranges of a
  * Lingua Franca file.
+ *
+ * @ingroup Utilities
  */
 public class CodeMap {
 

@@ -14,6 +14,7 @@ import org.lflang.target.TargetConfig;
  * communication between a build process and the environment in which it is executed.
  *
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 

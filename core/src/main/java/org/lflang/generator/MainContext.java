@@ -18,6 +18,7 @@ import org.lflang.target.TargetConfig;
  * context. There is one {@code MainContext} for every build process.
  *
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public class MainContext implements LFGeneratorContext {
 
