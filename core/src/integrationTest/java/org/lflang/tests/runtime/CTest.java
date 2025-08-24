@@ -80,6 +80,8 @@ public class CTest extends RuntimeTest {
   @Test
   @Override
   public void runEnclaveTests() {
+    // Enclaves do not work on Windows. They deadlock.
+    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runEnclaveTests();
   }
 

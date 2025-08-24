@@ -1,7 +1,8 @@
 // This tests that the AST transformation works for conneections where we have
 // enclaves not connected in various configurations
 target C {
-  timeout: 1 s
+  timeout: 1 s,
+  fast: true
 }
 
 import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"

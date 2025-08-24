@@ -65,6 +65,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.GeneratorArguments;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -560,6 +561,16 @@ public class LFValidator extends BaseLFValidator {
 
       // 6. Look for zero-delay cycles between enclaves
       //  This is done in CEnclaveGenerator.java
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkEnclaveOnWindows(Instantiation inst) {
+    if (isEnclave(inst) && GeneratorUtils.isHostWindows()) {
+      warning(
+          "Enclaves are not supported on Windows platforms. This may cause compilation or runtime"
+              + " errors.",
+          Literals.INSTANTIATION__REACTOR_CLASS);
     }
   }
 

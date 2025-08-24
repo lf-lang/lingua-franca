@@ -1,5 +1,6 @@
 target C {
-  timeout: 1 msec
+  timeout: 1 msec,
+  fast: true
 }
 
 reactor Enclave(p1: int = 0, p2: int = 0, p3: int = 0) {

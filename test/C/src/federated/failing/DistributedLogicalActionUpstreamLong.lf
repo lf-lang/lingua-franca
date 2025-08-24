@@ -6,8 +6,8 @@ target C {
   timeout: 1 msec
 }
 
-import PassThrough from "../lib/PassThrough.lf"
-import TestCount from "../lib/TestCount.lf"
+import PassThrough from "../../lib/PassThrough.lf"
+import TestCount from "../../lib/TestCount.lf"
 
 reactor WithLogicalAction {
   output out: int
