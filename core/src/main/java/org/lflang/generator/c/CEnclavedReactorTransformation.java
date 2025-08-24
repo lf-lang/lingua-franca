@@ -172,7 +172,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
 
             EnclaveConnection edge = new EnclaveConnection(delay, hasAfterDelay, isPhysical);
 
-            // Store connection info for the code-generator to use later. If the enclave is connected
+            // Store connection info for the code-generator to use later. If the enclave is
+            // connected
             // to its parent. We store a placeholder instantiation.
             Instantiation src = lhs.getContainer();
             if (src == null) {
@@ -206,12 +207,13 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   }
 
   /**
-   * Reroute the given connections to go through their given list of instantiations.
-   * For each instantiation in the list, create two connections to reroute specified connection
-   * to instead go through the specified instantiation.
-   * 
-   * Note that this is somewhat similar to ASTUtils.rerouteViaInstance, but does not assume
-   * that the replacement instantiation is a bank.
+   * Reroute the given connections to go through their given list of instantiations. For each
+   * instantiation in the list, create two connections to reroute specified connection to instead go
+   * through the specified instantiation.
+   *
+   * <p>Note that this is somewhat similar to ASTUtils.rerouteViaInstance, but does not assume that
+   * the replacement instantiation is a bank.
+   *
    * @param conns A list of pairs of connections and lists of instantiations.
    */
   private static void rerouteViaInstance(List<Pair<Connection, List<Instantiation>>> conns) {
