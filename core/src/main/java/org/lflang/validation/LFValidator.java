@@ -527,6 +527,7 @@ public class LFValidator extends BaseLFValidator {
                           > 0)
               .toList();
       // Look for multi-connections.
+      /*
       connections.forEach(
           c -> {
             if (c.getRightPorts().size() > 1 || c.getLeftPorts().size() > 1) {
@@ -535,6 +536,7 @@ public class LFValidator extends BaseLFValidator {
                   Literals.CONNECTION__LEFT_PORTS);
             }
           });
+      */
       // Look for interleaved, multiport and bank connections inside these connections
       connections.stream()
           .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
