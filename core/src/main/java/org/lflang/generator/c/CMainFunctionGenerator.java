@@ -11,6 +11,11 @@ import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate the code that is the entry point of the program.
+ *
+ * @ingroup Generator
+ */
 public class CMainFunctionGenerator {
   private TargetConfig targetConfig;
 

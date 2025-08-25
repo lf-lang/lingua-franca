@@ -19,7 +19,11 @@ import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 
-/** Generate user-visible header files. */
+/**
+ * Generate user-visible header files.
+ *
+ * @ingroup Generator
+ */
 public class CReactorHeaderFileGenerator {
 
   /** Functional interface for generating auxiliary structs such as port structs. */

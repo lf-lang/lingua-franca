@@ -1,28 +1,3 @@
-/* A representation of a range of runtime instances for a NamedInstance. */
-
-/*
-Copyright (c) 2019-2021, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
-THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
-STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
 package org.lflang.generator;
 
 import java.util.ArrayList;
@@ -32,21 +7,18 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Class representing a range of runtime instance objects (port channels, reactors, reactions,
- * etc.). This class and its derived classes have the most detailed information about the structure
- * of a Lingua Franca program. There are three levels of detail:
+ * Representation of a range of runtime instance objects (port channels, reactors, reactions, etc.).
+ * This class and its derived classes have the most detailed information about the structure of a
+ * Lingua Franca program. There are three levels of detail:
  *
- * <ul>
- *   <li>The abstract syntax tree (AST).
- *   <li>The compile-time instance graph (CIG).
- *   <li>The runtime instance graph (RIG).
- * </ul>
+ * <p>* The abstract syntax tree (AST). * The compile-time instance graph (CIG). * The runtime
+ * instance graph (RIG).
  *
- * In the AST, each reactor class is represented once. In the CIG, each reactor class is represented
- * as many times as it is instantiated, except that a bank has only one representation (as in the
- * graphical rendition). Equivalently, each CIG node has a unique full name, even though it may
- * represent many runtime instances. The CIG is represented by {@link NamedInstance} and its derived
- * classes. In the RIG, each bank is expanded so each bank member and each port channel is
+ * <p>In the AST, each reactor class is represented once. In the CIG, each reactor class is
+ * represented as many times as it is instantiated, except that a bank has only one representation
+ * (as in the graphical rendition). Equivalently, each CIG node has a unique full name, even though
+ * it may represent many runtime instances. The CIG is represented by {@link NamedInstance} and its
+ * derived classes. In the RIG, each bank is expanded so each bank member and each port channel is
  * represented.
  *
  * <p>In general, determining dependencies between reactions requires analysis at the level of the
@@ -85,26 +57,26 @@ import java.util.Set;
  * that contains a port instance P with width 2. . There are a total of 8 instances of P, which we
  * can name:
  *
- * <p>A0.B0.P0 A0.B0.P1 A0.B1.P0 A0.B1.P1 A1.B0.P0 A1.B0.P1 A1.B1.P0 A1.B1.P1
+ * <p>``` A0.B0.P0 A0.B0.P1 A0.B1.P0 A0.B1.P1 A1.B0.P0 A1.B0.P1 A1.B1.P0 A1.B1.P1 ```
  *
- * <p>If there is no interleaving, iterationOrder() returns [P, B, A], indicating that they should
+ * <p>If there is no interleaving, iterationOrder() returns `[P, B, A]`, indicating that they should
  * be iterated by incrementing the index of P first, then the index of B, then the index of A, as
  * done above.
  *
  * <p>If the connection within B to port P is interleaved, then the order of iteration order will be
- * [B, P, A], resulting in the list:
+ * `[B, P, A]`, resulting in the list:
  *
- * <p>A0.B0.P0 A0.B1.P0 A0.B0.P1 A0.B1.P1 A1.B0.P0 A1.B1.P0 A1.B0.P1 A1.B1.P1
+ * <p>``` A0.B0.P0 A0.B1.P0 A0.B0.P1 A0.B1.P1 A1.B0.P0 A1.B1.P0 A1.B0.P1 A1.B1.P1 ```
  *
- * <p>If the connection within A to B is also interleaved, then the order will be [A, B, P],
+ * <p>If the connection within A to B is also interleaved, then the order will be `[A, B, P]`,
  * resulting in the list:
  *
  * <p>A0.B0.P0 A1.B0.P0 A0.B1.P0 A1.B1.P0 A0.B0.P1 A1.B0.P1 A0.B1.P1 A1.B1.P1
  *
  * <p>Finally, if the connection within A to B is interleaved, but not the connection within B to P,
- * then the order will be [A, P, B], resulting in the list:
+ * then the order will be `[A, P, B]`, resulting in the list:
  *
- * <p>A0.B0.P0 A1.B0.P0 A0.B0.P1 A1.B0.P1 A0.B1.P0 A1.B1.P0 A0.B1.P1 A1.B1.P1
+ * <p>``` A0.B0.P0 A1.B0.P0 A0.B0.P1 A1.B0.P1 A0.B1.P0 A1.B1.P0 A0.B1.P1 A1.B1.P1 ```
  *
  * <p>A RuntimeRange is a contiguous subset of one of the above lists, given by a start offset and a
  * width that is less than or equal to maxWidth.
@@ -125,6 +97,7 @@ import java.util.Set;
  * RuntimeRange.
  *
  * @author Edward A. Lee
+ * @ingroup Instances
  */
 public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<RuntimeRange<?>> {
 

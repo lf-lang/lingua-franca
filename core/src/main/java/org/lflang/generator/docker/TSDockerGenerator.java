@@ -8,6 +8,7 @@ import org.lflang.generator.LFGeneratorContext;
  *
  * @author Hou Seng Wong
  * @author Marten Lohstroh
+ * @ingroup Docker
  */
 public class TSDockerGenerator extends DockerGenerator {
 

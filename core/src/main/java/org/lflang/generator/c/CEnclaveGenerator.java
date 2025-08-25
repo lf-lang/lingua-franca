@@ -18,6 +18,8 @@ import org.lflang.target.property.TracingProperty;
  * This class is in charge of code generating functions and global variables related to the enclaves
  * and environments. An environment is the context in which an enclave exists. Each enclave has its
  * own environment where queues, current tag, thread synchronization primitives etc. are stored.
+ *
+ * @ingroup Generator
  */
 public class CEnclaveGenerator {
 
