@@ -1,5 +1,6 @@
 [Website](https://lf-lang.org/) |
-[Documentation](https://www.lf-lang.org/docs/) |
+[User Documentation](https://www.lf-lang.org/docs/) |
+[Code Documentation](https://www.lf-lang.org/lingua-franca) |
 [Installation](https://www.lf-lang.org/docs/installation) |
 [Contributing](CONTRIBUTING.md) |
 [Changelog](CHANGELOG.md)
@@ -7,6 +8,7 @@
 [![CI (targets)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-targets.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-targets.yml?query=branch%3Amaster)
 [![CI (misc)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-misc.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-misc.yml?query=branch%3Amaster)
 [![CI (misc)](https://github.com/lf-lang/lingua-franca/actions/workflows/all-embedded.yml/badge.svg)]([https://github.com/lf-lang/lingua-franca/actions/](https://github.com/lf-lang/lingua-franca/actions/workflows/all-embedded.yml?query=branch%3Amaster))
+[![API docs](https://github.com/lf-lang/reactor-c/actions/workflows/api-docs.yml/badge.svg)](https://github.com/lf-lang/reactor-c/actions/workflows/api-docs.yml)
 
 [![Open VSX Downloads](https://img.shields.io/open-vsx/dt/lf-lang/vscode-lingua-franca?label=Open%20VSX%20Registry%20%E2%A4%93)](https://open-vsx.org/extension/lf-lang/vscode-lingua-franca)
 [![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/lf-lang.vscode-lingua-franca?label=VS%20Marketplace%20%E2%A4%93)](https://marketplace.visualstudio.com/items?itemName=lf-lang.vscode-lingua-franca)

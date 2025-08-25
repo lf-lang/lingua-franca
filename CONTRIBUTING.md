@@ -1,4 +1,4 @@
-# Contributing to the Lingua Franca compiler
+# Contributing to Lingua Franca
 
 > [!IMPORTANT]
 > This document contains guidelines specific to this repository. Please also read the general [contributing guidelines](https://github.com/lf-lang/.github/blob/main/CONTRIBUTING.md) of the lf-lang organization.
