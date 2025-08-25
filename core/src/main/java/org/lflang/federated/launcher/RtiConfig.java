@@ -7,6 +7,7 @@ import org.lflang.FileConfig;
  * Class for storing configuration settings pertaining to the RTI.
  *
  * @author Marten Lohstroh
+ * @ingroup Federated
  */
 public class RtiConfig {
 

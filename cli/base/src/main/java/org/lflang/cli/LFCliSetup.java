@@ -19,6 +19,7 @@ import org.lflang.ide.LFIdeSetup;
  * Setup for Cli module registration.
  *
  * @author Soeren Domroes
+ * @ingroup CLI
  */
 public class LFCliSetup extends LFStandaloneSetup {
 

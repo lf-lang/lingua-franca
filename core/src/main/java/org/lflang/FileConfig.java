@@ -25,6 +25,7 @@ import org.lflang.util.LFCommand;
  * Base class that governs the interactions between code generators and the file system.
  *
  * @author Marten Lohstroh
+ * @ingroup Utilities
  */
 public abstract class FileConfig {
 

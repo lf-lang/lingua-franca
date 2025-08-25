@@ -44,6 +44,7 @@ import picocli.CommandLine.Option;
  * @author Marten Lohstroh
  * @author Christian Menard
  * @author Atharva Patil
+ * @ingroup CLI
  */
 @Command(
     name = "lfc",

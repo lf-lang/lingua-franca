@@ -12,7 +12,11 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
-/** Helper class that is used to validate a federated reactor. */
+/**
+ * Helper class that is used to validate a federated reactor.
+ *
+ * @ingroup Federated
+ */
 public class FedValidator {
 
   public static void validateFederatedReactor(Reactor reactor, MessageReporter messageReporter) {

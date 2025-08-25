@@ -23,6 +23,8 @@ import org.lflang.util.StringUtil;
 /**
  * A {@code MalleableString} is an object with multiple valid textual representations. These textual
  * representations are code that may have associated comments.
+ *
+ * @ingroup Utilities
  */
 public abstract class MalleableString {
 

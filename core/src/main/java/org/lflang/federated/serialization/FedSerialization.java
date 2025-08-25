@@ -6,6 +6,7 @@ import org.lflang.generator.GeneratorBase;
  * Interface to enable support for automatic data serialization in target code.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public interface FedSerialization {
 

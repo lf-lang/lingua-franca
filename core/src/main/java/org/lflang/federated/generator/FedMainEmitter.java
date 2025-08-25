@@ -10,7 +10,11 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 
-/** Helper class to generate a main reactor */
+/**
+ * Helper class to generate a main reactor.
+ *
+ * @ingroup Federated
+ */
 public class FedMainEmitter {
 
   /**
