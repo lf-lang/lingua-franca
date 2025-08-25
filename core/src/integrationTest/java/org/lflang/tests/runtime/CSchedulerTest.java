@@ -9,7 +9,11 @@ import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers;
 
-/** */
+/**
+ * Collection of tests for the C schedulers.
+ *
+ * @ingroup Tests
+ */
 public class CSchedulerTest extends TestBase {
 
   public CSchedulerTest() {

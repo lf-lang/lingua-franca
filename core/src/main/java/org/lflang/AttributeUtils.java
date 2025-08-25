@@ -1,28 +1,3 @@
-/*
-Copyright (c) 2022, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
 package org.lflang;
 
 import java.util.HashMap;
@@ -39,16 +14,21 @@ import org.lflang.util.StringUtil;
 import org.lflang.validation.AttributeSpec;
 
 /**
- * @brief A helper class for processing attributes in the AST.
+ * A helper class for processing attributes in the AST.
+ *
+ * <p>An attribute is an annotation using the `@` syntax. For example, `@label("My Label")` is an
+ * attribute. It is associated with whatever node comes immediately after it.
+ *
  * @author Shaokai Lin
  * @author Clément Fournier
  * @author Alexander Schulz-Rosengarten
+ * @ingroup Utilities
  */
 public class AttributeUtils {
 
   /**
-   * @brief Return the attributes declared on the given node or null if the node does not support
-   *     declaring attributes.
+   * Return the attributes declared on the given node or null if the node does not support declaring
+   * attributes.
    */
   public static List<Attribute> getAttributes(EObject node) {
     if (node instanceof Reactor) {
@@ -76,8 +56,10 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the attribute with the given name if present, otherwise return null.
-   *     <p>If there are multiple attributes with the same name, this returns the first one.
+   * Return the attribute with the given name if present, otherwise return null.
+   *
+   * <p>If there are multiple attributes with the same name, this returns the first one.
+   *
    * @param node The node to search for the attribute.
    * @param name The name of the attribute to search for.
    * @return The attribute with the given name or null if it is not found.
@@ -98,8 +80,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return all attributes with the given name or null if the node does not support declaring
-   *     attributes.
+   * Return all attributes with the given name or null if the node does not support declaring
+   * attributes.
+   *
    * @see findAttributeByName
    */
   public static List<Attribute> findAttributesByName(EObject node, String name) {
@@ -116,9 +99,10 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the first argument specified for the attribute or null if the attribute is not
-   *     found or if it does not have any arguments.
-   *     <p>This should be used only if the attribute is expected to have a single argument.
+   * Return the first argument specified for the attribute or null if the attribute is not found or
+   * if it does not have any arguments. This should be used only if the attribute is expected to
+   * have a single argument.
+   *
    * @param attr The attribute to get the first argument from.
    * @return The first argument of the attribute or null if the attribute is not found or if it does
    *     not have any arguments.
@@ -131,10 +115,10 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Search for an attribute with the given name on the given AST node and return its first
-   *     argument as a String or null if the attribute is not found or if it does not have any
-   *     arguments.
-   *     <p>This should only be used on attributes that are expected to have a single argument.
+   * Search for an attribute with the given name on the given AST node and return its first argument
+   * as a String or null if the attribute is not found or if it does not have any arguments. This
+   * should only be used on attributes that are expected to have a single argument.
+   *
    * @param node The node to search for the attribute.
    * @param attrName The name of the attribute to search for.
    * @return The first argument of the attribute or null if the attribute is not found or if it does
@@ -152,11 +136,11 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief For an attribute with the given name on the given AST node, return a map of the
-   *     attribute parameters to their values.
-   *     <p>This should only be used on attributes that are expected to have a single argument. This
-   *     returns null if the given node does not support declaring attributes, and returns an empty
-   *     map if the attribute is not found or if it does not have any arguments.
+   * For an attribute with the given name on the given AST node, return a map of the attribute
+   * parameters to their values. This should only be used on attributes that are expected to have a
+   * single argument. This returns null if the given node does not support declaring attributes, and
+   * returns an empty map if the attribute is not found or if it does not have any arguments.
+   *
    * @param node The node to search for the attribute.
    * @param attrName The name of the attribute to search for.
    * @return A map of the attribute parameters to their values or null if the attribute is not found
@@ -177,12 +161,11 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Retrieve a specific annotation in a comment associated with the given model element in
-   *     the AST.
-   *     <p>This will look for a comment. If one is found, it searches for the given annotation
-   *     {@code key} and extracts any string that follows the annotation marker. Note that
-   *     annotations in comments are deprecated, but we still check for them for backwards
-   *     compatibility.
+   * Retrieve a specific annotation in a comment associated with the given model element in the AST.
+   * This will look for a comment. If one is found, it searches for the given annotation {@code key}
+   * and extracts any string that follows the annotation marker. Note that annotations in comments
+   * are deprecated, but we still check for them for backwards compatibility.
+   *
    * @param object The AST model element to search a comment for.
    * @param key The specific annotation key to be extracted.
    * @return {@code null} if no JavaDoc style comment was found or if it does not contain the given
@@ -202,8 +185,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the parameter of the given attribute with the given name.
-   *     <p>Return null if no such parameter is found.
+   * Return the parameter of the given attribute with the given name. Return null if no such
+   * parameter is found.
+   *
    * @param attribute The attribute to get the parameter from.
    * @param parameterName The name of the parameter to get.
    * @return The parameter value or null if no such parameter is found.
@@ -220,9 +204,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the parameter of the given attribute with the given name and interpret it as a
-   *     boolean.
-   *     <p>Returns null if no such parameter is found.
+   * Return the parameter of the given attribute with the given name and interpret it as a boolean.
+   * Returns null if no such parameter is found.
+   *
    * @param attribute The attribute to get the parameter from.
    * @param parameterName The name of the parameter to get.
    * @return The parameter value or null if no such parameter is found.
@@ -239,7 +223,8 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return true if the specified node is an Input and has an {@code @sparse} attribute.
+   * Return true if the specified node is an Input and has an {@code @sparse} attribute.
+   *
    * @param node An AST node.
    * @return True if the specified node is an Input and has an {@code @sparse} attribute.
    */
@@ -248,7 +233,8 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return true if the reactor is marked to be a federate.
+   * Return true if the reactor is marked to be a federate.
+   *
    * @param reactor The reactor to check.
    * @return True if the reactor is marked to be a federate.
    */
@@ -257,9 +243,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return true if the reaction is marked to have a C code body.
-   *     <p>Currently, this is only used for synthesized reactions in the context of federated
-   *     execution in Python.
+   * Return true if the reaction is marked to have a C code body. Currently, this is only used for
+   * synthesized reactions in the context of federated execution in Python.
+   *
    * @param reaction The reaction to check.
    * @return True if the reaction is marked to have a C code body.
    */
@@ -268,7 +254,8 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the declared label of the node, as given by the @label annotation.
+   * Return the declared label of the node, as given by the @label annotation.
+   *
    * @param node The node to get the label from.
    * @return The label of the node or null if there is no such annotation.
    */
@@ -277,8 +264,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the declared icon of the node, as given by the @icon annotation, or null if there
-   *     is no such annotation.
+   * Return the declared icon of the node, as given by the @icon annotation, or null if there is no
+   * such annotation.
+   *
    * @param node The node to get the icon path from.
    * @return The icon path of the node or null if there is no such annotation.
    */
@@ -287,8 +275,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the {@code @side} annotation for the given node (presumably a port) or null if
-   *     there is no such annotation.
+   * Return the {@code @side} annotation for the given node (presumably a port) or null if there is
+   * no such annotation.
+   *
    * @param node The node to get the port side from.
    * @return The port side of the node or null if there is no such annotation.
    */
@@ -297,8 +286,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the {@code layout} annotation for the given element or null if there is no such
-   *     annotation.
+   * Return the {@code layout} annotation for the given element or null if there is no such
+   * annotation.
+   *
    * @param node The node to get the layout option from.
    * @return The layout option of the node or null if there is no such annotation.
    */
@@ -307,8 +297,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return the {@code @enclave} attribute annotated on the given node.
-   *     <p>Return null if there is no such attribute.
+   * Return the {@code @enclave} attribute annotated on the given node. Return null if there is no
+   * such attribute.
+   *
    * @param node The node to get the enclave attribute from.
    * @return The enclave attribute of the node or null if there is no such attribute.
    */
@@ -317,7 +308,8 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return true if the specified instance has an {@code @enclave} attribute.
+   * Return true if the specified instance has an {@code @enclave} attribute.
+   *
    * @param node The node to check.
    * @return True if the specified instance has an {@code @enclave} attribute.
    */
@@ -326,7 +318,8 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Return true if the specified instantiation is of an EnclaveConnection reactor.
+   * Return true if the specified instantiation is of an EnclaveConnection reactor.
+   *
    * @param node The node to check.
    * @return True if the specified instantiation is of an EnclaveConnection reactor.
    */
@@ -335,8 +328,9 @@ public class AttributeUtils {
   }
 
   /**
-   * @brief Retrieve the number of worker parameter from an enclave attribute.
-   *     <p>Return 1 if not specified or has illegal value
+   * Retrieve the number of worker parameter from an enclave attribute. Return 1 if not specified or
+   * has illegal value
+   *
    * @param node The node to get the number of workers from.
    * @return The number of workers or 1 if not specified or has illegal value.
    */
