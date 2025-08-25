@@ -22,6 +22,7 @@ import org.lflang.util.FileUtil;
  * Report diagnostics to the language client.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public class LanguageServerMessageReporter extends MessageReporterBase {
 

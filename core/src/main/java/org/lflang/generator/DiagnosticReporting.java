@@ -6,9 +6,10 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.MessageReporter;
 
 /**
- * {@code DiagnosticReporting} provides utilities for reporting validation output.
+ * Utilities for reporting validation output.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public class DiagnosticReporting {
 

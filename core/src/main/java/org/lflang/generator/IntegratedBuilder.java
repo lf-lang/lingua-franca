@@ -22,9 +22,10 @@ import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
 /**
- * Manages Lingua Franca build processes that are requested from the language server.
+ * Manage Lingua Franca build processes that are requested from the language server.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public class IntegratedBuilder {
   public static final int START_PERCENT_PROGRESS = 0;

@@ -10,11 +10,12 @@ import org.lflang.lf.Preamble;
 import org.lflang.target.TargetConfig;
 
 /**
- * Generates user-defined preambles and #define and #include directives for the Python target.
+ * Generate user-defined preambles and `#define` and `#include` directives for the Python target.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class PythonPreambleGenerator {
   /**

@@ -6,6 +6,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CTypes;
 import org.lflang.lf.ParameterReference;
 
+/**
+ * Python-specific type information.
+ *
+ * @ingroup Generator
+ */
 public class PythonTypes extends CTypes {
 
   // Regular expression pattern for pointer types. The star at the end has to be visible.

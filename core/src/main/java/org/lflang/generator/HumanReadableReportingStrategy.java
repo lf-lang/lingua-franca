@@ -13,6 +13,7 @@ import org.lflang.MessageReporter;
  * An error reporting strategy that parses human-readable output.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public class HumanReadableReportingStrategy implements DiagnosticReporting.Strategy {
 

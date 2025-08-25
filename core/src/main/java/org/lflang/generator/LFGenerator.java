@@ -29,7 +29,11 @@ import org.lflang.generator.ts.TSGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.target.Target;
 
-/** Generates code from your model files on save. */
+/**
+ * Generates code from your model files on save.
+ *
+ * @ingroup Generator
+ */
 public class LFGenerator extends AbstractGenerator {
 
   @Inject private LFGlobalScopeProvider scopeProvider;

@@ -23,6 +23,8 @@ import org.lflang.target.property.KeepaliveProperty;
  * A helper class with functions that may be useful for code generators. This is created to ease our
  * transition from Xtend and possibly Eclipse. All functions in this class should instead be in
  * GeneratorUtils.kt, but Eclipse cannot handle Kotlin files.
+ *
+ * @ingroup Generator
  */
 public class GeneratorUtils {
 

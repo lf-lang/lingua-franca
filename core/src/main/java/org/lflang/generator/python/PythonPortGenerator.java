@@ -15,6 +15,11 @@ import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 
+/**
+ * Generate Python code for ports.
+ *
+ * @ingroup Generator
+ */
 public class PythonPortGenerator {
   public static final String NONMULTIPORT_WIDTHSPEC = "-2";
 

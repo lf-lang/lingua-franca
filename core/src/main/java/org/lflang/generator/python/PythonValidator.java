@@ -26,9 +26,10 @@ import org.lflang.generator.ValidationStrategy;
 import org.lflang.util.LFCommand;
 
 /**
- * A validator for generated Python.
+ * A validator for generated Python code.
  *
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public class PythonValidator extends org.lflang.generator.Validator {
 
