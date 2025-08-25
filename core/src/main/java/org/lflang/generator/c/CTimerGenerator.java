@@ -8,6 +8,7 @@ import org.lflang.generator.TimerInstance;
  *
  * @author Edward A. Lee
  * @author {Soroush Bateni
+ * @ingroup Generator
  */
 public class CTimerGenerator {
   /**

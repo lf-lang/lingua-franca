@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 /**
  * Represents a range in a document. Ranges have a natural ordering that respects their start
  * position(s) only.
+ *
+ * @ingroup Utilities
  */
 public class Range implements Comparable<Range> {
   public static final Pattern PATTERN =

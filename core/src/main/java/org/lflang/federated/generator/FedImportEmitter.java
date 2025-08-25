@@ -16,6 +16,7 @@ import org.lflang.util.ImportUtil;
  * Helper class to generate import statements for a federate.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedImportEmitter {
 

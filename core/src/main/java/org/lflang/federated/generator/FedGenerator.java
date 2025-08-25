@@ -72,6 +72,11 @@ import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
+/**
+ * The main class for the federated code generator.
+ *
+ * @ingroup Federated
+ */
 public class FedGenerator {
 
   /** */

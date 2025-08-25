@@ -1,5 +1,5 @@
 /**
- * This is a library reactor implementing an Enclaved connection. It is used by
+ * Library reactor implementing an Enclaved connection. It is used by
  * the code-generator when it finds a connection between two enclaves. Any event
  * written to the input port of this reactor is first scheduled on to an action
  * and then later written to the output port. This reactor is situated between

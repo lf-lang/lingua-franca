@@ -84,6 +84,8 @@ import org.lflang.util.StringUtil;
 /**
  * Switch class for converting AST nodes to their textual representation as it would appear in LF
  * code.
+ *
+ * @ingroup Utilities
  */
 public class ToLf extends LfSwitch<MalleableString> {
 

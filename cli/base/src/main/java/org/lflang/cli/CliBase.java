@@ -40,6 +40,7 @@ import picocli.CommandLine.Spec;
  * @author Christian Menard
  * @author Billy Bao
  * @author Atharva Patil
+ * @ingroup CLI
  */
 public abstract class CliBase implements Runnable {
   /**

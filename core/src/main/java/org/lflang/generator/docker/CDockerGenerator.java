@@ -13,6 +13,7 @@ import org.lflang.target.Target;
  *
  * @author Hou Seng Wong
  * @author Marten Lohstroh
+ * @ingroup Docker
  */
 public class CDockerGenerator extends DockerGenerator {
 

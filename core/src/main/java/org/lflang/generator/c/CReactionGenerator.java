@@ -37,6 +37,11 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should

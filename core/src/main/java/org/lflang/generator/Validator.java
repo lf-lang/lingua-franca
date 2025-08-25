@@ -22,6 +22,7 @@ import org.lflang.util.LFCommand;
  * Validate generated code.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public abstract class Validator {
 

@@ -1,11 +1,3 @@
-/**
- * @file
- * @author Benjamin Asch
- * @author Edward A. Lee
- * @copyright (c) 2023, The University of California at Berkeley. License: <a
- *     href="https://github.com/lf-lang/lingua-franca/blob/master/LICENSE">BSD 2-clause</a>
- * @brief Code generation methods for watchdogs in C.
- */
 package org.lflang.generator.c;
 
 import java.util.List;
@@ -29,6 +21,7 @@ import org.lflang.util.StringUtil;
  *
  * @author Benjamin Asch
  * @author Edward A. Lee
+ * @ingroup Generator
  */
 public class CWatchdogGenerator {
 
