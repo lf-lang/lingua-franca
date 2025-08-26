@@ -40973,15 +40973,15 @@
     <member kind="function">
       <type>record</type>
       <name>Argument&lt; T &gt;</name>
-      <anchorfile>namespaceorg_1_1lflang_1_1generator.html</anchorfile>
-      <anchor>a462b695184b8ecbc587ddfb1288b5c95</anchor>
+      <anchorfile>group__Generator.html</anchorfile>
+      <anchor>ga462b695184b8ecbc587ddfb1288b5c95</anchor>
       <arglist>(TargetProperty&lt; T, ?&gt; property, T value)</arglist>
     </member>
     <member kind="function">
       <type>record</type>
       <name>GeneratorArguments</name>
-      <anchorfile>namespaceorg_1_1lflang_1_1generator.html</anchorfile>
-      <anchor>afe0f6415f88e4d19311019f3a8908b0a</anchor>
+      <anchorfile>group__Generator.html</anchorfile>
+      <anchor>gafe0f6415f88e4d19311019f3a8908b0a</anchor>
       <arglist>(boolean clean, URI externalRuntimeUri, boolean hierarchicalBin, JsonObject jsonObject, boolean lint, boolean quiet, URI rti, List&lt; Argument&lt;?&gt; &gt; overrides)</arglist>
     </member>
   </compound>
@@ -41266,56 +41266,283 @@
     <name>CLI</name>
     <title>CLI</title>
     <filename>group__CLI.html</filename>
+    <class kind="class">org::lflang::cli::CliBase</class>
+    <class kind="class">org::lflang::cli::Lfc</class>
+    <class kind="class">org::lflang::cli::LFCliSetup</class>
+    <class kind="class">org::lflang::cli::Lfd</class>
+    <class kind="class">org::lflang::cli::Lff</class>
+    <class kind="class">org::lflang::cli::LFStandaloneModule</class>
+    <class kind="class">org::lflang::cli::StandaloneIssueAcceptor</class>
+    <class kind="class">org::lflang::cli::StandaloneMessageReporter</class>
   </compound>
   <compound kind="group">
     <name>Diagram</name>
     <title>Diagram</title>
     <filename>group__Diagram.html</filename>
+    <class kind="class">org::lflang::diagram::synthesis::AbstractSynthesisExtensions</class>
+    <class kind="class">org::lflang::diagram::synthesis::action::AbstractAction</class>
+    <class kind="class">org::lflang::diagram::synthesis::action::CollapseAllReactorsAction</class>
+    <class kind="class">org::lflang::diagram::synthesis::action::ExpandAllReactorsAction</class>
+    <class kind="class">org::lflang::diagram::synthesis::action::FilterCycleAction</class>
+    <class kind="class">org::lflang::diagram::synthesis::action::MemorizingExpandCollapseAction</class>
+    <class kind="class">org::lflang::diagram::synthesis::action::ShowCycleAction</class>
+    <class kind="class">org::lflang::diagram::synthesis::LinguaFrancaSynthesis</class>
+    <class kind="class">org::lflang::diagram::synthesis::postprocessor::ReactionPortAdjustment</class>
+    <class kind="class">org::lflang::diagram::synthesis::postprocessor::ReactorPortAdjustment</class>
+    <class kind="enum">org::lflang::diagram::synthesis::ReactorParameterDisplayModes</class>
+    <class kind="class">org::lflang::diagram::synthesis::styles::LinguaFrancaShapeExtensions</class>
+    <class kind="class">org::lflang::diagram::synthesis::styles::LinguaFrancaStyleExtensions</class>
+    <class kind="class">org::lflang::diagram::synthesis::styles::ReactorFigureComponents</class>
+    <class kind="class">org::lflang::diagram::synthesis::SynthesisRegistration</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::CycleVisualization</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::InterfaceDependenciesVisualization</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::LayoutPostProcessing</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::ModeDiagrams</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::NamedInstanceUtil</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::ReactorIcons</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::SynthesisMessageReporter</class>
+    <class kind="class">org::lflang::diagram::synthesis::util::UtilityExtensions</class>
   </compound>
   <compound kind="group">
     <name>Docker</name>
     <title>Docker</title>
     <filename>group__Docker.html</filename>
+    <class kind="class">org::lflang::generator::docker::CDockerGenerator</class>
+    <class kind="class">org::lflang::generator::docker::DockerComposeGenerator</class>
+    <class kind="class">org::lflang::generator::docker::DockerData</class>
+    <class kind="class">org::lflang::generator::docker::DockerGenerator</class>
+    <class kind="class">org::lflang::generator::docker::FedDockerComposeGenerator</class>
+    <class kind="class">org::lflang::generator::docker::PythonDockerGenerator</class>
+    <class kind="class">org::lflang::generator::docker::TSDockerGenerator</class>
   </compound>
   <compound kind="group">
     <name>Federated</name>
     <title>Federated</title>
     <filename>group__Federated.html</filename>
+    <class kind="class">org::lflang::federated::extensions::CExtension</class>
+    <class kind="class">org::lflang::federated::extensions::CExtensionUtils</class>
+    <class kind="interface">org::lflang::federated::extensions::FedTargetExtension</class>
+    <class kind="class">org::lflang::federated::extensions::FedTargetExtensionFactory</class>
+    <class kind="class">org::lflang::federated::extensions::PythonExtension</class>
+    <class kind="class">org::lflang::federated::extensions::TSExtension</class>
+    <class kind="class">org::lflang::federated::generator::FedASTUtils</class>
+    <class kind="class">org::lflang::federated::generator::FedConnectionInstance</class>
+    <class kind="class">org::lflang::federated::generator::FedEmitter</class>
+    <class kind="class">org::lflang::federated::generator::FederateInstance</class>
+    <class kind="class">org::lflang::federated::generator::FederateTargetConfig</class>
+    <class kind="class">org::lflang::federated::generator::FederationFileConfig</class>
+    <class kind="class">org::lflang::federated::generator::FedGenerator</class>
+    <class kind="class">org::lflang::federated::generator::FedImportEmitter</class>
+    <class kind="class">org::lflang::federated::generator::FedMainEmitter</class>
+    <class kind="class">org::lflang::federated::generator::FedPreambleEmitter</class>
+    <class kind="class">org::lflang::federated::generator::FedReactorEmitter</class>
+    <class kind="class">org::lflang::federated::generator::FedTargetEmitter</class>
+    <class kind="class">org::lflang::federated::generator::FedUtils</class>
+    <class kind="class">org::lflang::federated::generator::LineAdjustingMessageReporter</class>
+    <class kind="class">org::lflang::federated::generator::SynchronizedMessageReporter</class>
+    <class kind="class">org::lflang::federated::launcher::BuildConfig</class>
+    <class kind="class">org::lflang::federated::launcher::CBuildConfig</class>
+    <class kind="class">org::lflang::federated::launcher::FedLauncherGenerator</class>
+    <class kind="class">org::lflang::federated::launcher::PyBuildConfig</class>
+    <class kind="class">org::lflang::federated::launcher::RtiConfig</class>
+    <class kind="class">org::lflang::federated::launcher::TsBuildConfig</class>
+    <class kind="class">org::lflang::federated::serialization::FedCustomPythonSerialization</class>
+    <class kind="class">org::lflang::federated::serialization::FedNativePythonSerialization</class>
+    <class kind="class">org::lflang::federated::serialization::FedROS2CPPSerialization</class>
+    <class kind="interface">org::lflang::federated::serialization::FedSerialization</class>
+    <class kind="enum">org::lflang::federated::serialization::SupportedSerializers</class>
+    <class kind="class">org::lflang::federated::validation::FedValidator</class>
+  </compound>
+  <compound kind="group">
+    <name>Generated</name>
+    <title>Generated</title>
+    <filename>group__Generated.html</filename>
   </compound>
   <compound kind="group">
     <name>Generator</name>
     <title>Generator</title>
     <filename>group__Generator.html</filename>
+    <class kind="class">org::lflang::generator::c::CActionGenerator</class>
+    <class kind="class">org::lflang::generator::c::CCmakeGenerator</class>
+    <class kind="class">org::lflang::generator::c::CCompiler</class>
+    <class kind="class">org::lflang::generator::c::CConstructorGenerator</class>
+    <class kind="class">org::lflang::generator::c::CCoreFilesUtils</class>
+    <class kind="class">org::lflang::generator::c::CDelayBodyGenerator</class>
+    <class kind="class">org::lflang::generator::c::CEnclavedReactorTransformation</class>
+    <class kind="class">org::lflang::generator::c::CEnclaveGenerator</class>
+    <class kind="class">org::lflang::generator::c::CEnclaveGraph</class>
+    <class kind="class">org::lflang::generator::c::CEnclaveInstance</class>
+    <class kind="class">org::lflang::generator::c::CFileConfig</class>
+    <class kind="class">org::lflang::generator::c::CMainFunctionGenerator</class>
+    <class kind="class">org::lflang::generator::c::CMethodGenerator</class>
+    <class kind="class">org::lflang::generator::c::CMixedRadixGenerator</class>
+    <class kind="class">org::lflang::generator::c::CModesGenerator</class>
+    <class kind="class">org::lflang::generator::c::CParameterGenerator</class>
+    <class kind="class">org::lflang::generator::c::CPortGenerator</class>
+    <class kind="class">org::lflang::generator::c::CPreambleGenerator</class>
+    <class kind="class">org::lflang::generator::c::CReactionGenerator</class>
+    <class kind="class">org::lflang::generator::c::CReactorHeaderFileGenerator</class>
+    <class kind="class">org::lflang::generator::c::CStateGenerator</class>
+    <class kind="class">org::lflang::generator::c::CTimerGenerator</class>
+    <class kind="class">org::lflang::generator::c::CTracingGenerator</class>
+    <class kind="class">org::lflang::generator::c::CTriggerObjectsGenerator</class>
+    <class kind="class">org::lflang::generator::c::CTypes</class>
+    <class kind="class">org::lflang::generator::c::CUtil</class>
+    <class kind="class">org::lflang::generator::c::CWatchdogGenerator</class>
+    <class kind="class">org::lflang::generator::c::InteractingContainedReactors</class>
+    <class kind="class">org::lflang::generator::c::TypeParameterizedReactor</class>
+    <class kind="interface">org::lflang::generator::DelayBodyGenerator</class>
+    <class kind="class">org::lflang::generator::GenerationException</class>
+    <class kind="class">org::lflang::generator::GeneratorBase</class>
+    <class kind="class">org::lflang::generator::GeneratorCommandFactory</class>
+    <class kind="class">org::lflang::generator::GeneratorResult</class>
+    <class kind="class">org::lflang::generator::GeneratorUtils</class>
+    <class kind="interface">org::lflang::generator::LfExpressionVisitor</class>
+    <class kind="class">org::lflang::generator::LFGenerator</class>
+    <class kind="class">org::lflang::generator::python::PyFileConfig</class>
+    <class kind="class">org::lflang::generator::python::PythonActionGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonDelayBodyGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonMainFunctionGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonMethodGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonModeGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonParameterGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonPortGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonPreambleGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonReactionGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonReactorGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonStateGenerator</class>
+    <class kind="class">org::lflang::generator::python::PythonTypes</class>
+    <class kind="class">org::lflang::generator::python::PythonValidator</class>
+    <class kind="class">org::lflang::generator::python::PyUtil</class>
+    <class kind="class">org::lflang::generator::rust::CargoDependencySpec</class>
+    <class kind="interface">org::lflang::generator::TargetTypes</class>
+    <class kind="class">org::lflang::generator::ts::TSTypes</class>
+    <member kind="function">
+      <type>record</type>
+      <name>org.lflang.generator.Argument&lt; T &gt;</name>
+      <anchorfile>group__Generator.html</anchorfile>
+      <anchor>ga462b695184b8ecbc587ddfb1288b5c95</anchor>
+      <arglist>(TargetProperty&lt; T, ?&gt; property, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>record</type>
+      <name>org.lflang.generator.GeneratorArguments</name>
+      <anchorfile>group__Generator.html</anchorfile>
+      <anchor>gafe0f6415f88e4d19311019f3a8908b0a</anchor>
+      <arglist>(boolean clean, URI externalRuntimeUri, boolean hierarchicalBin, JsonObject jsonObject, boolean lint, boolean quiet, URI rti, List&lt; Argument&lt;?&gt; &gt; overrides)</arglist>
+    </member>
   </compound>
   <compound kind="group">
     <name>Infrastructure</name>
     <title>Infrastructure</title>
     <filename>group__Infrastructure.html</filename>
+    <class kind="class">org::lflang::generator::IntegratedBuilder</class>
+    <class kind="interface">org::lflang::generator::LFGeneratorContext</class>
+    <class kind="class">org::lflang::generator::MainContext</class>
+    <class kind="class">org::lflang::generator::SubContext</class>
+    <class kind="interface">org::lflang::generator::ValidationStrategy</class>
+    <class kind="class">org::lflang::LFResourceDescriptionStrategy</class>
+    <class kind="class">org::lflang::LFResourceProvider</class>
+    <class kind="class">org::lflang::LFRuntimeModule</class>
+    <class kind="class">org::lflang::LFStandaloneSetup</class>
   </compound>
   <compound kind="group">
     <name>Instances</name>
     <title>Instances</title>
     <filename>group__Instances.html</filename>
+    <class kind="class">org::lflang::generator::ActionInstance</class>
+    <class kind="class">org::lflang::generator::DeadlineInstance</class>
+    <class kind="class">org::lflang::generator::ModeInstance</class>
+    <class kind="class">org::lflang::generator::NamedInstance</class>
+    <class kind="class">org::lflang::generator::ParameterInstance</class>
+    <class kind="class">org::lflang::generator::PortInstance</class>
+    <class kind="class">org::lflang::generator::ReactionInstance</class>
+    <class kind="class">org::lflang::generator::ReactionInstanceGraph</class>
+    <class kind="class">org::lflang::generator::ReactorInstance</class>
+    <class kind="class">org::lflang::generator::RuntimeRange&lt; T extends NamedInstance</class>
+    <class kind="class">org::lflang::generator::SendRange</class>
+    <class kind="class">org::lflang::generator::StateVariableInstance</class>
+    <class kind="class">org::lflang::generator::TimerInstance</class>
+    <class kind="class">org::lflang::generator::TriggerInstance</class>
+    <class kind="class">org::lflang::generator::WatchdogInstance</class>
   </compound>
   <compound kind="group">
     <name>LSP</name>
     <title>LSP</title>
     <filename>group__LSP.html</filename>
+    <class kind="class">org::lflang::diagram::lsp::BuildArgs</class>
+    <class kind="class">org::lflang::diagram::lsp::LanguageDiagramServer</class>
+    <class kind="interface">org::lflang::diagram::lsp::LFLanguageClient</class>
+    <class kind="class">org::lflang::diagram::lsp::LFLanguageServer</class>
+    <class kind="class">org::lflang::diagram::lsp::LFLanguageServerExtension</class>
+    <class kind="class">org::lflang::diagram::lsp::LibraryFile</class>
+    <class kind="class">org::lflang::diagram::lsp::NodePosition</class>
+    <class kind="class">org::lflang::diagram::lsp::Progress</class>
+    <class kind="class">org::lflang::diagram::lsp::ReactorNode</class>
   </compound>
   <compound kind="group">
     <name>Tests</name>
     <title>Tests</title>
     <filename>group__Tests.html</filename>
+    <class kind="class">org::lflang::tests::lsp::ErrorInserter</class>
+    <class kind="class">org::lflang::tests::lsp::LspTests</class>
+    <class kind="class">org::lflang::tests::lsp::MockCancelIndicator</class>
+    <class kind="class">org::lflang::tests::lsp::MockLanguageClient</class>
+    <class kind="class">org::lflang::tests::lsp::MockReportProgress</class>
+    <class kind="class">org::lflang::tests::RunSingleTest</class>
+    <class kind="class">org::lflang::tests::runtime::CArduinoTest</class>
+    <class kind="class">org::lflang::tests::runtime::CCppTest</class>
+    <class kind="class">org::lflang::tests::runtime::CFlexPRETTest</class>
+    <class kind="class">org::lflang::tests::runtime::CPatmosTest</class>
+    <class kind="class">org::lflang::tests::runtime::CppRos2Test</class>
+    <class kind="class">org::lflang::tests::runtime::CppTest</class>
+    <class kind="class">org::lflang::tests::runtime::CSchedulerTest</class>
+    <class kind="class">org::lflang::tests::runtime::CTest</class>
+    <class kind="class">org::lflang::tests::runtime::CVerifierTest</class>
+    <class kind="class">org::lflang::tests::runtime::CZephyrTest</class>
+    <class kind="class">org::lflang::tests::runtime::PythonTest</class>
+    <class kind="class">org::lflang::tests::runtime::RustTest</class>
+    <class kind="class">org::lflang::tests::runtime::TypeScriptTest</class>
+    <class kind="class">org::lflang::tests::RuntimeTest</class>
+    <class kind="class">org::lflang::tests::serialization::SerializationTest</class>
   </compound>
   <compound kind="group">
     <name>Utilities</name>
     <title>Utilities</title>
     <filename>group__Utilities.html</filename>
+    <class kind="interface">org::lflang::ast::AstTransformation</class>
+    <class kind="class">org::lflang::ast::ASTUtils</class>
+    <class kind="class">org::lflang::ast::DelayedConnectionTransformation</class>
+    <class kind="class">org::lflang::ast::FormattingUtil</class>
+    <class kind="class">org::lflang::ast::IsEqual</class>
+    <class kind="class">org::lflang::ast::LfParsingHelper</class>
+    <class kind="class">org::lflang::ast::MalleableString</class>
+    <class kind="class">org::lflang::ast::ToLf</class>
+    <class kind="class">org::lflang::ast::ToSExpr</class>
+    <class kind="class">org::lflang::ast::ToText</class>
+    <class kind="class">org::lflang::AttributeUtils</class>
+    <class kind="class">org::lflang::FileConfig</class>
+    <class kind="class">org::lflang::generator::CodeBuilder</class>
+    <class kind="class">org::lflang::generator::CodeMap</class>
+    <class kind="class">org::lflang::generator::MixedRadixInt</class>
+    <class kind="class">org::lflang::generator::Position</class>
+    <class kind="class">org::lflang::generator::Range</class>
+    <class kind="class">org::lflang::InferredType</class>
   </compound>
   <compound kind="group">
     <name>Validation</name>
     <title>Validation</title>
     <filename>group__Validation.html</filename>
+    <class kind="class">org::lflang::DefaultMessageReporter</class>
+    <class kind="class">org::lflang::generator::DiagnosticReporting</class>
+    <class kind="class">org::lflang::generator::HumanReadableReportingStrategy</class>
+    <class kind="class">org::lflang::generator::InvalidLfSourceException</class>
+    <class kind="class">org::lflang::generator::InvalidSourceException</class>
+    <class kind="class">org::lflang::generator::LanguageServerMessageReporter</class>
+    <class kind="class">org::lflang::generator::UnsupportedGeneratorFeatureException</class>
+    <class kind="class">org::lflang::generator::Validator</class>
+    <class kind="class">org::lflang::LFSyntaxErrorMessageProvider</class>
   </compound>
   <compound kind="page">
     <name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING</name>

@@ -94,7 +94,7 @@ $(function(){initNavTree('classorg_1_1lflang_1_1AttributeUtils.html','','classor
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.AttributeUtils Class Reference</div></div>
+  <div class="headertitle"><div class="title">org.lflang.AttributeUtils Class Reference<div class="ingroups"><a class="el" href="group__Utilities.html">Utilities</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -146,6 +146,7 @@ Static Public Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A helper class for processing attributes in the AST. </p>
+<p>An attribute is an annotation using the <span class="tt">@</span> syntax. For example, <span class="tt">@label("My Label")</span> is an attribute. It is associated with whatever node comes immediately after it.</p>
 <dl class="section author"><dt>Author</dt><dd>Shaokai Lin </dd>
 <dd>
 Clément Fournier </dd>
@@ -180,7 +181,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Retrieve a specific annotation in a comment associated with the given model element in the AST. </p>
-<p>This will look for a comment. If one is found, it searches for the given annotation <code class="JavaDocCode">key</code> and extracts any string that follows the annotation marker. Note that annotations in comments are deprecated, but we still check for them for backwards compatibility. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This will look for a comment. If one is found, it searches for the given annotation <code class="JavaDocCode">key</code> and extracts any string that follows the annotation marker. Note that annotations in comments are deprecated, but we still check for them for backwards compatibility.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">object</td><td>The AST model element to search a comment for. </td></tr>
     <tr><td class="paramname">key</td><td>The specific annotation key to be extracted. </td></tr>
@@ -219,7 +221,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return the attribute with the given name if present, otherwise return null. </p>
-<p>If there are multiple attributes with the same name, this returns the first one. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>If there are multiple attributes with the same name, this returns the first one.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">node</td><td>The node to search for the attribute. </td></tr>
     <tr><td class="paramname">name</td><td>The name of the attribute to search for. </td></tr>
@@ -291,7 +294,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return the parameter of the given attribute with the given name. </p>
-<p>Return null if no such parameter is found. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Return null if no such parameter is found.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">attribute</td><td>The attribute to get the parameter from. </td></tr>
     <tr><td class="paramname">parameterName</td><td>The name of the parameter to get. </td></tr>
@@ -357,7 +361,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Search for an attribute with the given name on the given AST node and return its first argument as a String or null if the attribute is not found or if it does not have any arguments. </p>
-<p>This should only be used on attributes that are expected to have a single argument. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This should only be used on attributes that are expected to have a single argument.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">node</td><td>The node to search for the attribute. </td></tr>
     <tr><td class="paramname">attrName</td><td>The name of the attribute to search for. </td></tr>
@@ -396,7 +401,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>For an attribute with the given name on the given AST node, return a map of the attribute parameters to their values. </p>
-<p>This should only be used on attributes that are expected to have a single argument. This returns null if the given node does not support declaring attributes, and returns an empty map if the attribute is not found or if it does not have any arguments. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This should only be used on attributes that are expected to have a single argument. This returns null if the given node does not support declaring attributes, and returns an empty map if the attribute is not found or if it does not have any arguments.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">node</td><td>The node to search for the attribute. </td></tr>
     <tr><td class="paramname">attrName</td><td>The name of the attribute to search for. </td></tr>
@@ -435,7 +441,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return the parameter of the given attribute with the given name and interpret it as a boolean. </p>
-<p>Returns null if no such parameter is found. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Returns null if no such parameter is found.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">attribute</td><td>The attribute to get the parameter from. </td></tr>
     <tr><td class="paramname">parameterName</td><td>The name of the parameter to get. </td></tr>
@@ -470,7 +477,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return the <code class="JavaDocCode">@enclave</code> attribute annotated on the given node. </p>
-<p>Return null if there is no such attribute. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Return null if there is no such attribute.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">node</td><td>The node to get the enclave attribute from. </td></tr>
   </table>
@@ -504,7 +512,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Retrieve the number of worker parameter from an enclave attribute. </p>
-<p>Return 1 if not specified or has illegal value </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Return 1 if not specified or has illegal value</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">node</td><td>The node to get the number of workers from. </td></tr>
   </table>
@@ -538,7 +547,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return the first argument specified for the attribute or null if the attribute is not found or if it does not have any arguments. </p>
-<p>This should be used only if the attribute is expected to have a single argument. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This should be used only if the attribute is expected to have a single argument.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">attr</td><td>The attribute to get the first argument from. </td></tr>
   </table>
@@ -708,7 +718,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return true if the reaction is marked to have a C code body. </p>
-<p>Currently, this is only used for synthesized reactions in the context of federated execution in Python. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>Currently, this is only used for synthesized reactions in the context of federated execution in Python.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">reaction</td><td>The reaction to check. </td></tr>
   </table>

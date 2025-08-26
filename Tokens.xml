@@ -4431,6 +4431,13 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>Generated</Name>
+      <APILanguage>java</APILanguage>
+    </TokenIdentifier>
+    <Path>group__Generated.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>Generator</Name>
       <APILanguage>java</APILanguage>
     </TokenIdentifier>
@@ -51013,8 +51020,8 @@
       <Type>func</Type>
       <Scope>org.lflang.generator</Scope>
     </TokenIdentifier>
-    <Path>namespaceorg_1_1lflang_1_1generator.html</Path>
-    <Anchor>a462b695184b8ecbc587ddfb1288b5c95</Anchor>
+    <Path>group__Generator.html</Path>
+    <Anchor>ga462b695184b8ecbc587ddfb1288b5c95</Anchor>
     <DeclaredIn>Argument.java</DeclaredIn>
   </Token>
   <Token>
@@ -51024,8 +51031,8 @@
       <Type>func</Type>
       <Scope>org.lflang.generator</Scope>
     </TokenIdentifier>
-    <Path>namespaceorg_1_1lflang_1_1generator.html</Path>
-    <Anchor>afe0f6415f88e4d19311019f3a8908b0a</Anchor>
+    <Path>group__Generator.html</Path>
+    <Anchor>gafe0f6415f88e4d19311019f3a8908b0a</Anchor>
     <DeclaredIn>GeneratorArguments.java</DeclaredIn>
   </Token>
   <Token>
