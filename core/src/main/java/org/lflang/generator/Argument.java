@@ -11,6 +11,7 @@ import org.lflang.target.property.TargetProperty;
  * @param value The value to assign to it.
  * @param <T> The type of the value.
  * @author Marten Lohstroh
+ * @ingroup Generator
  */
 public record Argument<T>(TargetProperty<T, ?> property, T value) {
 

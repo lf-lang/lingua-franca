@@ -7,6 +7,11 @@ import org.lflang.generator.ParameterInstance;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ReactorDecl;
 
+/**
+ * Generate Python code for parameters.
+ *
+ * @ingroup Generator
+ */
 public class PythonParameterGenerator {
   /**
    * Generate Python code that instantiates and initializes parameters for a reactor 'decl'.

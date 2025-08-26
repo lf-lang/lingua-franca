@@ -22,6 +22,8 @@ import org.lflang.util.StringUtil;
 /**
  * Switch class for converting AST nodes to some textual representation that seems likely to be
  * useful for as many code generators as possible.
+ *
+ * @ingroup Utilities
  */
 public class ToText extends LfSwitch<String> {
 

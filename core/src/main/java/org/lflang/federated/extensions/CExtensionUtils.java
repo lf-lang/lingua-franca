@@ -33,6 +33,12 @@ import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
+/**
+ * Utility class for the C extension.
+ *
+ * @author Soroush Bateni
+ * @ingroup Federated
+ */
 public class CExtensionUtils {
 
   // Regular expression pattern for shared_ptr types.

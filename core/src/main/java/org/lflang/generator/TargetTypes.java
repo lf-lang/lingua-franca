@@ -26,6 +26,7 @@ import org.lflang.lf.Type;
  * language-specific instance of this interface.
  *
  * @author Clément Fournier - TU Dresden, INSA Rennes
+ * @ingroup Generator
  */
 public interface TargetTypes {
 

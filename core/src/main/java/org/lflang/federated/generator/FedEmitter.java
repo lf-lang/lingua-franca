@@ -12,7 +12,11 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
-/** Helper class to generate code for federates. */
+/**
+ * Helper class to generate code for federates.
+ *
+ * @ingroup Federated
+ */
 public class FedEmitter {
 
   private final FederationFileConfig fileConfig;

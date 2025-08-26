@@ -16,6 +16,7 @@ import org.eclipse.xtext.util.CancelIndicator;
  * A class for reporting the progress of an ongoing task.
  *
  * @author Peter Donovan
+ * @ingroup LSP
  */
 public class Progress {
   private static int nextToken = 0;

@@ -11,6 +11,7 @@ import picocli.CommandLine.Spec;
  * information.
  *
  * @author Atharva Patil
+ * @ingroup CLI
  */
 class VersionProvider implements IVersionProvider {
   /*

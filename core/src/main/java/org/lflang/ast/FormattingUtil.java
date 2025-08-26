@@ -17,6 +17,7 @@ import org.lflang.target.Target;
  *
  * @author Peter Donovan
  * @author Billy Bao
+ * @ingroup Utilities
  */
 public class FormattingUtil {
   /**

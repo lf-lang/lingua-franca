@@ -5,6 +5,11 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.StateVar;
 
+/**
+ * Type information for the Typescript target.
+ *
+ * @ingroup Generator
+ */
 public class TSTypes implements TargetTypes {
 
   private static TSTypes INSTANCE = new TSTypes();

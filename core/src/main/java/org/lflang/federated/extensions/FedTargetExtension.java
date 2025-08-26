@@ -16,6 +16,12 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
+/**
+ * Interface for federated target extensions.
+ *
+ * @author Soroush Bateni
+ * @ingroup Federated
+ */
 public interface FedTargetExtension {
 
   /**

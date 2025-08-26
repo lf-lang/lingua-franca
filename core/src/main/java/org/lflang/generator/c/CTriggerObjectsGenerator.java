@@ -35,6 +35,7 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CTriggerObjectsGenerator {
   /** Generate the _lf_initialize_trigger_objects function for 'federate'. */

@@ -19,6 +19,7 @@ import org.lflang.util.FileUtil;
  *
  * @author Edward A. Lee
  * @author Peter Donovan
+ * @ingroup Utilities
  */
 public class CodeBuilder {
 

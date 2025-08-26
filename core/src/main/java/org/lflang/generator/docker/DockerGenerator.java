@@ -19,6 +19,7 @@ import org.lflang.util.StringUtil;
  *
  * @author Marten Lohstroh
  * @author Hou Seng Wong
+ * @ingroup Docker
  */
 public abstract class DockerGenerator {
 

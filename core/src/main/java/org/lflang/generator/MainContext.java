@@ -14,10 +14,11 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
 import org.lflang.target.TargetConfig;
 
 /**
- * A {@code MainContext} is an {@code LFGeneratorContext} that is not nested in any other generator
- * context. There is one {@code MainContext} for every build process.
+ * An {@code LFGeneratorContext} that is not nested in any other generator context. There is one
+ * {@code MainContext} for every build process.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public class MainContext implements LFGeneratorContext {
 

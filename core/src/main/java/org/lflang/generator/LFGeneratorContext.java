@@ -10,10 +10,11 @@ import org.lflang.MessageReporter;
 import org.lflang.target.TargetConfig;
 
 /**
- * An {@code LFGeneratorContext} is the context of a Lingua Franca build process. It is the point of
- * communication between a build process and the environment in which it is executed.
+ * The context of a Lingua Franca build process. It is the point of communication between a build
+ * process and the environment in which it is executed.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 

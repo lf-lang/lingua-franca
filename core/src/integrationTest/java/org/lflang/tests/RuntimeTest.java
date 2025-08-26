@@ -12,6 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * A collection of JUnit tests to perform on a given set of targets.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public abstract class RuntimeTest extends TestBase {
 

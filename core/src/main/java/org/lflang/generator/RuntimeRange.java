@@ -15,11 +15,11 @@ import java.util.Set;
  * * The compile-time instance graph (CIG).
  * * The runtime instance graph (RIG).
  *
- * In the AST, each reactor class is represented once. In the CIG, each reactor class is represented
- * as many times as it is instantiated, except that a bank has only one representation (as in the
- * graphical rendition). Equivalently, each CIG node has a unique full name, even though it may
- * represent many runtime instances. The CIG is represented by {@link NamedInstance} and its derived
- * classes. In the RIG, each bank is expanded so each bank member and each port channel is
+ * In the AST, each reactor class is represented once. In the CIG, each reactor class is
+ * represented as many times as it is instantiated, except that a bank has only one representation
+ * (as in the graphical rendition). Equivalently, each CIG node has a unique full name, even though
+ * it may represent many runtime instances. The CIG is represented by {@link NamedInstance} and its
+ * derived classes. In the RIG, each bank is expanded so each bank member and each port channel is
  * represented.
  *
  * In general, determining dependencies between reactions requires analysis at the level of the

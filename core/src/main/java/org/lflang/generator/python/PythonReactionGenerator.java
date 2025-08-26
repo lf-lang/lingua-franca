@@ -30,6 +30,11 @@ import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate Python code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class PythonReactionGenerator {
   /**
    * Generate code to call reaction numbered "reactionIndex" in reactor "reactor".

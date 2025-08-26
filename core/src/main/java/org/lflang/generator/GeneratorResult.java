@@ -6,9 +6,10 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
- * A {@code GeneratorResult} is the outcome of a code generation task.
+ * The result of a code generation task.
  *
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public class GeneratorResult {
   public static GeneratorResult NOTHING = incompleteGeneratorResult(Status.NOTHING);
