@@ -13,18 +13,14 @@ The code in lingua-franca is documented with Javadoc-style comments that are aut
 
 To clone the repo and build the doc files locally, simply do this:
 
-### Prerequisites
-
 - Install [doxygen](https://www.doxygen.nl)
-
-### Build Documentation Files
 
 - Check out this repo and build the docs:
   - `git clone git@github.com:lf-lang/lingua-franca.git`
-  - `cd lingua-franca`
-  - `make docs`
+  - `cd lingua-franca/docs`
+  - `doxygen Doxyfile.in`
 
 ### View Documentation Files
 
 - Point your browser to the generated HTML page:
-  - `firefox docs/build/html/index.html`
+  - `open build/html/index.html`

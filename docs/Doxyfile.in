@@ -253,3 +253,5 @@ MAX_DOT_GRAPH_DEPTH    = 0
 DOT_MULTI_TARGETS      = NO
 GENERATE_LEGEND        = YES
 DOT_CLEANUP            = YES
+ALIASES += generated="@ingroup Generated"
+ALIASES += ordered=""
