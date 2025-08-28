@@ -614,7 +614,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   }
 
   /**
-   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * Check if `@property` is used. If so, instantiate a UclidGenerator. The verification model needs
    * to be generated before the target code since code generation changes LF program (desugar
    * connections, etc.).
    */

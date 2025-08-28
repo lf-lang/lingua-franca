@@ -89,9 +89,9 @@ public interface TargetTypes {
 
   /**
    * Returns the expression that is used to replace a missing expression in the source language. The
-   * expression may for instance be a type-agnostic default value (e.g. Rust's {@code
-   * Default::default()}), or produce a compiler error (e.g. Rust's {@code compiler_error!("missing
-   * initializer")}).
+   * expression may for instance be a type-agnostic default value (e.g. Rust's `Default::default()`),
+   * `Default::default()`), or produce a compiler error (e.g. Rust's `compiler_error!("missing
+   * initializer")`).
    *
    * @throws UnsupportedGeneratorFeatureException If the target does not support this
    */

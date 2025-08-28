@@ -177,6 +177,8 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
    * Compare ranges by first comparing their start offset, and then, if these are equal, comparing
    * their widths. This comparison is meaningful only for ranges that have the same instances. Note
    * that this can return 0 even if equals() does not return true.
+   *
+   * @param o The range to compare to.
    */
   @Override
   public int compareTo(RuntimeRange<?> o) {
@@ -261,6 +263,8 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
 
   /**
    * Return true if the specified range has the same instance as this range and the ranges overlap.
+   *
+   * @param range The range to check for overlap.
    */
   public boolean overlaps(RuntimeRange<?> range) {
     if (!instance.equals(range.instance)) return false;
