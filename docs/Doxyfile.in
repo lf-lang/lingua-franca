@@ -8,6 +8,7 @@ PREDEFINED             =
 OUTPUT_DIRECTORY = build
 INPUT =                 ./doxygen.java \
                         ./markdown/1_landing_page.md \
+                        ../test/README.md \
                         ../CONTRIBUTING.md \
                         ../LICENSE.md \
                         ../core/src/main/java/org/lflang/LinguaFranca.xtext \
@@ -52,6 +53,7 @@ INHERIT_DOCS           = YES
 SEPARATE_MEMBER_PAGES  = NO
 TAB_SIZE               = 4
 OPTIMIZE_OUTPUT_FOR_C  = NO
+OPTIMIZE_OUTPUT_JAVA   = YES
 OPTIMIZE_OUTPUT_SLICE  = NO
 EXTENSION_MAPPING      =
 MARKDOWN_SUPPORT       = YES
@@ -127,7 +129,6 @@ EXAMPLE_PATH           =
 EXAMPLE_PATTERNS       =
 EXAMPLE_RECURSIVE      = YES
 IMAGE_PATH             =
-INPUT_FILTER           =
 FILTER_PATTERNS        =
 FILTER_SOURCE_FILES    = NO
 FILTER_SOURCE_PATTERNS =
@@ -253,5 +254,11 @@ MAX_DOT_GRAPH_DEPTH    = 0
 DOT_MULTI_TARGETS      = NO
 GENERATE_LEGEND        = YES
 DOT_CLEANUP            = YES
-ALIASES += generated="@ingroup Generated"
+# Generated files are not included in the GitHub action that generates the docs.
+# ALIASES += generated="@ingroup Generated"
+ALIASES += generated=""
 ALIASES += ordered=""
+ALIASES += model=""
+# Doxygen can't parse nested generics. This filter replaces with a simpler declaration.
+INPUT_FILTER = sed -e 's/RuntimeRange<T extends NamedInstance<?>>/RuntimeRange<T>/g' \
+    -e 's/OptionsType<T extends Enum<?>>/OptionsType<T>/g'
