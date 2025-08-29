@@ -22,9 +22,11 @@ var searchData=
   ['rtidockergenerator_19',['RtiDockerGenerator',['../classorg_1_1lflang_1_1generator_1_1docker_1_1RtiDockerGenerator.html',1,'org::lflang::generator::docker']]],
   ['runsingletest_20',['RunSingleTest',['../classorg_1_1lflang_1_1tests_1_1RunSingleTest.html',1,'org::lflang::tests']]],
   ['runtime_21',['Runtime',['../classorg_1_1lflang_1_1generator_1_1ReactionInstance_1_1Runtime.html',1,'org::lflang::generator::ReactionInstance']]],
-  ['runtimerange_3c_20t_20extends_20namedinstance_22',['RuntimeRange&lt; T extends NamedInstance',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange_3_01T_01extends_01NamedInstance.html',1,'org::lflang::generator']]],
-  ['runtimetest_23',['RuntimeTest',['../classorg_1_1lflang_1_1tests_1_1RuntimeTest.html',1,'org::lflang::tests']]],
-  ['runtimeversionproperty_24',['RuntimeVersionProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html',1,'org::lflang::target::property']]],
-  ['rustincludeproperty_25',['RustIncludeProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html',1,'org::lflang::target::property']]],
-  ['rusttest_26',['RustTest',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html',1,'org::lflang::tests::runtime']]]
+  ['runtimerange_22',['RuntimeRange',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html',1,'org::lflang::generator']]],
+  ['runtimerange_3c_20org_3a_3alflang_3a_3agenerator_3a_3aportinstance_20_3e_23',['RuntimeRange&lt; org::lflang::generator::PortInstance &gt;',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html',1,'org::lflang::generator']]],
+  ['runtimerange_3c_20portinstance_20_3e_24',['RuntimeRange&lt; PortInstance &gt;',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html',1,'org::lflang::generator']]],
+  ['runtimetest_25',['RuntimeTest',['../classorg_1_1lflang_1_1tests_1_1RuntimeTest.html',1,'org::lflang::tests']]],
+  ['runtimeversionproperty_26',['RuntimeVersionProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html',1,'org::lflang::target::property']]],
+  ['rustincludeproperty_27',['RustIncludeProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html',1,'org::lflang::target::property']]],
+  ['rusttest_28',['RustTest',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html',1,'org::lflang::tests::runtime']]]
 ];

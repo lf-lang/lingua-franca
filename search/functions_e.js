@@ -37,5 +37,6 @@ var searchData=
   ['mtlvisitor_34',['MTLVisitor',['../classorg_1_1lflang_1_1analyses_1_1uclid_1_1MTLVisitor.html#adf7b53d363ab0b891fc40f880c07e7bf',1,'org::lflang::analyses::uclid::MTLVisitor']]],
   ['multipleconnectionstoinputtest_35',['multipleConnectionsToInputTest',['../classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a511c70ab657ac63eaed530191f637208',1,'org::lflang::tests::compiler::LinguaFrancaValidationTest']]],
   ['multiplelabels_36',['multipleLabels',['../classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a4e3692d63617367aea4cc702c6ac1c48',1,'org::lflang::tests::compiler::LinguaFrancaValidationTest']]],
-  ['multiportdestination_37',['multiportDestination',['../classorg_1_1lflang_1_1tests_1_1compiler_1_1PortInstanceTests.html#a2c61c07f7bebfdba7bf01dfa1117c8bc',1,'org::lflang::tests::compiler::PortInstanceTests']]]
+  ['multiportdestination_37',['multiportDestination',['../classorg_1_1lflang_1_1tests_1_1compiler_1_1PortInstanceTests.html#a2c61c07f7bebfdba7bf01dfa1117c8bc',1,'org::lflang::tests::compiler::PortInstanceTests']]],
+  ['multiportwidthexpression_38',['multiportWidthExpression',['../classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ac78da991adaeb2198262de57d7b0242e',1,'org::lflang::generator::c::CUtil']]]
 ];

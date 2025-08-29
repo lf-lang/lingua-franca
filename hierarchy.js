@@ -49,6 +49,7 @@ var hierarchy =
       [ "org.lflang.analyses.statespace.Tag", "classorg_1_1lflang_1_1analyses_1_1statespace_1_1Tag.html", null ],
       [ "org.lflang.generator.Position", "classorg_1_1lflang_1_1generator_1_1Position.html", null ],
       [ "org.lflang.generator.Range", "classorg_1_1lflang_1_1generator_1_1Range.html", null ],
+      [ "org.lflang.generator.RuntimeRange< T >", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", null ],
       [ "org.lflang.tests.LFTest", "classorg_1_1lflang_1_1tests_1_1LFTest.html", null ]
     ] ],
     [ "DefaultResourceDescriptionStrategy", null, [
@@ -127,14 +128,6 @@ var hierarchy =
     ] ],
     [ "NamesAreUniqueValidationHelper", null, [
       [ "org.lflang.validation.LFNamesAreUniqueValidationHelper", "classorg_1_1lflang_1_1validation_1_1LFNamesAreUniqueValidationHelper.html", null ]
-    ] ],
-    [ "OptionsType", null, [
-      [ "org.lflang.target.property.type.BuildTypeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType.html", null ],
-      [ "org.lflang.target.property.type.ClockSyncModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType.html", null ],
-      [ "org.lflang.target.property.type.CoordinationModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html", null ],
-      [ "org.lflang.target.property.type.LoggingType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType.html", null ],
-      [ "org.lflang.target.property.type.PlatformType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType.html", null ],
-      [ "org.lflang.target.property.type.SchedulerType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType.html", null ]
     ] ],
     [ "org.lflang.analyses.c.AstUtils", "classorg_1_1lflang_1_1analyses_1_1c_1_1AstUtils.html", null ],
     [ "org.lflang.analyses.c.AstVisitor< T >", "interfaceorg_1_1lflang_1_1analyses_1_1c_1_1AstVisitor.html", [
@@ -419,7 +412,11 @@ var hierarchy =
     [ "org.lflang.generator.python.PythonReactorGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonReactorGenerator.html", null ],
     [ "org.lflang.generator.python.PythonStateGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonStateGenerator.html", null ],
     [ "org.lflang.generator.ReactionInstance.Runtime", "classorg_1_1lflang_1_1generator_1_1ReactionInstance_1_1Runtime.html", null ],
-    [ "org.lflang.generator.RuntimeRange< T extends NamedInstance", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_3_01T_01extends_01NamedInstance.html", null ],
+    [ "org.lflang.generator.RuntimeRange< PortInstance >", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", [
+      [ "org.lflang.generator.RuntimeRange< T >.Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html", [
+        [ "org.lflang.generator.SendRange", "classorg_1_1lflang_1_1generator_1_1SendRange.html", null ]
+      ] ]
+    ] ],
     [ "org.lflang.generator.rust.CargoDependencySpec", "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html", null ],
     [ "org.lflang.generator.TargetTypes", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html", [
       [ "org.lflang.generator.c.CTypes", "classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html", [
@@ -579,13 +576,31 @@ var hierarchy =
       [ "org.lflang.target.property.TracingProperty.TracingOption", "enumorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOption.html", null ]
     ] ],
     [ "org.lflang.target.property.type.LoggingType.LogLevel", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType_1_1LogLevel.html", null ],
-    [ "org.lflang.target.property.type.OptionsType< T extends Enum", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType_3_01T_01extends_01Enum.html", null ],
+    [ "org.lflang.target.property.type.OptionsType< BuildType >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.BuildTypeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType.html", null ]
+    ] ],
+    [ "org.lflang.target.property.type.OptionsType< ClockSyncMode >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.ClockSyncModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType.html", null ]
+    ] ],
+    [ "org.lflang.target.property.type.OptionsType< CoordinationMode >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.CoordinationModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html", null ]
+    ] ],
+    [ "org.lflang.target.property.type.OptionsType< LogLevel >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.LoggingType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType.html", null ]
+    ] ],
+    [ "org.lflang.target.property.type.OptionsType< Platform >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.PlatformType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType.html", null ]
+    ] ],
+    [ "org.lflang.target.property.type.OptionsType< Scheduler >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.SchedulerType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType.html", null ]
+    ] ],
     [ "org.lflang.target.property.type.PlatformType.Platform", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html", null ],
     [ "org.lflang.target.property.type.SchedulerType.Scheduler", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType_1_1Scheduler.html", null ],
     [ "org.lflang.target.property.type.TargetPropertyType", "interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html", [
       [ "org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType", "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec_1_1CargoDependenciesPropertyType.html", null ],
       [ "org.lflang.target.property.type.ArrayType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ArrayType.html", null ],
       [ "org.lflang.target.property.type.DictionaryType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html", null ],
+      [ "org.lflang.target.property.type.OptionsType< T >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", null ],
       [ "org.lflang.target.property.type.PrimitiveType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PrimitiveType.html", null ],
       [ "org.lflang.target.property.type.StringDictionaryType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1StringDictionaryType.html", null ],
       [ "org.lflang.target.property.type.UnionType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1UnionType.html", null ]
@@ -673,11 +688,6 @@ var hierarchy =
       ] ],
       [ "org.lflang.generator.InvalidLfSourceException", "classorg_1_1lflang_1_1generator_1_1InvalidLfSourceException.html", null ],
       [ "org.lflang.generator.InvalidSourceException", "classorg_1_1lflang_1_1generator_1_1InvalidSourceException.html", null ]
-    ] ],
-    [ "RuntimeRange", null, [
-      [ "org.lflang.generator.RuntimeRange.Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html", [
-        [ "org.lflang.generator.SendRange", "classorg_1_1lflang_1_1generator_1_1SendRange.html", null ]
-      ] ]
     ] ],
     [ "SimpleFileVisitor", null, [
       [ "org.lflang.MainConflictChecker.PackageVisitor", "classorg_1_1lflang_1_1MainConflictChecker_1_1PackageVisitor.html", null ]

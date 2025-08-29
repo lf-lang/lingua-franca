@@ -214,9 +214,6 @@ var annotated_dup =
             [ "PythonValidator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonValidator.html", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonValidator" ],
             [ "PyUtil", "classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil.html", "classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil" ]
           ] ],
-          [ "RuntimeRange", null, [
-            [ "Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port" ]
-          ] ],
           [ "rust", "namespaceorg_1_1lflang_1_1generator_1_1rust.html", [
             [ "CargoDependencySpec", "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html", "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec" ]
           ] ],
@@ -253,7 +250,7 @@ var annotated_dup =
           [ "ReactionInstance", "classorg_1_1lflang_1_1generator_1_1ReactionInstance.html", "classorg_1_1lflang_1_1generator_1_1ReactionInstance" ],
           [ "ReactionInstanceGraph", "classorg_1_1lflang_1_1generator_1_1ReactionInstanceGraph.html", "classorg_1_1lflang_1_1generator_1_1ReactionInstanceGraph" ],
           [ "ReactorInstance", "classorg_1_1lflang_1_1generator_1_1ReactorInstance.html", "classorg_1_1lflang_1_1generator_1_1ReactorInstance" ],
-          [ "RuntimeRange< T extends NamedInstance", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_3_01T_01extends_01NamedInstance.html", null ],
+          [ "RuntimeRange", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", "classorg_1_1lflang_1_1generator_1_1RuntimeRange" ],
           [ "SendRange", "classorg_1_1lflang_1_1generator_1_1SendRange.html", "classorg_1_1lflang_1_1generator_1_1SendRange" ],
           [ "StateVariableInstance", "classorg_1_1lflang_1_1generator_1_1StateVariableInstance.html", "classorg_1_1lflang_1_1generator_1_1StateVariableInstance" ],
           [ "SubContext", "classorg_1_1lflang_1_1generator_1_1SubContext.html", "classorg_1_1lflang_1_1generator_1_1SubContext" ],
@@ -292,7 +289,7 @@ var annotated_dup =
               [ "CoordinationModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType" ],
               [ "DictionaryType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType" ],
               [ "LoggingType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType.html", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType" ],
-              [ "OptionsType< T extends Enum", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType_3_01T_01extends_01Enum.html", null ],
+              [ "OptionsType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType" ],
               [ "PlatformType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType.html", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType" ],
               [ "PrimitiveType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PrimitiveType.html", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PrimitiveType" ],
               [ "SchedulerType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType.html", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType" ],

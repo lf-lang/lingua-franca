@@ -107,12 +107,20 @@ $(function(){initNavTree('classorg_1_1lflang_1_1generator_1_1python_1_1PythonTyp
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a6fb005ca8e89ff21310eb1f2869a7c18" id="r_a6fb005ca8e89ff21310eb1f2869a7c18"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a6fb005ca8e89ff21310eb1f2869a7c18">escapeIdentifier</a> (String ident)</td></tr>
 <tr class="memdesc:a6fb005ca8e89ff21310eb1f2869a7c18"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a version of the given LF identifier that is escaped properly for insertion into a piece of target code.  <br /></td></tr>
+<tr class="memitem:a6e22d5b655615f1a711eac83d35279d5" id="r_a6e22d5b655615f1a711eac83d35279d5"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a6e22d5b655615f1a711eac83d35279d5">getGenericType</a> (String base, List&lt; String &gt; args)</td></tr>
+<tr class="memdesc:a6e22d5b655615f1a711eac83d35279d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build a generic type.  <br /></td></tr>
+<tr class="memitem:a5785f8dc543dd9dcfafb2dcefea963e1" id="r_a5785f8dc543dd9dcfafb2dcefea963e1"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a5785f8dc543dd9dcfafb2dcefea963e1">getMissingExpr</a> (<a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
+<tr class="memdesc:a5785f8dc543dd9dcfafb2dcefea963e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the expression that is used to replace a missing expression in the source language.  <br /></td></tr>
 <tr class="memitem:a92e025270192361c2e990da0f474f1f9" id="r_a92e025270192361c2e990da0f474f1f9"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a92e025270192361c2e990da0f474f1f9">getPythonType</a> (<a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
 <tr class="memdesc:a92e025270192361c2e990da0f474f1f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">This generator inherits types from the CGenerator.  <br /></td></tr>
 <tr class="memitem:a2babf7f7832b3075287836b0caceda66" id="r_a2babf7f7832b3075287836b0caceda66"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a2babf7f7832b3075287836b0caceda66">getTargetBracedListExpr</a> (BracedListExpression expr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> typeOrNull)</td></tr>
 <tr class="memdesc:a2babf7f7832b3075287836b0caceda66"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate the braced list expression into target language syntax.  <br /></td></tr>
 <tr class="memitem:a20ebd97caa978757eb73d61fd4912861" id="r_a20ebd97caa978757eb73d61fd4912861"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a20ebd97caa978757eb73d61fd4912861">getTargetBracketListExpr</a> (BracketListExpression expr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> typeOrNull)</td></tr>
 <tr class="memdesc:a20ebd97caa978757eb73d61fd4912861"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate the bracket list expression into target language syntax.  <br /></td></tr>
+<tr class="memitem:a9989f34fc578775589053718c7be4360" id="r_a9989f34fc578775589053718c7be4360"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a9989f34fc578775589053718c7be4360">getTargetExpr</a> (Expression expr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
+<tr class="memdesc:a9989f34fc578775589053718c7be4360"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the representation of the given expression in target code.  <br /></td></tr>
+<tr class="memitem:a70dc7a2fb0bd34f7ee15b20ad91c7e25" id="r_a70dc7a2fb0bd34f7ee15b20ad91c7e25"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a70dc7a2fb0bd34f7ee15b20ad91c7e25">getTargetInitializer</a> (Initializer init, Type type)</td></tr>
+<tr class="memdesc:a70dc7a2fb0bd34f7ee15b20ad91c7e25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the representation of the given initializer expression in target code.  <br /></td></tr>
 <tr class="memitem:a8d7f4dd49f8c703ff6dd6b717766320e" id="r_a8d7f4dd49f8c703ff6dd6b717766320e"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8d7f4dd49f8c703ff6dd6b717766320e">getTargetParamRef</a> (ParameterReference expr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> typeOrNull)</td></tr>
 <tr class="memitem:a16a56b5bd119009e85c10b8e9ea771d4" id="r_a16a56b5bd119009e85c10b8e9ea771d4"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a16a56b5bd119009e85c10b8e9ea771d4">getTargetParenthesistListExpr</a> (ParenthesisListExpression expr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> typeOrNull)</td></tr>
 <tr class="memdesc:a16a56b5bd119009e85c10b8e9ea771d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Translate the parenthesis list expression into target language syntax.  <br /></td></tr>
@@ -120,10 +128,24 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:aa10804013137480e39e1a50c2fc8909a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type of tags.  <br /></td></tr>
 <tr class="memitem:ab5dc84664be8d694b1a8b53aafc59415" id="r_ab5dc84664be8d694b1a8b53aafc59415"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#ab5dc84664be8d694b1a8b53aafc59415">getTargetTimeExpr</a> (<a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a> time)</td></tr>
 <tr class="memdesc:ab5dc84664be8d694b1a8b53aafc59415"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns an expression in the target language that corresponds to the given time value (<code><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#aa67327341a195dd28df062b7eef12e26">getTargetTimeType()</a></code>).  <br /></td></tr>
+<tr class="memitem:af987a0a4bf7dcf80bc0cfa7b92dbb603" id="r_af987a0a4bf7dcf80bc0cfa7b92dbb603"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#af987a0a4bf7dcf80bc0cfa7b92dbb603">getTargetTimeExpr</a> (Time t)</td></tr>
+<tr class="memdesc:af987a0a4bf7dcf80bc0cfa7b92dbb603"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the representation of the given time value in target code.  <br /></td></tr>
 <tr class="memitem:aa67327341a195dd28df062b7eef12e26" id="r_aa67327341a195dd28df062b7eef12e26"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#aa67327341a195dd28df062b7eef12e26">getTargetTimeType</a> ()</td></tr>
 <tr class="memdesc:aa67327341a195dd28df062b7eef12e26"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type of time durations.  <br /></td></tr>
 <tr class="memitem:a1910224fcc7a2bcd9ec7f26d2bbdecbb" id="r_a1910224fcc7a2bcd9ec7f26d2bbdecbb"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#a1910224fcc7a2bcd9ec7f26d2bbdecbb">getTargetType</a> (<a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
 <tr class="memdesc:a1910224fcc7a2bcd9ec7f26d2bbdecbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a type, return a C representation of the type.  <br /></td></tr>
+<tr class="memitem:a72774a3ea13c7d65b2e4e3637b6d46f4" id="r_a72774a3ea13c7d65b2e4e3637b6d46f4"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a72774a3ea13c7d65b2e4e3637b6d46f4">getTargetType</a> (Action a)</td></tr>
+<tr class="memdesc:a72774a3ea13c7d65b2e4e3637b6d46f4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a string representing the type of the given action.  <br /></td></tr>
+<tr class="memitem:a31923e8da6bfdf88c8e8fe3ee7529b3b" id="r_a31923e8da6bfdf88c8e8fe3ee7529b3b"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a31923e8da6bfdf88c8e8fe3ee7529b3b">getTargetType</a> (Parameter p)</td></tr>
+<tr class="memdesc:a31923e8da6bfdf88c8e8fe3ee7529b3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a string representing the type of the given parameter.  <br /></td></tr>
+<tr class="memitem:a4a3afda7d74a8987b40d976aecf2a5d7" id="r_a4a3afda7d74a8987b40d976aecf2a5d7"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a4a3afda7d74a8987b40d976aecf2a5d7">getTargetType</a> (Port p)</td></tr>
+<tr class="memdesc:a4a3afda7d74a8987b40d976aecf2a5d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a string representing the type of the given port.  <br /></td></tr>
+<tr class="memitem:ab709cfa1f11cba369f15029dbf8d98dc" id="r_ab709cfa1f11cba369f15029dbf8d98dc"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#ab709cfa1f11cba369f15029dbf8d98dc">getTargetType</a> (StateVar s)</td></tr>
+<tr class="memdesc:ab709cfa1f11cba369f15029dbf8d98dc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a string representing the type of the given state variable.  <br /></td></tr>
+<tr class="memitem:a93a2269f9811ca9fb4845cab1aebd502" id="r_a93a2269f9811ca9fb4845cab1aebd502"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a93a2269f9811ca9fb4845cab1aebd502">getTargetType</a> (Type type)</td></tr>
+<tr class="memdesc:a93a2269f9811ca9fb4845cab1aebd502"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the target type of the type node.  <br /></td></tr>
+<tr class="memitem:aa9297bc495a4871e7796ade58f4e0bce" id="r_aa9297bc495a4871e7796ade58f4e0bce"><td class="memItemLeft" align="right" valign="top">default String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#aa9297bc495a4871e7796ade58f4e0bce">getTargetType</a> (Type type, Initializer init)</td></tr>
+<tr class="memdesc:aa9297bc495a4871e7796ade58f4e0bce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a target type inferred from the type node, or the initializer list.  <br /></td></tr>
 <tr class="memitem:a80bee1e47f8f41439b34705fd872f7e4" id="r_a80bee1e47f8f41439b34705fd872f7e4"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a80bee1e47f8f41439b34705fd872f7e4">getTargetUndefinedType</a> ()</td></tr>
 <tr class="memdesc:a80bee1e47f8f41439b34705fd872f7e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an "unknown" type which is used as a default when a type cannot be inferred.  <br /></td></tr>
 <tr class="memitem:a607ced37a52022a044f24e9112913f24" id="r_a607ced37a52022a044f24e9112913f24"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#a607ced37a52022a044f24e9112913f24">getVariableDeclaration</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type, String variableName, boolean initializer)</td></tr>
@@ -163,7 +185,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -188,7 +210,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -215,12 +237,44 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#a056df53f93d1393ddcc4f23290635d75">org.lflang.generator.c.CTypes</a>.</p>
+
+</div>
+</div>
+<a id="a6e22d5b655615f1a711eac83d35279d5" name="a6e22d5b655615f1a711eac83d35279d5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6e22d5b655615f1a711eac83d35279d5">&#9670;&#160;</a></span>getGenericType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getGenericType </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>base</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">List&lt; String &gt;</td>          <td class="paramname"><span class="paramname"><em>args</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Build a generic type. </p>
+<p>The type args list must not be empty. </p>
 
 </div>
 </div>
@@ -242,7 +296,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -251,8 +305,8 @@ Static Package Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a92e025270192361c2e990da0f474f1f9" name="a92e025270192361c2e990da0f474f1f9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a92e025270192361c2e990da0f474f1f9">&#9670;&#160;</a></span>getPythonType()</h2>
+<a id="a5785f8dc543dd9dcfafb2dcefea963e1" name="a5785f8dc543dd9dcfafb2dcefea963e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5785f8dc543dd9dcfafb2dcefea963e1">&#9670;&#160;</a></span>getMissingExpr()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -261,7 +315,7 @@ Static Package Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.generator.python.PythonTypes.getPythonType </td>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getMissingExpr </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
           <td></td>
@@ -269,9 +323,36 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
+</div><div class="memdoc">
+
+<p>Returns the expression that is used to replace a missing expression in the source language. </p>
+<p>The expression may for instance be a type-agnostic default value (e.g. Rust's <span class="tt">Default::default()</span>), <span class="tt">Default::default()</span>), or produce a compiler error (e.g. Rust's <span class="tt">compiler_error!("missing
+initializer")</span>).</p>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname"><a class="el" href="classorg_1_1lflang_1_1generator_1_1UnsupportedGeneratorFeatureException.html" title="Exception signaling that the code generator does not support a particular feature of the source langu...">UnsupportedGeneratorFeatureException</a></td><td>If the target does not support this </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a92e025270192361c2e990da0f474f1f9" name="a92e025270192361c2e990da0f474f1f9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a92e025270192361c2e990da0f474f1f9">&#9670;&#160;</a></span>getPythonType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.python.PythonTypes.getPythonType </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
 </div><div class="memdoc">
 
 <p>This generator inherits types from the CGenerator. </p>
@@ -308,7 +389,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -339,7 +420,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -348,14 +429,82 @@ Static Package Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a8d7f4dd49f8c703ff6dd6b717766320e" name="a8d7f4dd49f8c703ff6dd6b717766320e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8d7f4dd49f8c703ff6dd6b717766320e">&#9670;&#160;</a></span>getTargetParamRef()</h2>
+<a id="a9989f34fc578775589053718c7be4360" name="a9989f34fc578775589053718c7be4360"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9989f34fc578775589053718c7be4360">&#9670;&#160;</a></span>getTargetExpr()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetExpr </td>
+          <td>(</td>
+          <td class="paramtype">Expression</td>          <td class="paramname"><span class="paramname"><em>expr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the representation of the given expression in target code. </p>
+<p>The given type, if non-null, may inform the code generation. </p>
+
+</div>
+</div>
+<a id="a70dc7a2fb0bd34f7ee15b20ad91c7e25" name="a70dc7a2fb0bd34f7ee15b20ad91c7e25"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a70dc7a2fb0bd34f7ee15b20ad91c7e25">&#9670;&#160;</a></span>getTargetInitializer()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetInitializer </td>
+          <td>(</td>
+          <td class="paramtype">Initializer</td>          <td class="paramname"><span class="paramname"><em>init</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Type</td>          <td class="paramname"><span class="paramname"><em>type</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the representation of the given initializer expression in target code. </p>
+<p>The given type, if non-null, may inform the code generation.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">init</td><td>Initializer node (nullable) </td></tr>
+    <tr><td class="paramname">type</td><td>Declared type of the expression (nullable) </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a8d7f4dd49f8c703ff6dd6b717766320e" name="a8d7f4dd49f8c703ff6dd6b717766320e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8d7f4dd49f8c703ff6dd6b717766320e">&#9670;&#160;</a></span>getTargetParamRef()</h2>
+
+<div class="memitem">
+<div class="memproto">
       <table class="memname">
         <tr>
           <td class="memname">String org.lflang.generator.python.PythonTypes.getTargetParamRef </td>
@@ -368,11 +517,6 @@ Static Package Attributes</h2></td></tr>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>typeOrNull</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#ab6d383c4be52327eaabac9acf74efac4">org.lflang.generator.c.CTypes</a>.</p>
@@ -401,7 +545,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -428,7 +572,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -440,7 +584,7 @@ Static Package Attributes</h2></td></tr>
 </div>
 </div>
 <a id="ab5dc84664be8d694b1a8b53aafc59415" name="ab5dc84664be8d694b1a8b53aafc59415"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab5dc84664be8d694b1a8b53aafc59415">&#9670;&#160;</a></span>getTargetTimeExpr()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#ab5dc84664be8d694b1a8b53aafc59415">&#9670;&#160;</a></span>getTargetTimeExpr() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -457,7 +601,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -465,6 +609,33 @@ Static Package Attributes</h2></td></tr>
 <p>Returns an expression in the target language that corresponds to the given time value (<code><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#aa67327341a195dd28df062b7eef12e26">getTargetTimeType()</a></code>). </p>
 
 <p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#aaa9cdead33474bed7f0d1080c940d978">org.lflang.generator.TargetTypes</a>.</p>
+
+</div>
+</div>
+<a id="af987a0a4bf7dcf80bc0cfa7b92dbb603" name="af987a0a4bf7dcf80bc0cfa7b92dbb603"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af987a0a4bf7dcf80bc0cfa7b92dbb603">&#9670;&#160;</a></span>getTargetTimeExpr() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetTimeExpr </td>
+          <td>(</td>
+          <td class="paramtype">Time</td>          <td class="paramname"><span class="paramname"><em>t</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the representation of the given time value in target code. </p>
 
 </div>
 </div>
@@ -486,7 +657,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -498,7 +669,7 @@ Static Package Attributes</h2></td></tr>
 </div>
 </div>
 <a id="a1910224fcc7a2bcd9ec7f26d2bbdecbb" name="a1910224fcc7a2bcd9ec7f26d2bbdecbb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1910224fcc7a2bcd9ec7f26d2bbdecbb">&#9670;&#160;</a></span>getTargetType()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a1910224fcc7a2bcd9ec7f26d2bbdecbb">&#9670;&#160;</a></span>getTargetType() <span class="overload">[1/7]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -515,7 +686,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -530,10 +701,12 @@ Static Package Attributes</h2></td></tr>
   </dd>
 </dl>
 
+<p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#ac41d844cf6841a96d32946cfac298b17">org.lflang.generator.TargetTypes</a>.</p>
+
 </div>
 </div>
-<a id="a80bee1e47f8f41439b34705fd872f7e4" name="a80bee1e47f8f41439b34705fd872f7e4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a80bee1e47f8f41439b34705fd872f7e4">&#9670;&#160;</a></span>getTargetUndefinedType()</h2>
+<a id="a72774a3ea13c7d65b2e4e3637b6d46f4" name="a72774a3ea13c7d65b2e4e3637b6d46f4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a72774a3ea13c7d65b2e4e3637b6d46f4">&#9670;&#160;</a></span>getTargetType() <span class="overload">[2/7]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -542,17 +715,179 @@ Static Package Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetType </td>
+          <td>(</td>
+          <td class="paramtype">Action</td>          <td class="paramname"><span class="paramname"><em>a</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a string representing the type of the given action. </p>
+
+</div>
+</div>
+<a id="a31923e8da6bfdf88c8e8fe3ee7529b3b" name="a31923e8da6bfdf88c8e8fe3ee7529b3b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a31923e8da6bfdf88c8e8fe3ee7529b3b">&#9670;&#160;</a></span>getTargetType() <span class="overload">[3/7]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetType </td>
+          <td>(</td>
+          <td class="paramtype">Parameter</td>          <td class="paramname"><span class="paramname"><em>p</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a string representing the type of the given parameter. </p>
+
+</div>
+</div>
+<a id="a4a3afda7d74a8987b40d976aecf2a5d7" name="a4a3afda7d74a8987b40d976aecf2a5d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4a3afda7d74a8987b40d976aecf2a5d7">&#9670;&#160;</a></span>getTargetType() <span class="overload">[4/7]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetType </td>
+          <td>(</td>
+          <td class="paramtype">Port</td>          <td class="paramname"><span class="paramname"><em>p</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a string representing the type of the given port. </p>
+
+</div>
+</div>
+<a id="ab709cfa1f11cba369f15029dbf8d98dc" name="ab709cfa1f11cba369f15029dbf8d98dc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab709cfa1f11cba369f15029dbf8d98dc">&#9670;&#160;</a></span>getTargetType() <span class="overload">[5/7]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetType </td>
+          <td>(</td>
+          <td class="paramtype">StateVar</td>          <td class="paramname"><span class="paramname"><em>s</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a string representing the type of the given state variable. </p>
+
+<p>Implemented in <a class="el" href="classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes.html#ae35e5dfc22425c13aa7a0460c673ec54">org.lflang.generator.ts.TSTypes</a>.</p>
+
+</div>
+</div>
+<a id="a93a2269f9811ca9fb4845cab1aebd502" name="a93a2269f9811ca9fb4845cab1aebd502"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a93a2269f9811ca9fb4845cab1aebd502">&#9670;&#160;</a></span>getTargetType() <span class="overload">[6/7]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetType </td>
+          <td>(</td>
+          <td class="paramtype">Type</td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns the target type of the type node. </p>
+<p>This just provides a default parameter for <code><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#aa9297bc495a4871e7796ade58f4e0bce">getTargetType(Type, Initializer)</a></code>. If the parameter is null, then the undefined type is returned. </p>
+
+</div>
+</div>
+<a id="aa9297bc495a4871e7796ade58f4e0bce" name="aa9297bc495a4871e7796ade58f4e0bce"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa9297bc495a4871e7796ade58f4e0bce">&#9670;&#160;</a></span>getTargetType() <span class="overload">[7/7]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">default String org.lflang.generator.TargetTypes.getTargetType </td>
+          <td>(</td>
+          <td class="paramtype">Type</td>          <td class="paramname"><span class="paramname"><em>type</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Initializer</td>          <td class="paramname"><span class="paramname"><em>init</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Returns a target type inferred from the type node, or the initializer list. </p>
+<p>If both are absent, then the undefined type is returned. </p>
+
+</div>
+</div>
+<a id="a80bee1e47f8f41439b34705fd872f7e4" name="a80bee1e47f8f41439b34705fd872f7e4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a80bee1e47f8f41439b34705fd872f7e4">&#9670;&#160;</a></span>getTargetUndefinedType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
           <td class="memname">String org.lflang.generator.python.PythonTypes.getTargetUndefinedType </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return an "unknown" type which is used as a default when a type cannot be inferred. </p>
@@ -593,7 +928,7 @@ Static Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -631,7 +966,7 @@ type variable_name[]</code>, and otherwise it will have the form <code class="Ja
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">

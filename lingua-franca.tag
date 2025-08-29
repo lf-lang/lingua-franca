@@ -15080,6 +15080,20 @@
     </member>
     <member kind="function">
       <type>default String</type>
+      <name>getGenericType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a6e22d5b655615f1a711eac83d35279d5</anchor>
+      <arglist>(String base, List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getMissingExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a5785f8dc543dd9dcfafb2dcefea963e1</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
       <name>getTargetBracedListExpr</name>
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a2babf7f7832b3075287836b0caceda66</anchor>
@@ -15091,6 +15105,20 @@
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a20ebd97caa978757eb73d61fd4912861</anchor>
       <arglist>(BracketListExpression expr, InferredType typeOrNull)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a9989f34fc578775589053718c7be4360</anchor>
+      <arglist>(Expression expr, InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetInitializer</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a70dc7a2fb0bd34f7ee15b20ad91c7e25</anchor>
+      <arglist>(Initializer init, Type type)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -15121,6 +15149,13 @@
       <arglist>(TimeValue time)</arglist>
     </member>
     <member kind="function">
+      <type>default String</type>
+      <name>getTargetTimeExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>af987a0a4bf7dcf80bc0cfa7b92dbb603</anchor>
+      <arglist>(Time t)</arglist>
+    </member>
+    <member kind="function">
       <type>String</type>
       <name>getTargetTimeType</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html</anchorfile>
@@ -15133,6 +15168,48 @@
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html</anchorfile>
       <anchor>a1910224fcc7a2bcd9ec7f26d2bbdecbb</anchor>
       <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a72774a3ea13c7d65b2e4e3637b6d46f4</anchor>
+      <arglist>(Action a)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a31923e8da6bfdf88c8e8fe3ee7529b3b</anchor>
+      <arglist>(Parameter p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a4a3afda7d74a8987b40d976aecf2a5d7</anchor>
+      <arglist>(Port p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>ab709cfa1f11cba369f15029dbf8d98dc</anchor>
+      <arglist>(StateVar s)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a93a2269f9811ca9fb4845cab1aebd502</anchor>
+      <arglist>(Type type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>aa9297bc495a4871e7796ade58f4e0bce</anchor>
+      <arglist>(Type type, Initializer init)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -15231,6 +15308,41 @@
       <arglist>(PortInstance port)</arglist>
     </member>
     <member kind="function" static="yes">
+      <type>static void</type>
+      <name>deleteBinFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a540c5ab86e7fc2334c36141141b5dfc8</anchor>
+      <arglist>(FileConfig fileConfig)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static int</type>
+      <name>fixedSizeArrayTypeLength</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>ad763091acf495249cd45108ac6ae4034</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>generateWidthVariable</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a1be308dd6f4c6eb0c252b5891e46705b</anchor>
+      <arglist>(String var)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getEnvironmentStruct</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a73c5b329d2ac5b5c48b9a3477b5f7b6f</anchor>
+      <arglist>(CEnclaveInstance inst)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getEnvironmentStructPtr</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>abb5612cab20838782832e8b48ff30639</anchor>
+      <arglist>(ReactorInstance inst)</arglist>
+    </member>
+    <member kind="function" static="yes">
       <type>static String</type>
       <name>getName</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
@@ -15239,10 +15351,38 @@
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
+      <name>getShortenedName</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a0c29174af3742014a479fa306936d8f9</anchor>
+      <arglist>(ReactorInstance instance)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
       <name>internalIncludeGuard</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a0f4dc466e59743dbd98e1a715af3f62d</anchor>
       <arglist>(TypeParameterizedReactor tpr)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isFixedSizeArrayType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a02d728194b4f1ef10b78b4341359792b</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isTokenType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>ad2d5ec78412ce03ca2c39dfb08151e7e</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>multiportWidthExpression</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>ac78da991adaeb2198262de57d7b0242e</anchor>
+      <arglist>(Variable variable)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
@@ -15362,6 +15502,20 @@
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a62db15239be477b43220bd744f11934e</anchor>
       <arglist>(ReactorInstance reactor, String runtimeIndex, String bankIndex)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>rootType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a36284148ff34eb796459aef9264ff883</anchor>
+      <arglist>(String type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static void</type>
+      <name>runBuildCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a95fa0e389976f101b02607cefaf448e1</anchor>
+      <arglist>(FileConfig fileConfig, TargetConfig targetConfig, GeneratorCommandFactory commandFactory, MessageReporter messageReporter, ReportCommandErrors reportCommandErrors, LFGeneratorContext.Mode mode)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
@@ -16016,6 +16170,34 @@
       <anchor>acdfda7a2f566b361124e625d83a1f0b2</anchor>
       <arglist>()</arglist>
     </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa2f1a06598ebec222f7666c3dad45a33</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a5b624402c46bdd07d3305739762721e9</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>argListToCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</anchor>
+      <arglist>(List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static DockerGenerator</type>
+      <name>dockerGeneratorFactory</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
     <member kind="variable" static="yes">
       <type>static final String</type>
       <name>DEFAULT_BASE_IMAGE</name>
@@ -16024,10 +16206,24 @@
       <arglist></arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>String</type>
+      <name>builderBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aaefa6147daa753d3dd3325e7d43f465a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>defaultBuildCommands</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html</anchorfile>
       <anchor>a745e5d4bfd8f1d91e29a7efe3fb2b3e5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>entryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a9cdb2d1675703ed12860901a7893fcda</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16049,6 +16245,13 @@
       <name>generateCopyOfScript</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>ad5f90737e787ff7870d0894c5903a452</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfUserFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a6f9caee877d6e74a8d40150227777aed</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16101,6 +16304,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>final List&lt; String &gt;</type>
+      <name>getEntryPointCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a91c4f1dfc8140cbfe81298c086d66c1e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>getPostBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
@@ -16112,6 +16322,13 @@
       <name>getPreBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a18e3478b0483ea2d6fe3898394aef27e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>runnerBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="variable" protection="protected">
@@ -16253,17 +16470,73 @@
     <name>org::lflang::generator::docker::DockerGenerator</name>
     <filename>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</filename>
     <member kind="function">
+      <type>abstract List&lt; String &gt;</type>
+      <name>defaultEntryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a13a63bf5dad96355a19c8c828c558a2c</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>abstract String</type>
+      <name>defaultImage</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>ae541e31c842ecb977af303bd62d54e00</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
       <type></type>
       <name>DockerGenerator</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a0e13d1d0d5f16f4b70c9f892056c9edc</anchor>
       <arglist>(LFGeneratorContext context)</arglist>
     </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa2f1a06598ebec222f7666c3dad45a33</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a5b624402c46bdd07d3305739762721e9</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>argListToCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</anchor>
+      <arglist>(List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static DockerGenerator</type>
+      <name>dockerGeneratorFactory</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>builderBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aaefa6147daa753d3dd3325e7d43f465a</anchor>
+      <arglist>()</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>abstract List&lt; String &gt;</type>
       <name>defaultBuildCommands</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a5d95a3c7a64fb32d8c7de4a6ec30c5ee</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>entryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a9cdb2d1675703ed12860901a7893fcda</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16285,6 +16558,13 @@
       <name>generateCopyOfScript</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>ad5f90737e787ff7870d0894c5903a452</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfUserFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a6f9caee877d6e74a8d40150227777aed</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16337,6 +16617,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>final List&lt; String &gt;</type>
+      <name>getEntryPointCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a91c4f1dfc8140cbfe81298c086d66c1e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>getPostBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
@@ -16348,6 +16635,13 @@
       <name>getPreBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a18e3478b0483ea2d6fe3898394aef27e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>runnerBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="variable" protection="protected">
@@ -16473,10 +16767,38 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa2f1a06598ebec222f7666c3dad45a33</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a5b624402c46bdd07d3305739762721e9</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function">
       <type></type>
       <name>PythonDockerGenerator</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html</anchorfile>
       <anchor>ade41b199197f4fd06582396057ececef</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>argListToCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</anchor>
+      <arglist>(List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static DockerGenerator</type>
+      <name>dockerGeneratorFactory</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</anchor>
       <arglist>(LFGeneratorContext context)</arglist>
     </member>
     <member kind="variable" static="yes">
@@ -16487,10 +16809,24 @@
       <arglist></arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>String</type>
+      <name>builderBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aaefa6147daa753d3dd3325e7d43f465a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>defaultBuildCommands</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html</anchorfile>
       <anchor>a745e5d4bfd8f1d91e29a7efe3fb2b3e5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>entryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a9cdb2d1675703ed12860901a7893fcda</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16512,6 +16848,13 @@
       <name>generateCopyOfScript</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>ad5f90737e787ff7870d0894c5903a452</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfUserFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a6f9caee877d6e74a8d40150227777aed</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16564,6 +16907,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>final List&lt; String &gt;</type>
+      <name>getEntryPointCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a91c4f1dfc8140cbfe81298c086d66c1e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>getPostBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
@@ -16575,6 +16925,13 @@
       <name>getPreBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a18e3478b0483ea2d6fe3898394aef27e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>runnerBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="variable" protection="protected">
@@ -16611,10 +16968,38 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa2f1a06598ebec222f7666c3dad45a33</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a5b624402c46bdd07d3305739762721e9</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function">
       <type></type>
       <name>RtiDockerGenerator</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1RtiDockerGenerator.html</anchorfile>
       <anchor>a9ea08f632e3f4620a7de524dcd5ade37</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>argListToCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</anchor>
+      <arglist>(List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static DockerGenerator</type>
+      <name>dockerGeneratorFactory</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</anchor>
       <arglist>(LFGeneratorContext context)</arglist>
     </member>
     <member kind="variable" static="yes">
@@ -16629,6 +17014,13 @@
       <name>defaultBuildCommands</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html</anchorfile>
       <anchor>a745e5d4bfd8f1d91e29a7efe3fb2b3e5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>entryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a9cdb2d1675703ed12860901a7893fcda</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16650,6 +17042,13 @@
       <name>generateCopyOfScript</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>ad5f90737e787ff7870d0894c5903a452</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfUserFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a6f9caee877d6e74a8d40150227777aed</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16702,6 +17101,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>final List&lt; String &gt;</type>
+      <name>getEntryPointCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a91c4f1dfc8140cbfe81298c086d66c1e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>getPostBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
@@ -16713,6 +17119,13 @@
       <name>getPreBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a18e3478b0483ea2d6fe3898394aef27e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>runnerBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="variable" protection="protected">
@@ -16742,17 +17155,59 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa2f1a06598ebec222f7666c3dad45a33</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a5b624402c46bdd07d3305739762721e9</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function">
       <type></type>
       <name>TSDockerGenerator</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html</anchorfile>
       <anchor>ae7bb6bce40af458f058dbca14a9fac71</anchor>
       <arglist>(LFGeneratorContext context)</arglist>
     </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>argListToCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</anchor>
+      <arglist>(List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static DockerGenerator</type>
+      <name>dockerGeneratorFactory</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>builderBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aaefa6147daa753d3dd3325e7d43f465a</anchor>
+      <arglist>()</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>defaultBuildCommands</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html</anchorfile>
       <anchor>ad6091ec07c47bca450ab63febebc7e96</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>entryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a9cdb2d1675703ed12860901a7893fcda</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16774,6 +17229,13 @@
       <name>generateCopyOfScript</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>ad5f90737e787ff7870d0894c5903a452</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfUserFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a6f9caee877d6e74a8d40150227777aed</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -16826,6 +17288,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>final List&lt; String &gt;</type>
+      <name>getEntryPointCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a91c4f1dfc8140cbfe81298c086d66c1e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>List&lt; String &gt;</type>
       <name>getPostBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
@@ -16837,6 +17306,13 @@
       <name>getPreBuildCommand</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
       <anchor>a18e3478b0483ea2d6fe3898394aef27e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>runnerBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="variable" protection="protected">
@@ -20248,6 +20724,20 @@
       <arglist>(String ident)</arglist>
     </member>
     <member kind="function">
+      <type>default String</type>
+      <name>getGenericType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a6e22d5b655615f1a711eac83d35279d5</anchor>
+      <arglist>(String base, List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getMissingExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a5785f8dc543dd9dcfafb2dcefea963e1</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
       <type>String</type>
       <name>getPythonType</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1python_1_1PythonTypes.html</anchorfile>
@@ -20267,6 +20757,20 @@
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a20ebd97caa978757eb73d61fd4912861</anchor>
       <arglist>(BracketListExpression expr, InferredType typeOrNull)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a9989f34fc578775589053718c7be4360</anchor>
+      <arglist>(Expression expr, InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetInitializer</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a70dc7a2fb0bd34f7ee15b20ad91c7e25</anchor>
+      <arglist>(Initializer init, Type type)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -20297,6 +20801,13 @@
       <arglist>(TimeValue time)</arglist>
     </member>
     <member kind="function">
+      <type>default String</type>
+      <name>getTargetTimeExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>af987a0a4bf7dcf80bc0cfa7b92dbb603</anchor>
+      <arglist>(Time t)</arglist>
+    </member>
+    <member kind="function">
       <type>String</type>
       <name>getTargetTimeType</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html</anchorfile>
@@ -20309,6 +20820,48 @@
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html</anchorfile>
       <anchor>a1910224fcc7a2bcd9ec7f26d2bbdecbb</anchor>
       <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a72774a3ea13c7d65b2e4e3637b6d46f4</anchor>
+      <arglist>(Action a)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a31923e8da6bfdf88c8e8fe3ee7529b3b</anchor>
+      <arglist>(Parameter p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a4a3afda7d74a8987b40d976aecf2a5d7</anchor>
+      <arglist>(Port p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>ab709cfa1f11cba369f15029dbf8d98dc</anchor>
+      <arglist>(StateVar s)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a93a2269f9811ca9fb4845cab1aebd502</anchor>
+      <arglist>(Type type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>aa9297bc495a4871e7796ade58f4e0bce</anchor>
+      <arglist>(Type type, Initializer init)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -20461,6 +21014,20 @@
       <arglist>(PortInstance port)</arglist>
     </member>
     <member kind="function" static="yes">
+      <type>static void</type>
+      <name>deleteBinFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a540c5ab86e7fc2334c36141141b5dfc8</anchor>
+      <arglist>(FileConfig fileConfig)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static int</type>
+      <name>fixedSizeArrayTypeLength</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>ad763091acf495249cd45108ac6ae4034</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
       <type>static String</type>
       <name>generateGILAcquireCode</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil.html</anchorfile>
@@ -20476,6 +21043,27 @@
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
+      <name>generateWidthVariable</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a1be308dd6f4c6eb0c252b5891e46705b</anchor>
+      <arglist>(String var)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getEnvironmentStruct</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a73c5b329d2ac5b5c48b9a3477b5f7b6f</anchor>
+      <arglist>(CEnclaveInstance inst)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getEnvironmentStructPtr</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>abb5612cab20838782832e8b48ff30639</anchor>
+      <arglist>(ReactorInstance inst)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
       <name>getName</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a656705d258bbcbce6e4ce6ba903ee44b</anchor>
@@ -20483,10 +21071,38 @@
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
+      <name>getShortenedName</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a0c29174af3742014a479fa306936d8f9</anchor>
+      <arglist>(ReactorInstance instance)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
       <name>internalIncludeGuard</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a0f4dc466e59743dbd98e1a715af3f62d</anchor>
       <arglist>(TypeParameterizedReactor tpr)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isFixedSizeArrayType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a02d728194b4f1ef10b78b4341359792b</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isTokenType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>ad2d5ec78412ce03ca2c39dfb08151e7e</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>multiportWidthExpression</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>ac78da991adaeb2198262de57d7b0242e</anchor>
+      <arglist>(Variable variable)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
@@ -20613,6 +21229,20 @@
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a62db15239be477b43220bd744f11934e</anchor>
       <arglist>(ReactorInstance reactor, String runtimeIndex, String bankIndex)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>rootType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a36284148ff34eb796459aef9264ff883</anchor>
+      <arglist>(String type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static void</type>
+      <name>runBuildCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>a95fa0e389976f101b02607cefaf448e1</anchor>
+      <arglist>(FileConfig fileConfig, TargetConfig targetConfig, GeneratorCommandFactory commandFactory, MessageReporter messageReporter, ReportCommandErrors reportCommandErrors, LFGeneratorContext.Mode mode)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
@@ -21914,34 +22544,316 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::generator::RuntimeRange</name>
+    <filename>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</filename>
+    <templarg>T</templarg>
+    <class kind="class">org::lflang::generator::RuntimeRange::Port</class>
+    <member kind="function">
+      <type>int</type>
+      <name>compareTo</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a6f27efd74c41a8e14c4bbced94d88ae2</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; o)</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>head</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a5ed47a91a5e5443260030ab5c9267b2a</anchor>
+      <arglist>(int newWidth)</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>instances</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>aa568b7111dd9bc259992a8abd0e5b20e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; NamedInstance&lt;?&gt; &gt;</type>
+      <name>iterationOrder</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a496381d2b077a9724f58775386390517</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt;?&gt;</type>
+      <name>overlap</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a6e98060efc77ecde44f5f5c54366aa0c</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; range)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>overlaps</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a8ad376c902733bcd12eb89e95bef0255</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; range)</arglist>
+    </member>
+    <member kind="function">
+      <type>Set&lt; Integer &gt;</type>
+      <name>parentInstances</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a69132439b04ee6f6b157b5721a109a75</anchor>
+      <arglist>(int n)</arglist>
+    </member>
+    <member kind="function">
+      <type>ReactorInstance</type>
+      <name>parentReactor</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a476f66a40ba84c52243216d150f9f996</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>permutation</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a9828bb63e9e6257a8567193769edf09a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>radixes</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a92c2c3718e012706fb65af1933700263</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>RuntimeRange</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>afc07a3ce32f10bcd70c8d608b09603a4</anchor>
+      <arglist>(T instance, int start, int width, Set&lt; ReactorInstance &gt; interleaved)</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>RuntimeRange</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>ae658886e14b258499b5aa40c43b68839</anchor>
+      <arglist>(T instance, Set&lt; ReactorInstance &gt; interleaved)</arglist>
+    </member>
+    <member kind="function">
+      <type>MixedRadixInt</type>
+      <name>startMR</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a81f4a0bbc1867dacf1881b44d82dfb25</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>tail</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a692779a77622e76c58abc4351f5c72d8</anchor>
+      <arglist>(int offset)</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>toggleInterleaved</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>ad7acd6e74a9019822b6a959cec586c49</anchor>
+      <arglist>(ReactorInstance reactor)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>ab8425fef8cc6c36b7baabb4f73101314</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="variable">
+      <type>final T</type>
+      <name>instance</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a4eae068f8ba6367f26fec6a63cdd9d9f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>maxWidth</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a1e4a3247610923845992afba425c18d1</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>start</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>aaa2d578eb807914c3545315c5abcb38b</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>width</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a10424eb45371bfb68bb9dcdd64e99df1</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>Set&lt; ReactorInstance &gt;</type>
+      <name>_interleaved</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a810775d8945880c8ce970c783665d7c0</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::generator::RuntimeRange::Port</name>
     <filename>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</filename>
+    <base>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</base>
+    <member kind="function">
+      <type>int</type>
+      <name>compareTo</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a6f27efd74c41a8e14c4bbced94d88ae2</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; o)</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>head</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a5ed47a91a5e5443260030ab5c9267b2a</anchor>
+      <arglist>(int newWidth)</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>instances</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>aa568b7111dd9bc259992a8abd0e5b20e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; NamedInstance&lt;?&gt; &gt;</type>
+      <name>iterationOrder</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a496381d2b077a9724f58775386390517</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt;?&gt;</type>
+      <name>overlap</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a6e98060efc77ecde44f5f5c54366aa0c</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; range)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>overlaps</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a8ad376c902733bcd12eb89e95bef0255</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; range)</arglist>
+    </member>
+    <member kind="function">
+      <type>Set&lt; Integer &gt;</type>
+      <name>parentInstances</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a69132439b04ee6f6b157b5721a109a75</anchor>
+      <arglist>(int n)</arglist>
+    </member>
+    <member kind="function">
+      <type>ReactorInstance</type>
+      <name>parentReactor</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a476f66a40ba84c52243216d150f9f996</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>permutation</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a9828bb63e9e6257a8567193769edf09a</anchor>
+      <arglist>()</arglist>
+    </member>
     <member kind="function">
       <type></type>
       <name>Port</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</anchorfile>
-      <anchor>aa20db33d0d99d835ca58d0500afdec78</anchor>
+      <anchor>a7f53b446b1efc6660c14e06427884ab6</anchor>
       <arglist>(PortInstance instance)</arglist>
     </member>
     <member kind="function">
       <type></type>
       <name>Port</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</anchorfile>
-      <anchor>a49b06685aec49d6b037bb3b1f4ac5ed1</anchor>
+      <anchor>a65abb8ab0a96d8e5ccf4105b787cbe8d</anchor>
       <arglist>(PortInstance instance, int start, int width, Set&lt; ReactorInstance &gt; interleaved)</arglist>
     </member>
     <member kind="function">
       <type></type>
       <name>Port</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</anchorfile>
-      <anchor>ae40e5780b2f8e67c22049f6acb0dd695</anchor>
+      <anchor>a785626be71f7aa98cd2f744956e71282</anchor>
       <arglist>(PortInstance instance, Set&lt; ReactorInstance &gt; interleaved)</arglist>
     </member>
-  </compound>
-  <compound kind="class">
-    <name>org::lflang::generator::RuntimeRange&lt; T extends NamedInstance</name>
-    <filename>classorg_1_1lflang_1_1generator_1_1RuntimeRange_3_01T_01extends_01NamedInstance.html</filename>
-    <templarg>?</templarg>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>radixes</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a92c2c3718e012706fb65af1933700263</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>MixedRadixInt</type>
+      <name>startMR</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a81f4a0bbc1867dacf1881b44d82dfb25</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>tail</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a692779a77622e76c58abc4351f5c72d8</anchor>
+      <arglist>(int offset)</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>toggleInterleaved</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>ad7acd6e74a9019822b6a959cec586c49</anchor>
+      <arglist>(ReactorInstance reactor)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>ab8425fef8cc6c36b7baabb4f73101314</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="variable">
+      <type>final T</type>
+      <name>instance</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a4eae068f8ba6367f26fec6a63cdd9d9f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>maxWidth</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a1e4a3247610923845992afba425c18d1</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>start</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>aaa2d578eb807914c3545315c5abcb38b</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>width</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a10424eb45371bfb68bb9dcdd64e99df1</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>Set&lt; ReactorInstance &gt;</type>
+      <name>_interleaved</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a810775d8945880c8ce970c783665d7c0</anchor>
+      <arglist></arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>org::lflang::generator::rust::CargoDependencySpec</name>
@@ -22082,7 +22994,7 @@
   <compound kind="class">
     <name>org::lflang::generator::SendRange</name>
     <filename>classorg_1_1lflang_1_1generator_1_1SendRange.html</filename>
-    <base>org.lflang.generator.RuntimeRange.Port</base>
+    <base>org.lflang.generator.RuntimeRange&lt; T &gt;.Port</base>
     <member kind="function">
       <type>void</type>
       <name>addDestination</name>
@@ -22112,11 +23024,60 @@
       <arglist>(int newWidth)</arglist>
     </member>
     <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>instances</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>aa568b7111dd9bc259992a8abd0e5b20e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; NamedInstance&lt;?&gt; &gt;</type>
+      <name>iterationOrder</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a496381d2b077a9724f58775386390517</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
       <type>SendRange</type>
       <name>overlap</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1SendRange.html</anchorfile>
       <anchor>a55984beda0033b4e42542eeaab7ee17c</anchor>
       <arglist>(RuntimeRange&lt;?&gt; range)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>overlaps</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a8ad376c902733bcd12eb89e95bef0255</anchor>
+      <arglist>(RuntimeRange&lt;?&gt; range)</arglist>
+    </member>
+    <member kind="function">
+      <type>Set&lt; Integer &gt;</type>
+      <name>parentInstances</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a69132439b04ee6f6b157b5721a109a75</anchor>
+      <arglist>(int n)</arglist>
+    </member>
+    <member kind="function">
+      <type>ReactorInstance</type>
+      <name>parentReactor</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a476f66a40ba84c52243216d150f9f996</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>permutation</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a9828bb63e9e6257a8567193769edf09a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>List&lt; Integer &gt;</type>
+      <name>radixes</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a92c2c3718e012706fb65af1933700263</anchor>
+      <arglist>()</arglist>
     </member>
     <member kind="function">
       <type></type>
@@ -22133,11 +23094,25 @@
       <arglist>(RuntimeRange&lt; PortInstance &gt; src, RuntimeRange&lt; PortInstance &gt; dst, Set&lt; ReactorInstance &gt; interleaved, Connection connection)</arglist>
     </member>
     <member kind="function">
+      <type>MixedRadixInt</type>
+      <name>startMR</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a81f4a0bbc1867dacf1881b44d82dfb25</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
       <type>SendRange</type>
       <name>tail</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1SendRange.html</anchorfile>
       <anchor>a95ee1447a4067dd01fe04c8bab24c5bb</anchor>
       <arglist>(int offset)</arglist>
+    </member>
+    <member kind="function">
+      <type>RuntimeRange&lt; T &gt;</type>
+      <name>toggleInterleaved</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>ad7acd6e74a9019822b6a959cec586c49</anchor>
+      <arglist>(ReactorInstance reactor)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -22160,12 +23135,47 @@
       <anchor>a9a4a98f73aa8a9305ecb59103711bc3d</anchor>
       <arglist></arglist>
     </member>
+    <member kind="variable">
+      <type>final T</type>
+      <name>instance</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a4eae068f8ba6367f26fec6a63cdd9d9f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>maxWidth</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a1e4a3247610923845992afba425c18d1</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>start</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>aaa2d578eb807914c3545315c5abcb38b</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final int</type>
+      <name>width</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a10424eb45371bfb68bb9dcdd64e99df1</anchor>
+      <arglist></arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>SendRange</type>
       <name>newSendRange</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1SendRange.html</anchorfile>
       <anchor>aaafd6ad94c71f565ec21b85a1aa17768</anchor>
       <arglist>(SendRange srcRange, int srcRangeOffset)</arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>Set&lt; ReactorInstance &gt;</type>
+      <name>_interleaved</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</anchorfile>
+      <anchor>a810775d8945880c8ce970c783665d7c0</anchor>
+      <arglist></arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -22449,6 +23459,20 @@
     </member>
     <member kind="function">
       <type>default String</type>
+      <name>getGenericType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a6e22d5b655615f1a711eac83d35279d5</anchor>
+      <arglist>(String base, List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getMissingExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a5785f8dc543dd9dcfafb2dcefea963e1</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
       <name>getTargetBracedListExpr</name>
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a2babf7f7832b3075287836b0caceda66</anchor>
@@ -22460,6 +23484,20 @@
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a20ebd97caa978757eb73d61fd4912861</anchor>
       <arglist>(BracketListExpression expr, InferredType typeOrNull)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a9989f34fc578775589053718c7be4360</anchor>
+      <arglist>(Expression expr, InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetInitializer</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a70dc7a2fb0bd34f7ee15b20ad91c7e25</anchor>
+      <arglist>(Initializer init, Type type)</arglist>
     </member>
     <member kind="function">
       <type>default String</type>
@@ -22483,6 +23521,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
+      <type>default String</type>
+      <name>getTargetTimeExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>af987a0a4bf7dcf80bc0cfa7b92dbb603</anchor>
+      <arglist>(Time t)</arglist>
+    </member>
+    <member kind="function">
       <type>String</type>
       <name>getTargetTimeExpr</name>
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
@@ -22495,6 +23540,55 @@
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a588ff79f05c4aebf0e26001a365a6be2</anchor>
       <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a72774a3ea13c7d65b2e4e3637b6d46f4</anchor>
+      <arglist>(Action a)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>ac41d844cf6841a96d32946cfac298b17</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a31923e8da6bfdf88c8e8fe3ee7529b3b</anchor>
+      <arglist>(Parameter p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a4a3afda7d74a8987b40d976aecf2a5d7</anchor>
+      <arglist>(Port p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>ab709cfa1f11cba369f15029dbf8d98dc</anchor>
+      <arglist>(StateVar s)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a93a2269f9811ca9fb4845cab1aebd502</anchor>
+      <arglist>(Type type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>aa9297bc495a4871e7796ade58f4e0bce</anchor>
+      <arglist>(Type type, Initializer init)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -22869,6 +23963,20 @@
     </member>
     <member kind="function">
       <type>default String</type>
+      <name>getGenericType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a6e22d5b655615f1a711eac83d35279d5</anchor>
+      <arglist>(String base, List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getMissingExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a5785f8dc543dd9dcfafb2dcefea963e1</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
       <name>getTargetBracedListExpr</name>
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a2babf7f7832b3075287836b0caceda66</anchor>
@@ -22880,6 +23988,20 @@
       <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
       <anchor>a20ebd97caa978757eb73d61fd4912861</anchor>
       <arglist>(BracketListExpression expr, InferredType typeOrNull)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a9989f34fc578775589053718c7be4360</anchor>
+      <arglist>(Expression expr, InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetInitializer</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a70dc7a2fb0bd34f7ee15b20ad91c7e25</anchor>
+      <arglist>(Initializer init, Type type)</arglist>
     </member>
     <member kind="function">
       <type>default String</type>
@@ -22903,6 +24025,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
+      <type>default String</type>
+      <name>getTargetTimeExpr</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>af987a0a4bf7dcf80bc0cfa7b92dbb603</anchor>
+      <arglist>(Time t)</arglist>
+    </member>
+    <member kind="function">
       <type>String</type>
       <name>getTargetTimeExpr</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes.html</anchorfile>
@@ -22915,6 +24044,48 @@
       <anchorfile>classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes.html</anchorfile>
       <anchor>adafebddb3a10a6be1d61b31da030cb1e</anchor>
       <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a72774a3ea13c7d65b2e4e3637b6d46f4</anchor>
+      <arglist>(Action a)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>ac41d844cf6841a96d32946cfac298b17</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a31923e8da6bfdf88c8e8fe3ee7529b3b</anchor>
+      <arglist>(Parameter p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a4a3afda7d74a8987b40d976aecf2a5d7</anchor>
+      <arglist>(Port p)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>a93a2269f9811ca9fb4845cab1aebd502</anchor>
+      <arglist>(Type type)</arglist>
+    </member>
+    <member kind="function">
+      <type>default String</type>
+      <name>getTargetType</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</anchorfile>
+      <anchor>aa9297bc495a4871e7796ade58f4e0bce</anchor>
+      <arglist>(Type type, Initializer init)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -31875,7 +33046,50 @@
   <compound kind="class">
     <name>org::lflang::target::property::type::BuildTypeType</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</base>
     <class kind="enum">org::lflang::target::property::type::BuildTypeType::BuildType</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>Class&lt; BuildType &gt;</type>
       <name>enumClass</name>
@@ -31954,7 +33168,50 @@
   <compound kind="class">
     <name>org::lflang::target::property::type::ClockSyncModeType</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</base>
     <class kind="enum">org::lflang::target::property::type::ClockSyncModeType::ClockSyncMode</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>Class&lt; ClockSyncMode &gt;</type>
       <name>enumClass</name>
@@ -32005,7 +33262,50 @@
   <compound kind="class">
     <name>org::lflang::target::property::type::CoordinationModeType</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</base>
     <class kind="enum">org::lflang::target::property::type::CoordinationModeType::CoordinationMode</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>Class&lt; CoordinationMode &gt;</type>
       <name>enumClass</name>
@@ -32150,7 +33450,50 @@
   <compound kind="class">
     <name>org::lflang::target::property::type::LoggingType</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</base>
     <class kind="enum">org::lflang::target::property::type::LoggingType::LogLevel</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>Class&lt; LogLevel &gt;</type>
       <name>enumClass</name>
@@ -32213,14 +33556,107 @@
     </member>
   </compound>
   <compound kind="class">
-    <name>org::lflang::target::property::type::OptionsType&lt; T extends Enum</name>
-    <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType_3_01T_01extends_01Enum.html</filename>
-    <templarg>?</templarg>
+    <name>org::lflang::target::property::type::OptionsType</name>
+    <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</filename>
+    <templarg>T</templarg>
+    <base>org.lflang.target.property.type.TargetPropertyType</base>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>abstract Class&lt; T &gt;</type>
+      <name>enumClass</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>acba28480a983143a56542199f2b94eda</anchor>
+      <arglist>()</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>org::lflang::target::property::type::PlatformType</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</base>
     <class kind="enum">org::lflang::target::property::type::PlatformType::Platform</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>Class&lt; Platform &gt;</type>
       <name>enumClass</name>
@@ -32437,7 +33873,50 @@
   <compound kind="class">
     <name>org::lflang::target::property::type::SchedulerType</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</base>
     <class kind="enum">org::lflang::target::property::type::SchedulerType::Scheduler</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
     <member kind="function" protection="protected">
       <type>Class&lt; Scheduler &gt;</type>
       <name>enumClass</name>
@@ -34940,6 +36419,13 @@
     <filename>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html</filename>
     <class kind="class">org::lflang::tests::lsp::ErrorInserter::AlteredTest</class>
     <class kind="class">org::lflang::tests::lsp::ErrorInserter::Builder</class>
+    <member kind="function">
+      <type>AlteredTest</type>
+      <name>alterTest</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html</anchorfile>
+      <anchor>aab9b482044d420f240e9f008710f8437</anchor>
+      <arglist>(Path test)</arglist>
+    </member>
     <member kind="variable" static="yes">
       <type>static final Builder</type>
       <name>C</name>
@@ -35045,6 +36531,27 @@
       <anchorfile>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</anchorfile>
       <anchor>a50d56f8cbadf9f31bd9e4dcc353ebe3e</anchor>
       <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>ErrorInserter</type>
+      <name>get</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</anchorfile>
+      <anchor>a96ae9f7987308c7af638cbb8f9d09f81</anchor>
+      <arglist>(Random random)</arglist>
+    </member>
+    <member kind="function">
+      <type>Builder</type>
+      <name>insertable</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</anchorfile>
+      <anchor>af6a73d1c64592fa45f48e9ff05eb2992</anchor>
+      <arglist>(String line)</arglist>
+    </member>
+    <member kind="function">
+      <type>Builder</type>
+      <name>insertCondition</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</anchorfile>
+      <anchor>a543ac2c5e2fea7cc7ec218a10d6b4b28</anchor>
+      <arglist>(BiPredicate&lt; String, String &gt; insertCondition)</arglist>
     </member>
     <member kind="function">
       <type>Builder</type>
@@ -40959,7 +42466,7 @@
     <class kind="class">org::lflang::generator::ReactionInstance</class>
     <class kind="class">org::lflang::generator::ReactionInstanceGraph</class>
     <class kind="class">org::lflang::generator::ReactorInstance</class>
-    <class kind="class">org::lflang::generator::RuntimeRange&lt; T extends NamedInstance</class>
+    <class kind="class">org::lflang::generator::RuntimeRange</class>
     <class kind="class">org::lflang::generator::SendRange</class>
     <class kind="class">org::lflang::generator::StateVariableInstance</class>
     <class kind="class">org::lflang::generator::SubContext</class>
@@ -41151,7 +42658,7 @@
     <class kind="class">org::lflang::target::property::type::CoordinationModeType</class>
     <class kind="enum">org::lflang::target::property::type::DictionaryType</class>
     <class kind="class">org::lflang::target::property::type::LoggingType</class>
-    <class kind="class">org::lflang::target::property::type::OptionsType&lt; T extends Enum</class>
+    <class kind="class">org::lflang::target::property::type::OptionsType</class>
     <class kind="class">org::lflang::target::property::type::PlatformType</class>
     <class kind="enum">org::lflang::target::property::type::PrimitiveType</class>
     <class kind="class">org::lflang::target::property::type::SchedulerType</class>
@@ -41354,11 +42861,6 @@
     <class kind="class">org::lflang::federated::validation::FedValidator</class>
   </compound>
   <compound kind="group">
-    <name>Generated</name>
-    <title>Generated</title>
-    <filename>group__Generated.html</filename>
-  </compound>
-  <compound kind="group">
     <name>Generator</name>
     <title>Generator</title>
     <filename>group__Generator.html</filename>
@@ -41460,7 +42962,7 @@
     <class kind="class">org::lflang::generator::ReactionInstance</class>
     <class kind="class">org::lflang::generator::ReactionInstanceGraph</class>
     <class kind="class">org::lflang::generator::ReactorInstance</class>
-    <class kind="class">org::lflang::generator::RuntimeRange&lt; T extends NamedInstance</class>
+    <class kind="class">org::lflang::generator::RuntimeRange</class>
     <class kind="class">org::lflang::generator::SendRange</class>
     <class kind="class">org::lflang::generator::StateVariableInstance</class>
     <class kind="class">org::lflang::generator::TimerInstance</class>

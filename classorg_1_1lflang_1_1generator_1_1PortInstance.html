@@ -113,13 +113,13 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ad2eddfcef11d013561748dea41b54190"><td class="mdescLeft">&#160;</td><td class="mdescRight">For the given downstream port (the instance of a range returned by <a class="el" href="#a80fe45fdf46cda45887db4751adf1836" title="Return the list of ranges of this port together with the downstream ports that are connected to this ...">getDependentPorts()</a>), return a list of connections to that port or null if there are no connections to that port.  <br /></td></tr>
 <tr class="memitem:a3eced36dbd547fdd38fccc42a68aa9b5" id="r_a3eced36dbd547fdd38fccc42a68aa9b5"><td class="memItemLeft" align="right" valign="top">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html">SendRange</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3eced36dbd547fdd38fccc42a68aa9b5">eventualDestinations</a> ()</td></tr>
 <tr class="memdesc:a3eced36dbd547fdd38fccc42a68aa9b5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of ranges of this port, where each range sends to a list of destination ports that receive data from the range of this port.  <br /></td></tr>
-<tr class="memitem:a3031ac68133546f9a20e7a66f17f750d" id="r_a3031ac68133546f9a20e7a66f17f750d"><td class="memItemLeft" align="right" valign="top">List&lt; RuntimeRange&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3031ac68133546f9a20e7a66f17f750d">eventualSources</a> ()</td></tr>
+<tr class="memitem:a3031ac68133546f9a20e7a66f17f750d" id="r_a3031ac68133546f9a20e7a66f17f750d"><td class="memItemLeft" align="right" valign="top">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a>&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3031ac68133546f9a20e7a66f17f750d">eventualSources</a> ()</td></tr>
 <tr class="memdesc:a3031ac68133546f9a20e7a66f17f750d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of ranges of ports that send data to this port.  <br /></td></tr>
 <tr class="memitem:a80fe45fdf46cda45887db4751adf1836" id="r_a80fe45fdf46cda45887db4751adf1836"><td class="memItemLeft" align="right" valign="top">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html">SendRange</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a80fe45fdf46cda45887db4751adf1836">getDependentPorts</a> ()</td></tr>
 <tr class="memdesc:a80fe45fdf46cda45887db4751adf1836"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the list of ranges of this port together with the downstream ports that are connected to this port.  <br /></td></tr>
 <tr class="memitem:afe6d1d1335550edf242f39f976353787" id="r_afe6d1d1335550edf242f39f976353787"><td class="memItemLeft" align="right" valign="top">Set&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html">ReactionInstance</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1TriggerInstance.html#afe6d1d1335550edf242f39f976353787">getDependentReactions</a> ()</td></tr>
 <tr class="memdesc:afe6d1d1335550edf242f39f976353787"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the reaction instances that are triggered or read by this trigger.  <br /></td></tr>
-<tr class="memitem:a19462a2baa0a4c67dcd09ea59724a700" id="r_a19462a2baa0a4c67dcd09ea59724a700"><td class="memItemLeft" align="right" valign="top">List&lt; RuntimeRange&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a19462a2baa0a4c67dcd09ea59724a700">getDependsOnPorts</a> ()</td></tr>
+<tr class="memitem:a19462a2baa0a4c67dcd09ea59724a700" id="r_a19462a2baa0a4c67dcd09ea59724a700"><td class="memItemLeft" align="right" valign="top">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a>&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a19462a2baa0a4c67dcd09ea59724a700">getDependsOnPorts</a> ()</td></tr>
 <tr class="memdesc:a19462a2baa0a4c67dcd09ea59724a700"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the list of upstream ports that are connected to this port, or an empty set if there are none.  <br /></td></tr>
 <tr class="memitem:a7d499b9439fef9389e065201524094ce" id="r_a7d499b9439fef9389e065201524094ce"><td class="memItemLeft" align="right" valign="top">Set&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html">ReactionInstance</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1TriggerInstance.html#a7d499b9439fef9389e065201524094ce">getDependsOnReactions</a> ()</td></tr>
 <tr class="memdesc:a7d499b9439fef9389e065201524094ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the reaction instances that may send data via this port or action.  <br /></td></tr>
@@ -161,7 +161,7 @@ Package Attributes</h2></td></tr>
 <tr class="memdesc:a1e671223b06a8cb8841f5860d2e51957"><td class="mdescLeft">&#160;</td><td class="mdescRight">Ranges of this port together with downstream ports that are connected directly to this port.  <br /></td></tr>
 <tr class="memitem:a5707123aa8691ccd7c64b54f87fdd789" id="r_a5707123aa8691ccd7c64b54f87fdd789"><td class="memItemLeft" align="right" valign="top">Set&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html">ReactionInstance</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1TriggerInstance.html#a5707123aa8691ccd7c64b54f87fdd789">dependentReactions</a></td></tr>
 <tr class="memdesc:a5707123aa8691ccd7c64b54f87fdd789"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reaction instances that are triggered or read by this trigger.  <br /></td></tr>
-<tr class="memitem:a2985969e3d584d18031cda9940ddfca8" id="r_a2985969e3d584d18031cda9940ddfca8"><td class="memItemLeft" align="right" valign="top">List&lt; RuntimeRange&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2985969e3d584d18031cda9940ddfca8">dependsOnPorts</a> = new ArrayList&lt;&gt;(1)</td></tr>
+<tr class="memitem:a2985969e3d584d18031cda9940ddfca8" id="r_a2985969e3d584d18031cda9940ddfca8"><td class="memItemLeft" align="right" valign="top">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a>&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2985969e3d584d18031cda9940ddfca8">dependsOnPorts</a> = new ArrayList&lt;&gt;(1)</td></tr>
 <tr class="memdesc:a2985969e3d584d18031cda9940ddfca8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Upstream ports that are connected directly to this port, if there are any.  <br /></td></tr>
 <tr class="memitem:a2dd11fae53d58c404f4f4ed48a6dd939" id="r_a2dd11fae53d58c404f4f4ed48a6dd939"><td class="memItemLeft" align="right" valign="top">Set&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstance.html">ReactionInstance</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1TriggerInstance.html#a2dd11fae53d58c404f4f4ed48a6dd939">dependsOnReactions</a></td></tr>
 <tr class="memdesc:a2dd11fae53d58c404f4f4ed48a6dd939"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reaction instances that may send data via this port or action.  <br /></td></tr>
@@ -175,7 +175,7 @@ Package Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Representation of a compile-time instance of a port. </p>
 <p>Like <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></code>, if one or more parents of this port is a bank of reactors, then there will be more than one runtime instance corresponding to this compile-time instance.</p>
-<p>This may be a single port or a multiport. If it is a multiport, then one instance of this <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html" title="Representation of a compile-time instance of a port.">PortInstance</a> class represents all channels. If in addition any parent is a bank, then it represents all channels of all bank members. The <code><a class="el" href="#a3eced36dbd547fdd38fccc42a68aa9b5">eventualDestinations()</a></code> and <code><a class="el" href="#a3031ac68133546f9a20e7a66f17f750d">eventualSources()</a></code> functions report the connectivity of all such channels as lists of <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html">SendRange</a></code> and <code><a class="el" href="">RuntimeRange</a></code> objects.</p>
+<p>This may be a single port or a multiport. If it is a multiport, then one instance of this <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html" title="Representation of a compile-time instance of a port.">PortInstance</a> class represents all channels. If in addition any parent is a bank, then it represents all channels of all bank members. The <code><a class="el" href="#a3eced36dbd547fdd38fccc42a68aa9b5">eventualDestinations()</a></code> and <code><a class="el" href="#a3031ac68133546f9a20e7a66f17f750d">eventualSources()</a></code> functions report the connectivity of all such channels as lists of <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html">SendRange</a></code> and <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a></code> objects.</p>
 <dl class="section author"><dt>Author</dt><dd>Marten Lohstroh </dd>
 <dd>
 Edward A. Lee </dd></dl>
@@ -185,9 +185,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">org.lflang.generator.PortInstance.PortInstance </td>
@@ -200,11 +197,6 @@ Edward A. Lee </dd></dl>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></td>          <td class="paramname"><span class="paramname"><em>parent</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Create a runtime instance from the specified definition and with the specified parent that instantiated it. </p>
@@ -223,9 +215,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">org.lflang.generator.PortInstance.PortInstance </td>
@@ -243,11 +232,6 @@ Edward A. Lee </dd></dl>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>messageReporter</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Create a port instance from the specified definition and with the specified parent that instantiated it. </p>
@@ -285,7 +269,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel package">package</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel package">package</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -306,9 +290,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void org.lflang.generator.PortInstance.clearCaches </td>
@@ -317,11 +298,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Clear cached information about the connectivity of this port. </p>
@@ -334,9 +310,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">List&lt; Connection &gt; org.lflang.generator.PortInstance.connectionsFrom </td>
@@ -345,11 +318,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>For the given upstream port (the instance of a range returned by <a class="el" href="#a19462a2baa0a4c67dcd09ea59724a700" title="Return the list of upstream ports that are connected to this port, or an empty set if there are none.">getDependsOnPorts()</a>), return a list of connections from that port or null if there are no connections from that port. </p>
@@ -367,9 +335,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">List&lt; Connection &gt; org.lflang.generator.PortInstance.connectionsTo </td>
@@ -378,11 +343,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>For the given downstream port (the instance of a range returned by <a class="el" href="#a80fe45fdf46cda45887db4751adf1836" title="Return the list of ranges of this port together with the downstream ports that are connected to this ...">getDependentPorts()</a>), return a list of connections to that port or null if there are no connections to that port. </p>
@@ -400,9 +360,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html">SendRange</a> &gt; org.lflang.generator.PortInstance.eventualDestinations </td>
@@ -411,11 +368,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return a list of ranges of this port, where each range sends to a list of destination ports that receive data from the range of this port. </p>
@@ -439,22 +391,14 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">List&lt; RuntimeRange&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt; org.lflang.generator.PortInstance.eventualSources </td>
+          <td class="memname">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a>&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt; org.lflang.generator.PortInstance.eventualSources </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return a list of ranges of ports that send data to this port. </p>
@@ -469,9 +413,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html">SendRange</a> &gt; org.lflang.generator.PortInstance.getDependentPorts </td>
@@ -480,11 +421,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return the list of ranges of this port together with the downstream ports that are connected to this port. </p>
@@ -510,7 +446,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -525,22 +461,14 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">List&lt; RuntimeRange&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt; org.lflang.generator.PortInstance.getDependsOnPorts </td>
+          <td class="memname">List&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a>&lt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> &gt; &gt; org.lflang.generator.PortInstance.getDependsOnPorts </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return the list of upstream ports that are connected to this port, or an empty set if there are none. </p>
@@ -566,7 +494,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -581,9 +509,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">int org.lflang.generator.PortInstance.getLevelUpperBound </td>
@@ -592,11 +517,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return the minimum of the levels of the reactions that are downstream of this port. </p>
@@ -622,7 +542,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -637,9 +557,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">boolean org.lflang.generator.PortInstance.isInput </td>
@@ -648,11 +565,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return true if the port is an input. </p>
@@ -664,9 +576,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">boolean org.lflang.generator.PortInstance.isMultiport </td>
@@ -675,11 +584,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return true if this is a multiport. </p>
@@ -691,9 +595,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">boolean org.lflang.generator.PortInstance.isOutput </td>
@@ -702,11 +603,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return true if the port is an output. </p>
@@ -731,7 +627,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -759,7 +655,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -786,7 +682,7 @@ Edward A. Lee </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -801,9 +697,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a> org.lflang.generator.PortInstance.minDelayFrom </td>
@@ -812,11 +705,6 @@ Edward A. Lee </dd></dl>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>For the given upstream port (the instance of a range returned by <a class="el" href="#a19462a2baa0a4c67dcd09ea59724a700" title="Return the list of upstream ports that are connected to this port, or an empty set if there are none.">getDependsOnPorts()</a>), return the minimum of the <span class="tt">after</span> delays on connections from that port. </p>
@@ -835,9 +723,6 @@ Edward A. Lee </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void org.lflang.generator.PortInstance.recordIndexForPortChannel </td>
@@ -850,11 +735,6 @@ Edward A. Lee </dd></dl>
           <td class="paramtype">int</td>          <td class="paramname"><span class="paramname"><em>level</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Record that the <code class="JavaDocCode">index</code>th sub-port of this has a dependent reaction of level <code class="JavaDocCode"><br/>
@@ -867,9 +747,6 @@ level</code>. </p>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">String org.lflang.generator.PortInstance.toString </td>
@@ -878,11 +755,6 @@ level</code>. </p>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 </div>
@@ -948,7 +820,7 @@ level</code>. </p>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">List&lt;RuntimeRange&lt;<a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a>&gt; &gt; org.lflang.generator.PortInstance.dependsOnPorts = new ArrayList&lt;&gt;(1)</td>
+          <td class="memname">List&lt;<a class="el" href="classorg_1_1lflang_1_1generator_1_1RuntimeRange.html">RuntimeRange</a>&lt;<a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a>&gt; &gt; org.lflang.generator.PortInstance.dependsOnPorts = new ArrayList&lt;&gt;(1)</td>
         </tr>
       </table>
   </td>

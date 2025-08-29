@@ -4,7 +4,6 @@ var topics =
     [ "Diagram", "group__Diagram.html", "group__Diagram" ],
     [ "Docker", "group__Docker.html", "group__Docker" ],
     [ "Federated", "group__Federated.html", "group__Federated" ],
-    [ "Generated", "group__Generated.html", null ],
     [ "Generator", "group__Generator.html", "group__Generator" ],
     [ "Infrastructure", "group__Infrastructure.html", "group__Infrastructure" ],
     [ "Instances", "group__Instances.html", "group__Instances" ],

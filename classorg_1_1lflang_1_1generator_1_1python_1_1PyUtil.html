@@ -117,12 +117,29 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:a448b9b3a0cb910e5550c397349790977"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a default name of a variable to refer to the channel index of a port in a bank.  <br /></td></tr>
 <tr class="memitem:a088acc670aa314175c4f70d1ae24054b" id="r_a088acc670aa314175c4f70d1ae24054b"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a088acc670aa314175c4f70d1ae24054b">channelIndexName</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> port)</td></tr>
 <tr class="memdesc:a088acc670aa314175c4f70d1ae24054b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a default name of a variable to refer to the channel index of a port in a bank.  <br /></td></tr>
+<tr class="memitem:a540c5ab86e7fc2334c36141141b5dfc8" id="r_a540c5ab86e7fc2334c36141141b5dfc8"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a540c5ab86e7fc2334c36141141b5dfc8">deleteBinFiles</a> (<a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a> fileConfig)</td></tr>
+<tr class="memdesc:a540c5ab86e7fc2334c36141141b5dfc8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove files in the bin directory that may have been created.  <br /></td></tr>
+<tr class="memitem:ad763091acf495249cd45108ac6ae4034" id="r_ad763091acf495249cd45108ac6ae4034"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ad763091acf495249cd45108ac6ae4034">fixedSizeArrayTypeLength</a> (<a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
+<tr class="memdesc:ad763091acf495249cd45108ac6ae4034"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a type for an input or output, if it is a fixed-size array (declared with <span class="tt">type[int]</span>), then return the <span class="tt">int</span> and otherwise return 1, which is the default length for non-arrays and variable-size arrays.  <br /></td></tr>
 <tr class="memitem:a4e6d86876edba5bf42059b0f253e3b8d" id="r_a4e6d86876edba5bf42059b0f253e3b8d"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4e6d86876edba5bf42059b0f253e3b8d">generateGILAcquireCode</a> ()</td></tr>
 <tr class="memitem:ab246874219a19602f7a8976776bf8bc5" id="r_ab246874219a19602f7a8976776bf8bc5"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab246874219a19602f7a8976776bf8bc5">generateGILReleaseCode</a> ()</td></tr>
+<tr class="memitem:a1be308dd6f4c6eb0c252b5891e46705b" id="r_a1be308dd6f4c6eb0c252b5891e46705b"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a1be308dd6f4c6eb0c252b5891e46705b">generateWidthVariable</a> (String var)</td></tr>
+<tr class="memitem:a73c5b329d2ac5b5c48b9a3477b5f7b6f" id="r_a73c5b329d2ac5b5c48b9a3477b5f7b6f"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a73c5b329d2ac5b5c48b9a3477b5f7b6f">getEnvironmentStruct</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveInstance.html">CEnclaveInstance</a> inst)</td></tr>
+<tr class="memdesc:a73c5b329d2ac5b5c48b9a3477b5f7b6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a string representing a global C variable that is the struct of the environment of the specified enclave.  <br /></td></tr>
+<tr class="memitem:abb5612cab20838782832e8b48ff30639" id="r_abb5612cab20838782832e8b48ff30639"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#abb5612cab20838782832e8b48ff30639">getEnvironmentStructPtr</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> inst)</td></tr>
+<tr class="memdesc:abb5612cab20838782832e8b48ff30639"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a string representing a pointer to the C variable that is the struct of the environment of the specified enclave.  <br /></td></tr>
 <tr class="memitem:a656705d258bbcbce6e4ce6ba903ee44b" id="r_a656705d258bbcbce6e4ce6ba903ee44b"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a656705d258bbcbce6e4ce6ba903ee44b">getName</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> reactor)</td></tr>
 <tr class="memdesc:a656705d258bbcbce6e4ce6ba903ee44b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the name of the reactor.  <br /></td></tr>
+<tr class="memitem:a0c29174af3742014a479fa306936d8f9" id="r_a0c29174af3742014a479fa306936d8f9"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0c29174af3742014a479fa306936d8f9">getShortenedName</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> instance)</td></tr>
+<tr class="memdesc:a0c29174af3742014a479fa306936d8f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the full name of the specified instance without the leading name of the top-level reactor, unless this is the top-level reactor, in which case return its name.  <br /></td></tr>
 <tr class="memitem:a0f4dc466e59743dbd98e1a715af3f62d" id="r_a0f4dc466e59743dbd98e1a715af3f62d"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0f4dc466e59743dbd98e1a715af3f62d">internalIncludeGuard</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr)</td></tr>
 <tr class="memdesc:a0f4dc466e59743dbd98e1a715af3f62d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the name used in the internal (non-user-facing) include guard for the given reactor.  <br /></td></tr>
+<tr class="memitem:a02d728194b4f1ef10b78b4341359792b" id="r_a02d728194b4f1ef10b78b4341359792b"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a02d728194b4f1ef10b78b4341359792b">isFixedSizeArrayType</a> (<a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
+<tr class="memdesc:a02d728194b4f1ef10b78b4341359792b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a type for an input or output, return true if it is a fixed-size array (declared with <span class="tt">type[int]</span>).  <br /></td></tr>
+<tr class="memitem:ad2d5ec78412ce03ca2c39dfb08151e7e" id="r_ad2d5ec78412ce03ca2c39dfb08151e7e"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ad2d5ec78412ce03ca2c39dfb08151e7e">isTokenType</a> (<a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
+<tr class="memdesc:ad2d5ec78412ce03ca2c39dfb08151e7e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a type for an input or output, return true if it should be carried by a lf_token_t struct rather than the type itself.  <br /></td></tr>
+<tr class="memitem:ac78da991adaeb2198262de57d7b0242e" id="r_ac78da991adaeb2198262de57d7b0242e"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ac78da991adaeb2198262de57d7b0242e">multiportWidthExpression</a> (Variable variable)</td></tr>
+<tr class="memdesc:ac78da991adaeb2198262de57d7b0242e"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the argument is a multiport, then return a string that gives the width as an expression, and otherwise, return null.  <br /></td></tr>
 <tr class="memitem:abe9ae5ca2df7cfca62039c8e61a1a786" id="r_abe9ae5ca2df7cfca62039c8e61a1a786"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#abe9ae5ca2df7cfca62039c8e61a1a786">portRef</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> port)</td></tr>
 <tr class="memdesc:abe9ae5ca2df7cfca62039c8e61a1a786"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a reference to the port on the self struct of the port's parent.  <br /></td></tr>
 <tr class="memitem:ab7d0ab19e38f898d81464a38e388fbfd" id="r_ab7d0ab19e38f898d81464a38e388fbfd"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ab7d0ab19e38f898d81464a38e388fbfd">portRef</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> port, boolean isNested, boolean includeChannelIndex, String <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0ebae86cb14e67125bf84d59d23f2d04">runtimeIndex</a>, String <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a9ae7b346ce6f8bc1f01b3b6ad90b52c8">bankIndex</a>, String <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a448b9b3a0cb910e5550c397349790977">channelIndex</a>)</td></tr>
@@ -159,6 +176,10 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:a86f92884830a18449631fe32ef5e3b26"><td class="mdescLeft">&#160;</td><td class="mdescRight">For situations where a reaction reacts to or reads from an output of a contained reactor or sends to an input of a contained reactor, then the container's self struct will have a field (or an array of fields if the contained reactor is a bank) that is a struct with fields corresponding to those inputs and outputs.  <br /></td></tr>
 <tr class="memitem:a62db15239be477b43220bd744f11934e" id="r_a62db15239be477b43220bd744f11934e"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a62db15239be477b43220bd744f11934e">reactorRefNested</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> reactor, String <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0ebae86cb14e67125bf84d59d23f2d04">runtimeIndex</a>, String <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a9ae7b346ce6f8bc1f01b3b6ad90b52c8">bankIndex</a>)</td></tr>
 <tr class="memdesc:a62db15239be477b43220bd744f11934e"><td class="mdescLeft">&#160;</td><td class="mdescRight">For situations where a reaction reacts to or reads from an output of a contained reactor or sends to an input of a contained reactor, then the container's self struct will have a field (or an array of fields if the contained reactor is a bank) that is a struct with fields corresponding to those inputs and outputs.  <br /></td></tr>
+<tr class="memitem:a36284148ff34eb796459aef9264ff883" id="r_a36284148ff34eb796459aef9264ff883"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a36284148ff34eb796459aef9264ff883">rootType</a> (String type)</td></tr>
+<tr class="memdesc:a36284148ff34eb796459aef9264ff883"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the type specification of the form <span class="tt">type[]</span>, <span class="tt">type*</span>, or <span class="tt">type</span>, return the type.  <br /></td></tr>
+<tr class="memitem:a95fa0e389976f101b02607cefaf448e1" id="r_a95fa0e389976f101b02607cefaf448e1"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a95fa0e389976f101b02607cefaf448e1">runBuildCommand</a> (<a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> targetConfig, <a class="el" href="classorg_1_1lflang_1_1generator_1_1GeneratorCommandFactory.html">GeneratorCommandFactory</a> commandFactory, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, <a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1c_1_1CUtil_1_1ReportCommandErrors.html">ReportCommandErrors</a> reportCommandErrors, LFGeneratorContext.Mode mode)</td></tr>
+<tr class="memdesc:a95fa0e389976f101b02607cefaf448e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the custom build command specified with the "build" parameter.  <br /></td></tr>
 <tr class="memitem:a0ebae86cb14e67125bf84d59d23f2d04" id="r_a0ebae86cb14e67125bf84d59d23f2d04"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0ebae86cb14e67125bf84d59d23f2d04">runtimeIndex</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> reactor)</td></tr>
 <tr class="memdesc:a0ebae86cb14e67125bf84d59d23f2d04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an expression that, when evaluated, gives the index of a runtime instance of the specified <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html" title="Representation of a compile-time instance of a reactor.">ReactorInstance</a>.  <br /></td></tr>
 <tr class="memitem:a9cc4c2e3a78cbc7d7c38a28ab0681c15" id="r_a9cc4c2e3a78cbc7d7c38a28ab0681c15"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a9cc4c2e3a78cbc7d7c38a28ab0681c15">selfType</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> instance)</td></tr>
@@ -212,7 +233,7 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -247,7 +268,7 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -274,7 +295,7 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -308,7 +329,7 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -342,7 +363,7 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -370,13 +391,80 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a default name of a variable to refer to the channel index of a port in a bank. </p>
 <p>This is has the form uniqueID_c where uniqueID is an identifier for the instance that is guaranteed to be different from the ID of any other instance in the program. </p>
+
+</div>
+</div>
+<a id="a540c5ab86e7fc2334c36141141b5dfc8" name="a540c5ab86e7fc2334c36141141b5dfc8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a540c5ab86e7fc2334c36141141b5dfc8">&#9670;&#160;</a></span>deleteBinFiles()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.generator.c.CUtil.deleteBinFiles </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a></td>          <td class="paramname"><span class="paramname"><em>fileConfig</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Remove files in the bin directory that may have been created. </p>
+<p>Call this if a compilation occurs so that files from a previous version do not accidentally get executed.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">fileConfig</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ad763091acf495249cd45108ac6ae4034" name="ad763091acf495249cd45108ac6ae4034"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad763091acf495249cd45108ac6ae4034">&#9670;&#160;</a></span>fixedSizeArrayTypeLength()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">int org.lflang.generator.c.CUtil.fixedSizeArrayTypeLength </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Given a type for an input or output, if it is a fixed-size array (declared with <span class="tt">type[int]</span>), then return the <span class="tt">int</span> and otherwise return 1, which is the default length for non-arrays and variable-size arrays. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">type</td><td>The type specification </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -398,7 +486,7 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -423,10 +511,101 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1be308dd6f4c6eb0c252b5891e46705b" name="a1be308dd6f4c6eb0c252b5891e46705b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1be308dd6f4c6eb0c252b5891e46705b">&#9670;&#160;</a></span>generateWidthVariable()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CUtil.generateWidthVariable </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>var</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a73c5b329d2ac5b5c48b9a3477b5f7b6f" name="a73c5b329d2ac5b5c48b9a3477b5f7b6f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a73c5b329d2ac5b5c48b9a3477b5f7b6f">&#9670;&#160;</a></span>getEnvironmentStruct()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CUtil.getEnvironmentStruct </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveInstance.html">CEnclaveInstance</a></td>          <td class="paramname"><span class="paramname"><em>inst</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a string representing a global C variable that is the struct of the environment of the specified enclave. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">inst</td><td>The enclave instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="abb5612cab20838782832e8b48ff30639" name="abb5612cab20838782832e8b48ff30639"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abb5612cab20838782832e8b48ff30639">&#9670;&#160;</a></span>getEnvironmentStructPtr()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CUtil.getEnvironmentStructPtr </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></td>          <td class="paramname"><span class="paramname"><em>inst</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a string representing a pointer to the C variable that is the struct of the environment of the specified enclave. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">inst</td><td>The enclave instance. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -448,13 +627,47 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return the name of the reactor. </p>
-<p>A <code class="JavaDocCode">_main</code> is appended to the name if the reactor is main (to allow for instantiations that have the same name as the main reactor or the .lf file). </p>
+<p>A <span class="tt">_main</span> is appended to the name if the reactor is main (to allow for instantiations that have the same name as the main reactor or the .lf file). </p>
+
+</div>
+</div>
+<a id="a0c29174af3742014a479fa306936d8f9" name="a0c29174af3742014a479fa306936d8f9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0c29174af3742014a479fa306936d8f9">&#9670;&#160;</a></span>getShortenedName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CUtil.getShortenedName </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></td>          <td class="paramname"><span class="paramname"><em>instance</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return the full name of the specified instance without the leading name of the top-level reactor, unless this is the top-level reactor, in which case return its name. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">instance</td><td>The instance. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A shortened instance name. </dd></dl>
 
 </div>
 </div>
@@ -476,12 +689,108 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return the name used in the internal (non-user-facing) include guard for the given reactor. </p>
+
+</div>
+</div>
+<a id="a02d728194b4f1ef10b78b4341359792b" name="a02d728194b4f1ef10b78b4341359792b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a02d728194b4f1ef10b78b4341359792b">&#9670;&#160;</a></span>isFixedSizeArrayType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.generator.c.CUtil.isFixedSizeArrayType </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Given a type for an input or output, return true if it is a fixed-size array (declared with <span class="tt">type[int]</span>). </p>
+<p>For such types, the memory is allocated in the output struct.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">type</td><td>The type specification. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ad2d5ec78412ce03ca2c39dfb08151e7e" name="ad2d5ec78412ce03ca2c39dfb08151e7e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad2d5ec78412ce03ca2c39dfb08151e7e">&#9670;&#160;</a></span>isTokenType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.generator.c.CUtil.isTokenType </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Given a type for an input or output, return true if it should be carried by a lf_token_t struct rather than the type itself. </p>
+<p>It should be carried by such a struct if the type ends with * (it is a pointer) or [] (it is a array with unspecified length).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">type</td><td>The type specification. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ac78da991adaeb2198262de57d7b0242e" name="ac78da991adaeb2198262de57d7b0242e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac78da991adaeb2198262de57d7b0242e">&#9670;&#160;</a></span>multiportWidthExpression()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CUtil.multiportWidthExpression </td>
+          <td>(</td>
+          <td class="paramtype">Variable</td>          <td class="paramname"><span class="paramname"><em>variable</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>If the argument is a multiport, then return a string that gives the width as an expression, and otherwise, return null. </p>
+<p>The string will be empty if the width is variable (specified as '[]'). Otherwise, if is a single term or a sum of terms (separated by '+'), where each term is either an integer or a parameter reference in the target language. </p>
 
 </div>
 </div>
@@ -503,14 +812,14 @@ Soroush Bateni </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a reference to the port on the self struct of the port's parent. </p>
-<p>This is used when an input port triggers a reaction in the port's parent or when an output port is written to by a reaction in the port's parent. This is equivalent to calling <code class="JavaDocCode">portRef(port, false, true,<br/>
-null, null)</code>.</p>
+<p>This is used when an input port triggers a reaction in the port's parent or when an output port is written to by a reaction in the port's parent. This is equivalent to calling <span class="tt">portRef(port, false, true,
+null, null)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>An instance of the port to be referenced. </td></tr>
@@ -562,7 +871,7 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -571,22 +880,22 @@ null, null)</code>.</p>
 <p>The returned string will have one of the following forms:</p>
 <ul>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_portName</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_portName</span> </li>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_portName</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_portName</span> </li>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_portName[i]</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_portName[i]</span> </li>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_parent.portName</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_parent.portName</span> </li>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_parent.portName[i]</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_parent.portName[i]</span> </li>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_parent[j].portName</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_parent[j].portName</span> </li>
 <li>
-<code class="JavaDocCode">selfStructs[k]-&gt;_lf_parent[j].portName[i]</code> </li>
+<span class="tt">selfStructs[k]-&gt;_lf_parent[j].portName[i]</span> </li>
 </ul>
-<p>where <code class="JavaDocCode">k</code> is the runtime index of either the port's parent or the port's parent's parent, the latter when isNested is <code class="JavaDocCode">true</code>. The index <code class="JavaDocCode">j</code> is present if the parent is a bank, and the index <code class="JavaDocCode">i</code> is present if the port is a multiport.</p>
-<p>The first two forms are used if isNested is false, and the remaining four are used if isNested is true. Set <code class="JavaDocCode">isNested</code> to <code class="JavaDocCode">true</code> when referencing a port belonging to a contained reactor.</p>
+<p>where <span class="tt">k</span> is the runtime index of either the port's parent or the port's parent's parent, the latter when isNested is <span class="tt">true</span>. The index <span class="tt">j</span> is present if the parent is a bank, and the index <span class="tt">i</span> is present if the port is a multiport.</p>
+<p>The first two forms are used if isNested is false, and the remaining four are used if isNested is true. Set <span class="tt">isNested</span> to <span class="tt">true</span> when referencing a port belonging to a contained reactor.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port. </td></tr>
@@ -633,13 +942,13 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a reference to the port on the self struct of the port's parent using the specified index variables. </p>
-<p>This is used when an input port triggers a reaction in the port's parent or when an output port is written to by a reaction in the port's parent. This is equivalent to calling <code class="JavaDocCode">portRef(port, false, true, bankIndex, channelIndex)</code>.</p>
+<p>This is used when an input port triggers a reaction in the port's parent or when an output port is written to by a reaction in the port's parent. This is equivalent to calling <span class="tt">portRef(port, false, true, bankIndex, channelIndex)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>An instance of the port to be referenced. </td></tr>
@@ -679,7 +988,7 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -715,7 +1024,7 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -763,7 +1072,7 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -800,13 +1109,13 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a port reference to a port on the self struct of the parent of the port's parent. </p>
-<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <code class="JavaDocCode">portRef(port, true, true, null, null, null)</code>.</p>
+<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <span class="tt">portRef(port, true, true, null, null, null)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port. </td></tr>
@@ -848,13 +1157,13 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a reference to the port on the self struct of the parent of the port's parent. </p>
-<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <code class="JavaDocCode">portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)</code>.</p>
+<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <span class="tt">portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port. </td></tr>
@@ -885,14 +1194,14 @@ null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a reference to the port on the self struct of the parent of the port's parent, but without the channel indexing, even if it is a multiport. </p>
-<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <code class="JavaDocCode">portRef(port,<br/>
-true, false, null, null, null)</code>.</p>
+<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <span class="tt">portRef(port,
+true, false, null, null, null)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port. </td></tr>
@@ -934,14 +1243,13 @@ true, false, null, null, null)</code>.</p>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a reference to the port on the self struct of the parent of the port's parent, but without the channel indexing, even if it is a multiport. </p>
-<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <code class="JavaDocCode"><br/>
-portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.</p>
+<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <span class="tt">* portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port. </td></tr>
@@ -972,7 +1280,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1006,7 +1314,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1043,7 +1351,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1077,7 +1385,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1117,7 +1425,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1154,7 +1462,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1190,7 +1498,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1233,7 +1541,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1248,6 +1556,104 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a36284148ff34eb796459aef9264ff883" name="a36284148ff34eb796459aef9264ff883"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a36284148ff34eb796459aef9264ff883">&#9670;&#160;</a></span>rootType()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CUtil.rootType </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>type</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>If the type specification of the form <span class="tt">type[]</span>, <span class="tt">type*</span>, or <span class="tt">type</span>, return the type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">type</td><td>A string describing the type. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a95fa0e389976f101b02607cefaf448e1" name="a95fa0e389976f101b02607cefaf448e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a95fa0e389976f101b02607cefaf448e1">&#9670;&#160;</a></span>runBuildCommand()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.generator.c.CUtil.runBuildCommand </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a></td>          <td class="paramname"><span class="paramname"><em>fileConfig</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>targetConfig</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1GeneratorCommandFactory.html">GeneratorCommandFactory</a></td>          <td class="paramname"><span class="paramname"><em>commandFactory</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>messageReporter</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1c_1_1CUtil_1_1ReportCommandErrors.html">ReportCommandErrors</a></td>          <td class="paramname"><span class="paramname"><em>reportCommandErrors</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">LFGeneratorContext.Mode</td>          <td class="paramname"><span class="paramname"><em>mode</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Run the custom build command specified with the "build" parameter. </p>
+<p>This command is executed in the same directory as the source file.</p>
+<p>The following environment variables will be available to the command:</p>
+<ul>
+<li>
+<span class="tt">LF_CURRENT_WORKING_DIRECTORY</span>: The directory in which the command is invoked. </li>
+<li>
+<span class="tt">LF_SOURCE_DIRECTORY</span>: The directory containing the .lf file being compiled. </li>
+<li>
+<span class="tt">LF_PACKAGE_DIRECTORY</span>: The directory that is the root of the package. </li>
+<li>
+<span class="tt">LF_SOURCE_GEN_DIRECTORY</span>: The directory in which generated files are placed. </li>
+<li>
+<span class="tt">LF_BIN_DIRECTORY</span>: The directory into which to put binaries. </li>
+</ul>
 
 </div>
 </div>
@@ -1269,7 +1675,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1305,7 +1711,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1332,7 +1738,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1366,7 +1772,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1404,7 +1810,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1439,7 +1845,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -1481,7 +1887,7 @@ portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</code>.<
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">

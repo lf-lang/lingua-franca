@@ -1,13 +1,25 @@
 var interfaceorg_1_1lflang_1_1generator_1_1TargetTypes =
 [
     [ "escapeIdentifier", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a6fb005ca8e89ff21310eb1f2869a7c18", null ],
+    [ "getGenericType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a6e22d5b655615f1a711eac83d35279d5", null ],
+    [ "getMissingExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a5785f8dc543dd9dcfafb2dcefea963e1", null ],
     [ "getTargetBracedListExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a2babf7f7832b3075287836b0caceda66", null ],
     [ "getTargetBracketListExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a20ebd97caa978757eb73d61fd4912861", null ],
+    [ "getTargetExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a9989f34fc578775589053718c7be4360", null ],
+    [ "getTargetInitializer", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a70dc7a2fb0bd34f7ee15b20ad91c7e25", null ],
     [ "getTargetParamRef", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a64c8136840934d73b1672f1a4730c611", null ],
     [ "getTargetParenthesistListExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a16a56b5bd119009e85c10b8e9ea771d4", null ],
     [ "getTargetTagType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#aeb59eef9498dc4ed8182da07952cc664", null ],
+    [ "getTargetTimeExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#af987a0a4bf7dcf80bc0cfa7b92dbb603", null ],
     [ "getTargetTimeExpr", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#aaa9cdead33474bed7f0d1080c940d978", null ],
     [ "getTargetTimeType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a588ff79f05c4aebf0e26001a365a6be2", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a72774a3ea13c7d65b2e4e3637b6d46f4", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#ac41d844cf6841a96d32946cfac298b17", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a31923e8da6bfdf88c8e8fe3ee7529b3b", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a4a3afda7d74a8987b40d976aecf2a5d7", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#ab709cfa1f11cba369f15029dbf8d98dc", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a93a2269f9811ca9fb4845cab1aebd502", null ],
+    [ "getTargetType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#aa9297bc495a4871e7796ade58f4e0bce", null ],
     [ "getTargetUndefinedType", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#a4cffad3862744628da47158b948f8689", null ],
     [ "supportsGenerics", "interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html#ad87210788003885d7fdd502196f0da12", null ]
 ];

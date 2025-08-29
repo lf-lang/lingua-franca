@@ -98,7 +98,7 @@ $(function(){initNavTree('classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_
 </div><!--header-->
 <div class="contents">
 
-<p>An <code class="JavaDocCode">AlteredTest</code> represents an altered version of what was a valid LF file.  
+<p>An <span class="tt"><a class="el" href="classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1AlteredTest.html" title="An AlteredTest represents an altered version of what was a valid LF file.">AlteredTest</a></span> represents an altered version of what was a valid LF file.  
  <a href="#details">More...</a></p>
 
 <p>Inherits Closeable.</p>
@@ -110,7 +110,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:adfd8605a2f9b9452b6b86ad4ef5d7ec9" id="r_adfd8605a2f9b9452b6b86ad4ef5d7ec9"><td class="memItemLeft" align="right" valign="top">ImmutableList&lt; Integer &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adfd8605a2f9b9452b6b86ad4ef5d7ec9">getBadLines</a> ()</td></tr>
 <tr class="memdesc:adfd8605a2f9b9452b6b86ad4ef5d7ec9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the lines where this differs from the test from which it was derived.  <br /></td></tr>
 <tr class="memitem:a1d5a0f9dd0a3cf3d08052c74e2d085e0" id="r_a1d5a0f9dd0a3cf3d08052c74e2d085e0"><td class="memItemLeft" align="right" valign="top">Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a1d5a0f9dd0a3cf3d08052c74e2d085e0">getSrcFile</a> ()</td></tr>
-<tr class="memdesc:a1d5a0f9dd0a3cf3d08052c74e2d085e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the location where the content of <code class="JavaDocCode">this</code> lives.  <br /></td></tr>
+<tr class="memdesc:a1d5a0f9dd0a3cf3d08052c74e2d085e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the location where the content of <span class="tt">this</span> lives.  <br /></td></tr>
 <tr class="memitem:a2ccfd5611dd81c93282056dbcbc96e21" id="r_a2ccfd5611dd81c93282056dbcbc96e21"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2ccfd5611dd81c93282056dbcbc96e21">insert</a> (String line, Random random)</td></tr>
 <tr class="memdesc:a2ccfd5611dd81c93282056dbcbc96e21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attempt to insert a new line of target language code into this test.  <br /></td></tr>
 <tr class="memitem:ac12d3060bcdce8ad7d84c9e718afa0df" id="r_ac12d3060bcdce8ad7d84c9e718afa0df"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac12d3060bcdce8ad7d84c9e718afa0df">replace</a> (Function&lt; String, String &gt; replacer, Random random)</td></tr>
@@ -120,16 +120,13 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:aefa15a40f6e876e65ea7b794443ac399"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write the altered version of the test to the file system.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>An <code class="JavaDocCode">AlteredTest</code> represents an altered version of what was a valid LF file. </p>
+<div class="textblock"><p>An <span class="tt"><a class="el" href="classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1AlteredTest.html" title="An AlteredTest represents an altered version of what was a valid LF file.">AlteredTest</a></span> represents an altered version of what was a valid LF file. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a43a921b4b4831a83678c6f67ef6ac3a0" name="a43a921b4b4831a83678c6f67ef6ac3a0"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a43a921b4b4831a83678c6f67ef6ac3a0">&#9670;&#160;</a></span>close()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void org.lflang.tests.lsp.ErrorInserter.AlteredTest.close </td>
@@ -138,11 +135,6 @@ Public Member Functions</h2></td></tr>
           <td> throws IOException</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Restore the file associated with this test to its original state. </p>
@@ -154,9 +146,6 @@ Public Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">ImmutableList&lt; Integer &gt; org.lflang.tests.lsp.ErrorInserter.AlteredTest.getBadLines </td>
@@ -165,11 +154,6 @@ Public Member Functions</h2></td></tr>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return the lines where this differs from the test from which it was derived. </p>
@@ -181,9 +165,6 @@ Public Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">Path org.lflang.tests.lsp.ErrorInserter.AlteredTest.getSrcFile </td>
@@ -192,14 +173,9 @@ Public Member Functions</h2></td></tr>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
-<p>Return the location where the content of <code class="JavaDocCode">this</code> lives. </p>
+<p>Return the location where the content of <span class="tt">this</span> lives. </p>
 
 </div>
 </div>
@@ -208,9 +184,6 @@ Public Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void org.lflang.tests.lsp.ErrorInserter.AlteredTest.insert </td>
@@ -223,11 +196,6 @@ Public Member Functions</h2></td></tr>
           <td class="paramtype">Random</td>          <td class="paramname"><span class="paramname"><em>random</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Attempt to insert a new line of target language code into this test. </p>
@@ -245,9 +213,6 @@ Public Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void org.lflang.tests.lsp.ErrorInserter.AlteredTest.replace </td>
@@ -260,11 +225,6 @@ Public Member Functions</h2></td></tr>
           <td class="paramtype">Random</td>          <td class="paramname"><span class="paramname"><em>random</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Attempt to replace a line of this test with a different line of target language code. </p>
@@ -282,9 +242,6 @@ Public Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">String org.lflang.tests.lsp.ErrorInserter.AlteredTest.toString </td>
@@ -293,11 +250,6 @@ Public Member Functions</h2></td></tr>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 </div>
@@ -307,9 +259,6 @@ Public Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">void org.lflang.tests.lsp.ErrorInserter.AlteredTest.write </td>
@@ -318,11 +267,6 @@ Public Member Functions</h2></td></tr>
           <td> throws IOException</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inline">inline</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Write the altered version of the test to the file system. </p>

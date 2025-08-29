@@ -12,8 +12,12 @@ var group__Tests =
       ] ],
       [ "Builder", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html", [
         [ "Builder", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html#a50d56f8cbadf9f31bd9e4dcc353ebe3e", null ],
+        [ "get", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html#a96ae9f7987308c7af638cbb8f9d09f81", null ],
+        [ "insertable", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html#af6a73d1c64592fa45f48e9ff05eb2992", null ],
+        [ "insertCondition", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html#a543ac2c5e2fea7cc7ec218a10d6b4b28", null ],
         [ "replacer", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html#a80ed88c260f6ae73c95d8432b740e563", null ]
       ] ],
+      [ "alterTest", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#aab9b482044d420f240e9f008710f8437", null ],
       [ "C", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#a1e8155313a0d0810fb80073f371b095d", null ],
       [ "CPP", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#a3b36ade629a6c67c3cdae24ce089e74d", null ],
       [ "PYTHON", "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#abc6a86754777b932a937b581294ffb67", null ],

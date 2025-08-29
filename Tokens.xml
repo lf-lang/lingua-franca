@@ -2324,21 +2324,21 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>org::lflang::generator::RuntimeRange::Port</Name>
+      <Name>org::lflang::generator::RuntimeRange</Name>
       <APILanguage>java</APILanguage>
-      <Type>cl</Type>
-      <Scope>org.lflang.generator::RuntimeRange.Port</Scope>
+      <Type>tmplt</Type>
+      <Scope>org.lflang.generator.RuntimeRange</Scope>
     </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>org::lflang::generator::RuntimeRange&lt; T extends NamedInstance</Name>
+      <Name>org::lflang::generator::RuntimeRange::Port</Name>
       <APILanguage>java</APILanguage>
-      <Type>tmplt</Type>
-      <Scope>org.lflang.generator.RuntimeRange&lt; T extends NamedInstance</Scope>
+      <Type>cl</Type>
+      <Scope>org.lflang.generator.RuntimeRange.Port</Scope>
     </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_3_01T_01extends_01NamedInstance.html</Path>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -3278,12 +3278,12 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>org::lflang::target::property::type::OptionsType&lt; T extends Enum</Name>
+      <Name>org::lflang::target::property::type::OptionsType</Name>
       <APILanguage>java</APILanguage>
       <Type>tmplt</Type>
-      <Scope>org.lflang.target.property.type.OptionsType&lt; T extends Enum</Scope>
+      <Scope>org.lflang.target.property.type.OptionsType</Scope>
     </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType_3_01T_01extends_01Enum.html</Path>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -4431,13 +4431,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>Generated</Name>
-      <APILanguage>java</APILanguage>
-    </TokenIdentifier>
-    <Path>group__Generated.html</Path>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>Generator</Name>
       <APILanguage>java</APILanguage>
     </TokenIdentifier>
@@ -4526,6 +4519,36 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1ReactorInstance.html</Path>
     <Anchor>ad0b869f9442cdc5e79237b5e1505453d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>_interleaved</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a810775d8945880c8ce970c783665d7c0</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>_interleaved</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a810775d8945880c8ce970c783665d7c0</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>_interleaved</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a810775d8945880c8ce970c783665d7c0</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -6464,6 +6487,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>alterTest</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.lsp.ErrorInserter</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html</Path>
+    <Anchor>aab9b482044d420f240e9f008710f8437</Anchor>
+    <DeclaredIn>ErrorInserter.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>annotateReaction</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -6837,6 +6871,17 @@
     <Path>classorg_1_1lflang_1_1util_1_1ArduinoUtil.html</Path>
     <Anchor>a82cee16a77ac543ec277e24ed1c26ffa</Anchor>
     <DeclaredIn>ArduinoUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>argListToCommand</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -7883,6 +7928,17 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1DockerProperty_1_1DockerOption.html</Path>
     <Anchor>adb8da3d0b904e0c7ee1bc724a0eba8b8</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>builderBase</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>aaefa6147daa753d3dd3325e7d43f465a</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -10500,6 +10556,17 @@
       <Name>check</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.PrimitiveType</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PrimitiveType.html</Path>
@@ -10560,6 +10627,66 @@
     <Path>classorg_1_1lflang_1_1cli_1_1TestUtils_1_1TempDirChecker.html</Path>
     <Anchor>adce1d38aa58968d66549232390878228</Anchor>
     <DeclaredIn>TestUtils.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -11900,6 +12027,17 @@
       <Name>compareTo</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a6f27efd74c41a8e14c4bbced94d88ae2</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>compareTo</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.SendRange</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1SendRange.html</Path>
@@ -11927,6 +12065,26 @@
     <Path>classorg_1_1lflang_1_1tests_1_1LFTest.html</Path>
     <Anchor>a2a4d6f84d8bff3d14f2d285a0f76eff8</Anchor>
     <DeclaredIn>LFTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>compareTo</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a6f27efd74c41a8e14c4bbced94d88ae2</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>compareTo</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a6f27efd74c41a8e14c4bbced94d88ae2</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -13581,6 +13739,17 @@
       <Name>defaultEntryPoint</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a13a63bf5dad96355a19c8c828c558a2c</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>defaultEntryPoint</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.docker.PythonDockerGenerator</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html</Path>
@@ -13608,6 +13777,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html</Path>
     <Anchor>acdfda7a2f566b361124e625d83a1f0b2</Anchor>
     <DeclaredIn>CDockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>defaultImage</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>ae541e31c842ecb977af303bd62d54e00</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -13863,6 +14043,17 @@
     <Path>classorg_1_1lflang_1_1util_1_1FileUtil.html</Path>
     <Anchor>a7f44d0711c0280ab49ddf00fdbd3341f</Anchor>
     <DeclaredIn>FileUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>deleteBinFiles</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a540c5ab86e7fc2334c36141141b5dfc8</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -14955,6 +15146,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>dockerGeneratorFactory</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>DockerOption</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -15562,6 +15764,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>entryPoint</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a9cdb2d1675703ed12860901a7893fcda</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>enumClass</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -15609,6 +15822,17 @@
       <Name>enumClass</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.PlatformType</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType.html</Path>
@@ -15625,6 +15849,66 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType.html</Path>
     <Anchor>a34df9dd269b5a439e7d56d1f3f7f3cc2</Anchor>
     <DeclaredIn>SchedulerType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -16982,6 +17266,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>fixedSizeArrayTypeLength</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>ad763091acf495249cd45108ac6ae4034</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>FLASH</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -17099,6 +17394,17 @@
       <Name>forName</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.UnionType</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1UnionType.html</Path>
@@ -17126,6 +17432,66 @@
     <Path>classorg_1_1lflang_1_1target_1_1TargetConfig.html</Path>
     <Anchor>a7226771f2feddfad60c6c28705b4d4f7</Anchor>
     <DeclaredIn>TargetConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -18806,6 +19172,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>generateCopyOfUserFiles</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a6f9caee877d6e74a8d40150227777aed</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>generateCPythonDeadlineCaller</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -19129,6 +19506,28 @@
     <Path>classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html</Path>
     <Anchor>aecfa36fbd40fa871c72f33f5511d5bb6</Anchor>
     <DeclaredIn>PythonGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generateDockerData</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>aa2f1a06598ebec222f7666c3dad45a33</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generateDockerData</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a5b624402c46bdd07d3305739762721e9</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -20705,6 +21104,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>generateWidthVariable</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a1be308dd6f4c6eb0c252b5891e46705b</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>GenerationException</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -20870,6 +21280,17 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
     <Anchor>a5cad19e5a4e776dc0996aebba6dbebd4</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>get</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.lsp.ErrorInserter.Builder</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</Path>
+    <Anchor>a96ae9f7987308c7af638cbb8f9d09f81</Anchor>
+    <DeclaredIn>ErrorInserter.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -22459,6 +22880,39 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>getEntryPointCommands</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a91c4f1dfc8140cbfe81298c086d66c1e</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getEnvironmentStruct</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a73c5b329d2ac5b5c48b9a3477b5f7b6f</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getEnvironmentStructPtr</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>abb5612cab20838782832e8b48ff30639</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>getErrorReporter</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -23128,6 +23582,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>getGenericType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a6e22d5b655615f1a711eac83d35279d5</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>getGenPath</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -23730,6 +24195,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1ActionInstance.html</Path>
     <Anchor>a952e5008dc0fda68fa375774b249b530</Anchor>
     <DeclaredIn>ActionInstance.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getMissingExpr</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a5785f8dc543dd9dcfafb2dcefea963e1</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -25395,6 +25871,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>getShortenedName</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a0c29174af3742014a479fa306936d8f9</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>getShutdownTrigger</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -25758,6 +26245,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>getTargetExpr</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a9989f34fc578775589053718c7be4360</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>getTargetFileName</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -25766,6 +26264,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CCompiler.html</Path>
     <Anchor>a035405a117b5a3263ed6bf05bc25415e</Anchor>
     <DeclaredIn>CCompiler.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetInitializer</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a70dc7a2fb0bd34f7ee15b20ad91c7e25</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -25882,6 +26391,17 @@
       <Name>getTargetTimeExpr</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>af987a0a4bf7dcf80bc0cfa7b92dbb603</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetTimeExpr</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.ts.TSTypes</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes.html</Path>
@@ -25931,6 +26451,83 @@
     <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html</Path>
     <Anchor>a1910224fcc7a2bcd9ec7f26d2bbdecbb</Anchor>
     <DeclaredIn>CTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>aa9297bc495a4871e7796ade58f4e0bce</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a93a2269f9811ca9fb4845cab1aebd502</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>ac41d844cf6841a96d32946cfac298b17</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a31923e8da6bfdf88c8e8fe3ee7529b3b</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>ab709cfa1f11cba369f15029dbf8d98dc</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a72774a3ea13c7d65b2e4e3637b6d46f4</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getTargetType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.TargetTypes</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1generator_1_1TargetTypes.html</Path>
+    <Anchor>a4a3afda7d74a8987b40d976aecf2a5d7</Anchor>
+    <DeclaredIn>TargetTypes.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -27413,11 +28010,42 @@
       <Name>head</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a5ed47a91a5e5443260030ab5c9267b2a</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>head</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.SendRange</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1SendRange.html</Path>
     <Anchor>a29deab741b26bbd2aa22f346e0ec626a</Anchor>
     <DeclaredIn>SendRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>head</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a5ed47a91a5e5443260030ab5c9267b2a</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>head</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a5ed47a91a5e5443260030ab5c9267b2a</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -28656,6 +29284,28 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>insertable</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.lsp.ErrorInserter.Builder</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</Path>
+    <Anchor>af6a73d1c64592fa45f48e9ff05eb2992</Anchor>
+    <DeclaredIn>ErrorInserter.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>insertCondition</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.lsp.ErrorInserter.Builder</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html</Path>
+    <Anchor>a543ac2c5e2fea7cc7ec218a10d6b4b28</Anchor>
+    <DeclaredIn>ErrorInserter.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>inside</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -29094,6 +29744,67 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1ast_1_1ToText.html</Path>
     <Anchor>a71f6151c85896c1f4567adae9c5f6218</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>instance</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a4eae068f8ba6367f26fec6a63cdd9d9f</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>instance</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a4eae068f8ba6367f26fec6a63cdd9d9f</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>instance</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a4eae068f8ba6367f26fec6a63cdd9d9f</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>instances</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>aa568b7111dd9bc259992a8abd0e5b20e</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>instances</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>aa568b7111dd9bc259992a8abd0e5b20e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>instances</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>aa568b7111dd9bc259992a8abd0e5b20e</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -29574,6 +30285,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1TargetConfig.html</Path>
     <Anchor>a962722434c505af37dadb2ae988b4719</Anchor>
     <DeclaredIn>TargetConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>isFixedSizeArrayType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a02d728194b4f1ef10b78b4341359792b</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -30228,6 +30950,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>isTokenType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>ad2d5ec78412ce03ca2c39dfb08151e7e</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>isTopLevel</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -30302,6 +31035,37 @@
     <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
     <Anchor>a7bcb20b1dbd9f9d10546ab950c59a5aa</Anchor>
     <DeclaredIn>ASTUtils.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>iterationOrder</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a496381d2b077a9724f58775386390517</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>iterationOrder</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a496381d2b077a9724f58775386390517</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>iterationOrder</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a496381d2b077a9724f58775386390517</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -32226,6 +32990,36 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>maxWidth</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a1e4a3247610923845992afba425c18d1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>maxWidth</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a1e4a3247610923845992afba425c18d1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>maxWidth</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a1e4a3247610923845992afba425c18d1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>MEMORIZE_EXPANSION_STATES</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -32764,6 +33558,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1PortInstanceTests.html</Path>
     <Anchor>a2c61c07f7bebfdba7bf01dfa1117c8bc</Anchor>
     <DeclaredIn>PortInstanceTests.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>multiportWidthExpression</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>ac78da991adaeb2198262de57d7b0242e</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -34551,6 +35356,148 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>orderChildren</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -34722,11 +35669,73 @@
       <Name>overlap</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a6e98060efc77ecde44f5f5c54366aa0c</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>overlap</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.SendRange</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1SendRange.html</Path>
     <Anchor>a55984beda0033b4e42542eeaab7ee17c</Anchor>
     <DeclaredIn>SendRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>overlap</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a6e98060efc77ecde44f5f5c54366aa0c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>overlap</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a6e98060efc77ecde44f5f5c54366aa0c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>overlaps</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a8ad376c902733bcd12eb89e95bef0255</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>overlaps</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a8ad376c902733bcd12eb89e95bef0255</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>overlaps</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a8ad376c902733bcd12eb89e95bef0255</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -35122,6 +36131,68 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1NamedInstance.html</Path>
     <Anchor>ad7dd92ad472a49a094dff3360335bfdf</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parentInstances</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a69132439b04ee6f6b157b5721a109a75</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parentInstances</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a69132439b04ee6f6b157b5721a109a75</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parentInstances</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a69132439b04ee6f6b157b5721a109a75</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parentReactor</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a476f66a40ba84c52243216d150f9f996</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parentReactor</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a476f66a40ba84c52243216d150f9f996</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>parentReactor</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a476f66a40ba84c52243216d150f9f996</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -35526,6 +36597,37 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>permutation</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a9828bb63e9e6257a8567193769edf09a</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>permutation</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a9828bb63e9e6257a8567193769edf09a</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>permutation</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a9828bb63e9e6257a8567193769edf09a</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>placeComment</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -35668,10 +36770,10 @@
       <Name>Port</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
-      <Scope>org.lflang.generator.RuntimeRange.Port</Scope>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;.Port</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
-    <Anchor>aa20db33d0d99d835ca58d0500afdec78</Anchor>
+    <Anchor>a7f53b446b1efc6660c14e06427884ab6</Anchor>
     <DeclaredIn>RuntimeRange.java</DeclaredIn>
   </Token>
   <Token>
@@ -35679,10 +36781,10 @@
       <Name>Port</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
-      <Scope>org.lflang.generator.RuntimeRange.Port</Scope>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;.Port</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
-    <Anchor>ae40e5780b2f8e67c22049f6acb0dd695</Anchor>
+    <Anchor>a785626be71f7aa98cd2f744956e71282</Anchor>
     <DeclaredIn>RuntimeRange.java</DeclaredIn>
   </Token>
   <Token>
@@ -35690,11 +36792,31 @@
       <Name>Port</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
-      <Scope>org.lflang.generator.RuntimeRange.Port</Scope>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;.Port</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
-    <Anchor>a49b06685aec49d6b037bb3b1f4ac5ed1</Anchor>
+    <Anchor>a65abb8ab0a96d8e5ccf4105b787cbe8d</Anchor>
     <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>Port</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;::Port</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
+    <Anchor>a7f53b446b1efc6660c14e06427884ab6</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>Port</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org::lflang::generator::PortInstance &gt;::Port</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html</Path>
+    <Anchor>a7f53b446b1efc6660c14e06427884ab6</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -36387,6 +37509,37 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1MixedRadixIntTest.html</Path>
     <Anchor>a342ecc9fac90bf3259ab7865d1240786</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>radixes</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a92c2c3718e012706fb65af1933700263</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>radixes</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a92c2c3718e012706fb65af1933700263</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>radixes</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a92c2c3718e012706fb65af1933700263</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -38208,6 +39361,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>rootType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a36284148ff34eb796459aef9264ff883</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>ROS2</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -38506,6 +39670,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
     <Anchor>aeda9de32256914698b5eb20aacbfa88e</Anchor>
     <DeclaredIn>RuntimeTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runBuildCommand</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+    <Anchor>a95fa0e389976f101b02607cefaf448e1</Anchor>
+    <DeclaredIn>CUtil.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -38925,6 +40100,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>runnerBase</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.DockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
+    <Anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</Anchor>
+    <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>runNoInliningTests</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -39120,6 +40306,48 @@
     <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
     <Anchor>a0ebae86cb14e67125bf84d59d23f2d04</Anchor>
     <DeclaredIn>CUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>RuntimeRange</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ae658886e14b258499b5aa40c43b68839</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>RuntimeRange</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>afc07a3ce32f10bcd70c8d608b09603a4</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>RuntimeRange</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ae658886e14b258499b5aa40c43b68839</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>RuntimeRange</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ae658886e14b258499b5aa40c43b68839</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -40779,12 +42007,42 @@
     <TokenIdentifier>
       <Name>start</Name>
       <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>aaa2d578eb807914c3545315c5abcb38b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>start</Name>
+      <APILanguage>java</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.diagram.lsp.LanguageDiagramServer</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1diagram_1_1lsp_1_1LanguageDiagramServer.html</Path>
     <Anchor>ad9b221b9e0fcf85e262d1f446e1f9bdc</Anchor>
     <DeclaredIn>LanguageDiagramServer.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>start</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>aaa2d578eb807914c3545315c5abcb38b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>start</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>aaa2d578eb807914c3545315c5abcb38b</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -40806,6 +42064,37 @@
     <Path>classorg_1_1lflang_1_1generator_1_1CodeBuilder.html</Path>
     <Anchor>a266cfc60ed416b5b2d37257ac8923491</Anchor>
     <DeclaredIn>CodeBuilder.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>startMR</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a81f4a0bbc1867dacf1881b44d82dfb25</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>startMR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a81f4a0bbc1867dacf1881b44d82dfb25</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>startMR</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a81f4a0bbc1867dacf1881b44d82dfb25</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -41623,11 +42912,42 @@
       <Name>tail</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a692779a77622e76c58abc4351f5c72d8</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>tail</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.SendRange</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1SendRange.html</Path>
     <Anchor>a95ee1447a4067dd01fe04c8bab24c5bb</Anchor>
     <DeclaredIn>SendRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>tail</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a692779a77622e76c58abc4351f5c72d8</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>tail</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a692779a77622e76c58abc4351f5c72d8</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44028,6 +45348,37 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>toggleInterleaved</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ad7acd6e74a9019822b6a959cec586c49</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toggleInterleaved</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ad7acd6e74a9019822b6a959cec586c49</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toggleInterleaved</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ad7acd6e74a9019822b6a959cec586c49</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>toInt</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -44382,6 +45733,17 @@
       <Name>toString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ab8425fef8cc6c36b7baabb4f73101314</Anchor>
+    <DeclaredIn>RuntimeRange.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.rust.CargoDependencySpec.CargoDependenciesPropertyType</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec_1_1CargoDependenciesPropertyType.html</Path>
@@ -44580,6 +45942,17 @@
       <Name>toString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.PlatformType.Platform</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html</Path>
@@ -44684,6 +46057,26 @@
     <Path>classorg_1_1lflang_1_1tests_1_1LFTest_1_1ExecutionLogger.html</Path>
     <Anchor>ab7189e0cb3d707b3065fadc043f3e637</Anchor>
     <DeclaredIn>LFTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ab8425fef8cc6c36b7baabb4f73101314</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>ab8425fef8cc6c36b7baabb4f73101314</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44884,6 +46277,66 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -46786,6 +48239,17 @@
       <Name>validate</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+    <DeclaredIn>OptionsType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.PrimitiveType</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PrimitiveType.html</Path>
@@ -47036,6 +48500,66 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; BuildType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Platform &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -50675,6 +52199,16 @@
     <TokenIdentifier>
       <Name>width</Name>
       <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a10424eb45371bfb68bb9dcdd64e99df1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>width</Name>
+      <APILanguage>java</APILanguage>
       <Type>clm</Type>
       <Scope>org.lflang.ast.ASTUtils</Scope>
     </TokenIdentifier>
@@ -50751,6 +52285,26 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1NamedInstance.html</Path>
     <Anchor>a28cb0ab446f4de043e16c9327c198ab0</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>width</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a10424eb45371bfb68bb9dcdd64e99df1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>width</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.generator.RuntimeRange&lt; org.lflang.generator.PortInstance &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
+    <Anchor>a10424eb45371bfb68bb9dcdd64e99df1</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>

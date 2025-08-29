@@ -27,14 +27,14 @@ var NAVTREE =
   [ "lingua-franca", "index.html", [
     [ "Lingua Franca", "index.html", null ],
     [ "Contributing to Lingua Franca", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html", [
-      [ "Contributing code", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md1", [
-        [ "Writing tests", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md2", null ],
-        [ "Workflow", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md3", null ],
-        [ "Code style and formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md4", [
-          [ "Formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md5", null ],
-          [ "General guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md6", null ],
-          [ "Java-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md7", null ],
-          [ "Kotlin-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md8", null ]
+      [ "Contributing code", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md5", [
+        [ "Writing tests", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md6", null ],
+        [ "Workflow", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md7", null ],
+        [ "Code style and formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md8", [
+          [ "Formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md9", null ],
+          [ "General guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md10", null ],
+          [ "Java-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md11", null ],
+          [ "Kotlin-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md12", null ]
         ] ]
       ] ]
     ] ],
@@ -66,20 +66,21 @@ var NAVTREEINDEX =
 "classorg_1_1lflang_1_1generator_1_1CodeBuilder.html#a4556f9b7d7735bde41a71da3948d431e",
 "classorg_1_1lflang_1_1generator_1_1ModeInstance_1_1Transition.html",
 "classorg_1_1lflang_1_1generator_1_1ReactorInstance.html#a5397cd94730f3c00b54e56add6aed1d4",
-"classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveGenerator.html#a3ffe542eae6d6a12f3a5255d6c5ed8e7",
-"classorg_1_1lflang_1_1generator_1_1docker_1_1DockerComposeGenerator.html#aa38b07cfe15e578ec48726207868ba2f",
-"classorg_1_1lflang_1_1generator_1_1python_1_1PythonReactionGenerator.html#ab4d066d9cfed31ddfd5fed8769035ff7",
-"classorg_1_1lflang_1_1target_1_1property_1_1AuthProperty.html#a7f6fdee8910285230340bcd7a52f3ade",
-"classorg_1_1lflang_1_1target_1_1property_1_1CompilerProperty.html#ae91c05dae9df2fc924ba84e4072e2087",
-"classorg_1_1lflang_1_1target_1_1property_1_1LoggingProperty.html#a80cded89b1d2808e307cd4b9991f887b",
-"classorg_1_1lflang_1_1target_1_1property_1_1SchedulerProperty.html#a624c7abb9a74855f58072d95a99e4306",
-"classorg_1_1lflang_1_1tests_1_1Configurators.html#a4dd6fa8819e6caab6399fc172e5a9bd5",
-"classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#aa3dcf4eccb10cd1de67f274698574c76",
-"classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a926ec8e4a14431a5f43b644f3fa59e5b",
-"classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#ab4c75980dccb274f675d183201afde3b",
-"enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers.html",
-"enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a736ab010ad255e93e3cb9efaad90e4a3",
-"interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html#ab11cdbfd153df210a8695714033f38c4"
+"classorg_1_1lflang_1_1generator_1_1WatchdogInstance.html#aadc2e0ca021ad1333731d8773e3b6162",
+"classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a6835ca17261ba4c73ec7f3f4cfe101ea",
+"classorg_1_1lflang_1_1generator_1_1python_1_1PyFileConfig.html#acea22dc46408617ec61f514a417ca272",
+"classorg_1_1lflang_1_1graph_1_1DirectedGraph.html#abf2060c566c6d70029955b62bf7f0950",
+"classorg_1_1lflang_1_1target_1_1property_1_1CargoFeaturesProperty.html#a05712b0e4f6256710f969dfd27a097f3",
+"classorg_1_1lflang_1_1target_1_1property_1_1ExportDependencyGraphProperty.html#a6a5c01889646675b2403aba03a9561b1",
+"classorg_1_1lflang_1_1target_1_1property_1_1PrintStatisticsProperty.html#a033370849eef3120afd46c4845863e2d",
+"classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#acab55d30c4029e972414e9e5c969341d",
+"classorg_1_1lflang_1_1tests_1_1LfParsingTestHelper.html#a1c07172bdeea22435c640005b73d0c95",
+"classorg_1_1lflang_1_1tests_1_1compiler_1_1PortInstanceTests.html#a239af18ede07d253416c4cb571f85b7b",
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html",
+"classorg_1_1lflang_1_1util_1_1Averager.html#a728d369b53b60a1e112e9a41ab11cf30",
+"enumorg_1_1lflang_1_1target_1_1Target.html#a943516a43384d8fd7be4abf87c66c017",
+"functions_func_r.html",
+"interfaceorg_1_1lflang_1_1graph_1_1Graph.html#a765aec1aa4d6abbbc9fc60de63ec0c17"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';
