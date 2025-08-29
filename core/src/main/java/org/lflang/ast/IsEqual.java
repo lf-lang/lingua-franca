@@ -67,8 +67,8 @@ import org.lflang.lf.util.LfSwitch;
 
 /**
  * Switch class that checks if subtrees of the AST are semantically equivalent to each other. Return
- * {@code false} if they are not equivalent; return {@code true} or {@code false} (but preferably
- * {@code true}) if they are equivalent.
+ * `false` if they are not equivalent; return `true` or `false` (but preferably
+ * `true`) if they are equivalent.
  *
  * @ingroup Utilities
  */
@@ -651,8 +651,8 @@ public class IsEqual extends LfSwitch<Boolean> {
     }
 
     /**
-     * Conclude false if the two properties are not equal as objects, given that {@code
-     * projectionToClassRepresentatives} maps each object to some semantically equivalent object.
+     * Conclude false if the two properties are not equal as objects, given that
+     * `projectionToClassRepresentatives` maps each object to some semantically equivalent object.
      */
     <T> ComparisonMachine<E> equalAsObjectsModulo(
         Function<E, T> propertyGetter, Function<T, T> projectionToClassRepresentatives) {
@@ -673,7 +673,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     /**
      * Conclude false if the two properties are not semantically equivalent parse nodes, given that
-     * {@code projectionToClassRepresentatives} maps each parse node to some semantically equivalent
+     * `projectionToClassRepresentatives` maps each parse node to some semantically equivalent
      * node.
      */
     <T extends EObject> ComparisonMachine<E> equivalentModulo(

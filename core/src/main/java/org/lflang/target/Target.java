@@ -1,20 +1,3 @@
-/* Static information about targets. */
-/**
- * Copyright (c) 2019, The University of California at Berkeley. Redistribution and use in source
- * and binary forms, with or without modification, are permitted provided that the following
- * conditions are met: 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer. 2. Redistributions in binary form must
- * reproduce the above copyright notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution. THIS SOFTWARE IS PROVIDED BY
- * THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 package org.lflang.target;
 
 import java.util.Arrays;
@@ -32,6 +15,7 @@ import org.lflang.target.property.*;
  * Enumeration of targets and their associated properties.
  *
  * @author Marten Lohstroh
+ * @ingroup Generator
  */
 @Immutable
 public enum Target {
@@ -390,8 +374,8 @@ public enum Target {
 
   /**
    * Return the display name of the target, as it should be written in LF code. This is hence a
-   * single identifier. Eg for {@link #CPP} returns {@code "Cpp"}, for {@link #Python} returns
-   * {@code "Python"}. Avoid using either {@link #name()} or {@link #toString()}, which have
+   * single identifier. Eg for {@link #CPP} returns `"Cpp"`, for {@link #Python} returns
+   * `"Python"`. Avoid using either {@link #name()} or {@link #toString()}, which have
    * unrelated contracts.
    */
   public String getDisplayName() {
@@ -399,9 +383,9 @@ public enum Target {
   }
 
   /**
-   * Returns the conventional directory name for this target. This is used to divide e.g. the {@code
-   * test} and {@code example} directories by target language. For instance, {@code test/Cpp} is the
-   * path of {@link #CPP}'s test directory, and this method returns {@code "Cpp"}.
+   * Return the conventional directory name for this target. This is used to divide e.g. the
+   * `test` and `example` directories by target language. For instance, `test/Cpp` is the
+   * path of {@link #CPP}'s test directory, and this method returns `"Cpp"`.
    */
   public String getDirectoryName() {
     return displayName;
@@ -417,9 +401,9 @@ public enum Target {
   }
 
   /**
-   * Returns whether the given identifier is invalid as the name of an LF construct. This usually
+   * Return whether the given identifier is invalid as the name of an LF construct. This usually
    * means that the identifier is a keyword in the target language. In Rust, many keywords may be
-   * escaped with the syntax {@code r#keyword}, and they are considered valid identifiers.
+   * escaped with the syntax `r#keyword`, and they are considered valid identifiers.
    */
   public boolean isReservedIdent(String ident) {
     return this.keywords.contains(ident);
@@ -482,17 +466,17 @@ public enum Target {
     return this != CPP;
   }
 
-  /** Allow expressions of the form {@code {a, b, c}}. */
+  /** Allow expressions of the form `{a, b, c`}. */
   public boolean allowsBracedListExpressions() {
     return this == C || this == CCPP || this == CPP;
   }
 
-  /** Allow expressions of the form {@code [a, b, c]}. */
+  /** Allow expressions of the form `[a, b, c]`. */
   public boolean allowsBracketListExpressions() {
     return this == Python || this == TS || this == Rust;
   }
 
-  /** Allow expressions of the form {@code (a, b, c)}. */
+  /** Allow expressions of the form `(a, b, c)`. */
   public boolean allowsParenthesisListExpressions() {
     return this == CPP;
   }

@@ -12,8 +12,8 @@ import org.lflang.util.LFCommand;
 public interface ValidationStrategy {
 
   /**
-   * Return the command that produces validation output in association with {@code generatedFile},
-   * or {@code null} if this strategy has no command that will successfully produce validation
+   * Return the command that produces validation output in association with `generatedFile`,
+   * or `null` if this strategy has no command that will successfully produce validation
    * output.
    */
   LFCommand getCommand(Path generatedFile);

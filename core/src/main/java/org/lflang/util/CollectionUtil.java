@@ -117,7 +117,7 @@ public class CollectionUtil {
   }
 
   /**
-   * Returns a map that is identical to the original map, except the value for key {@code k} is
+   * Returns a map that is identical to the original map, except the value for key `k` is
    * transformed using the given function. The transformation function takes the key and current
    * value (null if the key is not present) as inputs, and returns the new value to associate to the
    * key (null if the mapping should be removed).

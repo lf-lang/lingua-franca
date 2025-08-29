@@ -260,7 +260,7 @@ public class TargetConfig {
     }
   }
 
-  /** Return {@code true} if the given target property is supported, {@code false} otherwise. */
+  /** Return `true` if the given target property is supported, `false` otherwise. */
   public boolean isSupported(TargetProperty p) {
     return properties.containsKey(p);
   }
@@ -332,7 +332,7 @@ public class TargetConfig {
   }
 
   /**
-   * Return {@code true} if this target property has been set (past initialization), {@code false}
+   * Return `true` if this target property has been set (past initialization), `false`
    * otherwise.
    */
   public boolean isSet(TargetProperty<?, ?> property) {
@@ -454,7 +454,7 @@ public class TargetConfig {
   }
 
   /**
-   * Construct a {@code TargetDecl} by extracting the fields of the given {@code TargetConfig}.
+   * Construct a `TargetDecl` by extracting the fields of the given `TargetConfig`.
    *
    * @return A generated TargetDecl.
    */

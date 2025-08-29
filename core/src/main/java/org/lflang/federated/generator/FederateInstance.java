@@ -55,7 +55,7 @@ public class FederateInstance {
    *
    * @param instantiation The AST node of the instantiation.
    * @param id An identifier.
-   * @param bankIndex If {@code instantiation.widthSpec !== null}, this gives the bank position.
+   * @param bankIndex If `instantiation.widthSpec !== null`, this gives the bank position.
    * @param messageReporter An object for reporting messages to the user.
    */
   public FederateInstance(
@@ -150,8 +150,8 @@ public class FederateInstance {
   public List<FederateInstance> networkMessageSourceFederate = new ArrayList<>();
 
   /**
-   * List of after delay values of the corresponding entries of {@code networkMessageActions}. These
-   * will be {@code null} in the case of zero-delay connections and {@code 0} in the case of
+   * List of after delay values of the corresponding entries of `networkMessageActions`. These
+   * will be `null` in the case of zero-delay connections and `0` in the case of
    * microstep-delay connections.
    */
   public List<Expression> networkMessageActionDelays = new ArrayList<>();
@@ -257,8 +257,8 @@ public class FederateInstance {
   private final MessageReporter messageReporter;
 
   /**
-   * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * Return `true` if the class declaration of the given `instantiation` references the
+   * `declaration` of a reactor class, either directly or indirectly (i.e, via a superclass or
    * a contained instantiation of the reactor class).
    *
    * @param declaration The reactor declaration to check whether it is referenced.
@@ -268,8 +268,8 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * Return `true` if the class declaration of the given `instantiation` references the
+   * `declaration` of a reactor class, either directly or indirectly (i.e, via a superclass or
    * a contained instantiation of the reactor class).
    *
    * <p>An instantiation references the declaration of a reactor class if it is an instance of that
@@ -330,7 +330,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate references the given import.
+   * Return `true` if this federate references the given import.
    *
    * @param imp The import to check whether it is referenced.
    */
@@ -344,7 +344,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate references the given parameter.
+   * Return `true` if this federate references the given parameter.
    *
    * @param param The parameter to check whether it is referenced.
    */
@@ -377,7 +377,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * Return `true` if this federate includes a top-level reaction that references the given
    * action as a trigger, a source, or an effect.
    *
    * @param action The action to check whether it is to be included.
@@ -415,7 +415,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if the specified reaction should be included in the code generated for this
+   * Return `true` if the specified reaction should be included in the code generated for this
    * federate at the top-level. This means that if the reaction is triggered by or sends data to a
    * port of a contained reactor, then that reaction is in the federate. Otherwise, return false.
    *
@@ -453,7 +453,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * Return `true` if this federate includes a top-level reaction that references the given
    * timer as a trigger, a source, or an effect.
    *
    * @param timer The action to check whether it is to be included.
@@ -477,9 +477,9 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate instance includes the given instance.
+   * Return `true` if this federate instance includes the given instance.
    *
-   * <p>NOTE: If the instance is a bank within the top level, then this returns {@code true} even
+   * <p>NOTE: If the instance is a bank within the top level, then this returns `true` even
    * though only one of the bank members is included in the federate.
    *
    * @param instance The reactor instance to check whether it is to be included.

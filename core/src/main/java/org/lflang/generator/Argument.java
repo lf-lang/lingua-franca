@@ -16,7 +16,7 @@ import org.lflang.target.property.TargetProperty;
 public record Argument<T>(TargetProperty<T, ?> property, T value) {
 
   /**
-   * Update the target configuration if the value of this argument is not {@code null}.
+   * Update the target configuration if the value of this argument is not `null`.
    *
    * @param config The target configuration to update.
    * @param reporter An error reporter to report the use of unsupported target properties.

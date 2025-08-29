@@ -133,7 +133,7 @@ public class ASTUtils {
    * Get the main reactor defined in the given resource, if there is one.
    *
    * @param resource the resource to extract reactors from
-   * @return An {@code Optional} reactor that may be present or absent.
+   * @return An `Optional` reactor that may be present or absent.
    */
   public static Optional<Reactor> getMainReactor(Resource resource) {
     return StreamSupport.stream(
@@ -148,7 +148,7 @@ public class ASTUtils {
    * Get the federated reactor defined in the given resource, if there is one.
    *
    * @param resource the resource to extract reactors from
-   * @return An {@code Optional} reactor that may be present or absent.
+   * @return An `Optional` reactor that may be present or absent.
    */
   public static Optional<Reactor> getFederatedReactor(Resource resource) {
     return StreamSupport.stream(
@@ -372,7 +372,7 @@ public class ASTUtils {
     return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
   }
 
-  /** A list of all ports of {@code definition}, in an unspecified order. */
+  /** A list of all ports of `definition`, in an unspecified order. */
   public static List<Port> allPorts(Reactor definition) {
     return Stream.concat(
             ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream())
@@ -677,8 +677,8 @@ public class ASTUtils {
   //// Utility functions for translating AST nodes into text
 
   /**
-   * Translate the given code into its textual representation with {@code CodeMap.Correspondence}
-   * tags inserted, or return the empty string if {@code node} is {@code null}. This method should
+   * Translate the given code into its textual representation with `CodeMap.Correspondence`
+   * tags inserted, or return the empty string if `node` is `null`. This method should
    * be used to generate code.
    *
    * @param node AST node to render as string.
@@ -690,8 +690,8 @@ public class ASTUtils {
   }
 
   /**
-   * Translate the given code into its textual representation without {@code CodeMap.Correspondence}
-   * tags, or return the empty string if {@code node} is {@code null}. This method should be used
+   * Translate the given code into its textual representation without `CodeMap.Correspondence`
+   * tags, or return the empty string if `node` is `null`. This method should be used
    * for analyzing AST nodes in cases where they are easiest to analyze as strings.
    *
    * @param node AST node to render as string.
@@ -821,7 +821,7 @@ public class ASTUtils {
   }
 
   /**
-   * Given a single string, convert it into its AST representation. {@code addQuotes} controls if
+   * Given a single string, convert it into its AST representation. `addQuotes` controls if
    * the generated representation should be accompanied by double quotes ("") or not.
    */
   private static Element toElement(String str, boolean addQuotes) {
@@ -909,7 +909,7 @@ public class ASTUtils {
    * Report whether the given literal is zero or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code 0}, false otherwise.
+   * @return True if the given literal denotes the constant `0`, false otherwise.
    */
   public static boolean isZero(String literal) {
     try {
@@ -926,7 +926,7 @@ public class ASTUtils {
    * Report whether the given literal is forever or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code forever}, false otherwise.
+   * @return True if the given literal denotes the constant `forever`, false otherwise.
    */
   public static boolean isForever(String literal) {
     return literal != null && literal.equals("forever");
@@ -936,7 +936,7 @@ public class ASTUtils {
    * Report whether the given literal is never or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code never}, false otherwise.
+   * @return True if the given literal denotes the constant `never`, false otherwise.
    */
   public static boolean isNever(String literal) {
     return literal != null && literal.equals("never");
@@ -946,7 +946,7 @@ public class ASTUtils {
    * Report whether the given expression is zero or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code 0}, false otherwise.
+   * @return True if the given value denotes the constant `0`, false otherwise.
    */
   public static boolean isZero(Expression expr) {
     if (expr instanceof Literal) {
@@ -959,7 +959,7 @@ public class ASTUtils {
    * Report whether the given expression is forever or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code forever}, false otherwise.
+   * @return True if the given value denotes the constant `forever`, false otherwise.
    */
   public static boolean isForever(Expression expr) {
     if (expr instanceof Literal) {
@@ -972,7 +972,7 @@ public class ASTUtils {
    * Report whether the given expression is never or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code never}, false otherwise.
+   * @return True if the given value denotes the constant `never`, false otherwise.
    */
   public static boolean isNever(Expression expr) {
     if (expr instanceof Literal) {
@@ -1372,7 +1372,7 @@ public class ASTUtils {
   }
 
   /**
-   * @brief Return the delay denoted by {@code delay} or {@code null} if the delay cannot be
+   * @brief Return the delay denoted by `delay` or `null` if the delay cannot be
    *     determined.
    * @param delay The delay to get the time value from.
    * @return The delay time value or null if the delay cannot be determined.
@@ -1392,7 +1392,7 @@ public class ASTUtils {
   }
 
   /**
-   * @brief Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay
+   * @brief Return the delay (in nanoseconds) denoted by `delay`, or `null` if the delay
    *     cannot be determined.
    * @param delay The delay to get the time value from.
    * @return The delay time value or null if the delay cannot be determined.
@@ -1672,19 +1672,19 @@ public class ASTUtils {
     return ret.stream();
   }
 
-  /** Return whether {@code node} is a comment. */
+  /** Return whether `node` is a comment. */
   public static boolean isComment(INode node) {
     return isMultilineComment(node) || isSingleLineComment(node);
   }
 
-  /** Return whether {@code node} is a multiline comment. */
+  /** Return whether `node` is a multiline comment. */
   public static boolean isMultilineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
         && hlNode.getGrammarElement() instanceof TerminalRule tRule
         && tRule.getName().equals("ML_COMMENT");
   }
 
-  /** Return whether {@code node} is a multiline comment. */
+  /** Return whether `node` is a multiline comment. */
   public static boolean isSingleLineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
         && hlNode.getGrammarElement() instanceof TerminalRule tRule
@@ -1698,7 +1698,7 @@ public class ASTUtils {
   }
 
   /**
-   * Return {@code true} if the given instance is top-level, i.e., its parent is {@code null}.
+   * Return `true` if the given instance is top-level, i.e., its parent is `null`.
    *
    * @param instance The instance to check.
    */

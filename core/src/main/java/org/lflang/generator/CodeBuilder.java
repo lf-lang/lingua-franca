@@ -79,7 +79,7 @@ public class CodeBuilder {
   /**
    * Append the specified text plus a final newline.
    *
-   * @param format A format string to be used by {@code String.format} or the text to append if no
+   * @param format A format string to be used by `String.format` or the text to append if no
    *     further arguments are given.
    * @param args Additional arguments to pass to the formatter.
    */

@@ -29,10 +29,10 @@ public class TypeParameterizedReactor {
 
   /**
    * Construct the TPR corresponding to the given instantiation which syntactically appears within
-   * the definition corresponding to {@code parent}.
+   * the definition corresponding to `parent`.
    *
    * @param i An instantiation of the TPR to be constructed.
-   * @param parent The reactor in which {@code i} appears, or {@code null} if type variables are
+   * @param parent The reactor in which `i` appears, or `null` if type variables are
    *     permitted instead of types in this TPR.
    */
   public TypeParameterizedReactor(Instantiation i, TypeParameterizedReactor parent) {
@@ -69,7 +69,7 @@ public class TypeParameterizedReactor {
     return nameMap;
   }
 
-  /** Return a name that is unique to the given {@code Reactor}. */
+  /** Return a name that is unique to the given `Reactor`. */
   private String uniqueName(Reactor def) {
     var name = def.getName().toLowerCase();
     var number = Objects.requireNonNull(nameMap.get(name)).get(def.eResource().getURI());
@@ -77,8 +77,8 @@ public class TypeParameterizedReactor {
   }
 
   /**
-   * Construct a {@code TypeParameterizedReactor} corresponding to the reactor class of the
-   * instantiation {@code i} within the parent {@code parent} and with the given mapping of
+   * Construct a `TypeParameterizedReactor` corresponding to the reactor class of the
+   * instantiation `i` within the parent `parent` and with the given mapping of
    * definition names and URIs to integers.
    */
   private TypeParameterizedReactor(

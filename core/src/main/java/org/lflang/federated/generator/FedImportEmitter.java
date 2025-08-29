@@ -22,7 +22,7 @@ public class FedImportEmitter {
 
   private static final Set<Import> visitedImports = new HashSet<>();
 
-  /** Generate import statements for {@code federate}. */
+  /** Generate import statements for `federate`. */
   String generateImports(FederateInstance federate, FederationFileConfig fileConfig) {
     var imports =
         ((Model) federate.instantiation.eContainer().eContainer())

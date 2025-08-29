@@ -162,13 +162,13 @@ public class AttributeUtils {
 
   /**
    * Retrieve a specific annotation in a comment associated with the given model element in the AST.
-   * This will look for a comment. If one is found, it searches for the given annotation {@code key}
+   * This will look for a comment. If one is found, it searches for the given annotation `key`
    * and extracts any string that follows the annotation marker. Note that annotations in comments
    * are deprecated, but we still check for them for backwards compatibility.
    *
    * @param object The AST model element to search a comment for.
    * @param key The specific annotation key to be extracted.
-   * @return {@code null} if no JavaDoc style comment was found or if it does not contain the given
+   * @return `null` if no JavaDoc style comment was found or if it does not contain the given
    *     key. The string immediately following the annotation marker otherwise.
    */
   public static String findAnnotationInComments(EObject object, String key) {
@@ -223,10 +223,10 @@ public class AttributeUtils {
   }
 
   /**
-   * Return true if the specified node is an Input and has an {@code @sparse} attribute.
+   * Return true if the specified node is an Input and has an `@sparse` attribute.
    *
    * @param node An AST node.
-   * @return True if the specified node is an Input and has an {@code @sparse} attribute.
+   * @return True if the specified node is an Input and has an `@sparse` attribute.
    */
   public static boolean isSparse(EObject node) {
     return findAttributeByName(node, "sparse") != null;
@@ -275,7 +275,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the {@code @side} annotation for the given node (presumably a port) or null if there is
+   * Return the `@side` annotation for the given node (presumably a port) or null if there is
    * no such annotation.
    *
    * @param node The node to get the port side from.
@@ -286,7 +286,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the {@code layout} annotation for the given element or null if there is no such
+   * Return the `layout` annotation for the given element or null if there is no such
    * annotation.
    *
    * @param node The node to get the layout option from.
@@ -297,7 +297,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the {@code @enclave} attribute annotated on the given node. Return null if there is no
+   * Return the `@enclave` attribute annotated on the given node. Return null if there is no
    * such attribute.
    *
    * @param node The node to get the enclave attribute from.
@@ -308,10 +308,10 @@ public class AttributeUtils {
   }
 
   /**
-   * Return true if the specified instance has an {@code @enclave} attribute.
+   * Return true if the specified instance has an `@enclave` attribute.
    *
    * @param node The node to check.
-   * @return True if the specified instance has an {@code @enclave} attribute.
+   * @return True if the specified instance has an `@enclave` attribute.
    */
   public static boolean isEnclave(Instantiation node) {
     return getEnclaveAttribute(node) != null;

@@ -10,8 +10,7 @@ import org.lflang.lf.Connection;
  */
 public class FedUtils {
   /**
-   * Get the serializer for the {@code connection} between {@code srcFederate} and {@code
-   * dstFederate}.
+   * Get the serializer for the `connection` between `srcFederate` and `dstFederate`.
    */
   public static SupportedSerializers getSerializer(
       Connection connection, FederateInstance srcFederate, FederateInstance dstFederate) {

@@ -18,7 +18,7 @@ import org.lflang.lf.Reactor;
 public class FedMainEmitter {
 
   /**
-   * Generate a main reactor for {@code federate}.
+   * Generate a main reactor for `federate`.
    *
    * @param originalMainReactor The original main reactor.
    * @param messageReporter Used to report errors.

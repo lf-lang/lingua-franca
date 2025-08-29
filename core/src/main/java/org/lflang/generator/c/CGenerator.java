@@ -733,8 +733,8 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Copy all files or directories listed in the target property {@code files}, {@code
-   * cmake-include}, and {@code _fed_setup} into the src-gen folder of the main .lf file
+   * Copy all files or directories listed in the target property `files`, `cmake-include`,
+   * and `_fed_setup` into the src-gen folder of the main .lf file
    *
    * @param targetConfig The targetConfig to read the target properties from.
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
@@ -1022,7 +1022,7 @@ public class CGenerator extends GeneratorBase {
     generateConstructor(src, header, tpr, constructorCode);
   }
 
-  /** Generate methods for {@code reactor}. */
+  /** Generate methods for `reactor`. */
   protected void generateMethods(CodeBuilder src, TypeParameterizedReactor tpr) {
     CMethodGenerator.generateMethods(
         tpr, src, types, this.targetConfig.get(NoSourceMappingProperty.INSTANCE));

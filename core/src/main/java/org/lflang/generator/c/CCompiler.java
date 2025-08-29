@@ -283,7 +283,7 @@ public class CCompiler {
   /**
    * Return a flash/emulate command using west. If board is null (defaults to qemu_cortex_m3) or
    * qemu_* Return a flash command which runs the target as an emulation If ordinary target, return
-   * {@code west flash}
+   * `west flash`
    */
   public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"

@@ -14,7 +14,7 @@ import org.lflang.lf.Reactor;
  */
 public class PythonMethodGenerator {
 
-  /** Generate a Python method definition for {@code method}. */
+  /** Generate a Python method definition for `method`. */
   public static String generateMethod(Method method) {
     return String.join(
         "\n",
@@ -34,7 +34,7 @@ public class PythonMethodGenerator {
         .collect(Collectors.joining());
   }
 
-  /** Generate a list of arguments for {@code method} delimited with ', '. */
+  /** Generate a list of arguments for `method` delimited with ', '. */
   private static String generateMethodArgumentList(Method method) {
     return String.join(
         ", ",

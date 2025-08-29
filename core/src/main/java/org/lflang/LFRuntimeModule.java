@@ -16,8 +16,8 @@ import org.lflang.validation.LFNamesAreUniqueValidationHelper;
  * Binds services that are available both when running LFC standalone, and when running within the
  * IDE.
  *
- * <p>* LfIdeModule overrides this module with additional bindings when running in the IDE. * {@code
- * org.lflang.lfc.LFStandaloneModule} overrides this module when running LFC standalone.
+ * `LfIdeModule` overrides this module with additional bindings when running in the IDE.
+ * `org.lflang.lfc.LFStandaloneModule` overrides this module when running LFC standalone.
  *
  * @ingroup Infrastructure
  */
@@ -44,7 +44,7 @@ public class LFRuntimeModule extends AbstractLFRuntimeModule {
     return LFSyntaxErrorMessageProvider.class;
   }
 
-  /** The error reporter. {@code org.lflang.lfc.LFStandaloneModule} overrides this binding. */
+  /** The error reporter. `org.lflang.lfc.LFStandaloneModule` overrides this binding. */
   public Class<? extends MessageReporter> bindErrorReporter() {
     return DefaultMessageReporter.class;
   }
