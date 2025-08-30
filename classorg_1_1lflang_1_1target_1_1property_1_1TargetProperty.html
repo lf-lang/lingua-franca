@@ -112,11 +112,11 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ad2c7f85f75eb09fc6c90f25daadc180e" id="r_ad2c7f85f75eb09fc6c90f25daadc180e"><td class="memItemLeft" align="right" valign="top">abstract T&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad2c7f85f75eb09fc6c90f25daadc180e">initialValue</a> ()</td></tr>
 <tr class="memdesc:ad2c7f85f75eb09fc6c90f25daadc180e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the initial value to assign to this target property.  <br /></td></tr>
 <tr class="memitem:a887afc08ede48190976f784b8769b7ea" id="r_a887afc08ede48190976f784b8769b7ea"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a887afc08ede48190976f784b8769b7ea">loadFromFederate</a> ()</td></tr>
-<tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported federates, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a033370849eef3120afd46c4845863e2d" id="r_a033370849eef3120afd46c4845863e2d"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a033370849eef3120afd46c4845863e2d">loadFromFederation</a> ()</td></tr>
-<tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded by federates when specified at the level of the federation, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:ab53684f78f96af96841c92187f131488" id="r_ab53684f78f96af96841c92187f131488"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab53684f78f96af96841c92187f131488">loadFromImport</a> ()</td></tr>
-<tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported files, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a377e5e754300aea66587e195a3f3fc39" id="r_a377e5e754300aea66587e195a3f3fc39"><td class="memItemLeft" align="right" valign="top">abstract String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a377e5e754300aea66587e195a3f3fc39">name</a> ()</td></tr>
 <tr class="memdesc:a377e5e754300aea66587e195a3f3fc39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the name of this target property (in kebab case).  <br /></td></tr>
 <tr class="memitem:a2a3ae8487cf2df37b7e3c98a9d594685" id="r_a2a3ae8487cf2df37b7e3c98a9d594685"><td class="memItemLeft" align="right" valign="top">final void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2a3ae8487cf2df37b7e3c98a9d594685">override</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
@@ -296,12 +296,12 @@ Protected Member Functions</h2></td></tr>
 <p>Given an AST node, produce a corresponding value that is assignable to this target property, or report an error via the given reporter in case any problems are encountered. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">node</td><td>The AST node to derive a value of type <code class="JavaDocCode">T</code> from. </td></tr>
+    <tr><td class="paramname">node</td><td>The AST node to derive a value of type <span class="tt">T</span> from. </td></tr>
     <tr><td class="paramname">reporter</td><td>A reporter for reporting errors. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A value of type <code class="JavaDocCode">T</code>. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A value of type <span class="tt">T</span>. </dd></dl>
 
 </div>
 </div>
@@ -373,12 +373,12 @@ Protected Member Functions</h2></td></tr>
 <p>Given a string, produce a corresponding value that is assignable to this target property, or report an error via the given reporter in case any problems are encountered. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">string</td><td>The string to derive a value of type <code class="JavaDocCode">T</code> from. </td></tr>
+    <tr><td class="paramname">string</td><td>The string to derive a value of type <span class="tt">T</span> from. </td></tr>
     <tr><td class="paramname">reporter</td><td>A reporter for reporting errors. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>A value of type <code class="JavaDocCode">T</code>. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>A value of type <span class="tt">T</span>. </dd></dl>
 
 </div>
 </div>
@@ -441,7 +441,7 @@ Protected Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported federates, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -460,7 +460,7 @@ Protected Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded by federates when specified at the level of the federation, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -479,7 +479,7 @@ Protected Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported files, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -645,7 +645,7 @@ Protected Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Update the given configuration based on the given corresponding AST node. </p>
-<p>If the given configuration does not belong in the AST, then report an error using the error message given by <code class="JavaDocCode">TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE</code>.</p>
+<p>If the given configuration does not belong in the AST, then report an error using the error message given by <span class="tt"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html#a5e2ea57f5c44024c38ae01a6f8376b3f" title="Error message to use when a target property does not exist in LF syntax.">TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE</a></span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration to update. </td></tr>

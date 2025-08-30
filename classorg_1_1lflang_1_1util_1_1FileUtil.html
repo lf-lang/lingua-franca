@@ -113,20 +113,20 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a860ff96f3fa279ee3ba73c8f79324ec8" id="r_a860ff96f3fa279ee3ba73c8f79324ec8"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a860ff96f3fa279ee3ba73c8f79324ec8">copyFile</a> (Path srcFile, Path dstFile, boolean skipIfUnchanged)  throws IOException </td></tr>
 <tr class="memdesc:a860ff96f3fa279ee3ba73c8f79324ec8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a given source file to a given destination file.  <br /></td></tr>
 <tr class="memitem:a5eab9e9bedca9c713650cb0e46bee110" id="r_a5eab9e9bedca9c713650cb0e46bee110"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5eab9e9bedca9c713650cb0e46bee110">copyFileFromClassPath</a> (final String entry, final Path dstDir, final boolean skipIfUnchanged)  throws IOException </td></tr>
-<tr class="memdesc:a5eab9e9bedca9c713650cb0e46bee110"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up the given <code class="JavaDocCode">entry</code> in the classpath.  <br /></td></tr>
+<tr class="memdesc:a5eab9e9bedca9c713650cb0e46bee110"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up the given <span class="tt">entry</span> in the classpath.  <br /></td></tr>
 <tr class="memitem:af0e7649fca3cfc19a6e8742d095b45fc" id="r_af0e7649fca3cfc19a6e8742d095b45fc"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af0e7649fca3cfc19a6e8742d095b45fc">copyFilesOrDirectories</a> (List&lt; String &gt; entries, Path dstDir, <a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, boolean fileEntriesOnly)</td></tr>
 <tr class="memdesc:af0e7649fca3cfc19a6e8742d095b45fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a list of files or directories, attempt to find each entry based on the given generator context and copy it to the destination directory.  <br /></td></tr>
 <tr class="memitem:a8c73e28dcb3145a58b204e5dce7bc2b8" id="r_a8c73e28dcb3145a58b204e5dce7bc2b8"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8c73e28dcb3145a58b204e5dce7bc2b8">copyFromClassPath</a> (final String entry, final Path dstDir, final boolean skipIfUnchanged, final boolean contentsOnly)  throws IOException </td></tr>
-<tr class="memdesc:a8c73e28dcb3145a58b204e5dce7bc2b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up the given <code class="JavaDocCode">entry</code> in the classpath.  <br /></td></tr>
+<tr class="memdesc:a8c73e28dcb3145a58b204e5dce7bc2b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Look up the given <span class="tt">entry</span> in the classpath.  <br /></td></tr>
 <tr class="memitem:a861918d2234e65ffad581a3382d1a018" id="r_a861918d2234e65ffad581a3382d1a018"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a861918d2234e65ffad581a3382d1a018">copyFromFileSystem</a> (Path entry, Path dstDir, boolean contentsOnly)  throws IOException </td></tr>
-<tr class="memdesc:a861918d2234e65ffad581a3382d1a018"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the given <code class="JavaDocCode">entry</code> is a file, then copy it into the destination.  <br /></td></tr>
+<tr class="memdesc:a861918d2234e65ffad581a3382d1a018"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the given <span class="tt">entry</span> is a file, then copy it into the destination.  <br /></td></tr>
 <tr class="memitem:a2449f1004c8d1dc4ca43c8c8b9df8961" id="r_a2449f1004c8d1dc4ca43c8c8b9df8961"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2449f1004c8d1dc4ca43c8c8b9df8961">createDirectoryIfDoesNotExist</a> (File dir)</td></tr>
 <tr class="memitem:a7f44d0711c0280ab49ddf00fdbd3341f" id="r_a7f44d0711c0280ab49ddf00fdbd3341f"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7f44d0711c0280ab49ddf00fdbd3341f">delete</a> (Path fileOrDirectory)  throws IOException </td></tr>
 <tr class="memdesc:a7f44d0711c0280ab49ddf00fdbd3341f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Delete the given file or directory if it exists.  <br /></td></tr>
 <tr class="memitem:ac2e9e17c1db8a6f9c4ea663132f15e24" id="r_ac2e9e17c1db8a6f9c4ea663132f15e24"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac2e9e17c1db8a6f9c4ea663132f15e24">deleteDirectory</a> (Path dir)  throws IOException </td></tr>
 <tr class="memdesc:ac2e9e17c1db8a6f9c4ea663132f15e24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Recursively delete a directory if it exists.  <br /></td></tr>
 <tr class="memitem:a0b0ee7cd60fe00133924b84518e8ff94" id="r_a0b0ee7cd60fe00133924b84518e8ff94"><td class="memItemLeft" align="right" valign="top">static Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0b0ee7cd60fe00133924b84518e8ff94">findAndCopyFile</a> (String file, Path dstDir, <a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a> fileConfig)</td></tr>
-<tr class="memdesc:a0b0ee7cd60fe00133924b84518e8ff94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the given <code class="JavaDocCode">file</code> in the package and return the path to the file that was found; null if it was not found.  <br /></td></tr>
+<tr class="memdesc:a0b0ee7cd60fe00133924b84518e8ff94"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the given <span class="tt">file</span> in the package and return the path to the file that was found; null if it was not found.  <br /></td></tr>
 <tr class="memitem:a57f3123421c7a6f4be822136a87a946b" id="r_a57f3123421c7a6f4be822136a87a946b"><td class="memItemLeft" align="right" valign="top">static Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a57f3123421c7a6f4be822136a87a946b">findInPackage</a> (Path fileOrDirectory, <a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a> fileConfig)</td></tr>
 <tr class="memdesc:a57f3123421c7a6f4be822136a87a946b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an absolute path to the given file or directory if it can be found within the package.  <br /></td></tr>
 <tr class="memitem:a887c33e5fb6c9e662cf9bc0b91cc63c6" id="r_a887c33e5fb6c9e662cf9bc0b91cc63c6"><td class="memItemLeft" align="right" valign="top">static IResource&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a887c33e5fb6c9e662cf9bc0b91cc63c6">getIResource</a> (java.net.URI uri)</td></tr>
@@ -245,7 +245,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Copy the given source directory into the given destination directory. </p>
-<p>For example, if the source directory is <code class="JavaDocCode">foo/bar</code> and the destination is <code class="JavaDocCode">baz</code>, then copies of the contents of <code class="JavaDocCode">foo/bar</code> will be located in <code class="JavaDocCode">baz/bar</code>.</p>
+<p>For example, if the source directory is <span class="tt">foo/bar</span> and the destination is <span class="tt">baz</span>, then copies of the contents of <span class="tt">foo/bar</span> will be located in <span class="tt">baz/bar</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">srcDir</td><td>The source directory path. </td></tr>
@@ -387,7 +387,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Copy a given source file to a given destination file. </p>
-<p>This also creates new directories for any directories on the path to <code class="JavaDocCode">dstFile</code> that do not yet exist.</p>
+<p>This also creates new directories for any directories on the path to <span class="tt">dstFile</span> that do not yet exist.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">srcFile</td><td>The source file path. </td></tr>
@@ -437,7 +437,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Copy a given source file to a given destination file. </p>
-<p>This also creates new directories on the path to <code class="JavaDocCode">dstFile</code> that do not yet exist.</p>
+<p>This also creates new directories on the path to <span class="tt">dstFile</span> that do not yet exist.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">srcFile</td><td>The source file path. </td></tr>
@@ -487,7 +487,7 @@ Static Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Look up the given <code class="JavaDocCode">entry</code> in the classpath. </p>
+<p>Look up the given <span class="tt">entry</span> in the classpath. </p>
 <p>If it is found and is a file, copy it into the destination directory. If the entry is not found or not a file, throw an exception.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -550,7 +550,7 @@ Static Public Member Functions</h2></td></tr>
 
 <p>Given a list of files or directories, attempt to find each entry based on the given generator context and copy it to the destination directory. </p>
 <p>Entries are searched for in the file system first, relative to the source file and relative to the package root. Entries that cannot be found in the file system are looked for on the class path.</p>
-<p>If <code class="JavaDocCode">contentsOnly</code> is true, then for each entry that is a directory, only its contents are copied, not the directory itself. For example, if the entry is a directory <code class="JavaDocCode">foo/bar</code> and the destination is <code class="JavaDocCode">baz</code>, then copies of the contents of <code class="JavaDocCode">foo/bar</code> will be located directly in <code class="JavaDocCode">baz</code>. If <code class="JavaDocCode">contentsOnly</code> is false, then copies of the contents of <code class="JavaDocCode">foo/bar</code> will be located in <code class="JavaDocCode">baz/bar</code>.</p>
+<p>If <span class="tt">contentsOnly</span> is true, then for each entry that is a directory, only its contents are copied, not the directory itself. For example, if the entry is a directory <span class="tt">foo/bar</span> and the destination is <span class="tt">baz</span>, then copies of the contents of <span class="tt">foo/bar</span> will be located directly in <span class="tt">baz</span>. If <span class="tt">contentsOnly</span> is false, then copies of the contents of <span class="tt">foo/bar</span> will be located in <span class="tt">baz/bar</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">entries</td><td>The files or directories to copy from. </td></tr>
@@ -600,9 +600,8 @@ Static Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Look up the given <code class="JavaDocCode">entry</code> in the classpath. </p>
-<p>If it is a file, copy it into the destination directory. If the <code class="JavaDocCode">entry</code> is a directory and <code class="JavaDocCode">contentsOnly</code> is true, then copy its contents to the destination directory. If the <code class="JavaDocCode">entry</code> is a directory and <code class="JavaDocCode"><br/>
-contentsOnly</code> is true, then copy it including its contents to the destination directory.</p>
+<p>Look up the given <span class="tt">entry</span> in the classpath. </p>
+<p>If it is a file, copy it into the destination directory. If the <span class="tt">entry</span> is a directory and <span class="tt">contentsOnly</span> is true, then copy its contents to the destination directory. If the <span class="tt">entry</span> is a directory and <span class="tt">contentsOnly</span> is true, then copy it including its contents to the destination directory.</p>
 <p>This also creates new directories for any directories on the destination path that do not yet exist.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -654,13 +653,13 @@ contentsOnly</code> is true, then copy it including its contents to the destinat
 </table>
 </div><div class="memdoc">
 
-<p>If the given <code class="JavaDocCode">entry</code> is a file, then copy it into the destination. </p>
-<p>If the <code class="JavaDocCode">entry</code> is a directory and <code class="JavaDocCode">contentsOnly</code> is true, then copy its contents to the destination directory. If the <code class="JavaDocCode">entry</code> is a directory and <code class="JavaDocCode">contentsOnly</code> is true, then copy it including its contents to the destination directory.</p>
+<p>If the given <span class="tt">entry</span> is a file, then copy it into the destination. </p>
+<p>If the <span class="tt">entry</span> is a directory and <span class="tt">contentsOnly</span> is true, then copy its contents to the destination directory. If the <span class="tt">entry</span> is a directory and <span class="tt">contentsOnly</span> is true, then copy it including its contents to the destination directory.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">entry</td><td>A file or directory to copy to the destination directory. </td></tr>
     <tr><td class="paramname">dstDir</td><td>A directory to copy the entry or its contents to. </td></tr>
-    <tr><td class="paramname">contentsOnly</td><td>If true and <code class="JavaDocCode">entry</code> is a directory, then copy its contents but not the directory itself. </td></tr>
+    <tr><td class="paramname">contentsOnly</td><td>If true and <span class="tt">entry</span> is a directory, then copy its contents but not the directory itself. </td></tr>
   </table>
   </dd>
 </dl>
@@ -722,7 +721,7 @@ contentsOnly</code> is true, then copy it including its contents to the destinat
 </div><div class="memdoc">
 
 <p>Delete the given file or directory if it exists. </p>
-<p>If <code class="JavaDocCode">fileOrDirectory</code> is a directory, deletion is recursive.</p>
+<p>If <span class="tt">fileOrDirectory</span> is a directory, deletion is recursive.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">fileOrDirectory</td><td>The file or directory to delete. </td></tr>
@@ -803,7 +802,7 @@ contentsOnly</code> is true, then copy it including its contents to the destinat
 </table>
 </div><div class="memdoc">
 
-<p>Find the given <code class="JavaDocCode">file</code> in the package and return the path to the file that was found; null if it was not found. </p>
+<p>Find the given <span class="tt">file</span> in the package and return the path to the file that was found; null if it was not found. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">file</td><td>The file to look for. </td></tr>
@@ -1222,7 +1221,7 @@ contentsOnly</code> is true, then copy it including its contents to the destinat
 <p>Return the name of the file associated with the given resource, excluding its file extension. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">r</td><td>Any <code class="JavaDocCode">Resource</code>. </td></tr>
+    <tr><td class="paramname">r</td><td>Any <span class="tt">Resource</span>. </td></tr>
   </table>
   </dd>
 </dl>

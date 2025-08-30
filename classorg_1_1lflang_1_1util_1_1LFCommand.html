@@ -140,7 +140,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:aecc5ed646e1711b223887ba88ac254ea" id="r_aecc5ed646e1711b223887ba88ac254ea"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aecc5ed646e1711b223887ba88ac254ea">LFCommand</a> (ProcessBuilder pb, boolean <a class="el" href="#a5a6f440361aa565a16c9070e5c47a29b">quiet</a>)</td></tr>
-<tr class="memdesc:aecc5ed646e1711b223887ba88ac254ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct an <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> that executes the command carried by <code class="JavaDocCode">pb</code>.  <br /></td></tr>
+<tr class="memdesc:aecc5ed646e1711b223887ba88ac254ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct an <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> that executes the command carried by <span class="tt">pb</span>.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-attribs" class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -181,7 +181,7 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Construct an <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> that executes the command carried by <code class="JavaDocCode">pb</code>. </p>
+<p>Construct an <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> that executes the command carried by <span class="tt">pb</span>. </p>
 
 </div>
 </div>
@@ -332,7 +332,7 @@ Protected Attributes</h2></td></tr>
 
 <p>Create a <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> instance from a given command, an argument list and a directory. </p>
 <p>This will check first if the command can actually be found and executed. If the command is not found, null is returned. In order to find the command, different methods are applied in the following order:</p>
-<p>1. Check if the given command <code class="JavaDocCode">cmd</code> is an executable file within <code class="JavaDocCode">dir</code>. 2. If the above fails 'which &lt;cmd&gt;' (or 'where &lt;cmd&gt;' on Windows) is executed to see if the command is available on the PATH. 3. If both points above fail, a third attempt is started using bash to indirectly execute the command (see below for an explanation).</p>
+<p>1. Check if the given command <span class="tt">cmd</span> is an executable file within <span class="tt">dir</span>. 2. If the above fails 'which &lt;cmd&gt;' (or 'where &lt;cmd&gt;' on Windows) is executed to see if the command is available on the PATH. 3. If both points above fail, a third attempt is started using bash to indirectly execute the command (see below for an explanation).</p>
 <p>A bit more context: If the command cannot be found directly, then a second attempt is made using a Bash shell with the &ndash;login option, which sources the user's ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever is first found) before running the command. This helps to ensure that the user's PATH variable is set according to their usual environment, assuming that they use a bash shell.</p>
 <p>More information: Unfortunately, at least on a Mac if you are running within Eclipse, the PATH variable is extremely limited; supposedly, it is given by the default provided in /etc/paths, but at least on my machine, it does not even include directories in that file for some reason. One way to add a directory like /usr/local/bin to the path once-and-for-all is this:</p>
 <p>sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</p>
@@ -455,7 +455,7 @@ Protected Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Execute the command. </p>
-<p>Executing a process directly with <code class="JavaDocCode">processBuilder.start()</code> could lead to a deadlock as the subprocess blocks when output or error buffers are full. This method ensures that output and error messages are continuously read and forwards them to the system output and error streams as well as to the output and error streams hold in this class.</p>
+<p>Executing a process directly with <span class="tt">processBuilder.start()</span> could lead to a deadlock as the subprocess blocks when output or error buffers are full. This method ensures that output and error messages are continuously read and forwards them to the system output and error streams as well as to the output and error streams hold in this class.</p>
 <p>If the current operation is cancelled (as indicated by <code>cancelIndicator</code>), the subprocess is destroyed. Output and error streams until that point are still collected.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">

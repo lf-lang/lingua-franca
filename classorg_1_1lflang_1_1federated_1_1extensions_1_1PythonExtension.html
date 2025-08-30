@@ -118,26 +118,26 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ad0f0c29fed196b31b2fe55ee1c8d7ba7" id="r_ad0f0c29fed196b31b2fe55ee1c8d7ba7"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad0f0c29fed196b31b2fe55ee1c8d7ba7">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException </td></tr>
 <tr class="memdesc:ad0f0c29fed196b31b2fe55ee1c8d7ba7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to a separate file to set up federated execution.  <br /></td></tr>
 <tr class="memitem:a8c1241ca562a1a703ae2f13ba1a30e02" id="r_a8c1241ca562a1a703ae2f13ba1a30e02"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8c1241ca562a1a703ae2f13ba1a30e02">getNetworkBufferType</a> ()</td></tr>
-<tr class="memdesc:a8c1241ca562a1a703ae2f13ba1a30e02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <code class="JavaDocCode">uint_8</code> in C).  <br /></td></tr>
+<tr class="memdesc:a8c1241ca562a1a703ae2f13ba1a30e02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C).  <br /></td></tr>
 <tr class="memitem:a24b55065de83025e310d0f8dbb1fee45" id="r_a24b55065de83025e310d0f8dbb1fee45"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a24b55065de83025e310d0f8dbb1fee45">initializeTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, List&lt; String &gt; federateNames, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig)  throws IOException </td></tr>
 <tr class="memdesc:a24b55065de83025e310d0f8dbb1fee45"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform necessary actions to initialize the target config.  <br /></td></tr>
 <tr class="memitem:a7ed73d694cd735fffd2b558758c28138" id="r_a7ed73d694cd735fffd2b558758c28138"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a7ed73d694cd735fffd2b558758c28138">outputInitializationBody</a> ()</td></tr>
 <tr class="memdesc:a7ed73d694cd735fffd2b558758c28138"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for initializing a network output reactor from its startup reaction.  <br /></td></tr>
 <tr class="memitem:a89d64b10567428d49f62326b87b6d70e" id="r_a89d64b10567428d49f62326b87b6d70e"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a89d64b10567428d49f62326b87b6d70e">supplySenderIndexParameter</a> (Instantiation inst, int idx)</td></tr>
-<tr class="memdesc:a89d64b10567428d49f62326b87b6d70e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the sender index argument of <code class="JavaDocCode">instantiation</code>.  <br /></td></tr>
+<tr class="memdesc:a89d64b10567428d49f62326b87b6d70e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the sender index argument of <span class="tt">instantiation</span>.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:ab579abd9d0f09c4f06e2888e3f7fd8d9" id="r_ab579abd9d0f09c4f06e2888e3f7fd8d9"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab579abd9d0f09c4f06e2888e3f7fd8d9">deserialize</a> (Action action, VarRef receivingPort, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FedConnectionInstance.html">FedConnectionInstance</a> connection, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type, String receiveRef, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> result, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
 <tr class="memdesc:ab579abd9d0f09c4f06e2888e3f7fd8d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code to deserialize a message received over the network.  <br /></td></tr>
 <tr class="memitem:a3c2617a2861cc690225a3e7c270dd280" id="r_a3c2617a2861cc690225a3e7c270dd280"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3c2617a2861cc690225a3e7c270dd280">generateCMakeInclude</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig)  throws IOException </td></tr>
-<tr class="memdesc:a3c2617a2861cc690225a3e7c270dd280"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate a cmake-include file for <code class="JavaDocCode">federate</code> if needed.  <br /></td></tr>
+<tr class="memdesc:a3c2617a2861cc690225a3e7c270dd280"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate a cmake-include file for <span class="tt">federate</span> if needed.  <br /></td></tr>
 <tr class="memitem:adfdc19eb99c3a7da2ebd6321110b6b13" id="r_adfdc19eb99c3a7da2ebd6321110b6b13"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adfdc19eb99c3a7da2ebd6321110b6b13">generateSerializationIncludes</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig)</td></tr>
 <tr class="memdesc:adfdc19eb99c3a7da2ebd6321110b6b13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate preamble code needed for enabled serializers of the federate.  <br /></td></tr>
 <tr class="memitem:a4875794e4cdede18be3b9aa1f1a23872" id="r_a4875794e4cdede18be3b9aa1f1a23872"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4875794e4cdede18be3b9aa1f1a23872">serializeAndSend</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FedConnectionInstance.html">FedConnectionInstance</a> connection, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type, String sendRef, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> result, String sendingFunction, String commonArgs, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
 <tr class="memdesc:a4875794e4cdede18be3b9aa1f1a23872"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for serializing data and sending it over the given connection.  <br /></td></tr>
 <tr class="memitem:aad2a1e995287f289925c13da725bd095" id="r_aad2a1e995287f289925c13da725bd095"><td class="memItemLeft" align="right" valign="top">final void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#aad2a1e995287f289925c13da725bd095">writePreambleFile</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException </td></tr>
-<tr class="memdesc:aad2a1e995287f289925c13da725bd095"><td class="mdescLeft">&#160;</td><td class="mdescRight">Put the C preamble in a <code class="JavaDocCode">include/_federate.name + _preamble.h</code> file.  <br /></td></tr>
+<tr class="memdesc:aad2a1e995287f289925c13da725bd095"><td class="mdescLeft">&#160;</td><td class="mdescRight">Put the C preamble in a <span class="tt">include/_federate.name + _preamble.h</span> file.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An extension class to the PythonGenerator that enables certain federated functionalities. </p>
@@ -248,7 +248,7 @@ Protected Member Functions</h2></td></tr>
 <p>Generate code to deserialize a message received over the network. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">action</td><td>The network action that is mapped to the <code class="JavaDocCode">receivingPort</code> </td></tr>
+    <tr><td class="paramname">action</td><td>The network action that is mapped to the <span class="tt">receivingPort</span> </td></tr>
     <tr><td class="paramname">receivingPort</td><td>The receiving port </td></tr>
     <tr><td class="paramname">connection</td><td>The connection used to receive the message </td></tr>
     <tr><td class="paramname">type</td><td>Type for the port </td></tr>
@@ -290,7 +290,7 @@ Protected Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Generate a cmake-include file for <code class="JavaDocCode">federate</code> if needed. </p>
+<p>Generate a cmake-include file for <span class="tt">federate</span> if needed. </p>
 
 <p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a1cfd38e74ebb46d9bbe3c35b57e5f833">org.lflang.federated.extensions.CExtension</a>.</p>
 
@@ -536,7 +536,7 @@ Protected Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return the type for the raw network buffer in the target language (e.g., <code class="JavaDocCode">uint_8</code> in C). </p>
+<p>Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C). </p>
 <p>This would be the type of the network messages after serialization and before deserialization. It is primarily used to determine the type for the network action at the receiver. </p>
 
 <p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#ab5d0d904ac9aee4356de254643f46268">org.lflang.federated.extensions.CExtension</a>.</p>
@@ -596,7 +596,7 @@ Protected Member Functions</h2></td></tr>
     <tr><td class="paramname">context</td><td>The context of the original code generation process. </td></tr>
     <tr><td class="paramname">federateNames</td><td>The names of all the federates in the program. </td></tr>
     <tr><td class="paramname">federate</td><td>The federate instance. </td></tr>
-    <tr><td class="paramname">fileConfig</td><td>An instance of <code class="JavaDocCode">FedFileConfig</code>. </td></tr>
+    <tr><td class="paramname">fileConfig</td><td>An instance of <span class="tt">FedFileConfig</span>. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Used to report errors. </td></tr>
   </table>
   </dd>
@@ -695,7 +695,7 @@ Protected Member Functions</h2></td></tr>
     <tr><td class="paramname">sendRef</td><td>C code representing a reference to the data to be sent. </td></tr>
     <tr><td class="paramname">result</td><td>An accumulator of the generated code. </td></tr>
     <tr><td class="paramname">sendingFunction</td><td>The name of the function that sends the serialized data. </td></tr>
-    <tr><td class="paramname">commonArgs</td><td>Arguments passed to <code class="JavaDocCode">sendingFunction</code> regardless of serialization method. </td></tr>
+    <tr><td class="paramname">commonArgs</td><td>Arguments passed to <span class="tt">sendingFunction</span> regardless of serialization method. </td></tr>
   </table>
   </dd>
 </dl>
@@ -731,7 +731,7 @@ Protected Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Generate code for the sender index argument of <code class="JavaDocCode">instantiation</code>. </p>
+<p>Generate code for the sender index argument of <span class="tt">instantiation</span>. </p>
 
 <p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a4d58fdc60b08933210faa1c798fad274">org.lflang.federated.extensions.FedTargetExtension</a>.</p>
 
@@ -774,7 +774,7 @@ Protected Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Put the C preamble in a <code class="JavaDocCode">include/_federate.name + _preamble.h</code> file. </p>
+<p>Put the C preamble in a <span class="tt">include/_federate.name + _preamble.h</span> file. </p>
 
 </div>
 </div>

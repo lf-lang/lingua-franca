@@ -1198,7 +1198,7 @@ true, false, null, null, null)</span>.</p>
 </div><div class="memdoc">
 
 <p>Return a reference to the port on the self struct of the parent of the port's parent, but without the channel indexing, even if it is a multiport. </p>
-<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <span class="tt">* portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</span>.</p>
+<p>This is used when an input port is written to by a reaction in the parent of the port's parent, or when an output port triggers a reaction in the parent of the port's parent. This is equivalent to calling <span class="tt">portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port. </td></tr>

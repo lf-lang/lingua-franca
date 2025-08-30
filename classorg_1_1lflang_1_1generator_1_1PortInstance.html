@@ -146,8 +146,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a8b14736026edd8089d980c71f8837fcb" id="r_a8b14736026edd8089d980c71f8837fcb"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8b14736026edd8089d980c71f8837fcb">PortInstance</a> (Port <a class="el" href="classorg_1_1lflang_1_1generator_1_1NamedInstance.html#a871444834354a0e77b4b7bcef94cb07a">definition</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> <a class="el" href="classorg_1_1lflang_1_1generator_1_1NamedInstance.html#ad7dd92ad472a49a094dff3360335bfdf">parent</a>, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
 <tr class="memdesc:a8b14736026edd8089d980c71f8837fcb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a port instance from the specified definition and with the specified parent that instantiated it.  <br /></td></tr>
 <tr class="memitem:aff7eb42e4bdc3318fc96571e343162c2" id="r_aff7eb42e4bdc3318fc96571e343162c2"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aff7eb42e4bdc3318fc96571e343162c2">recordIndexForPortChannel</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1MixedRadixInt.html">MixedRadixInt</a> index, int level)</td></tr>
-<tr class="memdesc:aff7eb42e4bdc3318fc96571e343162c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Record that the <code class="JavaDocCode">index</code>th sub-port of this has a dependent reaction of level <code class="JavaDocCode"><br/>
-level</code>.  <br /></td></tr>
+<tr class="memdesc:aff7eb42e4bdc3318fc96571e343162c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Record that the <span class="tt">index</span>th sub-port of this has a dependent reaction of level <span class="tt">level</span>.  <br /></td></tr>
 <tr class="memitem:a751e88657b34d79b172a79ad0b30d7e6" id="r_a751e88657b34d79b172a79ad0b30d7e6"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a751e88657b34d79b172a79ad0b30d7e6">toString</a> ()</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pac-static-methods" class="groupheader"><a id="pac-static-methods" name="pac-static-methods"></a>
@@ -376,11 +375,11 @@ Edward A. Lee </dd></dl>
 <p>Each item in the returned list has the following fields:</p>
 <ul>
 <li>
-<code class="JavaDocCode">startRange</code>: The starting channel index of this port. </li>
+<span class="tt">startRange</span>: The starting channel index of this port. </li>
 <li>
-<code class="JavaDocCode">rangeWidth</code>: The number of channels sent to the destinations. </li>
+<span class="tt">rangeWidth</span>: The number of channels sent to the destinations. </li>
 <li>
-<code class="JavaDocCode">destinations</code>: A list of port ranges for destination ports, each of which has the same width as <code class="JavaDocCode">rangeWidth</code>. </li>
+<span class="tt">destinations</span>: A list of port ranges for destination ports, each of which has the same width as <span class="tt">rangeWidth</span>. </li>
 </ul>
 <p>Each item also has a method, <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1SendRange.html#a14ff19a3b015cea65d1c52ca289dc2fc">SendRange#getNumberOfDestinationReactors()</a></code>, that returns the total number of unique destination reactors for its range. This is not necessarily the same as the number of ports in its destinations field because some of the ports may share the same container reactor. </p>
 
@@ -737,8 +736,7 @@ Edward A. Lee </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Record that the <code class="JavaDocCode">index</code>th sub-port of this has a dependent reaction of level <code class="JavaDocCode"><br/>
-level</code>. </p>
+<p>Record that the <span class="tt">index</span>th sub-port of this has a dependent reaction of level <span class="tt">level</span>. </p>
 
 </div>
 </div>

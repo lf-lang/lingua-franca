@@ -42920,6 +42920,7 @@
     <class kind="class">org::lflang::generator::rust::CargoDependencySpec</class>
     <class kind="interface">org::lflang::generator::TargetTypes</class>
     <class kind="class">org::lflang::generator::ts::TSTypes</class>
+    <class kind="enum">org::lflang::target::Target</class>
     <member kind="function">
       <type>record</type>
       <name>org.lflang.generator.Argument&lt; T &gt;</name>

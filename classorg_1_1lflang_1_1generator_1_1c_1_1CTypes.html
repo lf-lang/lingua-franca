@@ -150,7 +150,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a2df2421251cc9c22c00486da2faad559" id="r_a2df2421251cc9c22c00486da2faad559"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2df2421251cc9c22c00486da2faad559">getTargetUndefinedType</a> ()</td></tr>
 <tr class="memdesc:a2df2421251cc9c22c00486da2faad559"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an "unknown" type which is used as a default when a type cannot be inferred.  <br /></td></tr>
 <tr class="memitem:a607ced37a52022a044f24e9112913f24" id="r_a607ced37a52022a044f24e9112913f24"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a607ced37a52022a044f24e9112913f24">getVariableDeclaration</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type, String variableName, boolean initializer)</td></tr>
-<tr class="memdesc:a607ced37a52022a044f24e9112913f24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a variable declaration of the form "@iliteral{code} type name @endiliteral ".  <br /></td></tr>
+<tr class="memdesc:a607ced37a52022a044f24e9112913f24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a variable declaration of the form "`type name`".  <br /></td></tr>
 <tr class="memitem:ad02eb0a542999dfd866943198e55aedc" id="r_ad02eb0a542999dfd866943198e55aedc"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad02eb0a542999dfd866943198e55aedc">supportsGenerics</a> ()</td></tr>
 <tr class="memdesc:ad02eb0a542999dfd866943198e55aedc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the target supports generics (i.e., parametric polymorphism), false otherwise.  <br /></td></tr>
 </table><table class="memberdecls">
@@ -653,8 +653,8 @@ initializer")</span>).</p>
 </div><div class="memdoc">
 
 <p>Given a type, return a C representation of the type. </p>
-<p>Note that C types are very idiosyncratic. For example, <code class="JavaDocCode">int[]</code> is not always accepted as a type, and <code class="JavaDocCode">int*</code> must be used instead, except when initializing a variable using a static initializer, as in <code class="JavaDocCode">int[] foo<br/>
-= {1, 2, 3};</code>. When initializing a variable using a static initializer, use <code><a class="el" href="#a607ced37a52022a044f24e9112913f24">getVariableDeclaration(TypeParameterizedReactor, InferredType, String, boolean)</a></code> instead.</p>
+<p>Note that C types are very idiosyncratic. For example, <span class="tt">int[]</span> is not always accepted as a type, and <span class="tt">int*</span> must be used instead, except when initializing a variable using a static initializer, as in <span class="tt">int[] foo
+= {1, 2, 3</span>;}. When initializing a variable using a static initializer, use <code><a class="el" href="#a607ced37a52022a044f24e9112913f24">getVariableDeclaration(TypeParameterizedReactor, InferredType, String, boolean)</a></code> instead.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">type</td><td>The type. </td></tr>
@@ -888,10 +888,9 @@ initializer")</span>).</p>
       </table>
 </div><div class="memdoc">
 
-<p>Return a variable declaration of the form "@iliteral{code} type name @endiliteral ". </p>
-<p>The type is as returned by <code><a class="el" href="#a1910224fcc7a2bcd9ec7f26d2bbdecbb">getTargetType(InferredType)</a></code>, except with the array syntax <code class="JavaDocCode">[size]</code> preferred over the pointer syntax <code class="JavaDocCode">*</code> (if applicable). This also includes the variable name because C requires the array type specification to be placed after the variable name rather than with the type. The result is of the form <code class="JavaDocCode">type variable_name[size]</code> or <code class="JavaDocCode">type<br/>
-variable_name</code> depending on whether the given type is an array type, unless the array type has no size (it is given as <code class="JavaDocCode">[]</code>. In that case, the returned form depends on the third argument, initializer. If true, the then the returned declaration will have the form <code class="JavaDocCode"><br/>
-type variable_name[]</code>, and otherwise it will have the form <code class="JavaDocCode">type* variable_name</code>.</p>
+<p>Return a variable declaration of the form "`type name`". </p>
+<p>The type is as returned by <code><a class="el" href="#a1910224fcc7a2bcd9ec7f26d2bbdecbb">getTargetType(InferredType)</a></code>, except with the array syntax <span class="tt">[size]</span> preferred over the pointer syntax <span class="tt">*</span> (if applicable). This also includes the variable name because C requires the array type specification to be placed after the variable name rather than with the type. The result is of the form <span class="tt">type variable_name[size]</span> or <span class="tt">type
+variable_name</span> depending on whether the given type is an array type, unless the array type has no size (it is given as <span class="tt">[]</span>. In that case, the returned form depends on the third argument, initializer. If true, the then the returned declaration will have the form <span class="tt">type variable_name[]</span>, and otherwise it will have the form <span class="tt">type* variable_name</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">type</td><td>The type. </td></tr>

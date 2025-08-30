@@ -118,13 +118,13 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a9ab525ad95ab8bdb4ee69c70048df120" id="r_a9ab525ad95ab8bdb4ee69c70048df120"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a9ab525ad95ab8bdb4ee69c70048df120">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException</td></tr>
 <tr class="memdesc:a9ab525ad95ab8bdb4ee69c70048df120"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to the source to set up federated execution.  <br /></td></tr>
 <tr class="memitem:aeea539b862b9138f83cea0efa41f4c70" id="r_aeea539b862b9138f83cea0efa41f4c70"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aeea539b862b9138f83cea0efa41f4c70">getNetworkBufferType</a> ()</td></tr>
-<tr class="memdesc:aeea539b862b9138f83cea0efa41f4c70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <code class="JavaDocCode">uint_8</code> in C).  <br /></td></tr>
+<tr class="memdesc:aeea539b862b9138f83cea0efa41f4c70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C).  <br /></td></tr>
 <tr class="memitem:a7c352cb0a21b906d5acccc9eff264ac7" id="r_a7c352cb0a21b906d5acccc9eff264ac7"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7c352cb0a21b906d5acccc9eff264ac7">initializeTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, List&lt; String &gt; federateNames, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig)  throws IOException</td></tr>
 <tr class="memdesc:a7c352cb0a21b906d5acccc9eff264ac7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform necessary actions to initialize the target config.  <br /></td></tr>
 <tr class="memitem:ae28a0e10f35dbf074a5c9e70f66073f8" id="r_ae28a0e10f35dbf074a5c9e70f66073f8"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae28a0e10f35dbf074a5c9e70f66073f8">outputInitializationBody</a> ()</td></tr>
 <tr class="memdesc:ae28a0e10f35dbf074a5c9e70f66073f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for initializing a network output reactor from its startup reaction.  <br /></td></tr>
 <tr class="memitem:a4d58fdc60b08933210faa1c798fad274" id="r_a4d58fdc60b08933210faa1c798fad274"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4d58fdc60b08933210faa1c798fad274">supplySenderIndexParameter</a> (Instantiation inst, int idx)</td></tr>
-<tr class="memdesc:a4d58fdc60b08933210faa1c798fad274"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the sender index argument of <code class="JavaDocCode">instantiation</code>.  <br /></td></tr>
+<tr class="memdesc:a4d58fdc60b08933210faa1c798fad274"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the sender index argument of <span class="tt">instantiation</span>.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Interface for federated target extensions. </p>
@@ -377,7 +377,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return the type for the raw network buffer in the target language (e.g., <code class="JavaDocCode">uint_8</code> in C). </p>
+<p>Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C). </p>
 <p>This would be the type of the network messages after serialization and before deserialization. It is primarily used to determine the type for the network action at the receiver. </p>
 
 <p>Implemented in <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#ab5d0d904ac9aee4356de254643f46268">org.lflang.federated.extensions.CExtension</a>, <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a8c1241ca562a1a703ae2f13ba1a30e02">org.lflang.federated.extensions.PythonExtension</a>, and <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a391c2e03d70b9d281ef2e2f4b729eb20">org.lflang.federated.extensions.TSExtension</a>.</p>
@@ -429,7 +429,7 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">context</td><td>The context of the original code generation process. </td></tr>
     <tr><td class="paramname">federateNames</td><td>The names of all the federates in the program. </td></tr>
     <tr><td class="paramname">federate</td><td>The federate instance. </td></tr>
-    <tr><td class="paramname">fileConfig</td><td>An instance of <code class="JavaDocCode">FedFileConfig</code>. </td></tr>
+    <tr><td class="paramname">fileConfig</td><td>An instance of <span class="tt">FedFileConfig</span>. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Used to report errors. </td></tr>
   </table>
   </dd>
@@ -479,7 +479,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Generate code for the sender index argument of <code class="JavaDocCode">instantiation</code>. </p>
+<p>Generate code for the sender index argument of <span class="tt">instantiation</span>. </p>
 
 <p>Implemented in <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a89d64b10567428d49f62326b87b6d70e">org.lflang.federated.extensions.CExtension</a>, and <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#abe215ca9680eedf2cc2edd7892c54892">org.lflang.federated.extensions.TSExtension</a>.</p>
 

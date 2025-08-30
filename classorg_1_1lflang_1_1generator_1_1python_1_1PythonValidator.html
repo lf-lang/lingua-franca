@@ -108,9 +108,9 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a2a2bfcf4a8ca13ac23c8436702c05eb3" id="r_a2a2bfcf4a8ca13ac23c8436702c05eb3"><td class="memItemLeft" align="right" valign="top">final void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1Validator.html#a2a2bfcf4a8ca13ac23c8436702c05eb3">doValidate</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context)  throws ExecutionException, InterruptedException </td></tr>
 <tr class="memdesc:a2a2bfcf4a8ca13ac23c8436702c05eb3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Validate this <a class="el" href="classorg_1_1lflang_1_1generator_1_1Validator.html" title="Validate generated code.">Validator</a>'s group of generated files.  <br /></td></tr>
 <tr class="memitem:ad0083ff67d6a2e75f2fd6b2b5569c711" id="r_ad0083ff67d6a2e75f2fd6b2b5569c711"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad0083ff67d6a2e75f2fd6b2b5569c711">PythonValidator</a> (<a class="el" href="classorg_1_1lflang_1_1FileConfig.html">FileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> <a class="el" href="classorg_1_1lflang_1_1generator_1_1Validator.html#abc7055b2980ee5dae32f8e34a5bb1feb">messageReporter</a>, Map&lt; Path, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeMap.html">CodeMap</a> &gt; <a class="el" href="classorg_1_1lflang_1_1generator_1_1Validator.html#a1354aab4cf6d544fdc6ac696530ed24b">codeMaps</a>, Set&lt; String &gt; protoNames)</td></tr>
-<tr class="memdesc:ad0083ff67d6a2e75f2fd6b2b5569c711"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize a <code class="JavaDocCode">PythonValidator</code> for a build process using <code class="JavaDocCode">fileConfig</code> and report errors to <code class="JavaDocCode">errorReporter</code>.  <br /></td></tr>
+<tr class="memdesc:ad0083ff67d6a2e75f2fd6b2b5569c711"><td class="mdescLeft">&#160;</td><td class="mdescRight">Initialize a <span class="tt"><a class="el" href="classorg_1_1lflang_1_1generator_1_1python_1_1PythonValidator.html" title="A validator for generated Python code.">PythonValidator</a></span> for a build process using <span class="tt">fileConfig</span> and report errors to <span class="tt">errorReporter</span>.  <br /></td></tr>
 <tr class="memitem:a7de85c7271a8f9ae9d351cb61a2ea896" id="r_a7de85c7271a8f9ae9d351cb61a2ea896"><td class="memItemLeft" align="right" valign="top">final int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1Validator.html#a7de85c7271a8f9ae9d351cb61a2ea896">run</a> (<a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html">LFCommand</a> command, CancelIndicator cancelIndicator)</td></tr>
-<tr class="memdesc:a7de85c7271a8f9ae9d351cb61a2ea896"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the given command, report any messages produced using the reporting strategies given by <code class="JavaDocCode">getBuildReportingStrategies</code>, and return its return code.  <br /></td></tr>
+<tr class="memdesc:a7de85c7271a8f9ae9d351cb61a2ea896"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run the given command, report any messages produced using the reporting strategies given by <span class="tt">getBuildReportingStrategies</span>, and return its return code.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
@@ -154,7 +154,7 @@ Protected Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Initialize a <code class="JavaDocCode">PythonValidator</code> for a build process using <code class="JavaDocCode">fileConfig</code> and report errors to <code class="JavaDocCode">errorReporter</code>. </p>
+<p>Initialize a <span class="tt"><a class="el" href="classorg_1_1lflang_1_1generator_1_1python_1_1PythonValidator.html" title="A validator for generated Python code.">PythonValidator</a></span> for a build process using <span class="tt">fileConfig</span> and report errors to <span class="tt">errorReporter</span>. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">fileConfig</td><td>The file configuration of this build. </td></tr>
@@ -258,7 +258,7 @@ Protected Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">lines</td><td>The lines of output from the compiler. </td></tr>
-    <tr><td class="paramname">i</td><td>The current index at which a message may start. Guaranteed to be less than <code class="JavaDocCode">lines.length - 3</code>. </td></tr>
+    <tr><td class="paramname">i</td><td>The current index at which a message may start. Guaranteed to be less than <span class="tt">lines.length - 3</span>. </td></tr>
   </table>
   </dd>
 </dl>
@@ -278,7 +278,7 @@ Protected Member Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>whether <code class="JavaDocCode">message</code> should be reported.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>whether <span class="tt">message</span> should be reported.</dd></dl>
 <p>Make a best-effort attempt to place the diagnostic on the correct line.</p>
 
 <p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1Validator.html#acc4f6d2735b36b7affddfe091a09dba2">org.lflang.generator.Validator</a>.</p>
@@ -312,7 +312,7 @@ Protected Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Run the given command, report any messages produced using the reporting strategies given by <code class="JavaDocCode">getBuildReportingStrategies</code>, and return its return code. </p>
+<p>Run the given command, report any messages produced using the reporting strategies given by <span class="tt">getBuildReportingStrategies</span>, and return its return code. </p>
 
 </div>
 </div>

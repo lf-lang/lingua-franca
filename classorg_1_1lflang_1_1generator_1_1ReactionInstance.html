@@ -614,8 +614,8 @@ Marten Lohstroh </dd></dl>
 </div><div class="memdoc">
 
 <p>Return an array of runtime instances of this reaction in a <em>natural order</em>, defined as follows. </p>
-<p>The position within the returned list of the runtime instance is given by a mixed-radix number where the low-order digit is the bank index within the container reactor (or <code class="JavaDocCode">0</code> if it is not a bank), the second low order digit is the bank index of the container's container (or <code class="JavaDocCode">0</code> if it is not a bank), etc., until the container that is directly contained by the top level (the top-level reactor need not be included because its index is always <code class="JavaDocCode">0</code>).</p>
-<p>The size of the returned array is the product of the widths of all the container <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></code> objects. If none of these is a bank, then the size will be <code class="JavaDocCode">1</code>.</p>
+<p>The position within the returned list of the runtime instance is given by a mixed-radix number where the low-order digit is the bank index within the container reactor (or <span class="tt">0</span> if it is not a bank), the second low order digit is the bank index of the container's container (or <span class="tt">0</span> if it is not a bank), etc., until the container that is directly contained by the top level (the top-level reactor need not be included because its index is always <span class="tt">0</span>).</p>
+<p>The size of the returned array is the product of the widths of all the container <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></code> objects. If none of these is a bank, then the size will be <span class="tt">1</span>.</p>
 <p>This method creates this array the first time it is called, but then holds on to it. The array is used by <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactionInstanceGraph.html">ReactionInstanceGraph</a></code> to determine and record levels and deadline for runtime instances of reactors. </p>
 
 </div>

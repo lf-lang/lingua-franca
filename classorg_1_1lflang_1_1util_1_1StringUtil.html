@@ -169,7 +169,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Convert a string in Camel case to snake case. </p>
-<p>E.g. <code class="JavaDocCode">MinimalReactor</code> will be converted to <code class="JavaDocCode">minimal_reactor</code>. The string is assumed to be a single camel case identifier (no whitespace). </p>
+<p>E.g. <span class="tt">MinimalReactor</span> will be converted to <span class="tt">minimal_reactor</span>. The string is assumed to be a single camel case identifier (no whitespace). </p>
 
 </div>
 </div>
@@ -315,18 +315,16 @@ Static Public Member Functions</h2></td></tr>
 <p>Intelligently trim the white space in a code block. </p>
 <p>The leading whitespaces of the first non-empty code line is considered as a common prefix across all code lines. If the remaining code lines indeed start with this prefix, it removes the prefix from the code line.</p>
 <p>For examples, this code</p>
-<pre><code class="JavaDocCode"><br/>
-int test = 4;<br/>
-if (test == 42) {<br/>
-    printf("Hello\n");<br/>
-}<br/>
-</code></pre><p>will be trimmed to this:</p>
-<pre><code class="JavaDocCode"><br/>
-int test = 4;<br/>
-if (test == 42) {<br/>
-    printf("Hello\n");<br/>
-}<br/>
-</code></pre><dl class="params"><dt>Parameters</dt><dd>
+<div class="fragment"><div class="line"><span class="keywordtype">int</span> test = 4;</div>
+<div class="line"><span class="keywordflow">if</span> (test == 42) {</div>
+<div class="line">    printf(<span class="stringliteral">&quot;Hello\n&quot;</span>);</div>
+<div class="line">}</div>
+</div><!-- fragment --><p>will be trimmed to this:</p>
+<div class="fragment"><div class="line"><span class="keywordtype">int</span> test = 4;</div>
+<div class="line"><span class="keywordflow">if</span> (test == 42) {</div>
+<div class="line">    printf(<span class="stringliteral">&quot;Hello\n&quot;</span>);</div>
+<div class="line">}</div>
+</div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">code</td><td>the code block to be trimmed </td></tr>
     <tr><td class="paramname">firstLineToConsider</td><td>The first line not to ignore. </td></tr>

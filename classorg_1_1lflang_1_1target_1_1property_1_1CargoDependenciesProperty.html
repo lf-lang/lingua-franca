@@ -113,11 +113,11 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a29acc44b1e353f4638f22bb3289d7338" id="r_a29acc44b1e353f4638f22bb3289d7338"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a29acc44b1e353f4638f22bb3289d7338">hashCode</a> ()</td></tr>
 <tr class="memitem:ad0b4e48b37599d9714d69e2cd7e872d2" id="r_ad0b4e48b37599d9714d69e2cd7e872d2"><td class="memItemLeft" align="right" valign="top">Map&lt; String, <a class="el" href="classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html">CargoDependencySpec</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad0b4e48b37599d9714d69e2cd7e872d2">initialValue</a> ()</td></tr>
 <tr class="memitem:a887afc08ede48190976f784b8769b7ea" id="r_a887afc08ede48190976f784b8769b7ea"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a887afc08ede48190976f784b8769b7ea">loadFromFederate</a> ()</td></tr>
-<tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported federates, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a033370849eef3120afd46c4845863e2d" id="r_a033370849eef3120afd46c4845863e2d"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a033370849eef3120afd46c4845863e2d">loadFromFederation</a> ()</td></tr>
-<tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded by federates when specified at the level of the federation, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:ab53684f78f96af96841c92187f131488" id="r_ab53684f78f96af96841c92187f131488"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ab53684f78f96af96841c92187f131488">loadFromImport</a> ()</td></tr>
-<tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported files, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a7274211d00ab37b2d9a1e1e35977ade9" id="r_a7274211d00ab37b2d9a1e1e35977ade9"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7274211d00ab37b2d9a1e1e35977ade9">name</a> ()</td></tr>
 <tr class="memitem:a2a3ae8487cf2df37b7e3c98a9d594685" id="r_a2a3ae8487cf2df37b7e3c98a9d594685"><td class="memItemLeft" align="right" valign="top">final void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a2a3ae8487cf2df37b7e3c98a9d594685">override</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a2a3ae8487cf2df37b7e3c98a9d594685"><td class="mdescLeft">&#160;</td><td class="mdescRight">Replace the value assigned to this target property in the given config with the given value.  <br /></td></tr>
@@ -150,27 +150,26 @@ Protected Member Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Dependency specifications for Cargo. </p>
 <p>This property looks like this:</p>
-<pre><code class="JavaDocCode"><br/>
-cargo-dependencies: {<br/>
-   // Name-of-the-crate: "version"<br/>
-   rand: "0.8",<br/>
-   // Equivalent to using an explicit map:<br/>
-   rand: {<br/>
-     version: "0.8"<br/>
-   },<br/>
-   // The map allows specifying more details<br/>
-   rand: {<br/>
-     // A path to a local unpublished crate.<br/>
-     // Note 'path' is mutually exclusive with 'version'.<br/>
-     path: "/home/me/Git/local-rand-clone"<br/>
-   },<br/>
-   rand: {<br/>
-     version: "0.8",<br/>
-     // you can specify cargo features<br/>
-     features: ["some-cargo-feature",]<br/>
-   }<br/>
-}<br/>
-</code></pre> </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
+<div class="fragment"><div class="line">cargo-dependencies: {</div>
+<div class="line">   <span class="comment">// Name-of-the-crate: &quot;version&quot;</span></div>
+<div class="line">   rand: <span class="stringliteral">&quot;0.8&quot;</span>,</div>
+<div class="line">   <span class="comment">// Equivalent to using an explicit map:</span></div>
+<div class="line">   rand: {</div>
+<div class="line">     version: <span class="stringliteral">&quot;0.8&quot;</span></div>
+<div class="line">   },</div>
+<div class="line">   <span class="comment">// The map allows specifying more details</span></div>
+<div class="line">   rand: {</div>
+<div class="line">     <span class="comment">// A path to a local unpublished crate.</span></div>
+<div class="line">     <span class="comment">// Note &#39;path&#39; is mutually exclusive with &#39;version&#39;.</span></div>
+<div class="line">     path: <span class="stringliteral">&quot;/home/me/Git/local-rand-clone&quot;</span></div>
+<div class="line">   },</div>
+<div class="line">   rand: {</div>
+<div class="line">     version: <span class="stringliteral">&quot;0.8&quot;</span>,</div>
+<div class="line">     <span class="comment">// you can specify cargo features</span></div>
+<div class="line">     features: [<span class="stringliteral">&quot;some-cargo-feature&quot;</span>,]</div>
+<div class="line">   }</div>
+<div class="line">}</div>
+</div><!-- fragment --> </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a6a5c01889646675b2403aba03a9561b1" name="a6a5c01889646675b2403aba03a9561b1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6a5c01889646675b2403aba03a9561b1">&#9670;&#160;</a></span>astElementFromConfig()</h2>
 
@@ -428,7 +427,7 @@ cargo-dependencies: {<br/>
 </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported federates, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -455,7 +454,7 @@ cargo-dependencies: {<br/>
 </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded by federates when specified at the level of the federation, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -482,7 +481,7 @@ cargo-dependencies: {<br/>
 </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported files, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>

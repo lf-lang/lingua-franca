@@ -114,11 +114,11 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a29acc44b1e353f4638f22bb3289d7338" id="r_a29acc44b1e353f4638f22bb3289d7338"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a29acc44b1e353f4638f22bb3289d7338">hashCode</a> ()</td></tr>
 <tr class="memitem:abf83ece1205d3315b55931352752a80b" id="r_abf83ece1205d3315b55931352752a80b"><td class="memItemLeft" align="right" valign="top">List&lt; Path &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abf83ece1205d3315b55931352752a80b">initialValue</a> ()</td></tr>
 <tr class="memitem:a887afc08ede48190976f784b8769b7ea" id="r_a887afc08ede48190976f784b8769b7ea"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a887afc08ede48190976f784b8769b7ea">loadFromFederate</a> ()</td></tr>
-<tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported federates, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a033370849eef3120afd46c4845863e2d" id="r_a033370849eef3120afd46c4845863e2d"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a033370849eef3120afd46c4845863e2d">loadFromFederation</a> ()</td></tr>
-<tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded by federates when specified at the level of the federation, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:ab53684f78f96af96841c92187f131488" id="r_ab53684f78f96af96841c92187f131488"><td class="memItemLeft" align="right" valign="top">boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ab53684f78f96af96841c92187f131488">loadFromImport</a> ()</td></tr>
-<tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported files, <code class="JavaDocCode">false</code> otherwise.  <br /></td></tr>
+<tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a80b76c953dc4c12f888f923a6e2797c5" id="r_a80b76c953dc4c12f888f923a6e2797c5"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a80b76c953dc4c12f888f923a6e2797c5">name</a> ()</td></tr>
 <tr class="memitem:a2a3ae8487cf2df37b7e3c98a9d594685" id="r_a2a3ae8487cf2df37b7e3c98a9d594685"><td class="memItemLeft" align="right" valign="top">final void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a2a3ae8487cf2df37b7e3c98a9d594685">override</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a2a3ae8487cf2df37b7e3c98a9d594685"><td class="mdescLeft">&#160;</td><td class="mdescRight">Replace the value assigned to this target property in the given config with the given value.  <br /></td></tr>
@@ -149,8 +149,8 @@ Protected Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>List of module files to link into the crate as top-level. </p>
-<p>For instance, a <code class="JavaDocCode">target Rust {<br/>
-rust-modules: [ "foo.rs" ] }</code> will cause the file to be copied into the generated project, and the generated <code class="JavaDocCode">main.rs</code> will include it with a <code class="JavaDocCode">mod foo;</code>. If one of the paths is a directory, it must contain a <code class="JavaDocCode">mod.rs</code> file, and all its contents are copied. </p>
+<p>For instance, a <span class="tt">target Rust {
+rust-modules: [ "foo.rs" ] </span>} will cause the file to be copied into the generated project, and the generated <span class="tt">main.rs</span> will include it with a <span class="tt">mod foo;</span>. If one of the paths is a directory, it must contain a <span class="tt">mod.rs</span> file, and all its contents are copied. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a6a5c01889646675b2403aba03a9561b1" name="a6a5c01889646675b2403aba03a9561b1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6a5c01889646675b2403aba03a9561b1">&#9670;&#160;</a></span>astElementFromConfig()</h2>
@@ -401,7 +401,7 @@ rust-modules: [ "foo.rs" ] }</code> will cause the file to be copied into the ge
 </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported federates, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -428,7 +428,7 @@ rust-modules: [ "foo.rs" ] }</code> will cause the file to be copied into the ge
 </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded by federates when specified at the level of the federation, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>
@@ -455,7 +455,7 @@ rust-modules: [ "foo.rs" ] }</code> will cause the file to be copied into the ge
 </table>
 </div><div class="memdoc">
 
-<p>Return <code class="JavaDocCode">true</code> if this property is to be loaded from imported files, <code class="JavaDocCode">false</code> otherwise. </p>
+<p>Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise. </p>
 
 </div>
 </div>

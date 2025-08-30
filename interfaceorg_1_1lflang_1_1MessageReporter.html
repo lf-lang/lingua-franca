@@ -133,13 +133,12 @@ Public Member Functions</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Interface for reporting messages like errors or info. </p>
-<p>This interface is a staged builder: first call one of the <code class="JavaDocCode">at</code> methods to specify the position of the message, then use one of the report methods on the returned <code><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter_1_1Stage2.html">Stage2</a></code> instance.</p>
+<p>This interface is a staged builder: first call one of the <span class="tt">at</span> methods to specify the position of the message, then use one of the report methods on the returned <code><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter_1_1Stage2.html">Stage2</a></code> instance.</p>
 <p>Examples:</p>
-<pre><code class="JavaDocCode"><br/>
-errorReporter.at(file, line).error("an error")<br/>
-errorReporter.at(node).warning("a warning reported on a node")<br/>
-errorReporter.nowhere().error("Some error that has no specific position")<br/>
-</code></pre><dl class="section see"><dt>See also</dt><dd><a class="el" href="classorg_1_1lflang_1_1MessageReporterBase.html" title="Base implementation of the MessageReporter interface.">MessageReporterBase</a> </dd></dl>
+<div class="fragment"><div class="line">errorReporter.at(file, line).error(<span class="stringliteral">&quot;an error&quot;</span>)</div>
+<div class="line">errorReporter.at(node).warning(<span class="stringliteral">&quot;a warning reported on a node&quot;</span>)</div>
+<div class="line">errorReporter.nowhere().error(<span class="stringliteral">&quot;Some error that has no specific position&quot;</span>)</div>
+</div><!-- fragment --><dl class="section see"><dt>See also</dt><dd><a class="el" href="classorg_1_1lflang_1_1MessageReporterBase.html" title="Base implementation of the MessageReporter interface.">MessageReporterBase</a> </dd></dl>
 <dl class="section author"><dt>Author</dt><dd>Edward A. Lee </dd>
 <dd>
 Marten Lohstroh </dd>

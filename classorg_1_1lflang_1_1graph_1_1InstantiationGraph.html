@@ -176,8 +176,8 @@ Protected Attributes</h2></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A graph with vertices that are Reactors (not ReactorInstances) and edges that denote dependencies between them. </p>
-<p>A "dependency" from reactor class A to reactor class B (A depends on B) means that A instantiates within it at least one instance of B. Note that there a potentially confusing and subtle distinction here between an "instantiation" and an "instance". They are not the same thing at all. An "instantiation" is an AST node representing a statement like <code class="JavaDocCode">a = new A();</code>. This can result in many instances of reactor class A (if the containing reactor class is instantiated multiple times).</p>
-<p>In addition to the graph, this class keeps track of the instantiations that induce the dependencies. These can be retrieved using the method <code class="JavaDocCode">getInstantiations(Reactor)</code>.</p>
+<p>A "dependency" from reactor class A to reactor class B (A depends on B) means that A instantiates within it at least one instance of B. Note that there a potentially confusing and subtle distinction here between an "instantiation" and an "instance". They are not the same thing at all. An "instantiation" is an AST node representing a statement like <span class="tt">a = new A();</span>. This can result in many instances of reactor class A (if the containing reactor class is instantiated multiple times).</p>
+<p>In addition to the graph, this class keeps track of the instantiations that induce the dependencies. These can be retrieved using the method <span class="tt"><a class="el" href="#a9ffbbd6c1f750fab44eebd135ed45508" title="Return the instantiations that point to a given reactor definition.">getInstantiations(Reactor)</a></span>.</p>
 <dl class="section author"><dt>Author</dt><dd>Marten Lohstroh </dd></dl>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a4ffe3826d3673a979917e256d6e6986b" name="a4ffe3826d3673a979917e256d6e6986b"></a>
@@ -422,7 +422,7 @@ Protected Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Run Tarjan's algorithm for finding strongly connected components. </p>
-<p>After invoking this method, the detected cycles with be listed in the class variable <code class="JavaDocCode">cycles</code>. </p>
+<p>After invoking this method, the detected cycles with be listed in the class variable <span class="tt">cycles</span>. </p>
 
 </div>
 </div>

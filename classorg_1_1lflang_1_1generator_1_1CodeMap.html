@@ -108,9 +108,9 @@ Classes</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a2bfc4caf113c7e0e18eedd114fcb5860" id="r_a2bfc4caf113c7e0e18eedd114fcb5860"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classorg_1_1lflang_1_1generator_1_1Position.html">Position</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2bfc4caf113c7e0e18eedd114fcb5860">adjusted</a> (Path lfFile, <a class="el" href="classorg_1_1lflang_1_1generator_1_1Position.html">Position</a> generatedFilePosition)</td></tr>
-<tr class="memdesc:a2bfc4caf113c7e0e18eedd114fcb5860"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the position in <code class="JavaDocCode">lfFile</code> corresponding to <code class="JavaDocCode">generatedFilePosition</code> if such a position is known, or the zero <a class="el" href="classorg_1_1lflang_1_1generator_1_1Position.html" title="A position in a document, including line and column.">Position</a> otherwise.  <br /></td></tr>
+<tr class="memdesc:a2bfc4caf113c7e0e18eedd114fcb5860"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the position in <span class="tt">lfFile</span> corresponding to <span class="tt">generatedFilePosition</span> if such a position is known, or the zero <a class="el" href="classorg_1_1lflang_1_1generator_1_1Position.html" title="A position in a document, including line and column.">Position</a> otherwise.  <br /></td></tr>
 <tr class="memitem:a2cd86bb729bf37189b3c4f1c6de0dce5" id="r_a2cd86bb729bf37189b3c4f1c6de0dce5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classorg_1_1lflang_1_1generator_1_1Range.html">Range</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2cd86bb729bf37189b3c4f1c6de0dce5">adjusted</a> (Path lfFile, <a class="el" href="classorg_1_1lflang_1_1generator_1_1Range.html">Range</a> generatedFileRange)</td></tr>
-<tr class="memdesc:a2cd86bb729bf37189b3c4f1c6de0dce5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the range in <code class="JavaDocCode">lfFile</code> corresponding to <code class="JavaDocCode">generatedFileRange</code> if such a range is known, or a degenerate <a class="el" href="classorg_1_1lflang_1_1generator_1_1Range.html" title="Represents a range in a document.">Range</a> otherwise.  <br /></td></tr>
+<tr class="memdesc:a2cd86bb729bf37189b3c4f1c6de0dce5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the range in <span class="tt">lfFile</span> corresponding to <span class="tt">generatedFileRange</span> if such a range is known, or a degenerate <a class="el" href="classorg_1_1lflang_1_1generator_1_1Range.html" title="Represents a range in a document.">Range</a> otherwise.  <br /></td></tr>
 <tr class="memitem:aa8f21124a183e0c712888983623ccb22" id="r_aa8f21124a183e0c712888983623ccb22"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa8f21124a183e0c712888983623ccb22">firstNonWhitespace</a> (int line)</td></tr>
 <tr class="memitem:a4062643fc003cebb43bb080a588a5d10" id="r_a4062643fc003cebb43bb080a588a5d10"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a4062643fc003cebb43bb080a588a5d10">getGeneratedCode</a> ()</td></tr>
 <tr class="memdesc:a4062643fc003cebb43bb080a588a5d10"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the generated code (without Correspondences).  <br /></td></tr>
@@ -120,7 +120,7 @@ Public Member Functions</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a59ff66ec43d7987aa08dd408ba1bb1cc" id="r_a59ff66ec43d7987aa08dd408ba1bb1cc"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeMap.html">CodeMap</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a59ff66ec43d7987aa08dd408ba1bb1cc">fromGeneratedCode</a> (String internalGeneratedCode)</td></tr>
-<tr class="memdesc:a59ff66ec43d7987aa08dd408ba1bb1cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiates a <code class="JavaDocCode">CodeMap</code> from <code class="JavaDocCode">internalGeneratedCode</code>.  <br /></td></tr>
+<tr class="memdesc:a59ff66ec43d7987aa08dd408ba1bb1cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Instantiate a <span class="tt"><a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeMap.html" title="Encapsulate data about the correspondence between ranges of generated code and ranges of a Lingua Fra...">CodeMap</a></span> from <span class="tt">internalGeneratedCode</span>.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Encapsulate data about the correspondence between ranges of generated code and ranges of a Lingua Franca file. </p>
@@ -144,7 +144,7 @@ Static Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Returns the position in <code class="JavaDocCode">lfFile</code> corresponding to <code class="JavaDocCode">generatedFilePosition</code> if such a position is known, or the zero <a class="el" href="classorg_1_1lflang_1_1generator_1_1Position.html" title="A position in a document, including line and column.">Position</a> otherwise. </p>
+<p>Returns the position in <span class="tt">lfFile</span> corresponding to <span class="tt">generatedFilePosition</span> if such a position is known, or the zero <a class="el" href="classorg_1_1lflang_1_1generator_1_1Position.html" title="A position in a document, including line and column.">Position</a> otherwise. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">lfFile</td><td>the path to an arbitrary Lingua Franca source file </td></tr>
@@ -152,7 +152,7 @@ Static Public Member Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>the position in <code class="JavaDocCode">lfFile</code> corresponding to <code class="JavaDocCode">generatedFilePosition</code> </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>the position in <span class="tt">lfFile</span> corresponding to <span class="tt">generatedFilePosition</span> </dd></dl>
 
 </div>
 </div>
@@ -175,7 +175,7 @@ Static Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Returns the range in <code class="JavaDocCode">lfFile</code> corresponding to <code class="JavaDocCode">generatedFileRange</code> if such a range is known, or a degenerate <a class="el" href="classorg_1_1lflang_1_1generator_1_1Range.html" title="Represents a range in a document.">Range</a> otherwise. </p>
+<p>Returns the range in <span class="tt">lfFile</span> corresponding to <span class="tt">generatedFileRange</span> if such a range is known, or a degenerate <a class="el" href="classorg_1_1lflang_1_1generator_1_1Range.html" title="Represents a range in a document.">Range</a> otherwise. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">lfFile</td><td>the path to an arbitrary Lingua Franca source file </td></tr>
@@ -183,7 +183,7 @@ Static Public Member Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>the range in <code class="JavaDocCode">lfFile</code> corresponding to <code class="JavaDocCode">generatedFileRange</code> </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>the range in <span class="tt">lfFile</span> corresponding to <span class="tt">generatedFileRange</span> </dd></dl>
 
 </div>
 </div>
@@ -227,9 +227,8 @@ Static Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Instantiates a <code class="JavaDocCode">CodeMap</code> from <code class="JavaDocCode">internalGeneratedCode</code>. </p>
-<p><code class="JavaDocCode"><br/>
-internalGeneratedCode</code> may be invalid code that is different from the final generated code because it should contain deserializable representations of <code class="JavaDocCode">Correspondences</code>.</p>
+<p>Instantiate a <span class="tt"><a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeMap.html" title="Encapsulate data about the correspondence between ranges of generated code and ranges of a Lingua Fra...">CodeMap</a></span> from <span class="tt">internalGeneratedCode</span>. </p>
+<p><span class="tt">internalGeneratedCode</span> may be invalid code that is different from the final generated code because it should contain deserializable representations of <span class="tt">Correspondences</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">internalGeneratedCode</td><td>code from a code generator that contains serialized Correspondences </td></tr>

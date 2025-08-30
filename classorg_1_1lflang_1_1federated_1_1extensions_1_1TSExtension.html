@@ -118,13 +118,13 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a760473614ce3142e63499c20968c547e" id="r_a760473614ce3142e63499c20968c547e"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a760473614ce3142e63499c20968c547e">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
 <tr class="memdesc:a760473614ce3142e63499c20968c547e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to the source to set up federated execution.  <br /></td></tr>
 <tr class="memitem:a391c2e03d70b9d281ef2e2f4b729eb20" id="r_a391c2e03d70b9d281ef2e2f4b729eb20"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a391c2e03d70b9d281ef2e2f4b729eb20">getNetworkBufferType</a> ()</td></tr>
-<tr class="memdesc:a391c2e03d70b9d281ef2e2f4b729eb20"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <code class="JavaDocCode">uint_8</code> in C).  <br /></td></tr>
+<tr class="memdesc:a391c2e03d70b9d281ef2e2f4b729eb20"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C).  <br /></td></tr>
 <tr class="memitem:a5f131b432b226812b6846db6f0db4a81" id="r_a5f131b432b226812b6846db6f0db4a81"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5f131b432b226812b6846db6f0db4a81">initializeTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, List&lt; String &gt; federateNames, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig)</td></tr>
 <tr class="memdesc:a5f131b432b226812b6846db6f0db4a81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform necessary actions to initialize the target config.  <br /></td></tr>
 <tr class="memitem:a60aca9a4e7e9a44dfa0c955941c544b0" id="r_a60aca9a4e7e9a44dfa0c955941c544b0"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a60aca9a4e7e9a44dfa0c955941c544b0">outputInitializationBody</a> ()</td></tr>
 <tr class="memdesc:a60aca9a4e7e9a44dfa0c955941c544b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for initializing a network output reactor from its startup reaction.  <br /></td></tr>
 <tr class="memitem:abe215ca9680eedf2cc2edd7892c54892" id="r_abe215ca9680eedf2cc2edd7892c54892"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abe215ca9680eedf2cc2edd7892c54892">supplySenderIndexParameter</a> (Instantiation inst, int idx)</td></tr>
-<tr class="memdesc:abe215ca9680eedf2cc2edd7892c54892"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the sender index argument of <code class="JavaDocCode">instantiation</code>.  <br /></td></tr>
+<tr class="memdesc:abe215ca9680eedf2cc2edd7892c54892"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the sender index argument of <span class="tt">instantiation</span>.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An extension class to the TSGenerator that enables certain federated functionalities. </p>
@@ -384,7 +384,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Return the type for the raw network buffer in the target language (e.g., <code class="JavaDocCode">uint_8</code> in C). </p>
+<p>Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C). </p>
 <p>This would be the type of the network messages after serialization and before deserialization. It is primarily used to determine the type for the network action at the receiver. </p>
 
 <p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#aeea539b862b9138f83cea0efa41f4c70">org.lflang.federated.extensions.FedTargetExtension</a>.</p>
@@ -436,7 +436,7 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">context</td><td>The context of the original code generation process. </td></tr>
     <tr><td class="paramname">federateNames</td><td>The names of all the federates in the program. </td></tr>
     <tr><td class="paramname">federate</td><td>The federate instance. </td></tr>
-    <tr><td class="paramname">fileConfig</td><td>An instance of <code class="JavaDocCode">FedFileConfig</code>. </td></tr>
+    <tr><td class="paramname">fileConfig</td><td>An instance of <span class="tt">FedFileConfig</span>. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Used to report errors. </td></tr>
   </table>
   </dd>
@@ -486,7 +486,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Generate code for the sender index argument of <code class="JavaDocCode">instantiation</code>. </p>
+<p>Generate code for the sender index argument of <span class="tt">instantiation</span>. </p>
 
 <p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a4d58fdc60b08933210faa1c798fad274">org.lflang.federated.extensions.FedTargetExtension</a>.</p>
 
