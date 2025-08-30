@@ -165,7 +165,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   public TypeParameterizedReactor tpr;
 
   /**
-   * The Total Port Order level with which {@code this} was annotated, or {@code null} if there is
+   * The Total Port Order level with which `this` was annotated, or `null` if there is
    * no TPO annotation. TPO is total port order. See
    * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
@@ -307,7 +307,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /**
    * @see NamedInstance#uniqueID()
-   *     <p>Append {@code _main} to the name of the main reactor to allow instantiations within that
+   *     <p>Append `_main` to the name of the main reactor to allow instantiations within that
    *     reactor to have the same name.
    */
   @Override
@@ -1069,14 +1069,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * (a port representing ports of the bank members) so the returned list includes ranges of banks
    * and channels.
    *
-   * <p>If a given port reference has the form {@code interleaved(b.m)}, where {@code b} is a bank
-   * and {@code m} is a multiport, then the corresponding range in the returned list is marked
+   * <p>If a given port reference has the form `interleaved(b.m)`, where `b` is a bank
+   * and `m` is a multiport, then the corresponding range in the returned list is marked
    * interleaved.
    *
-   * <p>For example, if {@code b} and {@code m} have width 2, without the interleaved keyword, the
-   * returned range represents the sequence {@code [b0.m0, b0.m1, b1.m0, b1.m1]}. With the
-   * interleaved marking, the returned range represents the sequence {@code [b0.m0, b1.m0, b0.m1,
-   * b1.m1]}. Both ranges will have width 4.
+   * <p>For example, if `b` and `m` have width 2, without the interleaved keyword, the
+   * returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`. With the
+   * interleaved marking, the returned range represents the sequence `[b0.m0, b1.m0, b0.m1,
+   * b1.m1]`. Both ranges will have width 4.
    *
    * @param references The variable references on one side of the connection.
    * @param connection The connection.

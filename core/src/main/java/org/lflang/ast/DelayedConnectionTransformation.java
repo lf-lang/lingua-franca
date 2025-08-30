@@ -38,7 +38,7 @@ import org.lflang.util.Pair;
 
 /**
  * This class implements AST transformations for delayed connections. There are two types of delayed
- * connections: 1) Connections with {@code after}-delays 2) Physical connections.
+ * connections: 1) Connections with `after`-delays 2) Physical connections.
  *
  * @ingroup Utilities
  */
@@ -332,7 +332,7 @@ public class DelayedConnectionTransformation implements AstTransformation {
 
   /**
    * Return the generated delay reactor that corresponds to the given class name if it had been
-   * created already, {@code null} otherwise.
+   * created already, `null` otherwise.
    */
   private Reactor findDelayClass(String className) {
     return IterableExtensions.findFirst(delayClasses, it -> it.getName().equals(className));

@@ -31,7 +31,7 @@ public class CMainFunctionGenerator {
   /**
    * Generate the code that is the entry point of the program.
    *
-   * <p>Ideally, this code would belong to its own {@code main.c} file, but it currently lives in
+   * <p>Ideally, this code would belong to its own `main.c` file, but it currently lives in
    * the same file as all the code generated for reactors.
    */
   public String generateCode() {
@@ -41,7 +41,7 @@ public class CMainFunctionGenerator {
     return code.toString();
   }
 
-  /** Generate the {@code main} function. */
+  /** Generate the `main` function. */
   private String generateMainFunction() {
     var platform = Platform.AUTO;
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
@@ -73,7 +73,7 @@ public class CMainFunctionGenerator {
       }
       case ZEPHYR -> {
         // The Zephyr "runtime" does not terminate when main returns.
-        //  Rather, {@code exit} should be called explicitly.
+        //  Rather, `exit` should be called explicitly.
         return String.join(
             "\n",
             "int main(void) {",
@@ -96,7 +96,7 @@ public class CMainFunctionGenerator {
   }
 
   /**
-   * Generate code that is used to override the command line options to the {@code main} function
+   * Generate code that is used to override the command line options to the `main` function
    */
   private String generateSetDefaultCliOption() {
     // Generate function to set default command-line options.

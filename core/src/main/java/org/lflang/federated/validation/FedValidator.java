@@ -54,8 +54,7 @@ public class FedValidator {
   }
 
   /**
-   * Check if this federate contains all the {@code varRefs}. If not, report an error using {@code
-   * errorReporter}.
+   * Check if this federate contains all the `varRefs`. If not, report an error using `errorReporter`.
    */
   private static void containsAllVarRefs(List<VarRef> varRefs, MessageReporter messageReporter) {
     var referencesFederate = false;

@@ -45,8 +45,8 @@ public final class StringUtil {
   }
 
   /**
-   * Convert a string in Camel case to snake case. E.g. {@code MinimalReactor} will be converted to
-   * {@code minimal_reactor}. The string is assumed to be a single camel case identifier (no
+   * Convert a string in Camel case to snake case. E.g. `MinimalReactor` will be converted to
+   * `minimal_reactor`. The string is assumed to be a single camel case identifier (no
    * whitespace).
    */
   public static String camelToSnakeCase(String str) {
@@ -93,21 +93,21 @@ public final class StringUtil {
    *
    * <p>For examples, this code
    *
-   * <pre>{@code
+   * ```
    * int test = 4;
    * if (test == 42) {
    *     printf("Hello\n");
    * }
-   * }</pre>
+   * ```
    *
    * will be trimmed to this:
    *
-   * <pre>{@code
+   * ```
    * int test = 4;
    * if (test == 42) {
    *     printf("Hello\n");
    * }
-   * }</pre>
+   * ```
    *
    * @param code the code block to be trimmed
    * @param firstLineToConsider The first line not to ignore.

@@ -434,7 +434,7 @@ public class FedASTUtils {
   }
 
   /**
-   * Go upstream from input port {@code port} until we reach one or more output ports that belong to
+   * Go upstream from input port `port` until we reach one or more output ports that belong to
    * the same federate.
    *
    * <p>Along the path, we follow direct connections, as well as reactions, as long as there is no
@@ -769,7 +769,7 @@ public class FedASTUtils {
   }
 
   /**
-   * Return the reaction that initializes the containing network sender reactor on {@code startup}.
+   * Return the reaction that initializes the containing network sender reactor on `startup`.
    */
   private static Reaction getInitializationReaction(FedTargetExtension extension, String body) {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();

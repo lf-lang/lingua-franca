@@ -13,7 +13,7 @@ public class FedReactorEmitter {
 
   public FedReactorEmitter() {}
 
-  /** Return textual representations of all reactor classes belonging to {@code federate}. */
+  /** Return textual representations of all reactor classes belonging to `federate`. */
   String generateReactorDefinitions(FederateInstance federate) {
     return ((Model) federate.instantiation.eContainer().eContainer())
         .getReactors().stream()

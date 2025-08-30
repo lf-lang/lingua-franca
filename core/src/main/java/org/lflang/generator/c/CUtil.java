@@ -291,7 +291,8 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent, but
    * without the channel indexing, even if it is a multiport. This is used when an input port is
    * written to by a reaction in the parent of the port's parent, or when an output port triggers a
-   * reaction in the parent of the port's parent. This is equivalent to calling `* portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)`.
+   * reaction in the parent of the port's parent. This is equivalent to calling
+   * `portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)`.
    *
    * @param port The port.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the

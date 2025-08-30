@@ -107,10 +107,10 @@ public class PortInstance extends TriggerInstance<Port> {
    * <p>Each item in the returned list has the following fields:
    *
    * <ul>
-   *   <li>{@code startRange}: The starting channel index of this port.
-   *   <li>{@code rangeWidth}: The number of channels sent to the destinations.
-   *   <li>{@code destinations}: A list of port ranges for destination ports, each of which has the
-   *       same width as {@code rangeWidth}.
+   *   <li>`startRange`: The starting channel index of this port.
+   *   <li>`rangeWidth`: The number of channels sent to the destinations.
+   *   <li>`destinations`: A list of port ranges for destination ports, each of which has the
+   *       same width as `rangeWidth`.
    * </ul>
    *
    * Each item also has a method, {@link SendRange#getNumberOfDestinationReactors()}, that returns
@@ -239,8 +239,7 @@ public class PortInstance extends TriggerInstance<Port> {
   }
 
   /**
-   * Record that the {@code index}th sub-port of this has a dependent reaction of level {@code
-   * level}.
+   * Record that the `index`th sub-port of this has a dependent reaction of level `level`.
    */
   public void recordIndexForPortChannel(MixedRadixInt index, int level) {
     levelUpperBounds.put(

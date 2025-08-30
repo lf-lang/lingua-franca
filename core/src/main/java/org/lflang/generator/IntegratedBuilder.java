@@ -33,7 +33,7 @@ public class IntegratedBuilder {
   public static final int GENERATED_PERCENT_PROGRESS = 67;
   public static final int COMPILED_PERCENT_PROGRESS = 100;
 
-  /** A {@code ProgressReporter} reports the progress of a build. */
+  /** A `ProgressReporter` reports the progress of a build. */
   public interface ReportProgress {
     void apply(String message, Integer percentage);
   }
@@ -48,7 +48,7 @@ public class IntegratedBuilder {
   /* ------------------------- PUBLIC METHODS -------------------------- */
 
   /**
-   * Generates code from the Lingua Franca file {@code f}.
+   * Generates code from the Lingua Franca file `f`.
    *
    * @param uri The URI of a Lingua Franca file.
    * @param mustComplete Whether the build must be taken to completion.
@@ -79,7 +79,7 @@ public class IntegratedBuilder {
   /* ------------------------- PRIVATE METHODS ------------------------- */
 
   /**
-   * Validates the Lingua Franca file {@code f}.
+   * Validates the Lingua Franca file `f`.
    *
    * @param uri The URI of a Lingua Franca file.
    * @param messageReporter The error reporter.
@@ -94,7 +94,7 @@ public class IntegratedBuilder {
   }
 
   /**
-   * Generates code from the contents of {@code f}.
+   * Generates code from the contents of `f`.
    *
    * @param uri The URI of a Lingua Franca file.
    * @param mustComplete Whether the build must be taken to completion.
@@ -122,10 +122,10 @@ public class IntegratedBuilder {
   }
 
   /**
-   * Returns the resource corresponding to {@code uri}.
+   * Returns the resource corresponding to `uri`.
    *
    * @param uri The URI of a Lingua Franca file.
-   * @return The resource corresponding to {@code uri}.
+   * @return The resource corresponding to `uri`.
    */
   public Resource getResource(URI uri) {
     return resourceSetProvider.get().getResource(uri, true);

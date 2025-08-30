@@ -42,7 +42,7 @@ public class FormattingUtil {
 
   static final long BADNESS_PER_NEWLINE = 1;
 
-  /** Return a String representation of {@code object}, with lines wrapped at {@code lineLength}. */
+  /** Return a String representation of `object`, with lines wrapped at `lineLength`. */
   public static String render(Model object, int lineLength) {
     return render(object, lineLength, inferTarget(object), false);
   }
@@ -53,8 +53,8 @@ public class FormattingUtil {
   }
 
   /**
-   * Return a String representation of {@code object}, with lines wrapped at {@code lineLength},
-   * with the assumption that the target language is {@code target}.
+   * Return a String representation of `object`, with lines wrapped at `lineLength`,
+   * with the assumption that the target language is `target`.
    */
   public static String render(EObject object, int lineLength, Target target, boolean codeMapTags) {
     var toLf = new ToLf();
@@ -90,12 +90,12 @@ public class FormattingUtil {
     throw new IllegalArgumentException("Unable to determine target based on given EObject.");
   }
 
-  /** Return a String representation of {@code object} using a reasonable default line length. */
+  /** Return a String representation of `object` using a reasonable default line length. */
   public static String render(Model object) {
     return render(object, DEFAULT_LINE_LENGTH);
   }
 
-  /** Return the number of characters appearing in columns exceeding {@code lineLength}. */
+  /** Return the number of characters appearing in columns exceeding `lineLength`. */
   private static ToLongFunction<String> countCharactersViolatingLineLength(int lineLength) {
     return s -> s.lines().mapToInt(it -> Math.max(0, it.length() - lineLength)).sum();
   }
@@ -105,7 +105,7 @@ public class FormattingUtil {
   }
 
   /**
-   * Break lines at spaces so that each line is no more than {@code width} columns long, if
+   * Break lines at spaces so that each line is no more than `width` columns long, if
    * possible. Normalize whitespace. Merge consecutive single-line comments.
    */
   static String lineWrapComments(List<String> comments, int width, String singleLineCommentPrefix) {
@@ -214,13 +214,13 @@ public class FormattingUtil {
   }
 
   /**
-   * Merge {@code comment} into the given list of strings without changing the length of the list,
-   * preferably in a place that indicates that {@code comment} is associated with the {@code i}th
+   * Merge `comment` into the given list of strings without changing the length of the list,
+   * preferably in a place that indicates that `comment` is associated with the `i`th
    * string.
    *
-   * @param comment A comment associated with an element of {@code components}.
+   * @param comment A comment associated with an element of `components`.
    * @param components A list of strings that will be rendered in sequence.
-   * @param i The position of the component associated with {@code comment}.
+   * @param i The position of the component associated with `comment`.
    * @param width The ideal number of columns available for comments that appear on their own line.
    * @param keepCommentsOnSameLine Whether to make a best-effort attempt to keep the comment on the
    *     same line as the associated string.

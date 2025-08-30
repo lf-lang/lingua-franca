@@ -324,8 +324,8 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate code that sends the neighbor structure message to the RTI. See {@code
-   * MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code federated/net_common.h}.
+   * Generate code that sends the neighbor structure message to the RTI. See
+   * `MSG_TYPE_NEIGHBOR_STRUCTURE` in `federated/net_common.h`.
    *
    * @param federate The federate that is sending its neighbor structure
    */
@@ -472,7 +472,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is
+   * Surround `code` with blocks to ensure that code only executes if the program is
    * federated.
    */
   public static String surroundWithIfFederated(String code) {
@@ -500,7 +500,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround `code` with blocks to ensure that code only executes if the program is federated
    * and has a centralized coordination.
    */
   public static String surroundWithIfFederatedCentralized(String code) {
@@ -513,7 +513,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround `code` with blocks to ensure that code only executes if the program is federated
    * and has a decentralized coordination.
    */
   public static String surroundWithIfFederatedDecentralized(String code) {

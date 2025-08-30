@@ -303,7 +303,7 @@ class ErrorInserter {
     }
 
     /**
-     * Record that the resulting `ErrorInserter` may replace `phrase` with `* alternativePhrase`.
+     * Record that the resulting `ErrorInserter` may replace `phrase` with `alternativePhrase`.
      *
      * @param phrase A phrase in target language code.
      * @param alternativePhrase A phrase that `phrase` may be replaced with in order to

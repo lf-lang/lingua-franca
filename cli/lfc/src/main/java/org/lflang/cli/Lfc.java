@@ -294,7 +294,8 @@ public class Lfc extends CliBase {
   }
 
   /**
-   * Return a URI that points to the RTI if one has been specified via the CLI arguments, or `* null` otherwise.
+   * Return a URI that points to the RTI if one has been specified via the CLI arguments,
+   * or `null` otherwise.
    */
   private URI getRtiUri() {
     URI uri = null;

@@ -407,7 +407,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     }
   }
 
-  /** Return a URI pointing to an external runtime if there is one, {@code null} otherwise. */
+  /** Return a URI pointing to an external runtime if there is one, `null` otherwise. */
   private URI getExternalRuntimeUri() {
     var sysProps = System.getProperties();
     URI uri = null;

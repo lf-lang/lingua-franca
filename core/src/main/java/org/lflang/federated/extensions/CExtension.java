@@ -77,7 +77,7 @@ public class CExtension implements FedTargetExtension {
     FedSetupProperty.INSTANCE.override(federate.targetConfig, getPreamblePath(federate));
   }
 
-  /** Generate a cmake-include file for {@code federate} if needed. */
+  /** Generate a cmake-include file for `federate` if needed. */
   protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig)
       throws IOException {
     CExtensionUtils.generateCMakeInclude(federate, fileConfig);
@@ -125,7 +125,7 @@ public class CExtension implements FedTargetExtension {
   /**
    * Generate code to deserialize a message received over the network.
    *
-   * @param action The network action that is mapped to the {@code receivingPort}
+   * @param action The network action that is mapped to the `receivingPort`
    * @param receivingPort The receiving port
    * @param connection The connection used to receive the message
    * @param type Type for the port
@@ -353,7 +353,7 @@ public class CExtension implements FedTargetExtension {
    * @param sendRef C code representing a reference to the data to be sent.
    * @param result An accumulator of the generated code.
    * @param sendingFunction The name of the function that sends the serialized data.
-   * @param commonArgs Arguments passed to {@code sendingFunction} regardless of serialization
+   * @param commonArgs Arguments passed to `sendingFunction` regardless of serialization
    *     method.
    */
   protected void serializeAndSend(
@@ -482,7 +482,7 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
-  /** Put the C preamble in a {@code include/_federate.name + _preamble.h} file. */
+  /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
   protected final void writePreambleFile(
       FederateInstance federate,
       FederationFileConfig fileConfig,
@@ -670,7 +670,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code to initialize the {@code federate}.
+   * Generate code to initialize the `federate`.
    *
    * @param rtiConfig Information about the RTI's deployment.
    * @return The generated code
@@ -802,7 +802,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code to handle physical actions in the {@code federate}.
+   * Generate code to handle physical actions in the `federate`.
    *
    * @param messageReporter Used to report errors.
    * @return Generated code.

@@ -209,7 +209,7 @@ public class CPortGenerator {
 
   /**
    * For the specified port, return a declaration for port struct to contain the value of the port.
-   * A multiport output with width 4 and type {@code int[10]}, for example, will result in this:
+   * A multiport output with width 4 and type `int[10]`, for example, will result in this:
    *
    * <pre><code>
    *     int value[10];

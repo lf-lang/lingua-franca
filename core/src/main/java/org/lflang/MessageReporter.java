@@ -9,16 +9,16 @@ import org.lflang.generator.Range;
 
 /**
  * Interface for reporting messages like errors or info. This interface is a staged builder: first
- * call one of the {@code at} methods to specify the position of the message, then use one of the
+ * call one of the `at` methods to specify the position of the message, then use one of the
  * report methods on the returned {@link Stage2} instance.
  *
- * <p>Examples:
+ * Examples:
  *
- * <pre>{@code
+ * ```
  * errorReporter.at(file, line).error("an error")
  * errorReporter.at(node).warning("a warning reported on a node")
  * errorReporter.nowhere().error("Some error that has no specific position")
- * }</pre>
+ * ```
  *
  * @see MessageReporterBase
  * @author Edward A. Lee

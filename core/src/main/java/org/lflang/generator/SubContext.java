@@ -6,8 +6,8 @@ import org.lflang.MessageReporter;
 import org.lflang.target.TargetConfig;
 
 /**
- * A {@code SubContext} is the context of a process within a build process. For example, compilation
- * of generated code may optionally be given a {@code SubContext} because compilation is part of a
+ * A `SubContext` is the context of a process within a build process. For example, compilation
+ * of generated code may optionally be given a `SubContext` because compilation is part of a
  * complete build.
  *
  * @author Peter Donovan
@@ -23,8 +23,8 @@ public class SubContext implements LFGeneratorContext {
   protected MessageReporter messageReporter;
 
   /**
-   * Initializes the context within {@code containingContext} of the process that extends from
-   * {@code startPercentProgress} to {@code endPercentProgress}.
+   * Initializes the context within `containingContext` of the process that extends from
+   * `startPercentProgress` to `endPercentProgress`.
    *
    * @param containingContext The context of the containing build process.
    * @param startPercentProgress The percent progress of the containing build process when this

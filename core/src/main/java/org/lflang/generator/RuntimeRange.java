@@ -273,27 +273,27 @@ public class RuntimeRange<T extends NamedInstance<?>> implements Comparable<Runt
 
   /**
    * Return a set of identifiers for runtime instances of a parent of this {@link RuntimeRange}'s
-   * instance {@code n} levels above this {@link RuntimeRange}'s instance. If {@code n == 1}, for
+   * instance `n` levels above this {@link RuntimeRange}'s instance. If `n == 1`, for
    * example, then this return the identifiers for the parent ReactorInstance.
    *
    * This returns a list of <i>natural identifiers</i>, as defined below, for the instances
    * within the range.
    *
    * The resulting list can be used to count the number of distinct runtime instances of this
-   * RuntimeRange's instance (using {@code n == 0}) or any of its parents that lie within the range
+   * RuntimeRange's instance (using `n == 0`) or any of its parents that lie within the range
    * and to provide an index into an array of runtime instances.
    *
    * Each <i>natural identifier</i> is the integer value of a mixed-radix number defined as
    * follows:
    *
-   * * The low-order digit is the index of the runtime instance of {@code i} within its
-   *       container. If the {@link NamedInstance} is a {@code PortInstance}, this will be the
-   *       multiport channel or {@code 0} if it is not a multiport. If the NamedInstance is a
-   *       ReactorInstance, then it will be the bank index or {@code 0} if the reactor is not a
+   * * The low-order digit is the index of the runtime instance of `i` within its
+   *       container. If the {@link NamedInstance} is a `PortInstance`, this will be the
+   *       multiport channel or `0` if it is not a multiport. If the NamedInstance is a
+   *       ReactorInstance, then it will be the bank index or `0` if the reactor is not a
    *       bank. The radix for this digit will be the multiport width or bank width or 1 if the
    *       NamedInstance is neither a multiport nor a bank.
    * * The next digit will be the bank index of the container of the specified {@link
-   *       NamedInstance} or {@code 0} if it is not a bank.
+   *       NamedInstance} or `0` if it is not a bank.
    * * The remaining digits will be bank indices of containers up to but not including the
    *       top-level reactor (there is no point in including the top-level reactor because it is
    *       never a bank).

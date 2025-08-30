@@ -146,9 +146,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkAction(Action action) {
     checkName(action.getName(), Literals.VARIABLE__NAME);
     if (action.getOrigin() == ActionOrigin.NONE) {
-      error(
-          "Action must have modifier {@code logical} or {@code physical}.",
-          Literals.ACTION__ORIGIN);
+      error("Action must have modifier `logical` or `physical`.", Literals.ACTION__ORIGIN);
     }
     if (action.getPolicy() != null && !SPACING_VIOLATION_POLICIES.contains(action.getPolicy())) {
       error(
@@ -1339,7 +1337,7 @@ public class LFValidator extends BaseLFValidator {
                 Literals.WIDTH_SPEC__TERMS);
           }
         } else if (term.getPort() != null) {
-          // Widths given with {@code widthof()} are not supported (yet?).
+          // Widths given with `widthof()` are not supported (yet?).
           // This feature is currently only used for after delays.
           error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
         } else if (term.getCode() != null) {

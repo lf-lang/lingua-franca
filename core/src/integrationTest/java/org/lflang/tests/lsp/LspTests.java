@@ -135,7 +135,7 @@ class LspTests extends LfInjectedTestBase {
 
   /**
    * Verify that the diagnostics that result from fully validating tests associated with
-   * `* target` satisfy `requirementGetter`.
+   * `target` satisfy `requirementGetter`.
    *
    * @param target Any target language.
    * @param requirementGetter A map from altered tests to the requirements that diagnostics

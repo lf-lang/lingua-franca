@@ -384,7 +384,7 @@ public class FedGenerator {
     }
   }
 
-  /** Return whether federated execution is supported for {@code resource}. */
+  /** Return whether federated execution is supported for `resource`. */
   private boolean federatedExecutionIsSupported(Resource resource, LFGeneratorContext context) {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
@@ -695,7 +695,7 @@ public class FedGenerator {
   }
 
   /**
-   * Get federate instances for a given {@code instantiation}. A bank will result in the creation of
+   * Get federate instances for a given `instantiation`. A bank will result in the creation of
    * multiple federate instances (one for each member of the bank).
    *
    * @param instantiation An instantiation that corresponds to a federate.
@@ -799,7 +799,7 @@ public class FedGenerator {
   }
 
   /**
-   * Add an {@code indexer} to the model and return it. An indexer is a reactor that is an adapter
+   * Add an `indexer` to the model and return it. An indexer is a reactor that is an adapter
    * from many ports to just one port
    */
   private Reactor indexer(ReactorInstance reactorInstance, PortInstance input, Resource resource) {
@@ -831,7 +831,7 @@ public class FedGenerator {
     return indexer;
   }
 
-  /** Return a {@code VarRef} with the given name. */
+  /** Return a `VarRef` with the given name. */
   private static VarRef varRefOf(Instantiation container, String name) {
     var varRef = LfFactory.eINSTANCE.createVarRef();
     var variable = LfFactory.eINSTANCE.createVariable();

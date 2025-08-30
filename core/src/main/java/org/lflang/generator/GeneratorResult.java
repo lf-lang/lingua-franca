@@ -19,7 +19,7 @@ public class GeneratorResult {
       GENERATED_NO_EXECUTABLE =
           (context, codeMaps) -> new GeneratorResult(Status.GENERATED, context, codeMaps);
 
-  /** A {@code Status} is a level of completion of a code generation task. */
+  /** A `Status` is a level of completion of a code generation task. */
   public enum Status {
     NOTHING(result -> ""), // Code generation was not performed.
     CANCELLED(result -> "Code generation was cancelled."),
@@ -32,7 +32,7 @@ public class GeneratorResult {
     COMPILED(GetUserMessage.COMPLETED);
 
     /**
-     * A {@code GetUserMessage} is a function that translates a {@code GeneratorResult} into a
+     * A `GetUserMessage` is a function that translates a `GeneratorResult` into a
      * human-readable report for the end user.
      */
     public interface GetUserMessage {
@@ -46,10 +46,10 @@ public class GeneratorResult {
       String apply(GeneratorResult result);
     }
 
-    /** The {@code GetUserMessage} associated with this {@code Status}. */
+    /** The `GetUserMessage` associated with this `Status`. */
     private final GetUserMessage gum;
 
-    /** Initializes a {@code Status} whose {@code GetUserMessage} is {@code gum}. */
+    /** Initializes a `Status` whose `GetUserMessage` is `gum`. */
     Status(GetUserMessage gum) {
       this.gum = gum;
     }
@@ -75,20 +75,20 @@ public class GeneratorResult {
   }
 
   /**
-   * Return the result of an incomplete generation task that terminated with status {@code status}.
+   * Return the result of an incomplete generation task that terminated with status `status`.
    *
-   * @return the result of an incomplete generation task that terminated with status {@code status}
+   * @return the result of an incomplete generation task that terminated with status `status`
    */
   private static GeneratorResult incompleteGeneratorResult(Status status) {
     return new GeneratorResult(status, null, Collections.emptyMap());
   }
 
-  /** Return the status of {@code this}. */
+  /** Return the status of `this`. */
   public Status getStatus() {
     return status;
   }
 
-  /** Return a message that can be relayed to the end user about this {@code GeneratorResult}. */
+  /** Return a message that can be relayed to the end user about this `GeneratorResult`. */
   public String getUserMessage() {
     return status.gum.apply(this);
   }

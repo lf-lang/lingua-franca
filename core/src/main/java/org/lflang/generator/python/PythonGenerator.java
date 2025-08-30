@@ -422,7 +422,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
       CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
     Reactor reactor = ASTUtils.toDefinition(tpr.reactor());
 
-    // Reactions marked with a {@code @_c_body} attribute are generated in C
+    // Reactions marked with a `@_c_body` attribute are generated in C
     if (AttributeUtils.hasCBody(reaction)) {
       super.generateReaction(src, reaction, tpr, reactionIndex);
       return;
@@ -718,7 +718,7 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
   /**
    * Generate the name of the python module.
    *
-   * <p>Ideally, this function would belong in a class like {@code PyFileConfig} that specifies all
+   * <p>Ideally, this function would belong in a class like `PyFileConfig` that specifies all
    * the paths to the generated code.
    *
    * @param lfModuleName The name of the LF module.
@@ -729,9 +729,9 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
   }
 
   /**
-   * Generate the python file name given an {@code lfModuleName}.
+   * Generate the python file name given an `lfModuleName`.
    *
-   * <p>Ideally, this function would belong in a class like {@code PyFileConfig} that specifies all
+   * <p>Ideally, this function would belong in a class like `PyFileConfig` that specifies all
    * the paths to the generated code.
    *
    * @param lfModuleName The name of the LF module

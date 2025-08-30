@@ -31,7 +31,7 @@ public class CReactorHeaderFileGenerator {
     void generate(CodeBuilder b, TypeParameterizedReactor r, boolean userFacing);
   }
 
-  /** Return the path to the user-visible header file that would be generated for {@code r}. */
+  /** Return the path to the user-visible header file that would be generated for `r`. */
   public static Path outputPath(TypeParameterizedReactor tpr) {
     return Path.of(
             FileUtil.toPath(tpr.reactor().eResource().getURI())
@@ -103,8 +103,8 @@ public class CReactorHeaderFileGenerator {
   }
 
   /**
-   * Return a String with the user facing type of TypeParameterized Reactor. `*` is replaced with
-   * `Ptr`.
+   * Return a String with the user facing type of TypeParameterized Reactor.
+   * `*` is replaced with `Ptr`.
    */
   private static String userFacingSelfType(TypeParameterizedReactor tpr) {
     return tpr.getName().toLowerCase().replace("*", "Ptr") + "_self_t";
@@ -143,7 +143,7 @@ public class CReactorHeaderFileGenerator {
     return "(" + userFacingSelfType(tpr) + "*) self";
   }
 
-  /** Generate initialization code that is needed if {@code r} is not inlined. */
+  /** Generate initialization code that is needed if `r` is not inlined. */
   public static String nonInlineInitialization(Reaction r, TypeParameterizedReactor reactor) {
     var mainDef = LfFactory.eINSTANCE.createInstantiation();
     mainDef.setName(reactor.getName());
@@ -185,7 +185,7 @@ public class CReactorHeaderFileGenerator {
         .collect(Collectors.joining("\n"));
   }
 
-  /** Return a string representation of the arguments passed to the function for {@code r}. */
+  /** Return a string representation of the arguments passed to the function for `r`. */
   public static String reactionArguments(Reaction r, TypeParameterizedReactor reactor) {
     return Stream.concat(
             Stream.of(getApiSelfStruct(reactor)),
@@ -194,7 +194,7 @@ public class CReactorHeaderFileGenerator {
         .collect(Collectors.joining(", "));
   }
 
-  /** Return a stream of all ports referenced by the signature of {@code r}. */
+  /** Return a stream of all ports referenced by the signature of `r`. */
   private static Stream<PortVariable> portVariableStream(
       Reaction r, TypeParameterizedReactor reactorOfReaction) {
     return varRefStream(r)
@@ -216,8 +216,8 @@ public class CReactorHeaderFileGenerator {
    *
    * @param tv The variable of the variable reference.
    * @param r The reactor in which the port is being used.
-   * @param container The {@code Instantiation} referenced in the obtaining of {@code tv}, if
-   *     applicable; {@code null} otherwise.
+   * @param container The `Instantiation` referenced in the obtaining of `tv`, if
+   *     applicable; `null` otherwise.
    */
   private record PortVariable(
       TypedVariable tv, TypeParameterizedReactor r, Instantiation container) {

@@ -38,8 +38,8 @@ public class GeneratorUtils {
   }
 
   /**
-   * Look for physical actions in 'resource'. If appropriate, set keepalive to true in {@code
-   * targetConfig}. This is a helper function for setTargetConfig. It should not be used elsewhere.
+   * Look for physical actions in 'resource'. If appropriate, set keepalive to true in
+   * `targetConfig`. This is a helper function for setTargetConfig. It should not be used elsewhere.
    */
   public static void accommodatePhysicalActionsIfPresent(
       Set<Resource> resources,
@@ -69,12 +69,12 @@ public class GeneratorUtils {
   }
 
   /**
-   * Return all instances of {@code eObjectType} in {@code resource}.
+   * Return all instances of `eObjectType` in `resource`.
    *
    * @param resource A resource to be searched.
    * @param nodeType The type of the desired parse tree nodes.
    * @param <T> The type of the desired parse tree nodes.
-   * @return all instances of {@code eObjectType} in {@code resource}
+   * @return all instances of `eObjectType` in `resource`
    */
   public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {
     return () -> IteratorExtensions.filter(resource.getAllContents(), nodeType);

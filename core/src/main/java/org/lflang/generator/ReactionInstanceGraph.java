@@ -250,7 +250,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Get those reactions contained directly or transitively by the children of {@code main} whose
+   * Get those reactions contained directly or transitively by the children of `main` whose
    * TPO levels are specified.
    *
    * @return A map from TPO levels to reactions that are constrained to have the TPO levels.
@@ -268,7 +268,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     return constrainedReactions;
   }
 
-  /** Add all reactions contained directly or transitively by {@code r}. */
+  /** Add all reactions contained directly or transitively by `r`. */
   private void getAllContainedReactions(List<Runtime> runtimeReactions, ReactorInstance r) {
     for (var reaction : r.reactions) {
       runtimeReactions.addAll(reaction.getRuntimeInstances());
@@ -293,8 +293,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   public record MriPortPair(MixedRadixInt index, PortInstance port) {}
 
   /**
-   * For each port in {@code reactor}, add that port to its downstream reactions, together with the
-   * {@code MixedRadixInt} that is the index of the downstream reaction relative to the port and the
+   * For each port in `reactor`, add that port to its downstream reactions, together with the
+   * `MixedRadixInt` that is the index of the downstream reaction relative to the port and the
    * intervening ports.
    */
   private void registerPortInstances(ReactorInstance reactor) {
@@ -392,7 +392,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Update the level of the source ports of {@code current} to be at most that of {@code current}.
+   * Update the level of the source ports of `current` to be at most that of `current`.
    */
   private void assignPortLevel(Runtime current) {
     for (var sp : current.sourcePorts) {
@@ -402,7 +402,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
 
   /**
    * This function assigns inferred deadlines to all the reactions in the graph. It is modeled after
-   * {@code assignLevels} but it starts at the leaf nodes, but it does not destroy the graph.
+   * `assignLevels` but it starts at the leaf nodes, but it does not destroy the graph.
    */
   private void assignInferredDeadlines() {
     List<Runtime> start = new ArrayList<>(leafNodes());
