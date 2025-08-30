@@ -5,7 +5,7 @@ import org.eclipse.xtext.testing.extensions.InjectionExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Base class for test classes that can use {@link com.google.inject.Inject} annotations to provide
+ * Base class for test classes that can use `com.google.inject.Inject` annotations to provide
  * dependencies.
  *
  * @author Clément Fournier

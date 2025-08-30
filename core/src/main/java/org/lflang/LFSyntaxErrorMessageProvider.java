@@ -33,7 +33,8 @@ public class LFSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
    */
   public Set<String> keywords;
 
-  /** Customize intercepted error messages. @Override */
+  /** Customize intercepted error messages. */
+  @Override
   public SyntaxErrorMessage getSyntaxErrorMessage(IParserErrorContext context) {
 
     if (context != null) {
