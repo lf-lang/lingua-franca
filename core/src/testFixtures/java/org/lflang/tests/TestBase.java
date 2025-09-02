@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -33,7 +34,6 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
-import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult;
@@ -285,8 +285,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    */
   public static void runSingleTestAndPrintResults(
       LFTest test, Class<? extends TestBase> testClass, TestLevel level) {
-    Injector injector =
-        new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+    Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
     TestBase runner;
     try {
       @SuppressWarnings("unchecked")
@@ -408,7 +407,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     }
   }
 
-  /** Return a URI pointing to an external runtime if there is one, {@code null} otherwise. */
+  /** Return a URI pointing to an external runtime if there is one, `null` otherwise. */
   private URI getExternalRuntimeUri() {
     var sysProps = System.getProperties();
     URI uri = null;
@@ -597,6 +596,17 @@ public abstract class TestBase extends LfInjectedTestBase {
 
     System.out.println(THICK_LINE);
 
+    class Timing {
+      final String name;
+      final long nanos;
+
+      Timing(String name, long nanos) {
+        this.name = name;
+        this.nanos = nanos;
+      }
+    }
+    var timings = new ArrayList<Timing>();
+
     for (var test : tests) {
       System.out.println(
           "Running: " + test.toString() + " (" + (int) (done / (float) tests.size() * 100) + "%)");
@@ -606,7 +616,10 @@ public abstract class TestBase extends LfInjectedTestBase {
         validate(test);
         generateCode(test);
         if (level == TestLevel.EXECUTION) {
+          long tStart = System.nanoTime();
           execute(test);
+          long elapsed = System.nanoTime() - tStart;
+          timings.add(new Timing(test.toString(), elapsed));
         }
         test.markPassed();
       } catch (TestError e) {
@@ -615,9 +628,19 @@ public abstract class TestBase extends LfInjectedTestBase {
         test.handleTestError(
             new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
       } finally {
-        test.restoreOutputs();
+        LFTest.restoreOutputs();
       }
       done++;
+    }
+
+    if (!timings.isEmpty()) {
+      System.out.print(THIN_LINE);
+      System.out.println("Longest-running tests:");
+      timings.stream()
+          .sorted((a, b) -> Long.compare(b.nanos, a.nanos))
+          .limit(10)
+          .forEach(t -> System.out.printf(" - %s: %.2f seconds%n", t.name, t.nanos / 1.0e9));
+      System.out.print(THIN_LINE);
     }
 
     System.out.print(System.lineSeparator());

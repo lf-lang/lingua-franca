@@ -1,29 +1,6 @@
-/*
-Copyright (c) 2020, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-
 package org.lflang.ast;
+
+import static org.lflang.AttributeUtils.isEnclave;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -53,8 +30,6 @@ import org.eclipse.xtext.nodemodel.ICompositeNode;
 import org.eclipse.xtext.nodemodel.INode;
 import org.eclipse.xtext.nodemodel.impl.HiddenLeafNode;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.util.Pair;
-import org.eclipse.xtext.util.Tuples;
 import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
@@ -65,10 +40,12 @@ import org.lflang.TimeValue;
 import org.lflang.generator.CodeMap;
 import org.lflang.generator.InvalidSourceException;
 import org.lflang.generator.NamedInstance;
+import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.Code;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Element;
 import org.lflang.lf.Expression;
@@ -103,6 +80,7 @@ import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.util.Pair;
 import org.lflang.util.StringUtil;
 
 /**
@@ -111,6 +89,7 @@ import org.lflang.util.StringUtil;
  * @author Marten Lohstroh
  * @author Edward A. Lee
  * @author Christian Menard
+ * @ingroup Utilities
  */
 public class ASTUtils {
 
@@ -154,7 +133,7 @@ public class ASTUtils {
    * Get the main reactor defined in the given resource, if there is one.
    *
    * @param resource the resource to extract reactors from
-   * @return An {@code Optional} reactor that may be present or absent.
+   * @return An `Optional` reactor that may be present or absent.
    */
   public static Optional<Reactor> getMainReactor(Resource resource) {
     return StreamSupport.stream(
@@ -169,7 +148,7 @@ public class ASTUtils {
    * Get the federated reactor defined in the given resource, if there is one.
    *
    * @param resource the resource to extract reactors from
-   * @return An {@code Optional} reactor that may be present or absent.
+   * @return An `Optional` reactor that may be present or absent.
    */
   public static Optional<Reactor> getFederatedReactor(Resource resource) {
     return StreamSupport.stream(
@@ -199,7 +178,7 @@ public class ASTUtils {
         for (var rea : allReactions(reactor)) {
           for (var eff : rea.getEffects()) {
             if (eff.getVariable() instanceof Port) {
-              allWriters.put(Tuples.pair(eff.getContainer(), eff.getVariable()), rea);
+              allWriters.put(new Pair<>(eff.getContainer(), eff.getVariable()), rea);
             }
           }
         }
@@ -207,7 +186,7 @@ public class ASTUtils {
             ASTUtils.<Connection>collectElements(
                 reactor, featurePackage.getReactor_Connections(), false, true)) {
           for (var port : con.getRightPorts()) {
-            allWriters.put(Tuples.pair(port.getContainer(), port.getVariable()), con);
+            allWriters.put(new Pair<>(port.getContainer(), port.getVariable()), con);
           }
         }
 
@@ -393,7 +372,7 @@ public class ASTUtils {
     return ASTUtils.collectElements(definition, featurePackage.getReactor_Inputs());
   }
 
-  /** A list of all ports of {@code definition}, in an unspecified order. */
+  /** A list of all ports of `definition`, in an unspecified order. */
   public static List<Port> allPorts(Reactor definition) {
     return Stream.concat(
             ASTUtils.allInputs(definition).stream(), ASTUtils.allOutputs(definition).stream())
@@ -627,14 +606,12 @@ public class ASTUtils {
         return main; // Avoid NPE.
       }
       // Inform the run-time of the breadth/parallelism of the reaction graph
-      var breadth = reactionInstanceGraph.getBreadth();
+      var breadth = reactionInstanceGraph.getBreadth(main);
       if (breadth == 0) {
-        messageReporter.nowhere().warning("The program has no reactions");
+        messageReporter.nowhere().warning("The main program has no reactions");
       } else {
         CompileDefinitionsProperty.INSTANCE.update(
-            targetConfig,
-            Map.of(
-                "LF_REACTION_GRAPH_BREADTH", String.valueOf(reactionInstanceGraph.getBreadth())));
+            targetConfig, Map.of("LF_REACTION_GRAPH_BREADTH", String.valueOf(breadth)));
       }
       return main;
     }
@@ -700,8 +677,8 @@ public class ASTUtils {
   //// Utility functions for translating AST nodes into text
 
   /**
-   * Translate the given code into its textual representation with {@code CodeMap.Correspondence}
-   * tags inserted, or return the empty string if {@code node} is {@code null}. This method should
+   * Translate the given code into its textual representation with `CodeMap.Correspondence`
+   * tags inserted, or return the empty string if `node` is `null`. This method should
    * be used to generate code.
    *
    * @param node AST node to render as string.
@@ -713,8 +690,8 @@ public class ASTUtils {
   }
 
   /**
-   * Translate the given code into its textual representation without {@code CodeMap.Correspondence}
-   * tags, or return the empty string if {@code node} is {@code null}. This method should be used
+   * Translate the given code into its textual representation without `CodeMap.Correspondence`
+   * tags, or return the empty string if `node` is `null`. This method should be used
    * for analyzing AST nodes in cases where they are easiest to analyze as strings.
    *
    * @param node AST node to render as string.
@@ -844,7 +821,7 @@ public class ASTUtils {
   }
 
   /**
-   * Given a single string, convert it into its AST representation. {@code addQuotes} controls if
+   * Given a single string, convert it into its AST representation. `addQuotes` controls if
    * the generated representation should be accompanied by double quotes ("") or not.
    */
   private static Element toElement(String str, boolean addQuotes) {
@@ -932,7 +909,7 @@ public class ASTUtils {
    * Report whether the given literal is zero or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code 0}, false otherwise.
+   * @return True if the given literal denotes the constant `0`, false otherwise.
    */
   public static boolean isZero(String literal) {
     try {
@@ -949,7 +926,7 @@ public class ASTUtils {
    * Report whether the given literal is forever or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code forever}, false otherwise.
+   * @return True if the given literal denotes the constant `forever`, false otherwise.
    */
   public static boolean isForever(String literal) {
     return literal != null && literal.equals("forever");
@@ -959,7 +936,7 @@ public class ASTUtils {
    * Report whether the given literal is never or not.
    *
    * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant {@code never}, false otherwise.
+   * @return True if the given literal denotes the constant `never`, false otherwise.
    */
   public static boolean isNever(String literal) {
     return literal != null && literal.equals("never");
@@ -969,7 +946,7 @@ public class ASTUtils {
    * Report whether the given expression is zero or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code 0}, false otherwise.
+   * @return True if the given value denotes the constant `0`, false otherwise.
    */
   public static boolean isZero(Expression expr) {
     if (expr instanceof Literal) {
@@ -982,7 +959,7 @@ public class ASTUtils {
    * Report whether the given expression is forever or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code forever}, false otherwise.
+   * @return True if the given value denotes the constant `forever`, false otherwise.
    */
   public static boolean isForever(Expression expr) {
     if (expr instanceof Literal) {
@@ -995,7 +972,7 @@ public class ASTUtils {
    * Report whether the given expression is never or not.
    *
    * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant {@code never}, false otherwise.
+   * @return True if the given value denotes the constant `never`, false otherwise.
    */
   public static boolean isNever(Expression expr) {
     if (expr instanceof Literal) {
@@ -1395,38 +1372,52 @@ public class ASTUtils {
   }
 
   /**
-   * Return the delay (in nanoseconds) denoted by {@code delay}, or {@code null} if the delay cannot
-   * be determined.
+   * @brief Return the delay denoted by `delay` or `null` if the delay cannot be
+   *     determined.
+   * @param delay The delay to get the time value from.
+   * @return The delay time value or null if the delay cannot be determined.
+   */
+  public static TimeValue getDelayAsTimeValue(Expression delay) {
+    TimeValue ret = null;
+    if (delay != null) {
+      if (delay instanceof ParameterReference) {
+        // The parameter has to be parameter of the main reactor.
+        // And that value has to be a Time.
+        ret = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
+      } else {
+        ret = ASTUtils.getLiteralTimeValue(delay);
+      }
+    }
+    return ret;
+  }
+
+  /**
+   * @brief Return the delay (in nanoseconds) denoted by `delay`, or `null` if the delay
+   *     cannot be determined.
+   * @param delay The delay to get the time value from.
+   * @return The delay time value or null if the delay cannot be determined.
    */
   public static Long getDelay(Expression delay) {
     Long ret = null;
     if (delay != null) {
-      TimeValue tv;
-      if (delay instanceof ParameterReference) {
-        // The parameter has to be parameter of the main reactor.
-        // And that value has to be a Time.
-        tv = ASTUtils.getDefaultAsTimeValue(((ParameterReference) delay).getParameter());
-      } else {
-        tv = ASTUtils.getLiteralTimeValue(delay);
-      }
+      TimeValue tv = getDelayAsTimeValue(delay);
       ret = tv == null ? null : tv.toNanoSeconds();
     }
     return ret;
   }
 
   /**
-   * Given the width specification of port or instantiation and an (optional) list of nested
-   * instantiations, return the width if it can be determined and -1 if not. It will not be able to
-   * be determined if either the width is variable (in which case you should use {@link
-   * #inferPortWidth(VarRef, Connection, List)} ) or the list of instantiations is incomplete or
-   * missing. If there are parameter references in the width, they are evaluated to the extent
-   * possible given the instantiations list.
-   *
-   * <p>The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec belongs
-   * to an instantiation (for a bank of reactors), then the first element on this list should be the
-   * instantiation that contains this instantiation. If the spec belongs to a port, then the first
-   * element on the list should be the instantiation of the reactor that contains the port.
-   *
+   * @brief Given the width specification of port or instantiation and an (optional) list of nested
+   *     instantiations, return the width if it can be determined and -1 if not.
+   *     <p>This will not be able to be determined if either the width is variable (in which case
+   *     you should use {@link #inferPortWidth(VarRef, Connection, List)} ) or the list of
+   *     instantiations is incomplete or missing. If there are parameter references in the width,
+   *     they are evaluated to the extent possible given the instantiations list.
+   *     <p>The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec
+   *     belongs to an instantiation (for a bank of reactors), then the first element on this list
+   *     should be the instantiation that contains this instantiation. If the spec belongs to a
+   *     port, then the first element on the list should be the instantiation of the reactor that
+   *     contains the port.
    * @param spec The width specification or null (to return 1).
    * @param instantiations The (optional) list of instantiations.
    * @return The width, or -1 if the width could not be determined.
@@ -1681,19 +1672,19 @@ public class ASTUtils {
     return ret.stream();
   }
 
-  /** Return whether {@code node} is a comment. */
+  /** Return whether `node` is a comment. */
   public static boolean isComment(INode node) {
     return isMultilineComment(node) || isSingleLineComment(node);
   }
 
-  /** Return whether {@code node} is a multiline comment. */
+  /** Return whether `node` is a multiline comment. */
   public static boolean isMultilineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
         && hlNode.getGrammarElement() instanceof TerminalRule tRule
         && tRule.getName().equals("ML_COMMENT");
   }
 
-  /** Return whether {@code node} is a multiline comment. */
+  /** Return whether `node` is a multiline comment. */
   public static boolean isSingleLineComment(INode node) {
     return node instanceof HiddenLeafNode hlNode
         && hlNode.getGrammarElement() instanceof TerminalRule tRule
@@ -1707,11 +1698,11 @@ public class ASTUtils {
   }
 
   /**
-   * Return {@code true} if the given instance is top-level, i.e., its parent is {@code null}.
+   * Return `true` if the given instance is top-level, i.e., its parent is `null`.
    *
    * @param instance The instance to check.
    */
-  public static boolean isTopLevel(NamedInstance instance) {
+  public static boolean isTopLevel(NamedInstance<?> instance) {
     return instance.getParent() == null;
   }
 
@@ -1898,9 +1889,129 @@ public class ASTUtils {
     return -1;
   }
 
+  /**
+   * @brief Add an attribute to the given reaction.
+   * @param reaction The reaction to add the attribute to.
+   * @param name The name of the attribute to add.
+   */
   public static void addReactionAttribute(Reaction reaction, String name) {
     var fedAttr = factory.createAttribute();
     fedAttr.setAttrName(name);
     reaction.getAttributes().add(fedAttr);
+  }
+
+  /**
+   * @brief Return the set of enclave instantiations in the given reactor definition.
+   * @param top The reactor definition to search in.
+   * @return The set of enclavereactor instantiations within top.
+   */
+  public static Set<Instantiation> getEnclaves(Reactor top) {
+    Set<Instantiation> enclaves = new HashSet<>();
+    getEnclaves(enclaves, top);
+    return enclaves;
+  }
+
+  private static void getEnclaves(Set<Instantiation> enclaves, Reactor reactor) {
+    for (Instantiation child : ASTUtils.allInstantiations(reactor)) {
+      if (isEnclave(child)) {
+        enclaves.add(child);
+      }
+      getEnclaves(enclaves, ASTUtils.toDefinition(child.getReactorClass()));
+    }
+  }
+
+  /**
+   * @brief Reroute the given connection to go through the given instantiation.
+   *     <p>For each given pair of a connection and a newly created instantiation, create two
+   *     connections to reroute specified connection to instead go through the specified
+   *     instantiation. This is used when code-generating after-delay reactors and enclave
+   *     connections. This assumes that the specified instantiation has at least one input port and
+   *     at least one output port and uses the first of such ports. The old connection is removed.
+   *     <p>If a connection is iterated, then the downstream new connection is iterated as well.
+   * @param conns The list of pairs to reroute.
+   */
+  public static void rerouteViaInstance(List<Pair<Connection, Instantiation>> conns) {
+
+    List<Pair<EObject, Connection>> newConnections = new ArrayList<>();
+    List<Pair<EObject, Connection>> oldConnections = new ArrayList<>();
+
+    for (var pair : conns) {
+      Connection connection = pair.first();
+      EObject parent = connection.eContainer();
+      Instantiation inst = pair.second();
+      Connection upstream = factory.createConnection();
+      Connection downstream = factory.createConnection();
+      VarRef input = factory.createVarRef();
+      VarRef output = factory.createVarRef();
+
+      Reactor instClass = ASTUtils.toDefinition(inst.getReactorClass());
+
+      // Establish references to the involved ports.
+      input.setContainer(inst);
+      input.setVariable(instClass.getInputs().get(0));
+      output.setContainer(inst);
+      output.setVariable(instClass.getOutputs().get(0));
+      upstream.getLeftPorts().addAll(connection.getLeftPorts());
+      upstream.getRightPorts().add(input);
+      downstream.getLeftPorts().add(output);
+      downstream.getRightPorts().addAll(connection.getRightPorts());
+      downstream.setIterated(connection.isIterated());
+      newConnections.add(new Pair<>(parent, upstream));
+      newConnections.add(new Pair<>(parent, downstream));
+      oldConnections.add(new Pair<>(parent, connection));
+    }
+
+    // Insert the instances which we rerouted through.
+    conns.forEach(
+        (pair) -> {
+          Instantiation instantiation = pair.second();
+          EObject container = pair.first().eContainer();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getInstantiations().add(instantiation);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getInstantiations().add(instantiation);
+          }
+        });
+
+    // Remove old connections; insert new ones.
+    oldConnections.forEach(
+        (pair) -> {
+          EObject container = pair.first();
+          Connection connection = pair.second();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getConnections().remove(connection);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getConnections().remove(connection);
+          }
+        });
+    newConnections.forEach(
+        pair -> {
+          EObject container = pair.first();
+          Connection connection = pair.second();
+          if (container instanceof Reactor) {
+            ((Reactor) container).getConnections().add(connection);
+          } else if (container instanceof Mode) {
+            ((Mode) container).getConnections().add(connection);
+          }
+        });
+  }
+
+  /**
+   * @brief Override the parameter initializer with a code expression.
+   * @param param The parameter to override.
+   * @param expr The code expression to use as the initializer.
+   */
+  public static void overrideParameter(ParameterInstance param, CodeExpr expr) {
+    Assignment existing = param.getOverride();
+    Initializer init = factory.createInitializer();
+    init.setExpr(expr);
+    if (existing != null) {
+      existing.setRhs(init);
+    } else {
+      Assignment a = factory.createAssignment();
+      a.setLhs(param.getDefinition());
+      a.setRhs(init);
+      param.getParent().getDefinition().getParameters().add(a);
+    }
   }
 }

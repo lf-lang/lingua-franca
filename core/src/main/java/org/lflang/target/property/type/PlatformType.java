@@ -47,7 +47,7 @@ public class PlatformType extends OptionsType<Platform> {
       return Platform.AUTO;
     }
 
-    /** Return {@code true} if the given platform supports federated. */
+    /** Return `true` if the given platform supports federated. */
     public static boolean supportsFederated(Platform platform) {
       return switch (platform) {
         case AUTO, LINUX, MAC -> true;

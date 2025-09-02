@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2019-2022, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator;
 
 import static org.lflang.AttributeUtils.isEnclave;
@@ -40,6 +16,7 @@ import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TriggerInstance.BuiltinTriggerVariable;
+import org.lflang.generator.c.CEnclaveInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
 import org.lflang.lf.Assignment;
@@ -81,6 +58,7 @@ import org.lflang.lf.WidthSpec;
  *
  * @author Marten Lohstroh
  * @author Edward A. Lee
+ * @ingroup Instances
  */
 public class ReactorInstance extends NamedInstance<Instantiation> {
 
@@ -169,20 +147,25 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
   /** The reactor declaration in the AST. This is either an import or Reactor declaration. */
   public final ReactorDecl reactorDeclaration;
 
+  /** The nearest containing reactor instance that is an enclave. */
+  public final ReactorInstance containingEnclaveReactor;
+
+  /**
+   * @brief The enclave instance corresponding to the containing reactor that is an enclave.
+   */
+  public CEnclaveInstance containingEnclave;
+
   /** The reactor after imports are resolve. */
   public final Reactor reactorDefinition;
 
   /** Indicator that this reactor has itself as a parent, an error condition. */
   public final boolean recursive;
 
-  /** An enclave object if this ReactorInstance is an enclave. null if not. */
-  public EnclaveInfo enclaveInfo = null;
-
   /** FIXME: What is this? */
   public TypeParameterizedReactor tpr;
 
   /**
-   * The Total Port Order level with which {@code this} was annotated, or {@code null} if there is
+   * The Total Port Order level with which `this` was annotated, or `null` if there is
    * no TPO annotation. TPO is total port order. See
    * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
    */
@@ -324,7 +307,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
 
   /**
    * @see NamedInstance#uniqueID()
-   *     <p>Append {@code _main} to the name of the main reactor to allow instantiations within that
+   *     <p>Append `_main` to the name of the main reactor to allow instantiations within that
    *     reactor to have the same name.
    */
   @Override
@@ -823,13 +806,12 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
             ? new TypeParameterizedReactor(definition, reactors)
             : new TypeParameterizedReactor(definition, parent.tpr);
 
-    // If this instance is an enclave (or the main reactor). Create an
-    // enclaveInfo object to track information about the enclave needed for
-    // later code-generation
-    if (isEnclave(definition) || this.isMainOrFederated()) {
-      enclaveInfo = new EnclaveInfo(this);
+    // Set the enclave field to point to the top-level instance of the current enclave
+    if (parent == null || isEnclave(definition)) {
+      containingEnclaveReactor = this;
+    } else {
+      containingEnclaveReactor = parent.containingEnclaveReactor;
     }
-
     // check for recursive instantiation
     var currentParent = parent;
     var foundSelfAsParent = false;
@@ -1087,14 +1069,14 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * (a port representing ports of the bank members) so the returned list includes ranges of banks
    * and channels.
    *
-   * <p>If a given port reference has the form {@code interleaved(b.m)}, where {@code b} is a bank
-   * and {@code m} is a multiport, then the corresponding range in the returned list is marked
+   * <p>If a given port reference has the form `interleaved(b.m)`, where `b` is a bank
+   * and `m` is a multiport, then the corresponding range in the returned list is marked
    * interleaved.
    *
-   * <p>For example, if {@code b} and {@code m} have width 2, without the interleaved keyword, the
-   * returned range represents the sequence {@code [b0.m0, b0.m1, b1.m0, b1.m1]}. With the
-   * interleaved marking, the returned range represents the sequence {@code [b0.m0, b1.m0, b0.m1,
-   * b1.m1]}. Both ranges will have width 4.
+   * <p>For example, if `b` and `m` have width 2, without the interleaved keyword, the
+   * returned range represents the sequence `[b0.m0, b0.m1, b1.m0, b1.m1]`. With the
+   * interleaved marking, the returned range represents the sequence `[b0.m0, b1.m0, b0.m1,
+   * b1.m1]`. Both ranges will have width 4.
    *
    * @param references The variable references on one side of the connection.
    * @param connection The connection.

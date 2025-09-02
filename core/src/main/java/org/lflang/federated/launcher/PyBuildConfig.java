@@ -4,6 +4,11 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 
+/**
+ * A build configuration for Python federates.
+ *
+ * @ingroup Federated
+ */
 public class PyBuildConfig extends BuildConfig {
 
   public PyBuildConfig(

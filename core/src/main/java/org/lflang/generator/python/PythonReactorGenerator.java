@@ -10,6 +10,11 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
+/**
+ * Generate Python code for reactors.
+ *
+ * @ingroup Generator
+ */
 public class PythonReactorGenerator {
   /**
    * Wrapper function for the more elaborate generatePythonReactorClass that keeps track of visited

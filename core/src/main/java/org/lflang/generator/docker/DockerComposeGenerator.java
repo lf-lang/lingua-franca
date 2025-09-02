@@ -19,6 +19,7 @@ import org.lflang.util.LFCommand;
  *
  * @author Marten Lohstroh
  * @author Steven Wong
+ * @ingroup Docker
  */
 public class DockerComposeGenerator {
 
@@ -153,7 +154,7 @@ public class DockerComposeGenerator {
   /**
    * Build using docker compose.
    *
-   * @return {@code true} if successful,{@code false} otherwise.
+   * @return `true` if successful,`false` otherwise.
    */
   public boolean build() {
     return Objects.requireNonNull(
@@ -211,7 +212,7 @@ public class DockerComposeGenerator {
   /**
    * Build, unless building was disabled.
    *
-   * @return {@code false} if building failed, {@code true} otherwise
+   * @return `false` if building failed, `true` otherwise
    */
   public boolean buildIfRequested() {
     if (!context.getTargetConfig().get(DockerProperty.INSTANCE).noBuild()) {

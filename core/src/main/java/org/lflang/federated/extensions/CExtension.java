@@ -1,29 +1,3 @@
-/*************
- * Copyright (c) 2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.federated.extensions;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
@@ -70,9 +44,10 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 /**
  * An extension class to the CGenerator that enables certain federated functionalities.
  *
- * @author {Soroush Bateni <soroush@berkeley.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
- * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
+ * @author Billy Bao
+ * @ingroup Federated
  */
 public class CExtension implements FedTargetExtension {
 
@@ -102,7 +77,7 @@ public class CExtension implements FedTargetExtension {
     FedSetupProperty.INSTANCE.override(federate.targetConfig, getPreamblePath(federate));
   }
 
-  /** Generate a cmake-include file for {@code federate} if needed. */
+  /** Generate a cmake-include file for `federate` if needed. */
   protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig)
       throws IOException {
     CExtensionUtils.generateCMakeInclude(federate, fileConfig);
@@ -150,7 +125,7 @@ public class CExtension implements FedTargetExtension {
   /**
    * Generate code to deserialize a message received over the network.
    *
-   * @param action The network action that is mapped to the {@code receivingPort}
+   * @param action The network action that is mapped to the `receivingPort`
    * @param receivingPort The receiving port
    * @param connection The connection used to receive the message
    * @param type Type for the port
@@ -378,7 +353,7 @@ public class CExtension implements FedTargetExtension {
    * @param sendRef C code representing a reference to the data to be sent.
    * @param result An accumulator of the generated code.
    * @param sendingFunction The name of the function that sends the serialized data.
-   * @param commonArgs Arguments passed to {@code sendingFunction} regardless of serialization
+   * @param commonArgs Arguments passed to `sendingFunction` regardless of serialization
    *     method.
    */
   protected void serializeAndSend(
@@ -507,7 +482,7 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
-  /** Put the C preamble in a {@code include/_federate.name + _preamble.h} file. */
+  /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
   protected final void writePreambleFile(
       FederateInstance federate,
       FederationFileConfig fileConfig,
@@ -695,7 +670,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code to initialize the {@code federate}.
+   * Generate code to initialize the `federate`.
    *
    * @param rtiConfig Information about the RTI's deployment.
    * @return The generated code
@@ -721,7 +696,8 @@ public class CExtension implements FedTargetExtension {
               .filter(
                   param ->
                       (param.getName().equalsIgnoreCase("STP_offset")
-                              || param.getName().equalsIgnoreCase("STA"))
+                              || param.getName().equalsIgnoreCase("STA")
+                              || param.getName().equalsIgnoreCase("maxwait"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
@@ -826,7 +802,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code to handle physical actions in the {@code federate}.
+   * Generate code to handle physical actions in the `federate`.
    *
    * @param messageReporter Used to report errors.
    * @return Generated code.

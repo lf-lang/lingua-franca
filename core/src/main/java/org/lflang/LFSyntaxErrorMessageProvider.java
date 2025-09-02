@@ -14,6 +14,7 @@ import org.eclipse.xtext.parser.antlr.SyntaxErrorMessageProvider;
  * Custom error message provider that intercepts syntax errors.
  *
  * @author Marten Lohstroh
+ * @ingroup Validation
  */
 public class LFSyntaxErrorMessageProvider extends SyntaxErrorMessageProvider {
 

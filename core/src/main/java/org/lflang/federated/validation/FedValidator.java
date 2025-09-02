@@ -12,7 +12,11 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
-/** Helper class that is used to validate a federated reactor. */
+/**
+ * Helper class that is used to validate a federated reactor.
+ *
+ * @ingroup Federated
+ */
 public class FedValidator {
 
   public static void validateFederatedReactor(Reactor reactor, MessageReporter messageReporter) {
@@ -50,8 +54,7 @@ public class FedValidator {
   }
 
   /**
-   * Check if this federate contains all the {@code varRefs}. If not, report an error using {@code
-   * errorReporter}.
+   * Check if this federate contains all the `varRefs`. If not, report an error using `errorReporter`.
    */
   private static void containsAllVarRefs(List<VarRef> varRefs, MessageReporter messageReporter) {
     var referencesFederate = false;

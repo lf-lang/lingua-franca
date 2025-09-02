@@ -14,7 +14,7 @@ import org.lflang.lf.LfFactory;
 /**
  * Dependency specifications for Cargo. This property looks like this:
  *
- * <pre>{@code
+ * ```
  * cargo-dependencies: {
  *    // Name-of-the-crate: "version"
  *    rand: "0.8",
@@ -34,7 +34,7 @@ import org.lflang.lf.LfFactory;
  *      features: ["some-cargo-feature",]
  *    }
  * }
- * }</pre>
+ * ```
  */
 public final class CargoDependenciesProperty
     extends TargetProperty<Map<String, CargoDependencySpec>, CargoDependenciesPropertyType> {

@@ -1,0 +1,40 @@
+target C {
+  timeout: 20 msec
+}
+
+reactor R1 {
+  output out: int[]
+
+  timer t(10 msec)
+
+  reaction(t) -> out {=
+    int* array = (int*)malloc(3 * sizeof(int));
+    array[0] = 1;
+    array[1] = 2;
+    array[2] = 3;
+    lf_set_array(out, array, 3);
+  =}
+}
+
+
+reactor R2 {
+  input in: int[]
+
+  reaction(in) {=
+    LF_TEST(in->value[0] == 1, "in1");
+    LF_TEST(in->value[1] == 2, "in1");
+    LF_TEST(in->value[2] == 3, "in1");
+
+  =}
+}
+
+main reactor {
+  @enclave
+  r1 = new R1()
+
+  @enclave
+  r2 = new R2()
+
+  r1.out -> r2.in after 100 msec
+
+}

@@ -1,0 +1,51 @@
+target C {
+  timeout: 1 s,
+  scheduler: gedf_np,
+  fast: true
+}
+
+preamble {=
+  #include "platform.h"
+=}
+
+// Smoke test to verify that simple coordination is working
+reactor E1 {
+  output out: int
+  timer t(0, 100 msec)
+  state cnt: int = 0
+
+  reaction(t) -> out {=
+    lf_print("E1 Sleeping");
+    lf_sleep(MSEC(100));
+    lf_print("E1 Waking up");
+    lf_set(out, self->cnt++);
+  =}
+}
+
+reactor E2 {
+  input in: int
+  timer t(50 msec, 100 msec)
+
+  state cnt: int = 0
+  state received: int = 0
+
+  reaction(in) {=
+    lf_print("E2 Input");
+    LF_TEST(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
+    self->received++;
+  =}
+
+  reaction(t) {=
+    lf_print("E2 Timer triggered");
+    LF_TEST(self->cnt == self->received-1, "Timer trigger count=%u and received=%u", self->cnt, self->received);
+    self->cnt++;
+  =}
+}
+
+main reactor {
+  @enclave
+  e1 = new E1()
+  @enclave
+  e2 = new E2()
+  e1.out -> e2.in after 10 msec
+}

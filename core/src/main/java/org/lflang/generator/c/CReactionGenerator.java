@@ -37,6 +37,11 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
@@ -1265,7 +1270,7 @@ public class CReactionGenerator {
   }
 
   /**
-   * Return the start of a function declaration for a function that takes a {@code void*} argument
+   * Return the start of a function declaration for a function that takes a `void*` argument
    * and returns void.
    *
    * @param functionName

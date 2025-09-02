@@ -9,6 +9,11 @@ import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.Transformers;
 
+/**
+ * Collection of tests for the C verifier.
+ *
+ * @ingroup Tests
+ */
 public class CVerifierTest extends TestBase {
   protected CVerifierTest() {
     super(Target.C);

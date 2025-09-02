@@ -22,6 +22,7 @@ import org.lflang.target.Target;
  * @author {Soroush Bateni
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CActionGenerator {
   /**

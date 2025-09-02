@@ -27,6 +27,7 @@
 
 package org.lflang.validation;
 
+import static org.lflang.AttributeUtils.isEnclave;
 import static org.lflang.ast.ASTUtils.allInstantiations;
 import static org.lflang.ast.ASTUtils.inferPortWidth;
 import static org.lflang.ast.ASTUtils.isGeneric;
@@ -64,6 +65,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.GeneratorArguments;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -144,9 +146,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkAction(Action action) {
     checkName(action.getName(), Literals.VARIABLE__NAME);
     if (action.getOrigin() == ActionOrigin.NONE) {
-      error(
-          "Action must have modifier {@code logical} or {@code physical}.",
-          Literals.ACTION__ORIGIN);
+      error("Action must have modifier `logical` or `physical`.", Literals.ACTION__ORIGIN);
     }
     if (action.getPolicy() != null && !SPACING_VIOLATION_POLICIES.contains(action.getPolicy())) {
       error(
@@ -229,7 +229,6 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkConnection(Connection connection) {
-
     // Report if connection is part of a cycle.
     Set<NamedInstance<?>> cycles = this.info.topologyCycles();
     for (VarRef lp : connection.getLeftPorts()) {
@@ -412,6 +411,163 @@ public class LFValidator extends BaseLFValidator {
           Literals.DEADLINE__DELAY);
     }
     checkExpressionIsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
+  }
+
+  // Check that in the C target we have no enclaves within modes.
+  @Check(CheckType.NORMAL)
+  public void checkCEnclaveNotInMode(Reactor reactor) {
+    if (isCBasedTarget() && reactor.isMain()) {
+      for (var inst : ASTUtils.allInstantiations(reactor)) {
+        boolean isInMode = inst.eContainer() instanceof Mode;
+        boolean isEnclave = isEnclave(inst);
+
+        if (isInMode && isEnclave) {
+          error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
+          return;
+        }
+
+        searchForEnclavesInModes(
+            ASTUtils.toDefinition(inst.getReactorClass()), inst.eContainer() instanceof Mode);
+      }
+    }
+  }
+
+  /**
+   * Helper function to search down the containment hierarchy for enclaves in modes.
+   *
+   * @param reactor The reactor in which to search for enclaves and modes.
+   * @param reactorIsInMode Whether this reactor itself is in a mode.
+   */
+  private void searchForEnclavesInModes(Reactor reactor, boolean reactorIsInMode) {
+    for (var inst : ASTUtils.allInstantiations(reactor)) {
+
+      boolean isInMode = inst.eContainer() instanceof Mode;
+      boolean isEnclave = isEnclave(inst);
+
+      if ((isInMode || reactorIsInMode) && isEnclave) {
+        error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
+        return;
+      }
+
+      searchForEnclavesInModes(ASTUtils.toDefinition(inst.getReactorClass()), isInMode);
+    }
+  }
+
+  @Check(CheckType.NORMAL)
+  public void checkCEnclaves(Instantiation inst) {
+    if (isCBasedTarget() && isEnclave(inst)) {
+      // 1. Disallow banks of enclaves
+      if (inst.getWidthSpec() != null) {
+        error("Banks of enclaves are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+      }
+
+      // 2. Disallow multiports and array ports   on enclaves
+      Reactor encDef = ASTUtils.toDefinition(inst.getReactorClass());
+      for (Input input : encDef.getInputs()) {
+        if (input.getWidthSpec() != null) {
+          error(
+              "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+        }
+        if (input.getType().getCStyleArraySpec() != null) {
+          error(
+              "Enclaves do not currently support ports with array types in the C target",
+              Literals.WIDTH_SPEC__TERMS);
+        }
+      }
+      for (Output output : encDef.getOutputs()) {
+        if (output.getWidthSpec() != null) {
+          error(
+              "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+        }
+        if (output.getType().getCStyleArraySpec() != null) {
+          error(
+              "Enclaves do not currently support ports with array types in the C target",
+              Literals.WIDTH_SPEC__TERMS);
+        }
+      }
+
+      // 4. Disallow enclave ports as triggers, sources or effects of reactions of the parent.
+      Reactor parent = (Reactor) inst.eContainer();
+      for (Reaction r : parent.getReactions()) {
+        for (VarRef effect : r.getEffects()) {
+          if (effect.getContainer().equals(inst)) {
+            error("Enclave input ports can not be driven by reactions", Literals.REACTION__EFFECTS);
+          }
+        }
+        for (VarRef source : r.getSources()) {
+          if (source.getContainer().equals(inst)) {
+            error(
+                "Enclave output ports can not be sources for reactions",
+                Literals.REACTION__EFFECTS);
+          }
+        }
+        for (TriggerRef trigger : r.getTriggers()) {
+          if (trigger instanceof VarRef) {
+            if (((VarRef) trigger).getContainer().equals(inst)) {
+              error(
+                  "Enclave output ports can not be triggers for reactions",
+                  Literals.REACTION__EFFECTS);
+            }
+          }
+        }
+      }
+
+      // 5. Disallow an enclave connected mixed with multiport and bank connection
+      // Get all connections involving this enclave
+      List<Connection> connections =
+          parent.getConnections().stream()
+              .filter(
+                  c ->
+                      Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream())
+                              .filter(port -> port.getContainer().equals(inst))
+                              .toList()
+                              .size()
+                          > 0)
+              .toList();
+      // Look for multi-connections.
+      connections.forEach(
+          c -> {
+            if (c.getRightPorts().size() > 1 || c.getLeftPorts().size() > 1) {
+              error(
+                  "Enclaves only supported with singular connections.",
+                  Literals.CONNECTION__LEFT_PORTS);
+            }
+          });
+      // Look for interleaved, multiport and bank connections inside these connections
+      connections.stream()
+          .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
+          .forEach(
+              p -> {
+                if (p.isInterleaved()) {
+                  error(
+                      "Enclaves cannot be involved in interleaved connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+                if (((Port) p.getVariable()).getWidthSpec() != null) {
+                  error(
+                      "Enclaves cannot be involved in multiport connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+                if (p.getContainer().getWidthSpec() != null) {
+                  error(
+                      "Enclaves cannot be involved in bank connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+              });
+
+      // 6. Look for zero-delay cycles between enclaves
+      //  This is done in CEnclaveGenerator.java
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkEnclaveOnWindows(Instantiation inst) {
+    if (isEnclave(inst) && GeneratorUtils.isHostWindows()) {
+      warning(
+          "Enclaves are not supported on Windows platforms. This may cause compilation or runtime"
+              + " errors.",
+          Literals.INSTANTIATION__REACTOR_CLASS);
+    }
   }
 
   @Check(CheckType.FAST)
@@ -923,6 +1079,15 @@ public class LFValidator extends BaseLFValidator {
       if (!fileName.equals("__synthetic0")) {
         checkReactorName(fileName);
       }
+
+      // We dont allow federates with enclaves inside
+      if (reactor.isFederated() && isCBasedTarget()) {
+        Set<Instantiation> enclaves = ASTUtils.getEnclaves(reactor);
+        if (!enclaves.isEmpty()) {
+          error("Enclaves not supported in federated programs", Literals.REACTOR__FEDERATED);
+        }
+      }
+
     } else {
       // Not federated or main.
       if (reactor.getName() == null) {
@@ -1106,7 +1271,7 @@ public class LFValidator extends BaseLFValidator {
     }
 
     if (!type.getStars().isEmpty()
-        && !List.of(target.C, target.CPP, target.CCPP).contains(target)) {
+        && !List.of(Target.C, Target.CPP, Target.CCPP).contains(target)) {
       error("Pointer types are not allowed in this target.", Literals.TYPE__ID);
     }
   }
@@ -1172,7 +1337,7 @@ public class LFValidator extends BaseLFValidator {
                 Literals.WIDTH_SPEC__TERMS);
           }
         } else if (term.getPort() != null) {
-          // Widths given with {@code widthof()} are not supported (yet?).
+          // Widths given with `widthof()` are not supported (yet?).
           // This feature is currently only used for after delays.
           error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
         } else if (term.getCode() != null) {

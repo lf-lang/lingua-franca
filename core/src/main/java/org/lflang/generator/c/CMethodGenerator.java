@@ -13,6 +13,7 @@ import org.lflang.util.StringUtil;
  * Collection of functions to generate C code to declare methods.
  *
  * @author Edward A. Lee
+ * @ingroup Generator
  */
 public class CMethodGenerator {
 

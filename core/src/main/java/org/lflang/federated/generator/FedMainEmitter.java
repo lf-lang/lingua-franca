@@ -10,11 +10,15 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 
-/** Helper class to generate a main reactor */
+/**
+ * Helper class to generate a main reactor.
+ *
+ * @ingroup Federated
+ */
 public class FedMainEmitter {
 
   /**
-   * Generate a main reactor for {@code federate}.
+   * Generate a main reactor for `federate`.
    *
    * @param originalMainReactor The original main reactor.
    * @param messageReporter Used to report errors.

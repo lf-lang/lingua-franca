@@ -11,6 +11,11 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Model;
 import org.lflang.lf.Preamble;
 
+/**
+ * Helper class to generate preamble code for a federate.
+ *
+ * @ingroup Federated
+ */
 public class FedPreambleEmitter {
 
   public FedPreambleEmitter() {}

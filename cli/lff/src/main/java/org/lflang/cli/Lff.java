@@ -24,6 +24,7 @@ import picocli.CommandLine.Option;
  * @author Christian Menard
  * @author Billy Bao
  * @author Atharva Patil
+ * @ingroup CLI
  */
 @Command(
     name = "lff",

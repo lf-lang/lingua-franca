@@ -1,16 +1,16 @@
 /** Test that a blocking reaction in one enclave does not block the main enclave. */
 target C {
   keepalive: true,
-  timeout: 2 sec
+  timeout: 1 sec
 }
 
 reactor BlockingReactor {
   output out: int
-  timer t(0, 1 s)
+  timer t(0, 500 msec)
 
   reaction(t) -> out {=
     lf_print("Blocking reactor invoked");
-    lf_sleep(SEC(1));
+    lf_sleep(MSEC(500));
     lf_print("Blocking reactor sending output");
     lf_set(out, 42);
   =}

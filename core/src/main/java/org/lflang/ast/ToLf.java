@@ -84,6 +84,8 @@ import org.lflang.util.StringUtil;
 /**
  * Switch class for converting AST nodes to their textual representation as it would appear in LF
  * code.
+ *
+ * @ingroup Utilities
  */
 public class ToLf extends LfSwitch<MalleableString> {
 
@@ -149,7 +151,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return super.doSwitch(eObject).addComments(allComments.stream()).setSourceEObject(eObject);
   }
 
-  /** Return all comments contained by ancestors of {@code node} that belong to said ancestors. */
+  /** Return all comments contained by ancestors of `node` that belong to said ancestors. */
   static Set<INode> getAncestorComments(INode node) {
     Set<INode> ancestorComments = new HashSet<>();
     for (ICompositeNode ancestor = node.getParent();
@@ -163,8 +165,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return the next composite sibling of {@code node}, as given by sequential application of {@code
-   * getNextSibling}.
+   * Return the next composite sibling of `node`, as given by sequential application of
+   * `getNextSibling`.
    */
   static ICompositeNode getNextCompositeSibling(INode node, Function<INode, INode> getNextSibling) {
     INode sibling = node;
@@ -176,7 +178,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return the siblings following {@code node} up to (and not including) the next non-leaf sibling.
+   * Return the siblings following `node` up to (and not including) the next non-leaf sibling.
    */
   private static Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
     INode sibling = node;
@@ -188,8 +190,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments that follow {@code node} in the source code and that either satisfy {@code
-   * filter} or that cannot belong to any following sibling of {@code node}.
+   * Return comments that follow `node` in the source code and that either satisfy `filter`
+   * or that cannot belong to any following sibling of `node`.
    */
   private static Stream<String> getFollowingComments(
       ICompositeNode node, Predicate<INode> precedingFilter, Predicate<INode> followingFilter) {
@@ -205,7 +207,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments contained by {@code node} that logically belong to this node (and not to any of
+   * Return comments contained by `node` that logically belong to this node (and not to any of
    * its children).
    */
   private static List<INode> getContainedCodeComments(INode node) {
@@ -229,7 +231,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return all comments that are part of {@code node}, regardless of where they appear relative to
+   * Return all comments that are part of `node`, regardless of where they appear relative to
    * the main content of the node.
    */
   private static List<INode> getContainedComments(INode node) {
@@ -1147,7 +1149,7 @@ public class ToLf extends LfSwitch<MalleableString> {
    * @param statementListList A list of groups of statements.
    * @param forceWhitespace Whether to force a line of vertical whitespace regardless of textual
    *     input
-   * @return A string representation of {@code statementListList}.
+   * @return A string representation of `statementListList`.
    */
   private MalleableString indentedStatements(
       List<EList<? extends EObject>> statementListList, boolean forceWhitespace) {

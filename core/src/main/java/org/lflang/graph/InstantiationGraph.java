@@ -43,12 +43,12 @@ import org.lflang.util.IteratorUtil;
  * between them. A "dependency" from reactor class A to reactor class B (A depends on B) means that
  * A instantiates within it at least one instance of B. Note that there a potentially confusing and
  * subtle distinction here between an "instantiation" and an "instance". They are not the same thing
- * at all. An "instantiation" is an AST node representing a statement like {@code a = new A();}.
+ * at all. An "instantiation" is an AST node representing a statement like `a = new A();`.
  * This can result in many instances of reactor class A (if the containing reactor class is
  * instantiated multiple times).
  *
  * <p>In addition to the graph, this class keeps track of the instantiations that induce the
- * dependencies. These can be retrieved using the method {@code getInstantiations(Reactor)}.
+ * dependencies. These can be retrieved using the method `getInstantiations(Reactor)`.
  *
  * @author Marten Lohstroh
  */

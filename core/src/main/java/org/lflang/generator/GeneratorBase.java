@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2019-2020, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.generator;
 
 import com.google.common.base.Objects;
@@ -77,6 +53,7 @@ import org.lflang.validation.AbstractLFValidator;
  * @author Christian Menard
  * @author Matt Weber
  * @author Soroush Bateni
+ * @ingroup Generator
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
 
@@ -115,16 +92,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /**
    * A list of Reactor definitions in the main resource, including non-main reactors defined in
    * imported resources. These are ordered in the list in such a way that each reactor is preceded
-   * by any reactor that it instantiates using a command like {@code foo = new Foo();}
+   * by any reactor that it instantiates using a command like `foo = new Foo();`
    */
   protected List<Reactor> reactors = new ArrayList<>();
 
   /**
    * Graph that tracks dependencies between instantiations. This is a graph where each node is a
    * Reactor (not a ReactorInstance) and an arc from Reactor A to Reactor B means that B contains an
-   * instance of A, constructed with a statement like {@code a = new A();} After creating the graph,
+   * instance of A, constructed with a statement like `a = new A();` After creating the graph,
    * sort the reactors in topological order and assign them to the reactors class variable. Hence,
-   * after this method returns, {@code this.reactors} will be a list of Reactors such that any
+   * after this method returns, `this.reactors` will be a list of Reactors such that any
    * reactor is preceded in the list by reactors that it instantiates.
    */
   protected InstantiationGraph instantiationGraph;
@@ -285,9 +262,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /**
    * Create a new instantiation graph. This is a graph where each node is a Reactor (not a
    * ReactorInstance) and an arc from Reactor A to Reactor B means that B contains an instance of A,
-   * constructed with a statement like {@code a = new A();} After creating the graph, sort the
+   * constructed with a statement like `a = new A();` After creating the graph, sort the
    * reactors in topological order and assign them to the reactors class variable. Hence, after this
-   * method returns, {@code this.reactors} will be a list of Reactors such that any reactor is
+   * method returns, `this.reactors` will be a list of Reactors such that any reactor is
    * preceded in the list by reactors that it instantiates.
    */
   protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
@@ -297,9 +274,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur
     // earlier in
     // the sorted list of reactors. This helps the code generator output code in the correct order.
-    // For example if {@code reactor Foo {bar = new Bar()}} then the definition of {@code Bar} has
+    // For example if `reactor Foo {bar = new Bar()`} then the definition of `Bar` has
     // to be generated before
-    // the definition of {@code Foo}.
+    // the definition of `Foo`.
     reactors = instantiationGraph.nodesInTopologicalOrder();
 
     // If there is no main reactor or if all reactors in the file need to be validated, then make
@@ -321,7 +298,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    *
    * <p>This should be overridden by the target generators.
    *
-   * @param targetConfig The targetConfig to read the {@code files} from.
+   * @param targetConfig The targetConfig to read the `files` from.
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
@@ -612,7 +589,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
   }
 
-  /** Return a {@code DockerGenerator} instance suitable for the target. */
+  /** Return a `DockerGenerator` instance suitable for the target. */
   protected abstract DockerGenerator getDockerGenerator(LFGeneratorContext context);
 
   /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
@@ -637,7 +614,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   }
 
   /**
-   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * Check if `@property` is used. If so, instantiate a UclidGenerator. The verification model needs
    * to be generated before the target code since code generation changes LF program (desugar
    * connections, etc.).
    */
