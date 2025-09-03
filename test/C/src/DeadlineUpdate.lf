@@ -4,9 +4,8 @@
 // can be shortened to 50 ms at runtime, and that a violation occurs
 // accordingly.
 // 2. Updating to a later deadline: Verify that a 50 ms declared deadline
-// can be relaxed to 100 ms at runtime, and violation is triggered at 
+// can be relaxed to 100 ms at runtime, and violation is triggered at
 // the updated time 100 ms.
-
 // The test prints SUCCESS if both cases behave as expected, otherwise it
 // reports an error and exits.
 target C
