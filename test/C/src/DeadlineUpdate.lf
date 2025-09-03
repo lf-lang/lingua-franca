@@ -1,16 +1,65 @@
 // Test whether the lf_update_deadline() function works.
-// This updates the daedline from 10 msecs to 20 msecs.
+// This test covers two scenarios:
+// 1. Updating to an earlier deadline: Verify that a 50 ms declared deadline
+// can be shortened to 20 ms at runtime, and that a violation occurs
+// accordingly.
+// 2. Updating to a later deadline: Verify that a 20 ms declared deadline
+// can be relaxed to 50 ms at runtime, and that no violation is triggered
+// at 20 ms.
+// The test prints SUCCESS if both cases behave as expected, otherwise it
+// reports an error and exits.
 target C
 
 reactor A {
-  reaction(startup) {=
+  state i: int
+  logical action a
+
+  // Test Case 1: Verify that decreasing the deadline works.
+  // The reaction starts with a declared deadline of 50 ms, but we update it
+  // to 20 ms at runtime. A deadline violation should therefore be detected
+  // around physical time 20 ms (and not 50 ms). If no violation is detected
+  // after 30 ms, the test fails.
+  reaction(startup) -> a {=
+    self->i = 0;
     lf_update_deadline(self, MSEC(20));
     while(!lf_check_deadline(self, true)){
-        lf_print("Deadline violation not detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
-        lf_sleep(MSEC(10));
+      if(self->i == 3) {
+        lf_print_error_and_exit("Deadline has not been updated from 50 msec to 20 msec.");
+      }
+      self->i++;
+      lf_print("Deadline violation not detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+      lf_sleep(MSEC(10));
     }
-  =} deadline(10 msec) {=
+  =} deadline(50 msec) {=
+    // With the updated deadline, this handler should fire around 20 ms.
     lf_print("Deadline violation detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+    lf_schedule(a, MSEC(50)); // Reset lag.
+  =}
+
+  // Test Case 2: Verify that increasing the deadline works.
+  // The reaction is declared with a 20 ms deadline, but we update it
+  // to 50 ms at runtime. A violation should NOT be detected at 20 ms,
+  // because the effective deadline is now 50 ms. Entering the deadline
+  // handler below would indicate failure.
+  reaction(a) {=
+    self->i = 0;
+    lf_update_deadline(self, MSEC(50));
+    while(!lf_check_deadline(self, true)){
+      self->i++;
+      lf_print("Deadline violation not detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+      lf_sleep(MSEC(10));
+    }
+  =} deadline(20 msec) {=
+    // Should not enter here.
+      lf_print_error_and_exit("Deadline violation detected on Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+  =}
+
+  reaction(shutdown) {=
+    if (self->i == 4) {
+      printf("SUCCESS\n");
+    } else {
+      lf_print_error_and_exit("Expected 5, but got %d", self->i);
+    }
   =}
 }
 
