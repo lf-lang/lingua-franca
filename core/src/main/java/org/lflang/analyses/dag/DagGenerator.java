@@ -181,7 +181,7 @@ public class DagGenerator {
       sync = addSyncNodeToDag(dag, time, syncNodesPQueue);
       if (dag.start == null) dag.start = sync;
 
-      // Add reaction nodes, as well as the edges connecting them to SYNC.
+      // Add reaction nodes, as well as the edges from SYNC to them.
       currentReactionNodes.clear();
       for (ReactionInstance reaction : currentStateSpaceNode.getReactionsInvoked()) {
         DagNode reactionNode = dag.addNode(DagNode.dagNodeType.REACTION, reaction);
@@ -192,7 +192,7 @@ public class DagGenerator {
         if (reaction.declaredDeadline != null) reactionNodesWithDeadlines.add(reactionNode);
       }
 
-      // Add edges based on reaction priorities.
+      // Data dependency edges: add edges based on reaction priorities.
       for (DagNode n1 : currentReactionNodes) {
         for (DagNode n2 : currentReactionNodes) {
           // Add an edge for reactions in the same reactor based on priorities.
@@ -225,7 +225,7 @@ public class DagGenerator {
           // expectedTimeValue);
         }
       }
-      // Add edges based on connections (including the delayed ones)
+      // Data dependency edges: add edges based on connections (including the delayed ones)
       // using unconnectedUpstreamDagNodes.
       for (DagNode reactionNode : currentReactionNodes) {
         ReactionInstance reaction = reactionNode.nodeReaction;
