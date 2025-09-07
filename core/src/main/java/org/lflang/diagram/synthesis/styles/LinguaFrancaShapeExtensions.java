@@ -164,8 +164,8 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
     var color =
         AttributeUtils.isEnclave(reactorInstance.getDefinition())
-            ? Colors.GRAY
-            : ENCLAVE_BORDER_COLOR;
+            ? ENCLAVE_BORDER_COLOR
+            : Colors.GRAY;
 
     Function1<KRoundedRectangle, KRendering> style =
         r -> {
