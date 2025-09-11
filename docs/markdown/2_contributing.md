@@ -37,7 +37,11 @@ All code contributions must go through a [pull request (PR)](https://github.com/
 
 
 ### Code style and formatting
-The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. The code base is shipped with a [Spotless](https://github.com/diffplug/spotless) configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.
+The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. 
+Documentation for the code should use [Javadoc](https://en.wikipedia.org/wiki/Javadoc) comments with [Markdown](https://en.wikipedia.org/wiki/Markdown) formatting for the content.
+See also [documentation generation](../DOCUMENTATION.md).
+
+The code base is shipped with a [Spotless](https://github.com/diffplug/spotless) configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.
 
 
 #### Formatting
@@ -91,6 +95,7 @@ Please adhere to the following principles when writing documentation for your co
 - Do not use contractions like "aren't" or "isn't".
 - Use imperative in the description of a method, i.e., write "Compute the shortest path," not "Computes the shortest path" (the latter is not a complete sentence).
 - In `@param` JavaDoc tag descriptions it is OK to use incomplete sentences in the interest of brevity.
+- Use Markdown formatting.
 
 #### Java-specific guidelines
 
@@ -139,32 +144,6 @@ contents.add("extra");
 /* If you need to modify the internal list of the `container`, add a method to the container that encapsulates that logic */
 container.add("extra");
 ```
-
-_JavaDoc_
-
-The [Google style guide](https://google.github.io/styleguide/javaguide.html#s7-javadoc) is pretty terse about JavaDoc, in particular about [where JavaDoc is required](https://google.github.io/styleguide/javaguide.html#s7.3-javadoc-where-required). Please refer to the [Oracle JavaDoc style guide](https://www.oracle.com/technical-resources/articles/java/javadoc-tool.html#styleguide) for detailed guidelines.
-
-_Compact JavaDoc_
-
-Omit `@param` and `@return` tags from JavaDoc if the summary line already describes everything there is to know about them.
-For instance, prefer:
-
-```
-/** Return the sum of a and b. */
-public static int getSum(int a, int b) { ... }
-```
-over
-```
-/**
- * Return the sum of two integers.
- * @param a an integer
- * @param b an integer
- * @return the sum of both parameters
- */
-public static void printSum(int a, int b) { ... }
-```
-
-Additional information about "compact style" JavaDoc can be found [here](https://www.cs.cornell.edu/courses/JavaAndDS/JavaStyle.html#Comments).
 
 #### Kotlin-specific guidelines
 
