@@ -221,6 +221,7 @@ var annotated_dup =
             [ "TSTypes", "classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes.html", "classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes" ]
           ] ],
           [ "ActionInstance", "classorg_1_1lflang_1_1generator_1_1ActionInstance.html", "classorg_1_1lflang_1_1generator_1_1ActionInstance" ],
+          [ "Argument", "classorg_1_1lflang_1_1generator_1_1Argument.html", "classorg_1_1lflang_1_1generator_1_1Argument" ],
           [ "CodeBuilder", "classorg_1_1lflang_1_1generator_1_1CodeBuilder.html", "classorg_1_1lflang_1_1generator_1_1CodeBuilder" ],
           [ "CodeMap", "classorg_1_1lflang_1_1generator_1_1CodeMap.html", "classorg_1_1lflang_1_1generator_1_1CodeMap" ],
           [ "DeadlineInstance", "classorg_1_1lflang_1_1generator_1_1DeadlineInstance.html", "classorg_1_1lflang_1_1generator_1_1DeadlineInstance" ],

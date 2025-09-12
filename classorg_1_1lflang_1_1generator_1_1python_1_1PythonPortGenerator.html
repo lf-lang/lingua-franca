@@ -115,10 +115,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a649788f4a79f7dc422cc5fa4b367939e" id="r_a649788f4a79f7dc422cc5fa4b367939e"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a649788f4a79f7dc422cc5fa4b367939e">generatePythonListForContainedBank</a> (String reactorName, Port port, String widthSpec)</td></tr>
 <tr class="memdesc:a649788f4a79f7dc422cc5fa4b367939e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.  <br /></td></tr>
 <tr class="memitem:a37e26203505d49b32d78c93127c2c626" id="r_a37e26203505d49b32d78c93127c2c626"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a37e26203505d49b32d78c93127c2c626">generatePythonPortVariableInReaction</a> (VarRef port)</td></tr>
-<tr class="memdesc:a37e26203505d49b32d78c93127c2c626"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate into the specified string builder (<code>inits<code>) the code to
-initialize local variable for <code>port<code> so that it can be used in the body of
-the Python reaction.
-</code></code></code></code> <br /></td></tr>
+<tr class="memdesc:a37e26203505d49b32d78c93127c2c626"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate into the specified string builder (<span class="tt">inits</span>) the code to initialize local variable for <span class="tt">port</span> so that it can be used in the body of the Python reaction.  <br /></td></tr>
 <tr class="memitem:abde26175c79a8a29d9dd4e8d6c67eb04" id="r_abde26175c79a8a29d9dd4e8d6c67eb04"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#abde26175c79a8a29d9dd4e8d6c67eb04">generateVariablesForSendingToContainedReactors</a> (List&lt; String &gt; pyObjects, Instantiation definition, Port port)</td></tr>
 <tr class="memdesc:abde26175c79a8a29d9dd4e8d6c67eb04"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate into the specified string builder the code to pass local variables for sending data to an input of a contained reaction (e.g.  <br /></td></tr>
 </table><table class="memberdecls">
@@ -371,24 +368,16 @@ Static Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions. </p>
-<p>The Python reaction will then subsequently be able to address each individual bank member of the contained bank using an index or an iterator. Each list member will contain the given <code>port<code>
-(which could be a multiport with a width determined by <code>widthSpec<code>).</code></code></code></code></p>
-<p><code><code><code><code>This is to accommodate reactions like <code>reaction() -&gt; s.out<code> where s is a bank. In this example,
-the generated Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
-s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
-Python code generated in <code><a class="el" href="#a37e26203505d49b32d78c93127c2c626">generatePythonPortVariableInReaction</a></code>.</code></code></code></code></code></code></code></code></code></code></p>
-<p><code><code><code><code><code><code><code><code><code><code></p><dl class="params"><dt>Parameters</dt><dd>
+<p>The Python reaction will then subsequently be able to address each individual bank member of the contained bank using an index or an iterator. Each list member will contain the given <span class="tt">port</span> (which could be a multiport with a width determined by <span class="tt">widthSpec</span>).</p>
+<p>This is to accommodate reactions like <span class="tt">reaction() -&gt; s.out</span> where s is a bank. In this example, the generated Python function will have the signature <span class="tt">reaction_function_0(self, s_out)</span>, where s_out is a list of out ports. This will later be turned into the proper <span class="tt">s.out</span> format using the Python code generated in <code><a class="el" href="#a37e26203505d49b32d78c93127c2c626">generatePythonPortVariableInReaction</a></code>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">reactorName</td><td>The name of the bank of reactors (which is the name of the reactor class).
-</td></tr>
-    <tr><td class="paramname">port</td><td>The port that should be put in the Python list.
-</td></tr>
-    <tr><td class="paramname">widthSpec</td><td>A string that should be -2 for non-multiports and the width expression for multiports.
-</td></tr>
+    <tr><td class="paramname">reactorName</td><td>The name of the bank of reactors (which is the name of the reactor class). </td></tr>
+    <tr><td class="paramname">port</td><td>The port that should be put in the Python list. </td></tr>
+    <tr><td class="paramname">widthSpec</td><td>A string that should be -2 for non-multiports and the width expression for multiports. </td></tr>
   </table>
   </dd>
 </dl>
-<p></code></code></code></code></code></code></code></code></code></code></p>
 
 </div>
 </div>
@@ -415,10 +404,7 @@ Python code generated in <code><a class="el" href="#a37e26203505d49b32d78c93127c
 </table>
 </div><div class="memdoc">
 
-<p>Generate into the specified string builder (<code>inits<code>) the code to
-initialize local variable for <code>port<code> so that it can be used in the body of
-the Python reaction.
-</code></code></code></code></p>
+<p>Generate into the specified string builder (<span class="tt">inits</span>) the code to initialize local variable for <span class="tt">port</span> so that it can be used in the body of the Python reaction. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">port</td><td>The port to generate code for. </td></tr>

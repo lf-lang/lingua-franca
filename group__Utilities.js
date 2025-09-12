@@ -552,5 +552,108 @@ var group__Utilities =
       [ "undefined", "classorg_1_1lflang_1_1InferredType.html#a5ce9cfa4c76fef89346f1bd28e2452f2", null ],
       [ "astType", "classorg_1_1lflang_1_1InferredType.html#a58bebffcb3e47c8b33e2c37fb78c4e9e", null ],
       [ "isTime", "classorg_1_1lflang_1_1InferredType.html#a58e464cd0fe64e2d468756179b51064f", null ]
-    ] ]
+    ] ],
+    [ "org.lflang.util.ArduinoUtil", "classorg_1_1lflang_1_1util_1_1ArduinoUtil.html", [
+      [ "ArduinoUtil", "classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a82cee16a77ac543ec277e24ed1c26ffa", null ],
+      [ "buildArduino", "classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a860910885d5cba430ed86b9a9721ede1", null ]
+    ] ],
+    [ "org.lflang.util.Averager", "classorg_1_1lflang_1_1util_1_1Averager.html", [
+      [ "Averager", "classorg_1_1lflang_1_1util_1_1Averager.html#a624e0369ae8a2d9b94c8293ba711c018", null ],
+      [ "report", "classorg_1_1lflang_1_1util_1_1Averager.html#a728d369b53b60a1e112e9a41ab11cf30", null ]
+    ] ],
+    [ "org.lflang.util.CollectionUtil", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html", [
+      [ "compute", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#aeeeb30b50fe1ce7d4ec71f8c4bd644c9", null ],
+      [ "copy", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a950d75ae1b7c196b4a032b65967b0a59", null ],
+      [ "immutableSetOf", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a333ce15b2b3cec2285cc9f5e130820b1", null ],
+      [ "minus", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a700ace9db8bff00f377a8ac1cd2a0348", null ],
+      [ "plus", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a9473319b01dfea5a485972678ded6158", null ],
+      [ "plus", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#ac2805303149ce3fbf37f22ad3891ac5c", null ],
+      [ "removeFromValues", "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a0cc0a9c2dbb47e68652812c5d8e4b365", null ]
+    ] ],
+    [ "org.lflang.util.FileUtil", "classorg_1_1lflang_1_1util_1_1FileUtil.html", [
+      [ "arduinoDeleteHelper", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a6d88eedffe4c8d070a804a9775bff26f", null ],
+      [ "copyDirectory", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ab322ff58ce50274e78a3de054fa54b25", null ],
+      [ "copyDirectoryContents", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ab7c6a9eb904dc97c8b026a0266862d4f", null ],
+      [ "copyDirectoryContents", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a56606550002bdc3c0e6d28a226c1976a", null ],
+      [ "copyFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a4b0709b591a00c32d3e1fb20a7c2fed7", null ],
+      [ "copyFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a860ff96f3fa279ee3ba73c8f79324ec8", null ],
+      [ "copyFileFromClassPath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a5eab9e9bedca9c713650cb0e46bee110", null ],
+      [ "copyFilesOrDirectories", "classorg_1_1lflang_1_1util_1_1FileUtil.html#af0e7649fca3cfc19a6e8742d095b45fc", null ],
+      [ "copyFromClassPath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a8c73e28dcb3145a58b204e5dce7bc2b8", null ],
+      [ "copyFromFileSystem", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a861918d2234e65ffad581a3382d1a018", null ],
+      [ "createDirectoryIfDoesNotExist", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a2449f1004c8d1dc4ca43c8c8b9df8961", null ],
+      [ "delete", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a7f44d0711c0280ab49ddf00fdbd3341f", null ],
+      [ "deleteDirectory", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ac2e9e17c1db8a6f9c4ea663132f15e24", null ],
+      [ "findAndCopyFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a0b0ee7cd60fe00133924b84518e8ff94", null ],
+      [ "findInPackage", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a57f3123421c7a6f4be822136a87a946b", null ],
+      [ "getIResource", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a887c33e5fb6c9e662cf9bc0b91cc63c6", null ],
+      [ "getIResource", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a3e6c1d6e0b8709c65e7b3aa7aa101a9c", null ],
+      [ "getIResource", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a7f50ded388cd024495eff5861f4db8b4", null ],
+      [ "getRelativePath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ae15513c0e370c98774a77aaaa0b357de", null ],
+      [ "getResourceFromClassPath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a557e0e9b9493735989179747a008b797", null ],
+      [ "globFilesEndsWith", "classorg_1_1lflang_1_1util_1_1FileUtil.html#aae30322e3d9eb5e16211661d2a3252ad", null ],
+      [ "isCFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a7faa067b53cbb652cc1079eaea84f922", null ],
+      [ "isSame", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a736d463131e0ee3e3f400e78331a4b2e", null ],
+      [ "locateFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a17bedbb3c09453d7503281d520db9a6e", null ],
+      [ "nameWithoutExtension", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a05c4ff7504fe1583182a2472f16cc1e5", null ],
+      [ "nameWithoutExtension", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a6e9c93ab17d1903ae6693ff555b93c6e", null ],
+      [ "relativeIncludeHelper", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a8aaedf8730ff817d1ef7286c741e6b7a", null ],
+      [ "toIPath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ad75e82436a78a5eeb78f10b4411fd67c", null ],
+      [ "toPath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a814506da291a7ea5772512aee53ad585", null ],
+      [ "toPath", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a878c4ac34fe551dda2eaed9f6ef0975c", null ],
+      [ "toUnixString", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ac67b1d7e5eb937a547aa018bd0bc4b65", null ],
+      [ "writeToFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#a2c205af1284a1282b5f62a4e27255b75", null ],
+      [ "writeToFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#acadb169f77ae18217378c43f670b488b", null ],
+      [ "writeToFile", "classorg_1_1lflang_1_1util_1_1FileUtil.html#ab81d44054d03dfda03f16ebba88c904a", null ]
+    ] ],
+    [ "org.lflang.util.FlexPRETUtil", "classorg_1_1lflang_1_1util_1_1FlexPRETUtil.html", [
+      [ "FlexPRETUtil", "classorg_1_1lflang_1_1util_1_1FlexPRETUtil.html#a6634991212e644d02f430411fbc963ee", null ],
+      [ "flashTarget", "classorg_1_1lflang_1_1util_1_1FlexPRETUtil.html#a40133dfc5cbfd7619768845254227dec", null ]
+    ] ],
+    [ "org.lflang.util.ImportUtil", "classorg_1_1lflang_1_1util_1_1ImportUtil.html", [
+      [ "buildPackageURI", "classorg_1_1lflang_1_1util_1_1ImportUtil.html#adeb061a9e1a89c88e6e2946aa07cc451", null ],
+      [ "buildPackageURIfromSrc", "classorg_1_1lflang_1_1util_1_1ImportUtil.html#a0a06e73ab0b162baba36d5e9625b9787", null ]
+    ] ],
+    [ "org.lflang.util.IteratorUtil", "classorg_1_1lflang_1_1util_1_1IteratorUtil.html", [
+      [ "asFilteredStream", "classorg_1_1lflang_1_1util_1_1IteratorUtil.html#a329669ac3c49fa8ee57b300893a7d877", null ],
+      [ "asIterable", "classorg_1_1lflang_1_1util_1_1IteratorUtil.html#adebba8f6d867e6aa506b10212c07889b", null ],
+      [ "asStream", "classorg_1_1lflang_1_1util_1_1IteratorUtil.html#a4f6995de37e60181445017d31ba046b9", null ],
+      [ "asStream", "classorg_1_1lflang_1_1util_1_1IteratorUtil.html#abca3158feacbc22d6b5d5a2bd5f4fabd", null ]
+    ] ],
+    [ "org.lflang.util.LFCommand", "classorg_1_1lflang_1_1util_1_1LFCommand.html", [
+      [ "LFCommand", "classorg_1_1lflang_1_1util_1_1LFCommand.html#aecc5ed646e1711b223887ba88ac254ea", null ],
+      [ "command", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a571d2673f9db4ceaf2f9f85fb00cfa0e", null ],
+      [ "directory", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a2c314d37c769b7ab3ebfc965f23e8af0", null ],
+      [ "get", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a37399e869f4598852c3281b4c015db0a", null ],
+      [ "get", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a28e59fc861beb707adcab0e6e4d72c70", null ],
+      [ "get", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a55a42c5d364d38ee85a7f1ec1232f315", null ],
+      [ "getErrors", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a2947d3e055d8a655133790bcae1b2171", null ],
+      [ "getOutput", "classorg_1_1lflang_1_1util_1_1LFCommand.html#ace68541e322bdbb9cb2d0b6509142dee", null ],
+      [ "replaceEnvironmentVariable", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a05f298cce5c428161c45e1b03463c915", null ],
+      [ "run", "classorg_1_1lflang_1_1util_1_1LFCommand.html#ad5bb2b3a3001401bd904127159eb8834", null ],
+      [ "run", "classorg_1_1lflang_1_1util_1_1LFCommand.html#ad956044acb7bcde6bc80032800735237", null ],
+      [ "setEnvironmentVariable", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a69818aa60745a4b2ef3c27bea33cf415", null ],
+      [ "setEnvironmentVariables", "classorg_1_1lflang_1_1util_1_1LFCommand.html#af7eee016c646e77eb46d5672efabba0b", null ],
+      [ "setQuiet", "classorg_1_1lflang_1_1util_1_1LFCommand.html#acd535008b5378c7f5dc6726f58876703", null ],
+      [ "setVerbose", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a425cf9a8ee7c673f74ddcb0652301eeb", null ],
+      [ "toString", "classorg_1_1lflang_1_1util_1_1LFCommand.html#ab286a48b9066631e3e7c06e9afe45806", null ],
+      [ "didRun", "classorg_1_1lflang_1_1util_1_1LFCommand.html#adf96842e352c3d75dd41bbea2b273f19", null ],
+      [ "errors", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a2fef88136982f460e73d8dde29e8b846", null ],
+      [ "output", "classorg_1_1lflang_1_1util_1_1LFCommand.html#ae6d54ac9e11495a28bf0ed4d97df12e2", null ],
+      [ "processBuilder", "classorg_1_1lflang_1_1util_1_1LFCommand.html#ae4532bf02e7920a6b5820344fb2610e0", null ],
+      [ "quiet", "classorg_1_1lflang_1_1util_1_1LFCommand.html#a5a6f440361aa565a16c9070e5c47a29b", null ]
+    ] ],
+    [ "org.lflang.util.StringUtil", "classorg_1_1lflang_1_1util_1_1StringUtil.html", [
+      [ "addDoubleQuotes", "classorg_1_1lflang_1_1util_1_1StringUtil.html#a56a1317373f633f7d5c53a78d7b6182f", null ],
+      [ "camelToSnakeCase", "classorg_1_1lflang_1_1util_1_1StringUtil.html#a4b7797232921494572f5733754b68542", null ],
+      [ "hasQuotes", "classorg_1_1lflang_1_1util_1_1StringUtil.html#aef91124f55ccaebbf0d9e0b83f8e1769", null ],
+      [ "joinObjects", "classorg_1_1lflang_1_1util_1_1StringUtil.html#a3dbdc05eb899bdcdc0961e0bb83a14d4", null ],
+      [ "normalizeEol", "classorg_1_1lflang_1_1util_1_1StringUtil.html#a1fb5ff69ee05f189822ff0ade05c7a44", null ],
+      [ "removeQuotes", "classorg_1_1lflang_1_1util_1_1StringUtil.html#aeb10a8a2615ec580a64a2ad660754d0c", null ],
+      [ "trimCodeBlock", "classorg_1_1lflang_1_1util_1_1StringUtil.html#ad0f8082bdf62883f70aa67739b0f7b58", null ]
+    ] ],
+    [ "org.lflang.util.TargetResourceNotFoundException", "classorg_1_1lflang_1_1util_1_1TargetResourceNotFoundException.html", [
+      [ "TargetResourceNotFoundException", "classorg_1_1lflang_1_1util_1_1TargetResourceNotFoundException.html#a4b9cb0c2e8d69b46727f7c2f008f3525", null ]
+    ] ],
+    [ "org.lflang.util.Pair< F, S >", "group__Utilities.html#ga6d98225f3efc878ff150a29493c74d38", null ]
 ];

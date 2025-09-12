@@ -305,6 +305,7 @@ var hierarchy =
         [ "org.lflang.generator.python.PyFileConfig", "classorg_1_1lflang_1_1generator_1_1python_1_1PyFileConfig.html", null ]
       ] ]
     ] ],
+    [ "org.lflang.generator.Argument< T >", "classorg_1_1lflang_1_1generator_1_1Argument.html", null ],
     [ "org.lflang.generator.c.CActionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html", null ],
     [ "org.lflang.generator.c.CCmakeGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CCmakeGenerator.html", null ],
     [ "org.lflang.generator.c.CCmakeGenerator.SetUpMainTarget", "interfaceorg_1_1lflang_1_1generator_1_1c_1_1CCmakeGenerator_1_1SetUpMainTarget.html", [

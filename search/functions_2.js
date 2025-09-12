@@ -91,7 +91,7 @@ var searchData=
   ['arduinoutil_88',['ArduinoUtil',['../classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a82cee16a77ac543ec277e24ed1c26ffa',1,'org::lflang::util::ArduinoUtil']]],
   ['arglisttocommand_89',['argListToCommand',['../classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aae76256f0af7fbb1abb1e596f3a2ee9e',1,'org::lflang::generator::docker::DockerGenerator']]],
   ['argsstring_90',['argsString',['../classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html#af1bff40deb8e483b3ade4bd95bba0b2b',1,'org::lflang::generator::c::TypeParameterizedReactor']]],
-  ['argument_3c_20t_20_3e_91',['Argument&lt; T &gt;',['../group__Generator.html#ga462b695184b8ecbc587ddfb1288b5c95',1,'org::lflang::generator']]],
+  ['argument_91',['Argument',['../classorg_1_1lflang_1_1generator_1_1Argument.html#a404f9d87d34be5688399b628dfaaf8a8',1,'org::lflang::generator::Argument']]],
   ['arraytype_92',['ArrayType',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ArrayType.html#a9132dbe52a94cc29741beae7a852709e',1,'org::lflang::target::property::type::ArrayType']]],
   ['asfilteredstream_93',['asFilteredStream',['../classorg_1_1lflang_1_1util_1_1IteratorUtil.html#a329669ac3c49fa8ee57b300893a7d877',1,'org::lflang::util::IteratorUtil']]],
   ['asiterable_94',['asIterable',['../classorg_1_1lflang_1_1util_1_1IteratorUtil.html#adebba8f6d867e6aa506b10212c07889b',1,'org::lflang::util::IteratorUtil']]],

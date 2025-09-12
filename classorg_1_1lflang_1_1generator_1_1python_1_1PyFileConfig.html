@@ -119,8 +119,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:aaadd154f0fdb26cd627f67f3cbbe8112" id="r_aaadd154f0fdb26cd627f67f3cbbe8112"><td class="memItemLeft" align="right" valign="top">Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#aaadd154f0fdb26cd627f67f3cbbe8112">getModelGenPath</a> ()</td></tr>
 <tr class="memdesc:aaadd154f0fdb26cd627f67f3cbbe8112"><td class="mdescLeft">&#160;</td><td class="mdescRight">The directory in which to put the generated verification models.  <br /></td></tr>
 <tr class="memitem:aadbddca3925f8b7ca7b77123a25dc275" id="r_aadbddca3925f8b7ca7b77123a25dc275"><td class="memItemLeft" align="right" valign="top">Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#aadbddca3925f8b7ca7b77123a25dc275">getOutPath</a> ()</td></tr>
-<tr class="memdesc:aadbddca3925f8b7ca7b77123a25dc275"><td class="mdescLeft">&#160;</td><td class="mdescRight">The parent of the directory designated for placing generated sources into (<span class="tt">.
-</span> <br /></td></tr>
+<tr class="memdesc:aadbddca3925f8b7ca7b77123a25dc275"><td class="mdescLeft">&#160;</td><td class="mdescRight">The parent of the directory designated for placing generated sources into (<span class="tt">src-gen</span> by default).  <br /></td></tr>
 <tr class="memitem:af533499ff32f54ee97bbdae2d96b976d" id="r_af533499ff32f54ee97bbdae2d96b976d"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CFileConfig.html#af533499ff32f54ee97bbdae2d96b976d">getRuntimeIncludePath</a> ()</td></tr>
 <tr class="memitem:ac771a84f3498f17e042f76172757d941" id="r_ac771a84f3498f17e042f76172757d941"><td class="memItemLeft" align="right" valign="top">Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#ac771a84f3498f17e042f76172757d941">getSrcGenBasePath</a> ()</td></tr>
 <tr class="memdesc:ac771a84f3498f17e042f76172757d941"><td class="mdescLeft">&#160;</td><td class="mdescRight">Path representation of srcGenRoot, the root directory for generated sources.  <br /></td></tr>
@@ -148,7 +147,7 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:a819b6b0f2489fca2b79521f8d2dbb850" id="r_a819b6b0f2489fca2b79521f8d2dbb850"><td class="memItemLeft" align="right" valign="top">final IResource&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#a819b6b0f2489fca2b79521f8d2dbb850">iResource</a></td></tr>
 <tr class="memdesc:a819b6b0f2489fca2b79521f8d2dbb850"><td class="mdescLeft">&#160;</td><td class="mdescRight">If running in an Eclipse IDE, the iResource refers to the IFile representing the Lingua Franca program.  <br /></td></tr>
 <tr class="memitem:a826734253724b14eab96b52238ce03f9" id="r_a826734253724b14eab96b52238ce03f9"><td class="memItemLeft" align="right" valign="top">final String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#a826734253724b14eab96b52238ce03f9">name</a></td></tr>
-<tr class="memdesc:a826734253724b14eab96b52238ce03f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">The name of the main reactor, which has to match the file name (without the '.lf' extension).  <br /></td></tr>
+<tr class="memdesc:a826734253724b14eab96b52238ce03f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">The name of the main reactor, which has to match the file name (without the <span class="tt">.lf</span> extension).  <br /></td></tr>
 <tr class="memitem:a6ae8ffe20be19509655e2f39e8a0dae3" id="r_a6ae8ffe20be19509655e2f39e8a0dae3"><td class="memItemLeft" align="right" valign="top">final Resource&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#a6ae8ffe20be19509655e2f39e8a0dae3">resource</a></td></tr>
 <tr class="memdesc:a6ae8ffe20be19509655e2f39e8a0dae3"><td class="mdescLeft">&#160;</td><td class="mdescRight">The file containing the main source code.  <br /></td></tr>
 <tr class="memitem:a99e7606f0d8f9dc7d27f6f7394a2097e" id="r_a99e7606f0d8f9dc7d27f6f7394a2097e"><td class="memItemLeft" align="right" valign="top">final Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classorg_1_1lflang_1_1FileConfig.html#a99e7606f0d8f9dc7d27f6f7394a2097e">srcFile</a></td></tr>
@@ -286,6 +285,7 @@ Protected Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">input</td><td>The *.lf file to find the package root for. </td></tr>
+    <tr><td class="paramname">printWarning</td><td>A function to print a warning message. </td></tr>
   </table>
   </dd>
 </dl>
@@ -506,10 +506,9 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>The parent of the directory designated for placing generated sources into (<span class="tt">.
-</span></p>
-<p>/src-gen by default). Additional directories (such as <span class="tt">bin</span> or <span class="tt">build</span>) should be created as siblings of the directory for generated sources, which means that such directories should be created relative to the path assigned to this class variable.</p>
-<p>The generated source directory is specified in the IDE (Project Properties-&gt;LF-&gt;Compiler-&gt;Output Folder). When invoking the standalone compiler, the output path is specified directly using the <span class="tt">-o</span> or <span class="tt">--output-path</span> option. </p>
+<p>The parent of the directory designated for placing generated sources into (<span class="tt">src-gen</span> by default). </p>
+<p>Additional directories (such as <span class="tt">bin</span> or <span class="tt">build</span>) should be created as siblings of the directory for generated sources, which means that such directories should be created relative to the path assigned to this class variable.</p>
+<p>The generated source directory is specified in the IDE (Project <span class="tt">Properties-&gt;LF-&gt;Compiler-&gt;Output Folder</span>). When invoking the standalone compiler, the output path is specified directly using the <span class="tt">-o</span> or <span class="tt">--output-path</span> option. </p>
 
 </div>
 </div>
@@ -974,7 +973,7 @@ Protected Attributes</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>The name of the main reactor, which has to match the file name (without the '.lf' extension). </p>
+<p>The name of the main reactor, which has to match the file name (without the <span class="tt">.lf</span> extension). </p>
 
 </div>
 </div>

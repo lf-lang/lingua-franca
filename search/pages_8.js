@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['running_20from_20the_20command_20line_0',['Running from the command line',['..//Users/runner/work/lingua-franca/lingua-franca/test/README.md#autotoc_md1',1,'']]]
+  ['kotlin_20specific_20guidelines_0',['Kotlin-specific guidelines',['../md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md8',1,'']]]
 ];

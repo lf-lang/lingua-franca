@@ -78,6 +78,12 @@ var group__Infrastructure =
       [ "getPriority", "interfaceorg_1_1lflang_1_1generator_1_1ValidationStrategy.html#a87c8188d68fa74c886b62e95a2fd8b6f", null ],
       [ "isFullBatch", "interfaceorg_1_1lflang_1_1generator_1_1ValidationStrategy.html#a72de3a9019cc3ca52b41a2869c4ee117", null ]
     ] ],
+    [ "org.lflang.ide.LFIdeSetup", "classorg_1_1lflang_1_1ide_1_1LFIdeSetup.html", [
+      [ "createInjector", "classorg_1_1lflang_1_1ide_1_1LFIdeSetup.html#a6b1fe1f3187dead12cf94c43bf29022f", null ],
+      [ "createInjectorAndDoEMFRegistration", "classorg_1_1lflang_1_1ide_1_1LFIdeSetup.html#a6983dbc78a520b752e84d8ead58d5f69", null ],
+      [ "doSetup", "classorg_1_1lflang_1_1ide_1_1LFIdeSetup.html#abe73a63dab1be3f41325e1f69e2a6df4", null ],
+      [ "injector", "classorg_1_1lflang_1_1ide_1_1LFIdeSetup.html#a1bf576eac04b1c611048ccd2ea93d9a6", null ]
+    ] ],
     [ "org.lflang.LFResourceDescriptionStrategy", "classorg_1_1lflang_1_1LFResourceDescriptionStrategy.html", [
       [ "createEObjectDescriptions", "classorg_1_1lflang_1_1LFResourceDescriptionStrategy.html#ae8b4caf66eee64b50f304a2ef6f5c938", null ],
       [ "DELIMITER", "classorg_1_1lflang_1_1LFResourceDescriptionStrategy.html#a70a78987871c150ac6c876f5863d7701", null ],
@@ -98,5 +104,16 @@ var group__Infrastructure =
       [ "createInjector", "classorg_1_1lflang_1_1LFStandaloneSetup.html#aa6b2907b2791ec5bf1e830f9611cf4f4", null ],
       [ "doSetup", "classorg_1_1lflang_1_1LFStandaloneSetup.html#a9ea6d9229ed07721393eb08b44a8f695", null ],
       [ "injector", "classorg_1_1lflang_1_1LFStandaloneSetup.html#a1bf576eac04b1c611048ccd2ea93d9a6", null ]
+    ] ],
+    [ "org.lflang.ModelInfo", "classorg_1_1lflang_1_1ModelInfo.html", [
+      [ "checkCaseInsensitiveNameCollisions", "classorg_1_1lflang_1_1ModelInfo.html#abd96e57b5a760e9be328fcbeca30492a", null ],
+      [ "topologyCycles", "classorg_1_1lflang_1_1ModelInfo.html#afceb92dbabb7f9461089f7680a350e92", null ],
+      [ "update", "classorg_1_1lflang_1_1ModelInfo.html#a228a0b131419bd61700c30c2faf3c941", null ],
+      [ "instantiationGraph", "classorg_1_1lflang_1_1ModelInfo.html#aab23f6ceda66d020828dc0a14d52c9dd", null ],
+      [ "model", "classorg_1_1lflang_1_1ModelInfo.html#a7d222265331082dcbafc740d1f3c0c02", null ],
+      [ "overflowingAssignments", "classorg_1_1lflang_1_1ModelInfo.html#a809b47c853a12e222d8e94570f8e77d1", null ],
+      [ "overflowingDeadlines", "classorg_1_1lflang_1_1ModelInfo.html#a56b9656b0865184729a8b9852e45b38e", null ],
+      [ "overflowingParameters", "classorg_1_1lflang_1_1ModelInfo.html#a202da90360177127472a41a89115799c", null ],
+      [ "updated", "classorg_1_1lflang_1_1ModelInfo.html#af2aa08a6381927360aa65a6ab1150f1c", null ]
     ] ]
 ];

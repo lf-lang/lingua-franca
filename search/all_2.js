@@ -85,11 +85,11 @@ var searchData=
   ['allstatevars_82',['allStateVars',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a53734494c8f233c62428d01cadc9f2e9',1,'org::lflang::ast::ASTUtils']]],
   ['alltimers_83',['allTimers',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ad67216fd631ceb79c486937712ee0fae',1,'org::lflang::ast::ASTUtils']]],
   ['allwatchdogs_84',['allWatchdogs',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#af03a5eeb27f4c770f5efa50d2b9891f3',1,'org::lflang::ast::ASTUtils']]],
-  ['also_85',['See also',['..//Users/runner/work/lingua-franca/lingua-franca/test/README.md#autotoc_md3',1,'']]],
+  ['also_85',['See also',['..//Users/runner/work/lingua-franca/lingua-franca/test/README.md#autotoc_md16',1,'']]],
   ['alteredtest_86',['AlteredTest',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1AlteredTest.html',1,'org::lflang::tests::lsp::ErrorInserter']]],
   ['alternative_5fdash_5fpattern_87',['ALTERNATIVE_DASH_PATTERN',['../classorg_1_1lflang_1_1diagram_1_1synthesis_1_1LinguaFrancaSynthesis.html#a6933c6e4f91ff4b4bf85eac0a98b9347',1,'org::lflang::diagram::synthesis::LinguaFrancaSynthesis']]],
   ['altertest_88',['alterTest',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#aab9b482044d420f240e9f008710f8437',1,'org::lflang::tests::lsp::ErrorInserter']]],
-  ['and_20formatting_89',['Code style and formatting',['../md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md8',1,'']]],
+  ['and_20formatting_89',['Code style and formatting',['../md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md4',1,'']]],
   ['annotatereaction_90',['annotateReaction',['../interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#aa39a747282d1b8e3e80ebc48039f9711',1,'org.lflang.federated.extensions.FedTargetExtension.annotateReaction()'],['../classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#aad9f2db994798140c7dfcac33f54ec54',1,'org.lflang.federated.extensions.PythonExtension.annotateReaction()']]],
   ['anyof_91',['anyOf',['../classorg_1_1lflang_1_1ast_1_1MalleableString.html#ac2519947851e094d9d6fdc4c54b8bc8a',1,'org.lflang.ast.MalleableString.anyOf(MalleableString... possibilities)'],['../classorg_1_1lflang_1_1ast_1_1MalleableString.html#a322a5692d239fa5c21623fd88aaadf3d',1,'org.lflang.ast.MalleableString.anyOf(String... possibilities)'],['../classorg_1_1lflang_1_1ast_1_1MalleableString.html#a40d2c18e3129eb382a5ae3ef15f905b1',1,'org.lflang.ast.MalleableString.anyOf(Object... possibilities)']]],
   ['appearance_92',['APPEARANCE',['../classorg_1_1lflang_1_1diagram_1_1synthesis_1_1LinguaFrancaSynthesis.html#ac95f5fcea9a2b83ea09d676f9f7cd8b4',1,'org::lflang::diagram::synthesis::LinguaFrancaSynthesis']]],
@@ -107,7 +107,7 @@ var searchData=
   ['arduinoutil_104',['ArduinoUtil',['../classorg_1_1lflang_1_1util_1_1ArduinoUtil.html',1,'org.lflang.util.ArduinoUtil'],['../classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a82cee16a77ac543ec277e24ed1c26ffa',1,'org.lflang.util.ArduinoUtil.ArduinoUtil()']]],
   ['arglisttocommand_105',['argListToCommand',['../classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aae76256f0af7fbb1abb1e596f3a2ee9e',1,'org::lflang::generator::docker::DockerGenerator']]],
   ['argsstring_106',['argsString',['../classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html#af1bff40deb8e483b3ade4bd95bba0b2b',1,'org::lflang::generator::c::TypeParameterizedReactor']]],
-  ['argument_3c_20t_20_3e_107',['Argument&lt; T &gt;',['../group__Generator.html#ga462b695184b8ecbc587ddfb1288b5c95',1,'org::lflang::generator']]],
+  ['argument_107',['Argument',['../classorg_1_1lflang_1_1generator_1_1Argument.html',1,'org.lflang.generator.Argument&lt; T &gt;'],['../classorg_1_1lflang_1_1generator_1_1Argument.html#a404f9d87d34be5688399b628dfaaf8a8',1,'org.lflang.generator.Argument.Argument()']]],
   ['arraypattern_108',['arrayPattern',['../classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#a09a71fba301c77cb1499629637160329',1,'org::lflang::generator::c::CTypes']]],
   ['arraytype_109',['ArrayType',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ArrayType.html',1,'org.lflang.target.property.type.ArrayType'],['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ArrayType.html#a9132dbe52a94cc29741beae7a852709e',1,'org.lflang.target.property.type.ArrayType.ArrayType()']]],
   ['asfilteredstream_110',['asFilteredStream',['../classorg_1_1lflang_1_1util_1_1IteratorUtil.html#a329669ac3c49fa8ee57b300893a7d877',1,'org::lflang::util::IteratorUtil']]],
@@ -137,5 +137,6 @@ var searchData=
   ['attrparamtype_134',['AttrParamType',['../enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html',1,'org::lflang::validation::AttributeSpec']]],
   ['authproperty_135',['AuthProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1AuthProperty.html',1,'org::lflang::target::property']]],
   ['auto_136',['AUTO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a032b0139a6e75709ec81a0c15d57792c',1,'org::lflang::target::property::type::PlatformType::Platform']]],
-  ['averager_137',['Averager',['../classorg_1_1lflang_1_1util_1_1Averager.html',1,'org.lflang.util.Averager'],['../classorg_1_1lflang_1_1util_1_1Averager.html#a624e0369ae8a2d9b94c8293ba711c018',1,'org.lflang.util.Averager.Averager()']]]
+  ['automatically_20generated_20doc_20files_137',['Automatically Generated Doc Files',['../md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html#autotoc_md10',1,'']]],
+  ['averager_138',['Averager',['../classorg_1_1lflang_1_1util_1_1Averager.html',1,'org.lflang.util.Averager'],['../classorg_1_1lflang_1_1util_1_1Averager.html#a624e0369ae8a2d9b94c8293ba711c018',1,'org.lflang.util.Averager.Averager()']]]
 ];

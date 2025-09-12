@@ -26,15 +26,23 @@ var NAVTREE =
 [
   [ "lingua-franca", "index.html", [
     [ "Lingua Franca", "index.html", null ],
-    [ "Contributing to Lingua Franca", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html", [
-      [ "Contributing code", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md5", [
-        [ "Writing tests", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md6", null ],
-        [ "Workflow", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md7", null ],
-        [ "Code style and formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md8", [
-          [ "Formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md9", null ],
-          [ "General guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md10", null ],
-          [ "Java-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md11", null ],
-          [ "Kotlin-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html#autotoc_md12", null ]
+    [ "Contributing to Lingua Franca", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html", [
+      [ "Contributing code", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md1", [
+        [ "Writing tests", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md2", null ],
+        [ "Workflow", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md3", null ],
+        [ "Code style and formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md4", [
+          [ "Formatting", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md5", null ],
+          [ "General guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md6", null ],
+          [ "Java-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md7", null ],
+          [ "Kotlin-specific guidelines", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html#autotoc_md8", null ]
+        ] ]
+      ] ]
+    ] ],
+    [ "DOCUMENTATION", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html", [
+      [ "Documentation Generation", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html#autotoc_md9", [
+        [ "Automatically Generated Doc Files", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html#autotoc_md10", null ],
+        [ "Building Doc Files Locally", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html#autotoc_md11", [
+          [ "View Documentation Files", "md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html#autotoc_md12", null ]
         ] ]
       ] ]
     ] ],
@@ -63,24 +71,24 @@ var NAVTREEINDEX =
 "classorg_1_1lflang_1_1cli_1_1LffCliTest.html#aadd99b9991d3c61b59c559ded1903bd4",
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#adfe6453339f346604a253fad4c9d1ed6",
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a2520a505004537b42fb1c4bc5eb0e1d7",
-"classorg_1_1lflang_1_1generator_1_1CodeBuilder.html#a4556f9b7d7735bde41a71da3948d431e",
-"classorg_1_1lflang_1_1generator_1_1ModeInstance_1_1Transition.html",
-"classorg_1_1lflang_1_1generator_1_1ReactorInstance.html#a5397cd94730f3c00b54e56add6aed1d4",
-"classorg_1_1lflang_1_1generator_1_1WatchdogInstance.html#aadc2e0ca021ad1333731d8773e3b6162",
-"classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a6835ca17261ba4c73ec7f3f4cfe101ea",
-"classorg_1_1lflang_1_1generator_1_1python_1_1PyFileConfig.html#acea22dc46408617ec61f514a417ca272",
-"classorg_1_1lflang_1_1graph_1_1DirectedGraph.html#abf2060c566c6d70029955b62bf7f0950",
-"classorg_1_1lflang_1_1target_1_1property_1_1CargoFeaturesProperty.html#a05712b0e4f6256710f969dfd27a097f3",
-"classorg_1_1lflang_1_1target_1_1property_1_1ExportDependencyGraphProperty.html#a6a5c01889646675b2403aba03a9561b1",
-"classorg_1_1lflang_1_1target_1_1property_1_1PrintStatisticsProperty.html#a033370849eef3120afd46c4845863e2d",
-"classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#acab55d30c4029e972414e9e5c969341d",
-"classorg_1_1lflang_1_1tests_1_1LfParsingTestHelper.html#a1c07172bdeea22435c640005b73d0c95",
-"classorg_1_1lflang_1_1tests_1_1compiler_1_1PortInstanceTests.html#a239af18ede07d253416c4cb571f85b7b",
-"classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html",
-"classorg_1_1lflang_1_1util_1_1Averager.html#a728d369b53b60a1e112e9a41ab11cf30",
-"enumorg_1_1lflang_1_1target_1_1Target.html#a943516a43384d8fd7be4abf87c66c017",
-"functions_func_r.html",
-"interfaceorg_1_1lflang_1_1graph_1_1Graph.html#a765aec1aa4d6abbbc9fc60de63ec0c17"
+"classorg_1_1lflang_1_1generator_1_1CodeBuilder.html#a18df8484e5b619910465deb653155e5a",
+"classorg_1_1lflang_1_1generator_1_1ModeInstance.html#af120660533fab9c85cc3359723e97f27",
+"classorg_1_1lflang_1_1generator_1_1ReactorInstance.html#a4ff16f3964681469a29c6a54a63d066f",
+"classorg_1_1lflang_1_1generator_1_1WatchdogInstance.html#a86ea09ffc1ff03d3dec96584f91b7b9b",
+"classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a656705d258bbcbce6e4ce6ba903ee44b",
+"classorg_1_1lflang_1_1generator_1_1python_1_1PyFileConfig.html#ac5cb1fc2714e098bcaed2f4364eb3851",
+"classorg_1_1lflang_1_1graph_1_1DirectedGraph.html#a831d7cce6b02b9bcb420e806e9dff101",
+"classorg_1_1lflang_1_1target_1_1property_1_1CargoDependenciesProperty.html#aed224bd0989480a5250bd5942916d069",
+"classorg_1_1lflang_1_1target_1_1property_1_1ExportDependencyGraphProperty.html#a29acc44b1e353f4638f22bb3289d7338",
+"classorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty.html#addc1a52eecb1ac0332ef06227433cb4b",
+"classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#aa1872cfeb3dcc048cce280b8476ad978",
+"classorg_1_1lflang_1_1tests_1_1LfInjectedTestBase.html",
+"classorg_1_1lflang_1_1tests_1_1compiler_1_1MixedRadixIntTest.html#ae4a5877409447ce5a642f6d4b976dd4d",
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html#af44aa1c33c4a2f62a385ae18d2a09541",
+"classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a860910885d5cba430ed86b9a9721ede1",
+"enumorg_1_1lflang_1_1target_1_1Target.html#a894b6fea99e1802169c3c4571d11c9ba",
+"functions_func_n.html",
+"interfaceorg_1_1lflang_1_1generator_1_1c_1_1CUtil_1_1ReportCommandErrors.html#a5ec0cce0770bc1f3a24ed4e7cf75d4fa"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronization';

@@ -94,7 +94,7 @@ $(function(){initNavTree('classorg_1_1lflang_1_1util_1_1ImportUtil.html','','cla
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.util.ImportUtil Class Reference</div></div>
+  <div class="headertitle"><div class="title">org.lflang.util.ImportUtil Class Reference<div class="ingroups"><a class="el" href="group__Utilities.html">Utilities</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -104,7 +104,7 @@ $(function(){initNavTree('classorg_1_1lflang_1_1util_1_1ImportUtil.html','','cla
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
 <tr class="memitem:adeb061a9e1a89c88e6e2946aa07cc451" id="r_adeb061a9e1a89c88e6e2946aa07cc451"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adeb061a9e1a89c88e6e2946aa07cc451">buildPackageURI</a> (String uriStr, Resource resource)</td></tr>
-<tr class="memdesc:adeb061a9e1a89c88e6e2946aa07cc451"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds a package URI based on the provided URI string and resource.  <br /></td></tr>
+<tr class="memdesc:adeb061a9e1a89c88e6e2946aa07cc451"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build a package URI based on the provided URI string and resource.  <br /></td></tr>
 <tr class="memitem:a0a06e73ab0b162baba36d5e9625b9787" id="r_a0a06e73ab0b162baba36d5e9625b9787"><td class="memItemLeft" align="right" valign="top">static Path&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0a06e73ab0b162baba36d5e9625b9787">buildPackageURIfromSrc</a> (String uriStr, String root)</td></tr>
 <tr class="memdesc:a0a06e73ab0b162baba36d5e9625b9787"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds a package URI based on the provided URI string and source path.  <br /></td></tr>
 </table>
@@ -139,8 +139,8 @@ Static Public Member Functions</h2></td></tr>
 </table>
 </div><div class="memdoc">
 
-<p>Builds a package URI based on the provided URI string and resource. </p>
-<p>It traverses upwards from the current resource URI until it finds the "src" directory, then constructs the final URI pointing to the library file within the "build/lfc_include" directory.</p>
+<p>Build a package URI based on the provided URI string and resource. </p>
+<p>This traverses upwards from the current resource URI until it finds the "src" directory, then constructs the final URI pointing to the library file within the "build/lfc_include" directory.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">uriStr</td><td>A string representing the URI of the file. It must contain both the library name and file name, separated by a '/'. </td></tr>

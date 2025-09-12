@@ -1460,6 +1460,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::generator::Argument</Name>
+      <APILanguage>java</APILanguage>
+      <Type>tmplt</Type>
+      <Scope>org.lflang.generator.Argument</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1Argument.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::generator::c::CActionGenerator</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -4480,10 +4489,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING</Name>
+      <Name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing</Name>
       <APILanguage>markdown</APILanguage>
     </TokenIdentifier>
-    <Path>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html</Path>
+    <Path>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION</Name>
+      <APILanguage>markdown</APILanguage>
+    </TokenIdentifier>
+    <Path>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -6893,6 +6909,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html</Path>
     <Anchor>af1bff40deb8e483b3ade4bd95bba0b2b</Anchor>
     <DeclaredIn>TypeParameterizedReactor.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>Argument</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.Argument&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1Argument.html</Path>
+    <Anchor>a404f9d87d34be5688399b628dfaaf8a8</Anchor>
+    <DeclaredIn>Argument.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -47748,6 +47775,17 @@
       <Name>update</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.Argument&lt; T &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1Argument.html</Path>
+    <Anchor>a5abdf7ecf22c22ea6bb3dca40a913f0f</Anchor>
+    <DeclaredIn>Argument.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>update</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.ModelInfo</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
@@ -52569,17 +52607,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>Argument&lt; T &gt;</Name>
-      <APILanguage>java</APILanguage>
-      <Type>func</Type>
-      <Scope>org.lflang.generator</Scope>
-    </TokenIdentifier>
-    <Path>group__Generator.html</Path>
-    <Anchor>ga462b695184b8ecbc587ddfb1288b5c95</Anchor>
-    <DeclaredIn>Argument.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>GeneratorArguments</Name>
       <APILanguage>java</APILanguage>
       <Type>func</Type>
@@ -52596,8 +52623,8 @@
       <Type>func</Type>
       <Scope>org.lflang.util</Scope>
     </TokenIdentifier>
-    <Path>namespaceorg_1_1lflang_1_1util.html</Path>
-    <Anchor>a6d98225f3efc878ff150a29493c74d38</Anchor>
+    <Path>group__Utilities.html</Path>
+    <Anchor>ga6d98225f3efc878ff150a29493c74d38</Anchor>
     <DeclaredIn>Pair.java</DeclaredIn>
   </Token>
 </Tokens>

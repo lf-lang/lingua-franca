@@ -13790,6 +13790,25 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::generator::Argument</name>
+    <filename>classorg_1_1lflang_1_1generator_1_1Argument.html</filename>
+    <templarg>T</templarg>
+    <member kind="function">
+      <type></type>
+      <name>Argument</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1Argument.html</anchorfile>
+      <anchor>a404f9d87d34be5688399b628dfaaf8a8</anchor>
+      <arglist>(TargetProperty&lt; T, ?&gt; property, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>update</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1Argument.html</anchorfile>
+      <anchor>a5abdf7ecf22c22ea6bb3dca40a913f0f</anchor>
+      <arglist>(TargetConfig config, MessageReporter reporter)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::generator::c::CActionGenerator</name>
     <filename>classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html</filename>
     <member kind="function" static="yes">
@@ -42437,6 +42456,7 @@
     <namespace>org::lflang::generator::rust</namespace>
     <namespace>org::lflang::generator::ts</namespace>
     <class kind="class">org::lflang::generator::ActionInstance</class>
+    <class kind="class">org::lflang::generator::Argument</class>
     <class kind="class">org::lflang::generator::CodeBuilder</class>
     <class kind="class">org::lflang::generator::CodeMap</class>
     <class kind="class">org::lflang::generator::DeadlineInstance</class>
@@ -42477,13 +42497,6 @@
     <class kind="interface">org::lflang::generator::ValidationStrategy</class>
     <class kind="class">org::lflang::generator::Validator</class>
     <class kind="class">org::lflang::generator::WatchdogInstance</class>
-    <member kind="function">
-      <type>record</type>
-      <name>Argument&lt; T &gt;</name>
-      <anchorfile>group__Generator.html</anchorfile>
-      <anchor>ga462b695184b8ecbc587ddfb1288b5c95</anchor>
-      <arglist>(TargetProperty&lt; T, ?&gt; property, T value)</arglist>
-    </member>
     <member kind="function">
       <type>record</type>
       <name>GeneratorArguments</name>
@@ -42755,8 +42768,8 @@
     <member kind="function">
       <type>record</type>
       <name>Pair&lt; F, S &gt;</name>
-      <anchorfile>namespaceorg_1_1lflang_1_1util.html</anchorfile>
-      <anchor>a6d98225f3efc878ff150a29493c74d38</anchor>
+      <anchorfile>group__Utilities.html</anchorfile>
+      <anchor>ga6d98225f3efc878ff150a29493c74d38</anchor>
       <arglist>(F first, S second)</arglist>
     </member>
   </compound>
@@ -42864,6 +42877,7 @@
     <name>Generator</name>
     <title>Generator</title>
     <filename>group__Generator.html</filename>
+    <class kind="class">org::lflang::generator::Argument</class>
     <class kind="class">org::lflang::generator::c::CActionGenerator</class>
     <class kind="class">org::lflang::generator::c::CCmakeGenerator</class>
     <class kind="class">org::lflang::generator::c::CCompiler</class>
@@ -42923,13 +42937,6 @@
     <class kind="enum">org::lflang::target::Target</class>
     <member kind="function">
       <type>record</type>
-      <name>org.lflang.generator.Argument&lt; T &gt;</name>
-      <anchorfile>group__Generator.html</anchorfile>
-      <anchor>ga462b695184b8ecbc587ddfb1288b5c95</anchor>
-      <arglist>(TargetProperty&lt; T, ?&gt; property, T value)</arglist>
-    </member>
-    <member kind="function">
-      <type>record</type>
       <name>org.lflang.generator.GeneratorArguments</name>
       <anchorfile>group__Generator.html</anchorfile>
       <anchor>gafe0f6415f88e4d19311019f3a8908b0a</anchor>
@@ -42945,10 +42952,12 @@
     <class kind="class">org::lflang::generator::MainContext</class>
     <class kind="class">org::lflang::generator::SubContext</class>
     <class kind="interface">org::lflang::generator::ValidationStrategy</class>
+    <class kind="class">org::lflang::ide::LFIdeSetup</class>
     <class kind="class">org::lflang::LFResourceDescriptionStrategy</class>
     <class kind="class">org::lflang::LFResourceProvider</class>
     <class kind="class">org::lflang::LFRuntimeModule</class>
     <class kind="class">org::lflang::LFStandaloneSetup</class>
+    <class kind="class">org::lflang::ModelInfo</class>
   </compound>
   <compound kind="group">
     <name>Instances</name>
@@ -42988,6 +42997,24 @@
     <name>Tests</name>
     <title>Tests</title>
     <filename>group__Tests.html</filename>
+    <class kind="class">org::lflang::tests::compiler::EquivalenceUnitTests</class>
+    <class kind="class">org::lflang::tests::compiler::FormattingUnitTests</class>
+    <class kind="class">org::lflang::tests::compiler::LinguaFrancaASTUtilsTest</class>
+    <class kind="class">org::lflang::tests::compiler::LinguaFrancaDependencyAnalysisTest</class>
+    <class kind="class">org::lflang::tests::compiler::LinguaFrancaParsingTest</class>
+    <class kind="class">org::lflang::tests::compiler::LinguaFrancaScopingTest</class>
+    <class kind="class">org::lflang::tests::compiler::LinguaFrancaValidationTest</class>
+    <class kind="class">org::lflang::tests::compiler::MixedRadixIntTest</class>
+    <class kind="class">org::lflang::tests::compiler::PortInstanceTests</class>
+    <class kind="class">org::lflang::tests::compiler::RangeTests</class>
+    <class kind="class">org::lflang::tests::compiler::RoundTripTests</class>
+    <class kind="class">org::lflang::tests::compiler::TargetConfigTests</class>
+    <class kind="class">org::lflang::tests::Configurators</class>
+    <class kind="class">org::lflang::tests::LfInjectedTestBase</class>
+    <class kind="class">org::lflang::tests::LFInjectorProvider</class>
+    <class kind="class">org::lflang::tests::LFParsingTest</class>
+    <class kind="class">org::lflang::tests::LfParsingTestHelper</class>
+    <class kind="class">org::lflang::tests::LFTest</class>
     <class kind="class">org::lflang::tests::lsp::ErrorInserter</class>
     <class kind="class">org::lflang::tests::lsp::LspTests</class>
     <class kind="class">org::lflang::tests::lsp::MockCancelIndicator</class>
@@ -43009,6 +43036,11 @@
     <class kind="class">org::lflang::tests::runtime::TypeScriptTest</class>
     <class kind="class">org::lflang::tests::RuntimeTest</class>
     <class kind="class">org::lflang::tests::serialization::SerializationTest</class>
+    <class kind="class">org::lflang::tests::TestBase</class>
+    <class kind="class">org::lflang::tests::TestError</class>
+    <class kind="class">org::lflang::tests::TestRegistry</class>
+    <class kind="class">org::lflang::tests::Transformers</class>
+    <class kind="class">org::lflang::tests::util::StringUtilTest</class>
   </compound>
   <compound kind="group">
     <name>Utilities</name>
@@ -43032,6 +43064,23 @@
     <class kind="class">org::lflang::generator::Position</class>
     <class kind="class">org::lflang::generator::Range</class>
     <class kind="class">org::lflang::InferredType</class>
+    <class kind="class">org::lflang::util::ArduinoUtil</class>
+    <class kind="class">org::lflang::util::Averager</class>
+    <class kind="class">org::lflang::util::CollectionUtil</class>
+    <class kind="class">org::lflang::util::FileUtil</class>
+    <class kind="class">org::lflang::util::FlexPRETUtil</class>
+    <class kind="class">org::lflang::util::ImportUtil</class>
+    <class kind="class">org::lflang::util::IteratorUtil</class>
+    <class kind="class">org::lflang::util::LFCommand</class>
+    <class kind="class">org::lflang::util::StringUtil</class>
+    <class kind="class">org::lflang::util::TargetResourceNotFoundException</class>
+    <member kind="function">
+      <type>record</type>
+      <name>org.lflang.util.Pair&lt; F, S &gt;</name>
+      <anchorfile>group__Utilities.html</anchorfile>
+      <anchor>ga6d98225f3efc878ff150a29493c74d38</anchor>
+      <arglist>(F first, S second)</arglist>
+    </member>
   </compound>
   <compound kind="group">
     <name>Validation</name>
@@ -43048,9 +43097,14 @@
     <class kind="class">org::lflang::LFSyntaxErrorMessageProvider</class>
   </compound>
   <compound kind="page">
-    <name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING</name>
+    <name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing</name>
     <title>Contributing to Lingua Franca</title>
-    <filename>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html</filename>
+    <filename>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html</filename>
+  </compound>
+  <compound kind="page">
+    <name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION</name>
+    <title>DOCUMENTATION</title>
+    <filename>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html</filename>
   </compound>
   <compound kind="page">
     <name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2LICENSE</name>

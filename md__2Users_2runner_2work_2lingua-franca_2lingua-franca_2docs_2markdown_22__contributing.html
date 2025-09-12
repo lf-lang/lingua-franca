@@ -68,7 +68,7 @@ $(function() {
   </div>
 </div>
 <script type="text/javascript">
-$(function(){initNavTree('md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2CONTRIBUTING.html','',''); });
+$(function(){initNavTree('md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2docs_2markdown_22__contributing.html','',''); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -97,32 +97,33 @@ $(function(){initNavTree('md__2Users_2runner_2work_2lingua-franca_2lingua-franca
   <div class="headertitle"><div class="title">Contributing to Lingua Franca </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md4"></a></p>
+<div class="textblock"><p><a class="anchor" id="autotoc_md0"></a></p>
 <dl class="section important"><dt>Important</dt><dd>This document contains guidelines specific to this repository. Please also read the general <a href="https://github.com/lf-lang/.github/blob/main/CONTRIBUTING.md">contributing guidelines</a> of the lf-lang organization.</dd></dl>
 <p>This repository hosts the source code for the Lingua Franca compiler, which is written in Java and Kotlin. We welcome contributions from the community and provide these guidelines in order to make contributing a smooth, efficient, and fun process.</p>
-<h1 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
+<h1 class="doxsection"><a class="anchor" id="autotoc_md1"></a>
 Contributing code</h1>
 <p>You can work on the Lingua Franca code base in your favorite editor and build <a href="https://www.lf-lang.org/docs/developer/downloading-and-building#building-the-command-line-tools">using Gradle</a>. We recommend to use the <a href="https://www.lf-lang.org/docs/handbook/intellij">IntelliJ</a> IDE.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md6"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md2"></a>
 Writing tests</h2>
 <p>An integral part of contributing code is writing tests.</p>
 <p><b>Unit tests</b> for the compiler are located in the <span class="tt"><a class="el" href="namespaceorg_1_1lflang_1_1tests.html">org.lflang.tests</a></span> package (found in the directory <span class="tt">core/src/test/java/org/lflang/tests</span>, in the <span class="tt">core</span> gradle subproject) and are implemented using the JUnit test framework. These tests are invoked using Gradle. For example, to run all the tests in the <span class="tt"><a class="el" href="namespaceorg_1_1lflang_1_1tests_1_1compiler.html">org.lflang.tests.compiler</a></span> package, use the following command:</p>
 <div class="fragment"><div class="line">./gradlew :core:test --tests &quot;org.lflang.tests.compiler.*&quot;</div>
 </div><!-- fragment --><p><b>Integration tests</b> consist of complete Lingua Franca programs that are located in the <span class="tt">test</span> directory in the root of the repository and are organized first by target, then by category. These tests get indexed automatically and are also invoked using Gradle. For instance, to run all the tests for the C target, use the following command:</p>
 <div class="fragment"><div class="line">./gradlew targetTest -Ptarget=C</div>
-</div><!-- fragment --><p>For more details, see test/README.md.</p>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
+</div><!-- fragment --><p>For more details, see <a href="https://github.com/lf-lang/lingua-franca/blob/master/test/README.md">test/README.md</a>.</p>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md3"></a>
 Workflow</h2>
 <p>All code contributions must go through a <a href="https://github.com/lf-lang/.github/blob/main/CONTRIBUTING.md#pull-requests">pull request (PR)</a>, pass all tests run in CI, and get an approving review before it is merged. Pushing to the <span class="tt">master</span> branch is restricted. All code review is conducted using the Github review system on PRs. Before requesting a code review, ensure that you have:</p><ul>
-<li>applied the code formatter;</li>
-<li>documented your code;</li>
-<li>written tests that cover your code; and</li>
+<li>applied the [code formatter](code-style-and-formatting);</li>
+<li>[documented](code-style-and-formatting) your code;</li>
+<li>written [tests](writing-tests) that cover your code; and</li>
 <li>accompanied any remaining <span class="tt">TODO</span>s or <span class="tt">FIXME</span>s with a link to an active issue.</li>
 </ul>
-<h2 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
+<h2 class="doxsection"><a class="anchor" id="autotoc_md4"></a>
 Code style and formatting</h2>
-<p>The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. The code base is shipped with a <a href="https://github.com/diffplug/spotless">Spotless</a> configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.</p>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md9"></a>
+<p>The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. Documentation for the code should use <a href="https://en.wikipedia.org/wiki/Javadoc">Javadoc</a> comments with <a href="https://en.wikipedia.org/wiki/Markdown">Markdown</a> formatting for the content. See also <a class="el" href="md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html">documentation generation</a>.</p>
+<p>The code base is shipped with a <a href="https://github.com/diffplug/spotless">Spotless</a> configuration to check and enforce style compliance. Lingua Franca code (e.g., tests) in this repository is also automatically formatted via Spotless.</p>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md5"></a>
 Formatting</h3>
 <ul>
 <li>To check that modified files are formatted correctly, run:</li>
@@ -141,7 +142,7 @@ Formatting</h3>
 <p><em>Checking using Git hooks</em></p>
 <p>If you prefer not to use formatting on save but would still like to avoid committing unformatted code, you can add a file <span class="tt">.git/hooks/pre-commit</span> with the contents:</p>
 <div class="fragment"><div class="line">./gradlew spotlessCheck</div>
-</div><!-- fragment --><h3 class="doxsection"><a class="anchor" id="autotoc_md10"></a>
+</div><!-- fragment --><h3 class="doxsection"><a class="anchor" id="autotoc_md6"></a>
 General guidelines</h3>
 <ul>
 <li><em>Do not copy-paste code.</em> If you want to reuse code, factor it out into a method and call it.</li>
@@ -155,8 +156,9 @@ General guidelines</h3>
 <li>Do not use contractions like "aren't" or "isn't".</li>
 <li>Use imperative in the description of a method, i.e., write "Compute the shortest path," not "Computes the shortest path" (the latter is not a complete sentence).</li>
 <li>In <span class="tt">@param</span> JavaDoc tag descriptions it is OK to use incomplete sentences in the interest of brevity.</li>
+<li>Use Markdown formatting.</li>
 </ul>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md11"></a>
+<h3 class="doxsection"><a class="anchor" id="autotoc_md7"></a>
 Java-specific guidelines</h3>
 <p>We use the <a href="https://google.github.io/styleguide/javaguide.html">Google Java style guide</a>, which leaves a few things unspecified that we discuss here in a bit more depth.</p>
 <p><em>Ordering of class contents (<a href="https://google.github.io/styleguide/javaguide.html#s3.4.2-ordering-class-contents">S3.4.2</a>)</em></p>
@@ -193,21 +195,7 @@ Java-specific guidelines</h3>
 <div class="line"> </div>
 <div class="line">/* If you need to modify the internal list of the `container`, add a method to the container that encapsulates that logic */</div>
 <div class="line">container.add(&quot;extra&quot;);</div>
-</div><!-- fragment --><p><em>JavaDoc</em></p>
-<p>The <a href="https://google.github.io/styleguide/javaguide.html#s7-javadoc">Google style guide</a> is pretty terse about JavaDoc, in particular about <a href="https://google.github.io/styleguide/javaguide.html#s7.3-javadoc-where-required">where JavaDoc is required</a>. Please refer to the <a href="https://www.oracle.com/technical-resources/articles/java/javadoc-tool.html#styleguide">Oracle JavaDoc style guide</a> for detailed guidelines.</p>
-<p><em>Compact JavaDoc</em></p>
-<p>Omit <span class="tt">@param</span> and <span class="tt">@return</span> tags from JavaDoc if the summary line already describes everything there is to know about them. For instance, prefer:</p>
-<div class="fragment"><div class="line">/** Return the sum of a and b. */</div>
-<div class="line">public static int getSum(int a, int b) { ... }</div>
-</div><!-- fragment --><p> over </p><div class="fragment"><div class="line">/**</div>
-<div class="line"> * Return the sum of two integers.</div>
-<div class="line"> * @param a an integer</div>
-<div class="line"> * @param b an integer</div>
-<div class="line"> * @return the sum of both parameters</div>
-<div class="line"> */</div>
-<div class="line">public static void printSum(int a, int b) { ... }</div>
-</div><!-- fragment --><p>Additional information about "compact style" JavaDoc can be found <a href="https://www.cs.cornell.edu/courses/JavaAndDS/JavaStyle.html#Comments">here</a>.</p>
-<h3 class="doxsection"><a class="anchor" id="autotoc_md12"></a>
+</div><!-- fragment --><h3 class="doxsection"><a class="anchor" id="autotoc_md8"></a>
 Kotlin-specific guidelines</h3>
 <p>Please follow the <a href="https://kotlinlang.org/docs/coding-conventions.html">Kotlin coding conventions</a>. </p>
 </div></div><!-- contents -->

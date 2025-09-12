@@ -1,5 +1,9 @@
 var group__Generator =
 [
+    [ "org.lflang.generator.Argument< T >", "classorg_1_1lflang_1_1generator_1_1Argument.html", [
+      [ "Argument", "classorg_1_1lflang_1_1generator_1_1Argument.html#a404f9d87d34be5688399b628dfaaf8a8", null ],
+      [ "update", "classorg_1_1lflang_1_1generator_1_1Argument.html#a5abdf7ecf22c22ea6bb3dca40a913f0f", null ]
+    ] ],
     [ "org.lflang.generator.c.CActionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html", [
       [ "generateAuxiliaryStruct", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#a68b4bab7f129c9886ae3eaabaf036681", null ],
       [ "generateDeclarations", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#a7c2e744872569f130bd83faabe277524", null ],
@@ -801,6 +805,5 @@ var group__Generator =
       [ "TS", "enumorg_1_1lflang_1_1target_1_1Target.html#a3e977a13ce65a6e7c74667c6f611e514", null ],
       [ "UC", "enumorg_1_1lflang_1_1target_1_1Target.html#a943516a43384d8fd7be4abf87c66c017", null ]
     ] ],
-    [ "org.lflang.generator.Argument< T >", "group__Generator.html#ga462b695184b8ecbc587ddfb1288b5c95", null ],
     [ "org.lflang.generator.GeneratorArguments", "group__Generator.html#gafe0f6415f88e4d19311019f3a8908b0a", null ]
 ];
