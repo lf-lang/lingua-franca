@@ -37,7 +37,7 @@ All code contributions must go through a [pull request (PR)](https://github.com/
 
 
 ### Code style and formatting
-The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar. 
+The Lingua Franca compiler is implemented in Java and Kotlin. The overarching advice is to use each language's most widely used idioms and conventions, which are fortunately very similar.
 Documentation for the code should use [Javadoc](https://en.wikipedia.org/wiki/Javadoc) comments with [Markdown](https://en.wikipedia.org/wiki/Markdown) formatting for the content.
 See also [documentation generation](../DOCUMENTATION.md).
 
