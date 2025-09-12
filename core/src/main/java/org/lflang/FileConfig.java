@@ -48,7 +48,7 @@ public abstract class FileConfig {
   public final Path binPath;
 
   /**
-   * The name of the main reactor, which has to match the file name (without the '.lf' extension).
+   * The name of the main reactor, which has to match the file name (without the `.lf` extension).
    */
   public final String name;
 
@@ -74,7 +74,7 @@ public abstract class FileConfig {
    * program. This is the XText view of the file, which is distinct from the Eclipse eCore view of
    * the file and the OS view of the file.
    *
-   * <p>This is null if running outside an Eclipse IDE.
+   * This is null if running outside an Eclipse IDE.
    */
   public final IResource iResource;
 
@@ -85,7 +85,7 @@ public abstract class FileConfig {
   public final Path srcFile;
 
   /** The directory in which the source .lf file was found. */
-  public final Path srcPath; // FIXME: rename this to srcDir?
+  public final Path srcPath;
 
   /** Indicate whether the bin directory should be hierarchical. */
   public final boolean useHierarchicalBin;
@@ -117,8 +117,9 @@ public abstract class FileConfig {
    * siblings of the directory for generated sources, which means that such directories should be
    * created relative to the path assigned to this class variable.
    *
-   * <p>The generated source directory is specified in the IDE (Project
-   * Properties->LF->Compiler->Output Folder). When invoking the standalone compiler, the output
+   * The generated source directory is specified in the IDE
+   * (`Project Properties->LF->Compiler->Output Folder`).
+   * When invoking the standalone compiler, the output
    * path is specified directly using the `-o` or `--output-path` option.
    */
   private final Path outPath;
@@ -155,19 +156,19 @@ public abstract class FileConfig {
     this.iResource = FileUtil.getIResource(resource);
   }
 
-  /** Get the directory a resource is located in relative to the root package */
+  /** Get the directory a resource is located in relative to the root package. */
   public Path getDirectory(Resource r) {
     return getSubPkgPath(FileUtil.toPath(r).getParent());
   }
 
   /**
-   * The parent of the directory designated for placing generated sources into (`./src-gen` by
+   * The parent of the directory designated for placing generated sources into (`src-gen` by
    * default). Additional directories (such as `bin` or `build`) should be created as
    * siblings of the directory for generated sources, which means that such directories should be
    * created relative to the path assigned to this class variable.
    *
-   * <p>The generated source directory is specified in the IDE (Project
-   * Properties->LF->Compiler->Output Folder). When invoking the standalone compiler, the output
+   * The generated source directory is specified in the IDE (Project
+   * `Properties->LF->Compiler->Output Folder`). When invoking the standalone compiler, the output
    * path is specified directly using the `-o` or `--output-path` option.
    */
   public Path getOutPath() {
@@ -250,7 +251,7 @@ public abstract class FileConfig {
   /**
    * Clean any artifacts produced by the code generator and target compilers.
    *
-   * <p>The base implementation deletes the bin and src-gen directories. If the target code
+   * The base implementation deletes the bin and src-gen directories. If the target code
    * generator creates additional files or directories, the corresponding generator should override
    * this method.
    *
@@ -282,6 +283,7 @@ public abstract class FileConfig {
    * current working directory instead.
    *
    * @param input The *.lf file to find the package root for.
+   * @param printWarning A function to print a warning message.
    * @return The package root, or the current working directory if none exists.
    */
   public static Path findPackageRoot(final Path input, final Consumer<String> printWarning) {

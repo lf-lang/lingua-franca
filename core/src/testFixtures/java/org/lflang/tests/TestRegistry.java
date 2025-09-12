@@ -35,6 +35,7 @@ import org.lflang.tests.TestBase.TestLevel;
  * A registry to retrieve tests from, organized by target and category.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 @Singleton
 public class TestRegistry {

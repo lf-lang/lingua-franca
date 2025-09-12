@@ -254,7 +254,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the declared label of the node, as given by the @label annotation.
+   * Return the declared label of the node, as given by the `@label` annotation.
    *
    * @param node The node to get the label from.
    * @return The label of the node or null if there is no such annotation.
@@ -264,7 +264,7 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the declared icon of the node, as given by the @icon annotation, or null if there is no
+   * Return the declared icon of the node, as given by the `@icon` annotation, or null if there is no
    * such annotation.
    *
    * @param node The node to get the icon path from.
