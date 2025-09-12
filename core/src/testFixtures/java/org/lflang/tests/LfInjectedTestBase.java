@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * dependencies.
  *
  * @author Clément Fournier
+ * @ingroup Tests
  */
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)

@@ -15,6 +15,10 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 
+/**
+ * Test the PortInstance class.
+ * @ingroup Tests
+ */
 public class PortInstanceTests {
 
   private MessageReporter reporter = new DefaultMessageReporter();

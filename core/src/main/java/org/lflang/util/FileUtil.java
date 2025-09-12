@@ -37,6 +37,10 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 
+/**
+ * Utilities for file operations.
+ * @ingroup Utilities
+ */
 public class FileUtil {
 
   /**

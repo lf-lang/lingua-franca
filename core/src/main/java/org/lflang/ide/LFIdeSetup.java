@@ -13,7 +13,10 @@ import org.eclipse.xtext.util.Modules2;
 import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 
-/** Initialization support for running Xtext languages as language servers. */
+/**
+ * Initialization support for running Xtext languages as language servers.
+ * @ingroup Infrastructure
+ */
 public class LFIdeSetup extends LFStandaloneSetup {
 
   public static Injector doSetup() {

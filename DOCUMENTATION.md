@@ -1,4 +1,3 @@
-[![CI](https://github.com/lf-lang/lingua-franca/actions/workflows/ci.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/ci.yml)
 [![API docs](https://github.com/lf-lang/lingua-franca/actions/workflows/api-docs.yml/badge.svg)](https://github.com/lf-lang/lingua-franca/actions/workflows/api-docs.yml)
 
 # Documentation Generation
