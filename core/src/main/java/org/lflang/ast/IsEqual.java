@@ -387,7 +387,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equivalent(Element::getArray)
         .equalAsObjects(Element::getLiteral)
         .equalAsObjects(Element::getId)
-        .equalAsObjects(Element::getUnit)
+        .equivalent(Element::getTime)
         .conclusion;
   }
 
@@ -475,11 +475,16 @@ public class IsEqual extends LfSwitch<Boolean> {
 
   @Override
   public Boolean caseTime(Time object) {
+    if (object == null) return false;
+    // (interval=INT unit=TimeUnit) | forever=Forever | never=Never
     return new ComparisonMachine<>(object, Time.class)
+        .equalAsObjects(Time::getForever)
+        .equalAsObjects(Time::getNever)
         .equalAsObjects(Time::getInterval)
         .equalAsObjectsModulo(
             Time::getUnit,
-            ((Function<TimeUnit, String>) TimeUnit::getCanonicalName).compose(TimeUnit::fromName))
+            ((Function<TimeUnit, String>) TimeUnit::staticGetCanonicalName)
+                .compose(TimeUnit::fromName))
         .conclusion;
   }
 
@@ -652,7 +657,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     /**
      * Conclude false if the two properties are not equal as objects, given that
-     * `projectionToClassRepresentatives` maps each object to some semantically equivalent object.
+     * `projectionToClassRepresentatives` maps each object to some semantically equivalent object. If either or both of the objects are null, also conclude false.
      */
     <T> ComparisonMachine<E> equalAsObjectsModulo(
         Function<E, T> propertyGetter, Function<T, T> projectionToClassRepresentatives) {

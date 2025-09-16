@@ -720,7 +720,7 @@ public class ASTUtils {
    * @param e The element to be rendered as a time value.
    */
   public static TimeValue toTimeValue(Element e) {
-    return new TimeValue(e.getTime(), TimeUnit.fromName(e.getUnit()));
+    return new TimeValue(e.getTime());
   }
 
   /** Returns the time value represented by the given AST node. */
@@ -863,10 +863,12 @@ public class ASTUtils {
    */
   public static Element toElement(TimeValue tv) {
     Element e = LfFactory.eINSTANCE.createElement();
-    e.setTime((int) tv.time);
+    Time time = LfFactory.eINSTANCE.createTime();
+    time.setInterval((int) tv.time);
     if (tv.unit != null) {
-      e.setUnit(tv.unit.toString());
+      time.setUnit(tv.unit.toString());
     }
+    e.setTime(time);
     return e;
   }
 

@@ -632,20 +632,20 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        keyvalue=KeyValuePairs
     //            | array=Array
     //            | literal=Literal
-    //            | (time=INT unit=TimeUnit)
-    //    | id=Path;
+    //            | time=Time
+    //            | id=Path;
     return sList(
         "element",
         object.getKeyvalue(),
         object.getArray(),
         object.getLiteral(),
-        object.getTime() == 0
-                && (object.getKeyvalue() != null
-                    || object.getArray() != null
-                    || object.getLiteral() != null
-                    || object.getId() != null)
+        object.getTime() == null
             ? null
-            : sList("time", object.getTime(), object.getUnit()),
+            : object.getTime().getForever() != null
+                ? "forever"
+                : object.getTime().getNever() != null
+                    ? "never"
+                    : sList("time", object.getTime().getInterval(), object.getTime().getUnit()),
         object.getId());
   }
 

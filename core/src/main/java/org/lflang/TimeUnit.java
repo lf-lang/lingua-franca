@@ -81,6 +81,14 @@ public enum TimeUnit {
     return canonicalName;
   }
 
+  /** Returns the name that is preferred when displaying this unit. */
+  public static String staticGetCanonicalName(TimeUnit unit) {
+    if (unit == null) {
+      return null;
+    }
+    return unit.getCanonicalName();
+  }
+
   /** Returns true if the given name is one of the aliases of this unit. */
   public boolean hasAlias(String name) {
     return allNames.contains(name);

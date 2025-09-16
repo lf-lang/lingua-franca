@@ -247,7 +247,7 @@ Element:
     keyvalue=KeyValuePairs
     | array=Array
     | literal=Literal
-    | (time=INT unit=TimeUnit)
+    | time=Time
     | id=Path;
 
 ///////// Pieces
@@ -312,7 +312,7 @@ ParameterReference:
 ;
 
 Time:
-    (interval=INT unit=TimeUnit)
+    (interval=INT unit=TimeUnit) | forever=Forever | never=Never
 ;
 
 Port:
@@ -374,7 +374,7 @@ Never:
 ;
 
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever | Never
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
 ;
 
 Boolean:
