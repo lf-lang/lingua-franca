@@ -1,4 +1,4 @@
-// Test whether the lf_update_deadline() function works.
+// Test of lf_update_deadline() API for updating deadlines dynamically.
 // This test covers two scenarios:
 // 1. Updating to an earlier deadline: Verify that a 100 ms declared deadline
 // can be shortened to 50 ms at runtime, and that a violation occurs
