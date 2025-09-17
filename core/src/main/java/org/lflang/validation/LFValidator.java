@@ -1772,15 +1772,6 @@ public class LFValidator extends BaseLFValidator {
       if (ASTUtils.isZero(((Literal) value).getLiteral())) {
         return;
       }
-
-      if (ASTUtils.isForever(((Literal) value).getLiteral())) {
-        return;
-      }
-
-      if (ASTUtils.isNever(((Literal) value).getLiteral())) {
-        return;
-      }
-
       if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
         error("Missing time unit.", feature);
         return;
