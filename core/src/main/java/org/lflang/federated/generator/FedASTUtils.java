@@ -525,12 +525,11 @@ public class FedASTUtils {
   }
 
   /**
-   * @brief Find the maximum STP offset (STAA) for the given 'port'.
-   *     <p>An STP offset (STAA) may be nested in contained reactors in the federate. This returns
-   *     TimeValue.ZERO if there are no STAA offsets for the port.
-   * @param connection The connection to find the max STP offset for.
+   * Find the maximum maxwait (STP offset, STAA) for the destination port of the given
+   * connection. This maximum may be nested in contained reactors in the federate.
+   * This method returns TimeValue.ZERO if there are no maxwait offsets for the port.
+   * @param connection The connection to find the maxwait offset for.
    * @param coordination The coordination scheme.
-   * @return The maximum STP (STAA) as a TimeValue
    */
   private static TimeValue findMaxSTAA(
       FedConnectionInstance connection, CoordinationMode coordination) {
@@ -577,14 +576,14 @@ public class FedASTUtils {
       for (Reaction r : safe(reactionsWithPort)) {
         // If STP offset is determined, add it
         // If not, assume it is zero
-        if (r.getStp() != null) {
-          if (r.getStp().getValue() instanceof ParameterReference) {
+        if (r.getMaxWait() != null) {
+          if (r.getMaxWait().getValue() instanceof ParameterReference) {
             List<Instantiation> instantList = new ArrayList<>();
             instantList.add(instance.instantiation);
-            final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
+            final var param = ((ParameterReference) r.getMaxWait().getValue()).getParameter();
             STPList.add(ASTUtils.initialValue(param, instantList));
           } else {
-            STPList.add(r.getStp().getValue());
+            STPList.add(r.getMaxWait().getValue());
           }
         }
       }
@@ -617,14 +616,14 @@ public class FedASTUtils {
         for (Reaction r : safe(childReactionsWithPort)) {
           // If STP offset is determined, add it
           // If not, assume it is zero
-          if (r.getStp() != null) {
-            if (r.getStp().getValue() instanceof ParameterReference) {
+          if (r.getMaxWait() != null) {
+            if (r.getMaxWait().getValue() instanceof ParameterReference) {
               List<Instantiation> instantList = new ArrayList<>();
               instantList.add(childPort.getContainer());
-              final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
+              final var param = ((ParameterReference) r.getMaxWait().getValue()).getParameter();
               STPList.add(ASTUtils.initialValue(param, instantList));
             } else {
-              STPList.add(r.getStp().getValue());
+              STPList.add(r.getMaxWait().getValue());
             }
           }
         }

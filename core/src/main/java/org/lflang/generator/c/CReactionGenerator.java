@@ -898,7 +898,7 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getStp() != null) {
+      if (reaction.getMaxWait() != null) {
         // The following has to match the name chosen in generateReactions
         var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
         STPFunctionPointer = "&" + STPFunctionName;
@@ -1154,12 +1154,12 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getStp() != null) {
+    if (reaction.getMaxWait() != null) {
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getStp().getCode(),
+              reaction.getMaxWait().getCode(),
               suppressLineDirectives));
     }
 

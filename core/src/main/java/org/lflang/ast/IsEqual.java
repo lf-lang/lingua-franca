@@ -34,6 +34,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
+import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -48,7 +49,6 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -286,7 +286,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equalAsObjects(Reaction::isMutation)
         .equalAsObjects(Reaction::getName)
         .equivalent(Reaction::getCode)
-        .equivalent(Reaction::getStp)
+        .equivalent(Reaction::getMaxWait)
         .equivalent(Reaction::getDeadline)
         .conclusion;
   }
@@ -312,10 +312,10 @@ public class IsEqual extends LfSwitch<Boolean> {
   }
 
   @Override
-  public Boolean caseSTP(STP object) {
-    return new ComparisonMachine<>(object, STP.class)
-        .equivalent(STP::getValue)
-        .equivalent(STP::getCode)
+  public Boolean caseMaxWait(MaxWait object) {
+    return new ComparisonMachine<>(object, MaxWait.class)
+        .equivalent(MaxWait::getValue)
+        .equivalent(MaxWait::getCode)
         .conclusion;
   }
 
@@ -387,7 +387,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equivalent(Element::getArray)
         .equalAsObjects(Element::getLiteral)
         .equalAsObjects(Element::getId)
-        .equalAsObjects(Element::getUnit)
+        .equivalent(Element::getTime)
         .conclusion;
   }
 
@@ -475,11 +475,16 @@ public class IsEqual extends LfSwitch<Boolean> {
 
   @Override
   public Boolean caseTime(Time object) {
+    if (object == null) return false;
+    // (interval=INT unit=TimeUnit) | forever=Forever | never=Never
     return new ComparisonMachine<>(object, Time.class)
+        .equalAsObjects(Time::getForever)
+        .equalAsObjects(Time::getNever)
         .equalAsObjects(Time::getInterval)
         .equalAsObjectsModulo(
             Time::getUnit,
-            ((Function<TimeUnit, String>) TimeUnit::getCanonicalName).compose(TimeUnit::fromName))
+            ((Function<TimeUnit, String>) TimeUnit::staticGetCanonicalName)
+                .compose(TimeUnit::fromName))
         .conclusion;
   }
 
@@ -652,7 +657,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     /**
      * Conclude false if the two properties are not equal as objects, given that
-     * `projectionToClassRepresentatives` maps each object to some semantically equivalent object.
+     * `projectionToClassRepresentatives` maps each object to some semantically equivalent object. If either or both of the objects are null, also conclude false.
      */
     <T> ComparisonMachine<E> equalAsObjectsModulo(
         Function<E, T> propertyGetter, Function<T, T> projectionToClassRepresentatives) {

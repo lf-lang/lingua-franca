@@ -182,11 +182,13 @@ public class Lff extends CliBase {
         .doSwitch(
             new LfParsingHelper()
                 .parseSourceAsIfInDirectory(path.getParent(), formattedFileContents))) {
-      reporter.printFatalErrorAndExit(
-          "The formatter failed to produce output that is semantically equivalent to its input when"
-              + " executed on the file "
-              + path
-              + ". Please file a bug report with Lingua Franca.");
+      if (!ignoreErrors) {
+        reporter.printFatalErrorAndExit(
+            "The formatter failed to produce output that is semantically equivalent to its input"
+                + " when executed on the file "
+                + path
+                + ". Please file a bug report with Lingua Franca.");
+      }
     }
 
     try {

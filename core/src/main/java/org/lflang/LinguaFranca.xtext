@@ -178,7 +178,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
+    (code=Code)? (maxWait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
@@ -196,8 +196,8 @@ Watchdog:
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
 
-STP:
-    ('STP' | 'STAA' | 'maxwait') '(' value=Expression ')' code=Code;
+MaxWait:
+    ('STP' | 'STAA' | 'maxwait') ('(' value=Expression ')')? (code=Code)?;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
@@ -210,6 +210,7 @@ Instantiation:
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
+    (attributes+=Attribute)*
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>')
@@ -247,7 +248,7 @@ Element:
     keyvalue=KeyValuePairs
     | array=Array
     | literal=Literal
-    | (time=INT unit=TimeUnit)
+    | time=Time
     | id=Path;
 
 ///////// Pieces
@@ -312,7 +313,7 @@ ParameterReference:
 ;
 
 Time:
-    (interval=INT unit=TimeUnit)
+    (interval=INT unit=TimeUnit) | forever=Forever | never=Never
 ;
 
 Port:
@@ -374,7 +375,7 @@ Never:
 ;
 
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever | Never
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
 ;
 
 Boolean:
