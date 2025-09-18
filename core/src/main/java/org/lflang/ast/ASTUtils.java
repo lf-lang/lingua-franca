@@ -925,16 +925,6 @@ public class ASTUtils {
   }
 
   /**
-   * Report whether the given literal is never or not.
-   *
-   * @param literal AST node to inspect.
-   * @return True if the given literal denotes the constant `never`, false otherwise.
-   */
-  public static boolean isNever(String literal) {
-    return literal != null && literal.equals("never");
-  }
-
-  /**
    * Report whether the given expression is zero or not.
    *
    * @param expr AST node to inspect.
@@ -948,19 +938,6 @@ public class ASTUtils {
   }
 
   /**
-   * Report whether the given expression is never or not.
-   *
-   * @param expr AST node to inspect.
-   * @return True if the given value denotes the constant `never`, false otherwise.
-   */
-  public static boolean isNever(Expression expr) {
-    if (expr instanceof Literal) {
-      return isNever(((Literal) expr).getLiteral());
-    }
-    return false;
-  }
-
-  /**
    * Report whether the given string literal is an integer number or not.
    *
    * @param literal AST node to inspect.
@@ -969,7 +946,7 @@ public class ASTUtils {
   public static boolean isInteger(String literal) {
     try {
       //noinspection ResultOfMethodCallIgnored
-      Integer.decode(literal);
+      Long.decode(literal);
     } catch (NumberFormatException e) {
       return false;
     }
