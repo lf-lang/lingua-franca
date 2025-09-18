@@ -831,7 +831,7 @@ public class LFValidator extends BaseLFValidator {
             Literals.REACTION__CODE);
         return;
       }
-      if (reaction.getDeadline() == null && reaction.getStp() == null) {
+      if (reaction.getDeadline() == null && reaction.getMaxWait() == null) {
         var text = NodeModelUtils.findActualNodeFor(reaction).getText();
         var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
         if (matcher.find()) {

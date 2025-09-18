@@ -687,7 +687,7 @@ public class CExtension implements FedTargetExtension {
             "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
-    // Find the STA (A.K.A. the global STP offset) for this federate.
+    // Find the maxwait (A.K.A. STA, the global STP offset) for this federate.
     if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
         == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());

@@ -48,6 +48,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
+import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -62,7 +63,6 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -654,7 +654,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)(maxwait=MaxWait)?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -685,7 +685,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                   .collect(new Joiner(", ")));
     }
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
-    if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
+    if (object.getMaxWait() != null) msb.append(" ").append(doSwitch(object.getMaxWait()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();
   }
@@ -745,9 +745,9 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
-  public MalleableString caseSTP(STP object) {
-    // 'STP' '(' value=Expression ')' code=Code
-    return handler(object, "STAA", STP::getValue, STP::getCode);
+  public MalleableString caseMaxWait(MaxWait object) {
+    // 'maxwait' '(' value=Expression ')' code=Code
+    return handler(object, "STAA", MaxWait::getValue, MaxWait::getCode);
   }
 
   private <T extends EObject> MalleableString handler(

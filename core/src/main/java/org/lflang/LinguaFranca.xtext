@@ -178,7 +178,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
+    (code=Code)? (maxWait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
@@ -196,7 +196,7 @@ Watchdog:
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
 
-STP:
+MaxWait:
     ('STP' | 'STAA' | 'maxwait') ('(' value=Expression ')')? code=Code;
 
 Preamble:
@@ -210,6 +210,7 @@ Instantiation:
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
+    (attributes+=Attribute)*
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>')
