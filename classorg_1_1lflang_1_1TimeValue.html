@@ -94,7 +94,7 @@ $(function(){initNavTree('classorg_1_1lflang_1_1TimeValue.html','','classorg_1_1
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.TimeValue Class Reference</div></div>
+  <div class="headertitle"><div class="title">org.lflang.TimeValue Class Reference<div class="ingroups"><a class="el" href="group__Utilities.html">Utilities</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
@@ -120,6 +120,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a10dccc641698ff0da9aa15b9a1926116"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return this time value minus the specified time value but no less than 0.  <br /></td></tr>
 <tr class="memitem:a6b2c94c0946ee7cc84ddc12350541d81" id="r_a6b2c94c0946ee7cc84ddc12350541d81"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a6b2c94c0946ee7cc84ddc12350541d81">TimeValue</a> (long <a class="el" href="#ab986bf05da6c50e3ef23a88ae2f7ab12">time</a>, <a class="el" href="enumorg_1_1lflang_1_1TimeUnit.html">TimeUnit</a> <a class="el" href="#ad7cbbfe777c461913202b2637ce3b11a">unit</a>)</td></tr>
 <tr class="memdesc:a6b2c94c0946ee7cc84ddc12350541d81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new time value.  <br /></td></tr>
+<tr class="memitem:aaa77febfc115e49ab191d8a5fe4f4dfd" id="r_aaa77febfc115e49ab191d8a5fe4f4dfd"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaa77febfc115e49ab191d8a5fe4f4dfd">TimeValue</a> (Time <a class="el" href="#ab986bf05da6c50e3ef23a88ae2f7ab12">time</a>)</td></tr>
+<tr class="memdesc:aaa77febfc115e49ab191d8a5fe4f4dfd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a new time value.  <br /></td></tr>
 <tr class="memitem:aec673e98abdf2b5806042f7b2b6394f9" id="r_aec673e98abdf2b5806042f7b2b6394f9"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aec673e98abdf2b5806042f7b2b6394f9">toNanoSeconds</a> ()</td></tr>
 <tr class="memdesc:aec673e98abdf2b5806042f7b2b6394f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get this time value in number of nanoseconds.  <br /></td></tr>
 <tr class="memitem:a0d919c389659be0dc2e4db26516096a5" id="r_a0d919c389659be0dc2e4db26516096a5"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a0d919c389659be0dc2e4db26516096a5">toString</a> ()</td></tr>
@@ -164,7 +166,7 @@ Static Public Attributes</h2></td></tr>
 Clément Fournier - TU Dresden, INSA Rennes </dd></dl>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a6b2c94c0946ee7cc84ddc12350541d81" name="a6b2c94c0946ee7cc84ddc12350541d81"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6b2c94c0946ee7cc84ddc12350541d81">&#9670;&#160;</a></span>TimeValue()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a6b2c94c0946ee7cc84ddc12350541d81">&#9670;&#160;</a></span>TimeValue() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -183,9 +185,47 @@ Clément Fournier - TU Dresden, INSA Rennes </dd></dl>
 </div><div class="memdoc">
 
 <p>Create a new time value. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">time</td><td>The time value. </td></tr>
+    <tr><td class="paramname">unit</td><td>The unit of the time value. </td></tr>
+  </table>
+  </dd>
+</dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
-    <tr><td class="paramname">IllegalArgumentException</td><td>If time is non-zero and the unit is null </td></tr>
+    <tr><td class="paramname">IllegalArgumentException</td><td>If time is non-zero and the unit is null. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aaa77febfc115e49ab191d8a5fe4f4dfd" name="aaa77febfc115e49ab191d8a5fe4f4dfd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaa77febfc115e49ab191d8a5fe4f4dfd">&#9670;&#160;</a></span>TimeValue() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">org.lflang.TimeValue.TimeValue </td>
+          <td>(</td>
+          <td class="paramtype">Time</td>          <td class="paramname"><span class="paramname"><em>time</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a new time value. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">time</td><td>The time AST node.. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">IllegalArgumentException</td><td>If time is non-zero and the unit is null. </td></tr>
   </table>
   </dd>
 </dl>

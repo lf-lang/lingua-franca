@@ -9296,6 +9296,39 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>caseMaxWait</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.ast.IsEqual</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
+    <Anchor>a1fb6ab6f19a6a29a23a2c9b403789c5f</Anchor>
+    <DeclaredIn>IsEqual.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>caseMaxWait</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.ast.ToLf</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
+    <Anchor>ae87112fc9a005d0e651e33ad79a4e9e3</Anchor>
+    <DeclaredIn>ToLf.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>caseMaxWait</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.ast.ToSExpr</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
+    <Anchor>a6d63a16460060f1723189de04e0eb690</Anchor>
+    <DeclaredIn>ToSExpr.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>caseMethod</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -9820,39 +9853,6 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
     <Anchor>a589ac389cf40ef707b3ab3e26c2a8484</Anchor>
-    <DeclaredIn>ToSExpr.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>caseSTP</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.IsEqual</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
-    <Anchor>aa258c22769eb1c4888d498f874c03732</Anchor>
-    <DeclaredIn>IsEqual.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>caseSTP</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.ToLf</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
-    <Anchor>a5acfab82652eba9b2bc28665bfe28324</Anchor>
-    <DeclaredIn>ToLf.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>caseSTP</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.ToSExpr</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
-    <Anchor>a2eb56123fcc6191b9cd95f54696e9cca</Anchor>
     <DeclaredIn>ToSExpr.java</DeclaredIn>
   </Token>
   <Token>
@@ -30337,28 +30337,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>isForever</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.ASTUtils</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-    <Anchor>aeb6e32815d2eea5cf8d56c96e1696661</Anchor>
-    <DeclaredIn>ASTUtils.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>isForever</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.ASTUtils</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-    <Anchor>a3dd00470815660c1c1feb1d49318a501</Anchor>
-    <DeclaredIn>ASTUtils.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>isFullBatch</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -30553,28 +30531,6 @@
     <Path>classorg_1_1lflang_1_1generator_1_1PortInstance.html</Path>
     <Anchor>a9f988886f4e5029754b936ea3b7d0771</Anchor>
     <DeclaredIn>PortInstance.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>isNever</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.ASTUtils</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-    <Anchor>a9a40605236ef14e378c3f6c5f29c3394</Anchor>
-    <DeclaredIn>ASTUtils.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>isNever</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.ASTUtils</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-    <Anchor>a9eac2388abe4c5041b30a9b627f244c3</Anchor>
-    <DeclaredIn>ASTUtils.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -42256,6 +42212,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>staticGetCanonicalName</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.TimeUnit</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1TimeUnit.html</Path>
+    <Anchor>a139b7cd2dfd833ffcb20dbf0a1247a84</Anchor>
+    <DeclaredIn>TimeUnit.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>staToNetworkActionMap</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -44734,6 +44701,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
     <Anchor>a6b2c94c0946ee7cc84ddc12350541d81</Anchor>
+    <DeclaredIn>TimeValue.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TimeValue</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.TimeValue</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+    <Anchor>aaa77febfc115e49ab191d8a5fe4f4dfd</Anchor>
     <DeclaredIn>TimeValue.java</DeclaredIn>
   </Token>
   <Token>

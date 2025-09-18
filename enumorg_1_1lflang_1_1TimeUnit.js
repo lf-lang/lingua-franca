@@ -6,6 +6,7 @@ var enumorg_1_1lflang_1_1TimeUnit =
     [ "hasAlias", "enumorg_1_1lflang_1_1TimeUnit.html#a718f1b5cdb649b473e3c2d88b7c5cd5b", null ],
     [ "isValidUnit", "enumorg_1_1lflang_1_1TimeUnit.html#a47b604fb75087113bd53a021f11b1f7a", null ],
     [ "list", "enumorg_1_1lflang_1_1TimeUnit.html#ac146fea972a11784e4c4bb95434a01e1", null ],
+    [ "staticGetCanonicalName", "enumorg_1_1lflang_1_1TimeUnit.html#a139b7cd2dfd833ffcb20dbf0a1247a84", null ],
     [ "toString", "enumorg_1_1lflang_1_1TimeUnit.html#afdd4da106ad8b883a878ea186053203c", null ],
     [ "DAY", "enumorg_1_1lflang_1_1TimeUnit.html#aa615232fbbd2595277da3546a07af58f", null ],
     [ "HOUR", "enumorg_1_1lflang_1_1TimeUnit.html#adb2da5af557226b152e78a04a25549de", null ],

@@ -16584,16 +16584,6 @@
               <Anchor>aa7d634dafa132cd296af16535fde2cb2</Anchor>
              </Node>
              <Node>
-              <Name>isForever</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-              <Anchor>a3dd00470815660c1c1feb1d49318a501</Anchor>
-             </Node>
-             <Node>
-              <Name>isForever</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-              <Anchor>aeb6e32815d2eea5cf8d56c96e1696661</Anchor>
-             </Node>
-             <Node>
               <Name>isGeneric</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
               <Anchor>a8a92bfa1d12f423e59ad95a210b31587</Anchor>
@@ -16622,16 +16612,6 @@
               <Name>isMultiport</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
               <Anchor>a1de18d3fafd178ee0b3c0dc7861dc5b9</Anchor>
-             </Node>
-             <Node>
-              <Name>isNever</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-              <Anchor>a9eac2388abe4c5041b30a9b627f244c3</Anchor>
-             </Node>
-             <Node>
-              <Name>isNever</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-              <Anchor>a9a40605236ef14e378c3f6c5f29c3394</Anchor>
              </Node>
              <Node>
               <Name>isOfTimeType</Name>
@@ -17027,6 +17007,11 @@
               <Anchor>af1524f64168717c75368cb061a579b19</Anchor>
              </Node>
              <Node>
+              <Name>caseMaxWait</Name>
+              <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
+              <Anchor>a1fb6ab6f19a6a29a23a2c9b403789c5f</Anchor>
+             </Node>
+             <Node>
               <Name>caseMethod</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
               <Anchor>ae75bf5020d8362bfecf5aae4d5c3d83f</Anchor>
@@ -17105,11 +17090,6 @@
               <Name>caseStateVar</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
               <Anchor>a726665d555b202e7187f238a0b4c0cdc</Anchor>
-             </Node>
-             <Node>
-              <Name>caseSTP</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
-              <Anchor>aa258c22769eb1c4888d498f874c03732</Anchor>
              </Node>
              <Node>
               <Name>caseTargetDecl</Name>
@@ -17507,6 +17487,11 @@
               <Anchor>a6c8bc5ca1a3edbd9b99238f4a9269b09</Anchor>
              </Node>
              <Node>
+              <Name>caseMaxWait</Name>
+              <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
+              <Anchor>ae87112fc9a005d0e651e33ad79a4e9e3</Anchor>
+             </Node>
+             <Node>
               <Name>caseMethod</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
               <Anchor>aeb41e727261fd8d3a1741b89a3ca1043</Anchor>
@@ -17585,11 +17570,6 @@
               <Name>caseStateVar</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
               <Anchor>aa5fa170aaabc1651463346da0cfdb5b8</Anchor>
-             </Node>
-             <Node>
-              <Name>caseSTP</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
-              <Anchor>a5acfab82652eba9b2bc28665bfe28324</Anchor>
              </Node>
              <Node>
               <Name>caseTargetDecl</Name>
@@ -17911,6 +17891,11 @@
               <Anchor>a2855f53cd57d76bcd18822d0047f9c94</Anchor>
              </Node>
              <Node>
+              <Name>caseMaxWait</Name>
+              <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
+              <Anchor>a6d63a16460060f1723189de04e0eb690</Anchor>
+             </Node>
+             <Node>
               <Name>caseMethod</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
               <Anchor>a447b244296c95f56c2547da3d8ea24e8</Anchor>
@@ -17984,11 +17969,6 @@
               <Name>caseStateVar</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
               <Anchor>a589ac389cf40ef707b3ab3e26c2a8484</Anchor>
-             </Node>
-             <Node>
-              <Name>caseSTP</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
-              <Anchor>a2eb56123fcc6191b9cd95f54696e9cca</Anchor>
              </Node>
              <Node>
               <Name>caseTargetDecl</Name>
@@ -18939,6 +18919,132 @@
               <Name>isTime</Name>
               <Path>classorg_1_1lflang_1_1InferredType.html</Path>
               <Anchor>a58e464cd0fe64e2d468756179b51064f</Anchor>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
+            <Name>org.lflang.TimeValue</Name>
+            <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+          <Subnodes>
+             <Node>
+              <Name>TimeValue</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a6b2c94c0946ee7cc84ddc12350541d81</Anchor>
+             </Node>
+             <Node>
+              <Name>TimeValue</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>aaa77febfc115e49ab191d8a5fe4f4dfd</Anchor>
+             </Node>
+             <Node>
+              <Name>add</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a9fd50f751c5607f42b03034a0c10a87b</Anchor>
+             </Node>
+             <Node>
+              <Name>compare</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>aecdf0c81a77d274f309dd60fee1debc6</Anchor>
+             </Node>
+             <Node>
+              <Name>compareTo</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ad6d772ddda3490c8c769f2cc9ab853a8</Anchor>
+             </Node>
+             <Node>
+              <Name>equals</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a02b8511eb451900c84af999b8568296b</Anchor>
+             </Node>
+             <Node>
+              <Name>fromNanoSeconds</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>afb327e924a8091da0a592bcfe771a1fe</Anchor>
+             </Node>
+             <Node>
+              <Name>getMagnitude</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a6280ed501275800b6d8aa1e9550aa097</Anchor>
+             </Node>
+             <Node>
+              <Name>getUnit</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>aa0765c7bae3e884df3381995356340f0</Anchor>
+             </Node>
+             <Node>
+              <Name>hashCode</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ac2e910b18f297c632758d797e1183c76</Anchor>
+             </Node>
+             <Node>
+              <Name>isEarlierThan</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a43f6049725657cd127245eb7d375f4d2</Anchor>
+             </Node>
+             <Node>
+              <Name>max</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ac6e0772065001eea65a89328ee30476d</Anchor>
+             </Node>
+             <Node>
+              <Name>min</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>af25856c1cfd688c8adf7b6e2f9833732</Anchor>
+             </Node>
+             <Node>
+              <Name>subtract</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a10dccc641698ff0da9aa15b9a1926116</Anchor>
+             </Node>
+             <Node>
+              <Name>toNanoSeconds</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>aec673e98abdf2b5806042f7b2b6394f9</Anchor>
+             </Node>
+             <Node>
+              <Name>toString</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a0d919c389659be0dc2e4db26516096a5</Anchor>
+             </Node>
+             <Node>
+              <Name>FOREVER</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a5e82b8ef45dbb2221d78cac2aa0c6c8c</Anchor>
+             </Node>
+             <Node>
+              <Name>MAX_LONG_DEADLINE</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a9b9f1af3b699bd856424450e18ff8a39</Anchor>
+             </Node>
+             <Node>
+              <Name>MAX_VALUE</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a1299fc611e3d5417b71f7bfbe28020ef</Anchor>
+             </Node>
+             <Node>
+              <Name>MIN_VALUE</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ade0b6b8541858570f13a00507106461e</Anchor>
+             </Node>
+             <Node>
+              <Name>NEVER</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ac27015d313372f22cb34d985cdb57d6e</Anchor>
+             </Node>
+             <Node>
+              <Name>time</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ab986bf05da6c50e3ef23a88ae2f7ab12</Anchor>
+             </Node>
+             <Node>
+              <Name>unit</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>ad7cbbfe777c461913202b2637ce3b11a</Anchor>
+             </Node>
+             <Node>
+              <Name>ZERO</Name>
+              <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+              <Anchor>a68c759a054b43a1e14ce0a035571bb29</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -23357,16 +23463,6 @@
                     <Anchor>aa7d634dafa132cd296af16535fde2cb2</Anchor>
                    </Node>
                    <Node>
-                    <Name>isForever</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-                    <Anchor>a3dd00470815660c1c1feb1d49318a501</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>isForever</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-                    <Anchor>aeb6e32815d2eea5cf8d56c96e1696661</Anchor>
-                   </Node>
-                   <Node>
                     <Name>isGeneric</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
                     <Anchor>a8a92bfa1d12f423e59ad95a210b31587</Anchor>
@@ -23395,16 +23491,6 @@
                     <Name>isMultiport</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
                     <Anchor>a1de18d3fafd178ee0b3c0dc7861dc5b9</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>isNever</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-                    <Anchor>a9eac2388abe4c5041b30a9b627f244c3</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>isNever</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
-                    <Anchor>a9a40605236ef14e378c3f6c5f29c3394</Anchor>
                    </Node>
                    <Node>
                     <Name>isOfTimeType</Name>
@@ -23800,6 +23886,11 @@
                     <Anchor>af1524f64168717c75368cb061a579b19</Anchor>
                    </Node>
                    <Node>
+                    <Name>caseMaxWait</Name>
+                    <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
+                    <Anchor>a1fb6ab6f19a6a29a23a2c9b403789c5f</Anchor>
+                   </Node>
+                   <Node>
                     <Name>caseMethod</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
                     <Anchor>ae75bf5020d8362bfecf5aae4d5c3d83f</Anchor>
@@ -23878,11 +23969,6 @@
                     <Name>caseStateVar</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
                     <Anchor>a726665d555b202e7187f238a0b4c0cdc</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>caseSTP</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1IsEqual.html</Path>
-                    <Anchor>aa258c22769eb1c4888d498f874c03732</Anchor>
                    </Node>
                    <Node>
                     <Name>caseTargetDecl</Name>
@@ -24280,6 +24366,11 @@
                     <Anchor>a6c8bc5ca1a3edbd9b99238f4a9269b09</Anchor>
                    </Node>
                    <Node>
+                    <Name>caseMaxWait</Name>
+                    <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
+                    <Anchor>ae87112fc9a005d0e651e33ad79a4e9e3</Anchor>
+                   </Node>
+                   <Node>
                     <Name>caseMethod</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
                     <Anchor>aeb41e727261fd8d3a1741b89a3ca1043</Anchor>
@@ -24358,11 +24449,6 @@
                     <Name>caseStateVar</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
                     <Anchor>aa5fa170aaabc1651463346da0cfdb5b8</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>caseSTP</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1ToLf.html</Path>
-                    <Anchor>a5acfab82652eba9b2bc28665bfe28324</Anchor>
                    </Node>
                    <Node>
                     <Name>caseTargetDecl</Name>
@@ -24684,6 +24770,11 @@
                     <Anchor>a2855f53cd57d76bcd18822d0047f9c94</Anchor>
                    </Node>
                    <Node>
+                    <Name>caseMaxWait</Name>
+                    <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
+                    <Anchor>a6d63a16460060f1723189de04e0eb690</Anchor>
+                   </Node>
+                   <Node>
                     <Name>caseMethod</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
                     <Anchor>a447b244296c95f56c2547da3d8ea24e8</Anchor>
@@ -24757,11 +24848,6 @@
                     <Name>caseStateVar</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
                     <Anchor>a589ac389cf40ef707b3ab3e26c2a8484</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>caseSTP</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</Path>
-                    <Anchor>a2eb56123fcc6191b9cd95f54696e9cca</Anchor>
                    </Node>
                    <Node>
                     <Name>caseTargetDecl</Name>
@@ -51224,6 +51310,11 @@
                   <Anchor>ac146fea972a11784e4c4bb95434a01e1</Anchor>
                  </Node>
                  <Node>
+                  <Name>staticGetCanonicalName</Name>
+                  <Path>enumorg_1_1lflang_1_1TimeUnit.html</Path>
+                  <Anchor>a139b7cd2dfd833ffcb20dbf0a1247a84</Anchor>
+                 </Node>
+                 <Node>
                   <Name>toString</Name>
                   <Path>enumorg_1_1lflang_1_1TimeUnit.html</Path>
                   <Anchor>afdd4da106ad8b883a878ea186053203c</Anchor>
@@ -51278,6 +51369,11 @@
                   <Name>TimeValue</Name>
                   <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
                   <Anchor>a6b2c94c0946ee7cc84ddc12350541d81</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>TimeValue</Name>
+                  <Path>classorg_1_1lflang_1_1TimeValue.html</Path>
+                  <Anchor>aaa77febfc115e49ab191d8a5fe4f4dfd</Anchor>
                  </Node>
                  <Node>
                   <Name>add</Name>

@@ -4763,20 +4763,6 @@
     </member>
     <member kind="function" static="yes">
       <type>static boolean</type>
-      <name>isForever</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
-      <anchor>a3dd00470815660c1c1feb1d49318a501</anchor>
-      <arglist>(Expression expr)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static boolean</type>
-      <name>isForever</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
-      <anchor>aeb6e32815d2eea5cf8d56c96e1696661</anchor>
-      <arglist>(String literal)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static boolean</type>
       <name>isGeneric</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
       <anchor>a8a92bfa1d12f423e59ad95a210b31587</anchor>
@@ -4816,20 +4802,6 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
       <anchor>a1de18d3fafd178ee0b3c0dc7861dc5b9</anchor>
       <arglist>(Port port)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static boolean</type>
-      <name>isNever</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
-      <anchor>a9eac2388abe4c5041b30a9b627f244c3</anchor>
-      <arglist>(Expression expr)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static boolean</type>
-      <name>isNever</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
-      <anchor>a9a40605236ef14e378c3f6c5f29c3394</anchor>
-      <arglist>(String literal)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static boolean</type>
@@ -5364,6 +5336,13 @@
     </member>
     <member kind="function">
       <type>Boolean</type>
+      <name>caseMaxWait</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
+      <anchor>a1fb6ab6f19a6a29a23a2c9b403789c5f</anchor>
+      <arglist>(MaxWait object)</arglist>
+    </member>
+    <member kind="function">
+      <type>Boolean</type>
       <name>caseMethod</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
       <anchor>ae75bf5020d8362bfecf5aae4d5c3d83f</anchor>
@@ -5473,13 +5452,6 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
       <anchor>a726665d555b202e7187f238a0b4c0cdc</anchor>
       <arglist>(StateVar object)</arglist>
-    </member>
-    <member kind="function">
-      <type>Boolean</type>
-      <name>caseSTP</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
-      <anchor>aa258c22769eb1c4888d498f874c03732</anchor>
-      <arglist>(STP object)</arglist>
     </member>
     <member kind="function">
       <type>Boolean</type>
@@ -6023,6 +5995,13 @@
     </member>
     <member kind="function">
       <type>MalleableString</type>
+      <name>caseMaxWait</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
+      <anchor>ae87112fc9a005d0e651e33ad79a4e9e3</anchor>
+      <arglist>(MaxWait object)</arglist>
+    </member>
+    <member kind="function">
+      <type>MalleableString</type>
       <name>caseMethod</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
       <anchor>aeb41e727261fd8d3a1741b89a3ca1043</anchor>
@@ -6132,13 +6111,6 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
       <anchor>aa5fa170aaabc1651463346da0cfdb5b8</anchor>
       <arglist>(StateVar object)</arglist>
-    </member>
-    <member kind="function">
-      <type>MalleableString</type>
-      <name>caseSTP</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
-      <anchor>a5acfab82652eba9b2bc28665bfe28324</anchor>
-      <arglist>(STP object)</arglist>
     </member>
     <member kind="function">
       <type>MalleableString</type>
@@ -6463,6 +6435,13 @@
     </member>
     <member kind="function">
       <type>SExpr</type>
+      <name>caseMaxWait</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
+      <anchor>a6d63a16460060f1723189de04e0eb690</anchor>
+      <arglist>(MaxWait object)</arglist>
+    </member>
+    <member kind="function">
+      <type>SExpr</type>
       <name>caseMethod</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
       <anchor>a447b244296c95f56c2547da3d8ea24e8</anchor>
@@ -6565,13 +6544,6 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
       <anchor>a589ac389cf40ef707b3ab3e26c2a8484</anchor>
       <arglist>(StateVar object)</arglist>
-    </member>
-    <member kind="function">
-      <type>SExpr</type>
-      <name>caseSTP</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
-      <anchor>a2eb56123fcc6191b9cd95f54696e9cca</anchor>
-      <arglist>(STP object)</arglist>
     </member>
     <member kind="function">
       <type>SExpr</type>
@@ -40765,6 +40737,13 @@
       <anchor>ac146fea972a11784e4c4bb95434a01e1</anchor>
       <arglist>()</arglist>
     </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>staticGetCanonicalName</name>
+      <anchorfile>enumorg_1_1lflang_1_1TimeUnit.html</anchorfile>
+      <anchor>a139b7cd2dfd833ffcb20dbf0a1247a84</anchor>
+      <arglist>(TimeUnit unit)</arglist>
+    </member>
     <member kind="variable">
       <type></type>
       <name>DAY</name>
@@ -40887,6 +40866,13 @@
       <anchorfile>classorg_1_1lflang_1_1TimeValue.html</anchorfile>
       <anchor>a6b2c94c0946ee7cc84ddc12350541d81</anchor>
       <arglist>(long time, TimeUnit unit)</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>TimeValue</name>
+      <anchorfile>classorg_1_1lflang_1_1TimeValue.html</anchorfile>
+      <anchor>aaa77febfc115e49ab191d8a5fe4f4dfd</anchor>
+      <arglist>(Time time)</arglist>
     </member>
     <member kind="function">
       <type>long</type>
@@ -43064,6 +43050,7 @@
     <class kind="class">org::lflang::generator::Position</class>
     <class kind="class">org::lflang::generator::Range</class>
     <class kind="class">org::lflang::InferredType</class>
+    <class kind="class">org::lflang::TimeValue</class>
     <class kind="class">org::lflang::util::ArduinoUtil</class>
     <class kind="class">org::lflang::util::Averager</class>
     <class kind="class">org::lflang::util::CollectionUtil</class>
