@@ -110,17 +110,12 @@ public class ModelInfo {
     var bad = new ArrayList<>();
     for (var reactor : model.getReactors()) {
       var lowerName = getName(reactor).toLowerCase();
-      if (reactorNames.contains(lowerName)) bad.add(lowerName);
+      if (reactorNames.contains(lowerName)) {
+        reporter
+            .at(reactor)
+            .error("Multiple reactors have the same name up to case differences: " + lowerName);
+      }
       reactorNames.add(lowerName);
-    }
-    for (var badName : bad) {
-      model.getReactors().stream()
-          .filter(it -> getName(it).toLowerCase().equals(badName))
-          .forEach(
-              it ->
-                  reporter
-                      .at(it)
-                      .error("Multiple reactors have the same name up to case differences."));
     }
   }
 
