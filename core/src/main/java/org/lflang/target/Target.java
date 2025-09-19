@@ -70,7 +70,6 @@ public enum Target {
           "_Thread_local" // (since C11)
           )),
   CCPP("CCpp", true, Target.C.keywords),
-  uC("uC", true, Target.C.keywords),
   CPP(
       "Cpp",
       true,
@@ -336,7 +335,7 @@ public enum Target {
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
       Arrays.asList("self", "true", "false")),
-  UC("uC", false, Arrays.asList());
+  UC("uC", true, Target.C.keywords),
 
   /** String representation of this target. */
   private final String displayName;
@@ -413,7 +412,7 @@ public enum Target {
   /** Return true if the target supports federated execution. */
   public boolean supportsFederated() {
     return switch (this) {
-      case C, CCPP, Python, TS, uC -> true;
+      case C, CCPP, Python, TS, UC -> true;
       default -> false;
     };
   }
@@ -628,7 +627,7 @@ public enum Target {
               KeepaliveProperty.INSTANCE,
               ProtobufsProperty.INSTANCE,
               RuntimeVersionProperty.INSTANCE);
-      case uC ->
+      case UC ->
           config.register(
               ClockSyncModeProperty.INSTANCE,
               PlatformProperty.INSTANCE);
