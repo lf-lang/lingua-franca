@@ -335,7 +335,7 @@ public enum Target {
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
       Arrays.asList("self", "true", "false")),
-  UC("uC", true, Target.C.keywords),
+  UC("uC", true, Target.C.keywords);
 
   /** String representation of this target. */
   private final String displayName;
