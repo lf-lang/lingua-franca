@@ -627,10 +627,7 @@ public enum Target {
               KeepaliveProperty.INSTANCE,
               ProtobufsProperty.INSTANCE,
               RuntimeVersionProperty.INSTANCE);
-      case UC ->
-          config.register(
-              ClockSyncModeProperty.INSTANCE,
-              PlatformProperty.INSTANCE);
+      case UC -> config.register(ClockSyncModeProperty.INSTANCE, PlatformProperty.INSTANCE);
     }
   }
 }
