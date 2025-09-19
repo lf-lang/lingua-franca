@@ -70,6 +70,7 @@ public enum Target {
           "_Thread_local" // (since C11)
           )),
   CCPP("CCpp", true, Target.C.keywords),
+  uC("uC", true, Target.C.keywords),
   CPP(
       "Cpp",
       true,
@@ -412,7 +413,7 @@ public enum Target {
   /** Return true if the target supports federated execution. */
   public boolean supportsFederated() {
     return switch (this) {
-      case C, CCPP, Python, TS -> true;
+      case C, CCPP, Python, TS, uC -> true;
       default -> false;
     };
   }
@@ -627,6 +628,10 @@ public enum Target {
               KeepaliveProperty.INSTANCE,
               ProtobufsProperty.INSTANCE,
               RuntimeVersionProperty.INSTANCE);
+      case uC ->
+          config.register(
+              ClockSyncModeProperty.INSTANCE,
+              PlatformProperty.INSTANCE);
     }
   }
 }
