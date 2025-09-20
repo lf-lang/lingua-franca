@@ -105,9 +105,8 @@ public class ModelInfo {
     checkCaseInsensitiveNameCollisions(model, reporter);
   }
 
-  public void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
+  private void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
     var reactorNames = new HashSet<>();
-    var bad = new ArrayList<>();
     for (var reactor : model.getReactors()) {
       var lowerName = getName(reactor).toLowerCase();
       if (reactorNames.contains(lowerName)) {

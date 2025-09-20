@@ -193,6 +193,7 @@ public class AttributeSpec {
     INT,
     BOOLEAN,
     FLOAT,
+    TIME,
   }
 
   /*
@@ -204,6 +205,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "label",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @maxwait(time)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "maxwait",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     // @icon("value")
