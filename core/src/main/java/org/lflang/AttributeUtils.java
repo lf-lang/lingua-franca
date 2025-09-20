@@ -105,6 +105,21 @@ public class AttributeUtils {
   }
 
   /**
+   * Return the first argument specified for the attribute or null if the attribute is not found or
+   * if it does not have any arguments. This should be used only if the attribute is expected to
+   * have a single argument.
+   * @param attr The attribute to get the first argument from.
+   * @return The first argument of the attribute or null if the attribute is not found or if it does
+   *     not have any arguments.
+   */
+  public static String getFirstArgumentValue(Attribute attr) {
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return null;
+    }
+    return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+  }
+
+  /**
    * Return the first argument specified for the first attribute with the given name. If there is no
    * attribute with the given name, return null. If the attribute has no arguments, or if the
    * arguments are not of a suitable form, return null. This ignores any argument name, if one is
