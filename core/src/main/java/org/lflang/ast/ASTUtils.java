@@ -953,6 +953,22 @@ public class ASTUtils {
     return true;
   }
 
+    /**
+   * Report whether the given string literal is an integer number or not.
+   *
+   * @param literal AST node to inspect.
+   * @return True if the given value is an integer, false otherwise.
+   */
+  public static boolean isBigInteger(String literal) {
+    try {
+      //noinspection ResultOfMethodCallIgnored
+      Long.decode(literal);
+    } catch (NumberFormatException e) {
+      return false;
+    }
+    return true;
+  }
+
   /**
    * Report whether the given string literal is a boolean value or not.
    *
@@ -1111,7 +1127,11 @@ public class ASTUtils {
     return prefix + reference.getVariable().getName();
   }
 
-  /** Assuming that the given expression denotes a valid time literal, return a time value. */
+  /** 
+   * Assuming that the given expression denotes a valid time value, return a time value.
+   * @param expr The expression to inspect.
+   * @return The time value, or null if the expression does not denote a valid time value.
+   */
   public static TimeValue getLiteralTimeValue(Expression expr) {
     if (expr instanceof Time) {
       return toTimeValue((Time) expr);

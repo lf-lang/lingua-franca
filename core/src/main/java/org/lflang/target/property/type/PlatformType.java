@@ -21,7 +21,7 @@ public class PlatformType extends OptionsType<Platform> {
     FLEXPRET("FlexPRET"),
     PATMOS("Patmos"),
     WINDOWS("Windows"),
-    NATIVE("Native");  // Used by uC target
+    NATIVE("Native"); // Used by uC target
 
     final String cMakeName;
 

@@ -27,8 +27,11 @@ import org.lflang.validation.AttributeSpec;
 public class AttributeUtils {
 
   /**
-   * Return the attributes declared on the given node or null if the node does not support declaring
-   * attributes.
+   * Return a list of attributes declared on the given node. An empty list is returned if the node
+   * does not have any attributes.
+   *
+   * @param node The node to get the attributes from.
+   * @throws IllegalArgumentException If the node cannot have attributes.
    */
   public static List<Attribute> getAttributes(EObject node) {
     if (node instanceof Reactor) {
@@ -51,21 +54,22 @@ public class AttributeUtils {
       return ((Instantiation) node).getAttributes();
     } else if (node instanceof Watchdog) {
       return ((Watchdog) node).getAttributes();
+    } else if (node instanceof Connection) {
+      return ((Connection) node).getAttributes();
     }
-    return null;
+    throw new IllegalArgumentException("Not annotatable: " + node);
   }
 
   /**
    * Return the attribute with the given name if present, otherwise return null.
-   *
-   * <p>If there are multiple attributes with the same name, this returns the first one.
+   * If there are multiple attributes with the same name, this returns the first one.
    *
    * @param node The node to search for the attribute.
    * @param name The name of the attribute to search for.
    * @return The attribute with the given name or null if it is not found.
-   * @see findAttributesByName
+   * @throws IllegalArgumentException If the node cannot have attributes.
    */
-  public static Attribute findAttributeByName(EObject node, String name) {
+  public static Attribute findAttributeByName(EObject node, String name) throws IllegalArgumentException {
     List<Attribute> attrs = getAttributes(node);
     if (attrs == null) {
       return null;
@@ -80,12 +84,14 @@ public class AttributeUtils {
   }
 
   /**
-   * Return all attributes with the given name or null if the node does not support declaring
-   * attributes.
+   * Return a list of attributes with the given name. An empty list is returned if the node does not
+   * have any attributes with the given name.
    *
-   * @see findAttributeByName
+   * @param node The node to get the attributes from.
+   * @param name The name of the attributes to get.
+   * @throws IllegalArgumentException If the node cannot have attributes
    */
-  public static List<Attribute> findAttributesByName(EObject node, String name) {
+  public static List<Attribute> findAttributesByName(EObject node, String name) throws IllegalArgumentException {
     List<Attribute> attrs = getAttributes(node);
     if (attrs == null) {
       return null;
@@ -99,15 +105,22 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the first argument specified for the attribute or null if the attribute is not found or
-   * if it does not have any arguments. This should be used only if the attribute is expected to
-   * have a single argument.
+   * Return the first argument specified for the first attribute with the given name. If there is no
+   * attribute with the given name, return null. If the attribute has no arguments, or if the
+   * arguments are not of a suitable form, return null. This ignores any argument name, if one is
+   * given, and only returns arguments of the form of strings ("foo"), numbers (123), boolean values
+   * (true, false), or the time values `forever` or `never`. Time values with units are not returned
+   * (the return value will be null).
    *
-   * @param attr The attribute to get the first argument from.
-   * @return The first argument of the attribute or null if the attribute is not found or if it does
-   *     not have any arguments.
+   * <p>This is a convenience method for common use cases where an attribute is specified with a
+   * single argument of a suitable form. The validator should check that the arguments are of a
+   * suitable form.
+   *
+   * @param node The node to get the attribute value from.
+   * @param attrName The name of the attribute to get the value from.
    */
-  public static String getFirstArgumentValue(Attribute attr) {
+  public static String getAttributeValue(EObject node, String attrName) {
+    final var attr = findAttributeByName(node, attrName);
     if (attr == null || attr.getAttrParms().isEmpty()) {
       return null;
     }
@@ -115,111 +128,37 @@ public class AttributeUtils {
   }
 
   /**
-   * Search for an attribute with the given name on the given AST node and return its first argument
-   * as a String or null if the attribute is not found or if it does not have any arguments. This
-   * should only be used on attributes that are expected to have a single argument.
-   *
-   * @param node The node to search for the attribute.
-   * @param attrName The name of the attribute to search for.
-   * @return The first argument of the attribute or null if the attribute is not found or if it does
-   *     not have any arguments.
-   */
-  public static String getAttributeValue(EObject node, String attrName) {
-    final var attr = findAttributeByName(node, attrName);
-    String value = getFirstArgumentValue(attr);
-    // Attribute annotations in comments are deprecated, but we still check for then for backwards
-    // compatibility
-    if (value == null) {
-      return findAnnotationInComments(node, "@" + attrName);
-    }
-    return value;
-  }
-
-  /**
-   * For an attribute with the given name on the given AST node, return a map of the attribute
-   * parameters to their values. This should only be used on attributes that are expected to have a
-   * single argument. This returns null if the given node does not support declaring attributes, and
-   * returns an empty map if the attribute is not found or if it does not have any arguments.
-   *
-   * @param node The node to search for the attribute.
-   * @param attrName The name of the attribute to search for.
-   * @return A map of the attribute parameters to their values or null if the attribute is not found
-   *     or if it does not have any arguments.
-   */
-  public static Map<String, String> getAttributeValues(EObject node, String attrName) {
-    final List<Attribute> attrs = findAttributesByName(node, attrName);
-    if (attrs == null) {
-      return null;
-    }
-    HashMap<String, String> layoutOptions = new HashMap<>();
-    for (Attribute attribute : attrs) {
-      layoutOptions.put(
-          StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()),
-          StringUtil.removeQuotes(attribute.getAttrParms().get(1).getValue()));
-    }
-    return layoutOptions;
-  }
-
-  /**
-   * Retrieve a specific annotation in a comment associated with the given model element in the AST.
-   * This will look for a comment. If one is found, it searches for the given annotation `key`
-   * and extracts any string that follows the annotation marker. Note that annotations in comments
-   * are deprecated, but we still check for them for backwards compatibility.
-   *
-   * @param object The AST model element to search a comment for.
-   * @param key The specific annotation key to be extracted.
-   * @return `null` if no JavaDoc style comment was found or if it does not contain the given
-   *     key. The string immediately following the annotation marker otherwise.
-   */
-  public static String findAnnotationInComments(EObject object, String key) {
-    if (!(object.eResource() instanceof XtextResource)) return null;
-    ICompositeNode node = NodeModelUtils.findActualNodeFor(object);
-    return ASTUtils.getPrecedingComments(node, n -> true)
-        .flatMap(String::lines)
-        .filter(line -> line.contains(key))
-        .map(String::trim)
-        .map(it -> it.substring(it.indexOf(key) + key.length()))
-        .map(it -> it.endsWith("*/") ? it.substring(0, it.length() - "*/".length()) : it)
-        .findFirst()
-        .orElse(null);
-  }
-
-  /**
-   * Return the parameter of the given attribute with the given name. Return null if no such
+   * Return the parameter with the given name for the specified attribute or null if no such
    * parameter is found.
    *
    * @param attribute The attribute to get the parameter from.
    * @param parameterName The name of the parameter to get.
-   * @return The parameter value or null if no such parameter is found.
    */
-  public static String getAttributeParameter(Attribute attribute, String parameterName) {
+  public static AttrParm getAttributeParameter(Attribute attribute, String parameterName) {
     return (attribute == null)
         ? null
         : attribute.getAttrParms().stream()
             .filter(param -> Objects.equals(param.getName(), parameterName))
-            .map(AttrParm::getValue)
-            .map(StringUtil::removeQuotes)
             .findFirst()
             .orElse(null);
   }
 
   /**
-   * Return the parameter of the given attribute with the given name and interpret it as a boolean.
-   * Returns null if no such parameter is found.
+   * Return true if there is a parameter of the given attribute with the given name whose value is
+   * "true" (case-insensitive) and return false otherwise.
    *
    * @param attribute The attribute to get the parameter from.
    * @param parameterName The name of the parameter to get.
-   * @return The parameter value or null if no such parameter is found.
    */
-  public static Boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
+  public static boolean getBooleanAttributeParameter(Attribute attribute, String parameterName) {
     if (attribute == null || parameterName == null) {
-      return null;
+      return false;
     }
     final var param = getAttributeParameter(attribute, parameterName);
-    if (param == null) {
-      return null;
+    if (param == null || param.getValue() == null) {
+      return false;
     }
-    return param.equalsIgnoreCase("true");
+    return param.getValue().equalsIgnoreCase("true");
   }
 
   /**
@@ -286,14 +225,23 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the `layout` annotation for the given element or null if there is no such
-   * annotation.
+   * Return the `@layout` annotations for the given element or null if there is no such annotation.
+   * Layout annotations have the form: ```
    *
-   * @param node The node to get the layout option from.
-   * @return The layout option of the node or null if there is no such annotation.
+   * @layout(option="string", value="any") ``` For example, ```
+   * @layout(option="port.side", value="WEST") ``` This will return all such annotations for the
+   *     specified node in the form of a map from the option name to the value.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
-    return getAttributeValues(node, "layout");
+    final List<Attribute> attrs = findAttributesByName(node, "layout");
+    HashMap<String, String> result = new HashMap<>();
+    for (Attribute attribute : attrs) {
+      result.put(
+          // FIXME: This assumes the parameters are in the correct order.
+          StringUtil.removeQuotes(attribute.getAttrParms().get(0).getValue()),
+          StringUtil.removeQuotes(attribute.getAttrParms().get(1).getValue()));
+    }
+    return result;
   }
 
   /**
@@ -349,5 +297,32 @@ public class AttributeUtils {
       }
     }
     return 1; // Not specified
+  }
+
+  /**
+   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
+   * have one.
+   *
+   * @param The AST node (Instantiation or Connection).
+   */
+  public static TimeValue getMaxWait(EObject node) {
+    final var attr = findAttributeByName(node, "maxwait");
+    if (attr != null) {
+      // The attribute is expected to have a single argument of type Time
+      // or one of the literals "forever", "never", or "0".
+      // The validator checks this.
+      final var time = attr.getAttrParms().get(0).getTime();
+      if (time == null) {
+        if (attr.getAttrParms().get(0).getValue().equals("forever")) {
+          return TimeValue.MAX_VALUE;
+        } else if (attr.getAttrParms().get(0).getValue().equals("never")) {
+          // Interpret "never" as 0.
+          return TimeValue.ZERO;
+        }
+      } else {
+        return ASTUtils.toTimeValue(time);
+      }
+    }
+    return TimeValue.ZERO;
   }
 }
