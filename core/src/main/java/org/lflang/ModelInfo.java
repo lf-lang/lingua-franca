@@ -3,7 +3,6 @@ package org.lflang;
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
