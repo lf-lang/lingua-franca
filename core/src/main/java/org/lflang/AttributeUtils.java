@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
-import org.eclipse.xtext.nodemodel.ICompositeNode;
-import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
-import org.eclipse.xtext.resource.XtextResource;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
 import org.lflang.util.StringUtil;
@@ -67,20 +64,23 @@ public class AttributeUtils {
    * @param node The node to search for the attribute.
    * @param name The name of the attribute to search for.
    * @return The attribute with the given name or null if it is not found.
-   * @throws IllegalArgumentException If the node cannot have attributes.
    */
-  public static Attribute findAttributeByName(EObject node, String name) throws IllegalArgumentException {
-    List<Attribute> attrs = getAttributes(node);
-    if (attrs == null) {
+  public static Attribute findAttributeByName(EObject node, String name) {
+    try {
+      List<Attribute> attrs = getAttributes(node);
+      if (attrs == null) {
+        return null;
+      }
+      return attrs.stream()
+          .filter(
+              it ->
+                  it.getAttrName()
+                      .equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
+          .findFirst()
+          .orElse(null);
+    } catch (IllegalArgumentException e) {
       return null;
     }
-    return attrs.stream()
-        .filter(
-            it ->
-                it.getAttrName()
-                    .equalsIgnoreCase(name)) // case-insensitive search (more user-friendly)
-        .findFirst()
-        .orElse(null);
   }
 
   /**
@@ -91,7 +91,8 @@ public class AttributeUtils {
    * @param name The name of the attributes to get.
    * @throws IllegalArgumentException If the node cannot have attributes
    */
-  public static List<Attribute> findAttributesByName(EObject node, String name) throws IllegalArgumentException {
+  public static List<Attribute> findAttributesByName(EObject node, String name)
+      throws IllegalArgumentException {
     List<Attribute> attrs = getAttributes(node);
     if (attrs == null) {
       return null;

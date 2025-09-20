@@ -953,7 +953,7 @@ public class ASTUtils {
     return true;
   }
 
-    /**
+  /**
    * Report whether the given string literal is an integer number or not.
    *
    * @param literal AST node to inspect.
@@ -1127,7 +1127,7 @@ public class ASTUtils {
     return prefix + reference.getVariable().getName();
   }
 
-  /** 
+  /**
    * Assuming that the given expression denotes a valid time value, return a time value.
    * @param expr The expression to inspect.
    * @return The time value, or null if the expression does not denote a valid time value.
