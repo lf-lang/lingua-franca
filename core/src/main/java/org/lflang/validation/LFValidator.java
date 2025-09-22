@@ -1315,7 +1315,7 @@ public class LFValidator extends BaseLFValidator {
     String name = attr.getAttrName().toString();
     AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
     if (spec == null) {
-      error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
+      error("Unknown attribute: " + name, Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
     // Check the validity of the attribute.

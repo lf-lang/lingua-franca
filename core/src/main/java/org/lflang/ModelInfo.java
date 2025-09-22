@@ -3,7 +3,6 @@ package org.lflang;
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -105,22 +104,16 @@ public class ModelInfo {
     checkCaseInsensitiveNameCollisions(model, reporter);
   }
 
-  public void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
+  private void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
     var reactorNames = new HashSet<>();
-    var bad = new ArrayList<>();
     for (var reactor : model.getReactors()) {
       var lowerName = getName(reactor).toLowerCase();
-      if (reactorNames.contains(lowerName)) bad.add(lowerName);
+      if (reactorNames.contains(lowerName)) {
+        reporter
+            .at(reactor)
+            .error("Multiple reactors have the same name up to case differences: " + lowerName);
+      }
       reactorNames.add(lowerName);
-    }
-    for (var badName : bad) {
-      model.getReactors().stream()
-          .filter(it -> getName(it).toLowerCase().equals(badName))
-          .forEach(
-              it ->
-                  reporter
-                      .at(it)
-                      .error("Multiple reactors have the same name up to case differences."));
     }
   }
 

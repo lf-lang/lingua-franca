@@ -227,11 +227,11 @@ Serializer:
 
 /////////// Attributes
 Attribute:
-    '@' attrName=ID ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
+    '@' attrName=(ID | 'maxwait') ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
 ;
 
 AttrParm:
-    (name=ID '=')? value=Literal;
+    (name=ID '=')? (value=Literal | time=Time);
 
 /////////// For target parameters
 
@@ -276,7 +276,7 @@ Assignment:
  */
 Parameter:
     (attributes+=Attribute)*
-    name=(ID | 'maxwait') (':' type=Type)?
+    name=ID (':' type=Type)?
     init=Initializer?
 ;
 
@@ -503,7 +503,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' | 'forever' | 'never' |
+    'extends' | 'forever' | 'never' | 'maxwait' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |
