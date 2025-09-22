@@ -194,7 +194,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:aa641005cc189d1268e1fccdb0bdfb1ad" id="r_aa641005cc189d1268e1fccdb0bdfb1ad"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa641005cc189d1268e1fccdb0bdfb1ad">getInferredType</a> (Type type, Initializer init)</td></tr>
 <tr class="memdesc:aa641005cc189d1268e1fccdb0bdfb1ad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type of a declaration with the given (nullable) explicit type, and the given (nullable) initializer.  <br /></td></tr>
 <tr class="memitem:afdb2d401add244aaac6fa1c22cdbe866" id="r_afdb2d401add244aaac6fa1c22cdbe866"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#afdb2d401add244aaac6fa1c22cdbe866">getLiteralTimeValue</a> (Expression expr)</td></tr>
-<tr class="memdesc:afdb2d401add244aaac6fa1c22cdbe866"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assuming that the given expression denotes a valid time literal, return a time value.  <br /></td></tr>
+<tr class="memdesc:afdb2d401add244aaac6fa1c22cdbe866"><td class="mdescLeft">&#160;</td><td class="mdescRight">Assuming that the given expression denotes a valid time value, return a time value.  <br /></td></tr>
 <tr class="memitem:adf5ea3c71794aad58094f525b0812068" id="r_adf5ea3c71794aad58094f525b0812068"><td class="memItemLeft" align="right" valign="top">static Optional&lt; Reactor &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adf5ea3c71794aad58094f525b0812068">getMainReactor</a> (Resource resource)</td></tr>
 <tr class="memdesc:adf5ea3c71794aad58094f525b0812068"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the main reactor defined in the given resource, if there is one.  <br /></td></tr>
 <tr class="memitem:ac921bd374b9670d6a44861732e8ef394" id="r_ac921bd374b9670d6a44861732e8ef394"><td class="memItemLeft" align="right" valign="top">static Stream&lt; INode &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ac921bd374b9670d6a44861732e8ef394">getPrecedingCommentNodes</a> (ICompositeNode compNode, Predicate&lt; INode &gt; filter)</td></tr>
@@ -213,6 +213,8 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:a972779d0067b217bc5b6eeffcb6594b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a parameter, return its initial value.  <br /></td></tr>
 <tr class="memitem:a63696b3175b5fc356b48d2c4fe73f404" id="r_a63696b3175b5fc356b48d2c4fe73f404"><td class="memItemLeft" align="right" valign="top">static Integer&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a63696b3175b5fc356b48d2c4fe73f404">initialValueInt</a> (Parameter parameter, List&lt; Instantiation &gt; instantiations)</td></tr>
 <tr class="memdesc:a63696b3175b5fc356b48d2c4fe73f404"><td class="mdescLeft">&#160;</td><td class="mdescRight">Given a parameter return its integer value or null if it does not have an integer value.  <br /></td></tr>
+<tr class="memitem:ad28e4c91a60b2fa99e4ce571c237ec9a" id="r_ad28e4c91a60b2fa99e4ce571c237ec9a"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad28e4c91a60b2fa99e4ce571c237ec9a">isBigInteger</a> (String literal)</td></tr>
+<tr class="memdesc:ad28e4c91a60b2fa99e4ce571c237ec9a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Report whether the given string literal is an integer number or not.  <br /></td></tr>
 <tr class="memitem:a23431639133cb54299f96ba1c5439e0e" id="r_a23431639133cb54299f96ba1c5439e0e"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a23431639133cb54299f96ba1c5439e0e">isBoolean</a> (String literal)</td></tr>
 <tr class="memdesc:a23431639133cb54299f96ba1c5439e0e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Report whether the given string literal is a boolean value or not.  <br /></td></tr>
 <tr class="memitem:a77321e27be109f520350dc8ed001c53f" id="r_a77321e27be109f520350dc8ed001c53f"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a77321e27be109f520350dc8ed001c53f">isComment</a> (INode node)</td></tr>
@@ -1894,7 +1896,14 @@ Christian Menard </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Assuming that the given expression denotes a valid time literal, return a time value. </p>
+<p>Assuming that the given expression denotes a valid time value, return a time value. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">expr</td><td>The expression to inspect. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The time value, or null if the expression does not denote a valid time value. </dd></dl>
 
 </div>
 </div>
@@ -2273,6 +2282,40 @@ Christian Menard </dd></dl>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="ad28e4c91a60b2fa99e4ce571c237ec9a" name="ad28e4c91a60b2fa99e4ce571c237ec9a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad28e4c91a60b2fa99e4ce571c237ec9a">&#9670;&#160;</a></span>isBigInteger()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.ast.ASTUtils.isBigInteger </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>literal</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Report whether the given string literal is an integer number or not. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">literal</td><td>AST node to inspect. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>True if the given value is an integer, false otherwise. </dd></dl>
 
 </div>
 </div>

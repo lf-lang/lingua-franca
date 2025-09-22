@@ -1,6 +1,5 @@
 var NAVTREEINDEX22 =
 {
-"classorg_1_1lflang_1_1util_1_1Averager.html#a728d369b53b60a1e112e9a41ab11cf30":[4,9,20,1],
 "classorg_1_1lflang_1_1util_1_1CollectionUtil.html":[4,9,21],
 "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a0cc0a9c2dbb47e68652812c5d8e4b365":[4,9,21,6],
 "classorg_1_1lflang_1_1util_1_1CollectionUtil.html#a333ce15b2b3cec2285cc9f5e130820b1":[4,9,21,2],
@@ -249,5 +248,6 @@ var NAVTREEINDEX22 =
 "enumorg_1_1lflang_1_1target_1_1Target.html#a82a66f8f4b5c432cac502108e46bf6e2":[4,4,57,26],
 "enumorg_1_1lflang_1_1target_1_1Target.html#a8668c0197468daf6998d6ab895dab0f1":[4,4,57,20],
 "enumorg_1_1lflang_1_1target_1_1Target.html#a894b6fea99e1802169c3c4571d11c9ba":[4,4,57,27],
-"enumorg_1_1lflang_1_1target_1_1Target.html#a8b234b56ad5230eacd53c788ee385457":[4,4,57,19]
+"enumorg_1_1lflang_1_1target_1_1Target.html#a8b234b56ad5230eacd53c788ee385457":[4,4,57,19],
+"enumorg_1_1lflang_1_1target_1_1Target.html#a8ca8f593cf5e733a00ddcbd810015bc6":[4,4,57,10]
 };

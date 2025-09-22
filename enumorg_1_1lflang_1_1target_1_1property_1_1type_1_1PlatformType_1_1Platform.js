@@ -12,6 +12,7 @@ var enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform 
     [ "FLEXPRET", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#ab4f243d45a247038842683f691ff7895", null ],
     [ "LINUX", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a96d4728fe5abbcbce972a8f97f668617", null ],
     [ "MAC", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#aa785930f3eecca4dd1ffbd09ce0a8b4d", null ],
+    [ "NATIVE", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#af43ff43155b3bd8bfa0f912d61adb06f", null ],
     [ "NRF52", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a109f4817b0dc1923bbc2407f5bd48ec8", null ],
     [ "PATMOS", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a4cd8ad3a623b796226c988659ddf2386", null ],
     [ "RP2040", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a3817b15560f899dd241f20283d5a98ae", null ],

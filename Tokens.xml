@@ -7626,6 +7626,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>BIGINT</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.validation.AttributeSpec.AttrParamType</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
+    <Anchor>a96cb639772822772bc2b254645db0421</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>bindErrorReporter</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -10780,17 +10790,6 @@
     <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
     <Anchor>a6c63cb06a585b710b83d55204ebcbee4</Anchor>
     <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>checkCaseInsensitiveNameCollisions</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ModelInfo</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
-    <Anchor>abd96e57b5a760e9be328fcbeca30492a</Anchor>
-    <DeclaredIn>ModelInfo.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -17064,17 +17063,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>findAnnotationInComments</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.AttributeUtils</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-    <Anchor>a5f7fd94cf2b8031a2da910fbefd8e483</Anchor>
-    <DeclaredIn>AttributeUtils.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>findAttributeByName</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -21546,7 +21534,7 @@
       <Scope>org.lflang.AttributeUtils</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-    <Anchor>a7db07eb14fbb3102749b4e0cf540ec6b</Anchor>
+    <Anchor>a22f44a27aebc003c766bd805b36feb88</Anchor>
     <DeclaredIn>AttributeUtils.java</DeclaredIn>
   </Token>
   <Token>
@@ -21573,17 +21561,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>getAttributeValues</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.AttributeUtils</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-    <Anchor>ae5dee3965826e8a387f168b11f29d44e</Anchor>
-    <DeclaredIn>AttributeUtils.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>getBadLines</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -21601,7 +21578,7 @@
       <Scope>org.lflang.AttributeUtils</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-    <Anchor>aa97652a95c2ff870b32450a58ad88118</Anchor>
+    <Anchor>a25e9e5dc443df386bdb1475b94626f81</Anchor>
     <DeclaredIn>AttributeUtils.java</DeclaredIn>
   </Token>
   <Token>
@@ -24189,6 +24166,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1TargetConfig.html</Path>
     <Anchor>a2f77cc5c7f8b4c1b8abc5633b163ca07</Anchor>
     <DeclaredIn>TargetConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getMaxWait</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.AttributeUtils</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+    <Anchor>a7b332bce66295c7bfa55fcd0a449fa13</Anchor>
+    <DeclaredIn>AttributeUtils.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -30055,6 +30043,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>isBigInteger</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.ast.ASTUtils</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
+    <Anchor>ad28e4c91a60b2fa99e4ce571c237ec9a</Anchor>
+    <DeclaredIn>ASTUtils.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>isBoolean</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -34407,6 +34406,16 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers.html</Path>
     <Anchor>a7686595741f54f5ce34f7881c4ce05b0</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>NATIVE</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.type.PlatformType.Platform</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html</Path>
+    <Anchor>af43ff43155b3bd8bfa0f912d61adb06f</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44608,6 +44617,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1util_1_1LayoutPostProcessing.html</Path>
     <Anchor>af930ef6e4c225ab3ea0844306afe9d91</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TIME</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.validation.AttributeSpec.AttrParamType</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
+    <Anchor>aa54bc6bb311cc4c20cbde5366b16d36c</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>

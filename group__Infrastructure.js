@@ -106,7 +106,6 @@ var group__Infrastructure =
       [ "injector", "classorg_1_1lflang_1_1LFStandaloneSetup.html#a1bf576eac04b1c611048ccd2ea93d9a6", null ]
     ] ],
     [ "org.lflang.ModelInfo", "classorg_1_1lflang_1_1ModelInfo.html", [
-      [ "checkCaseInsensitiveNameCollisions", "classorg_1_1lflang_1_1ModelInfo.html#abd96e57b5a760e9be328fcbeca30492a", null ],
       [ "topologyCycles", "classorg_1_1lflang_1_1ModelInfo.html#afceb92dbabb7f9461089f7680a350e92", null ],
       [ "update", "classorg_1_1lflang_1_1ModelInfo.html#a228a0b131419bd61700c30c2faf3c941", null ],
       [ "instantiationGraph", "classorg_1_1lflang_1_1ModelInfo.html#aab23f6ceda66d020828dc0a14d52c9dd", null ],

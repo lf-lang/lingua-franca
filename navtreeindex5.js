@@ -1,6 +1,5 @@
 var NAVTREEINDEX5 =
 {
-"classorg_1_1lflang_1_1cli_1_1LffCliTest.html#ae1df9c14e2b78ea3ec1c09f046175ad9":[5,0,0,0,2,9,11],
 "classorg_1_1lflang_1_1cli_1_1LffCliTest.html#af908915fbeaef6c9f810030bfb38812a":[5,0,0,0,2,9,7],
 "classorg_1_1lflang_1_1cli_1_1LffCliTest_1_1LffTestFixture.html":[5,0,0,0,2,9,0],
 "classorg_1_1lflang_1_1cli_1_1LffCliTest_1_1LffTestFixture.html#a2c4e87e14b413e42dc2bf8f2ace1b8f3":[5,0,0,0,2,9,0,2],
@@ -249,5 +248,6 @@ var NAVTREEINDEX5 =
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#adcee3dc326f697516160c848c3732a5f":[4,1,11,24],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#adfe6453339f346604a253fad4c9d1ed6":[4,1,11,10],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html":[4,1,12],
-"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a09c6106ae11c6207042c93de9586cca8":[4,1,12,2]
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a09c6106ae11c6207042c93de9586cca8":[4,1,12,2],
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a1a378860676d6ce83754657b2a23cce5":[4,1,12,1]
 };

@@ -103,22 +103,18 @@ $(function(){initNavTree('classorg_1_1lflang_1_1AttributeUtils.html','','classor
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a5f7fd94cf2b8031a2da910fbefd8e483" id="r_a5f7fd94cf2b8031a2da910fbefd8e483"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a5f7fd94cf2b8031a2da910fbefd8e483">findAnnotationInComments</a> (EObject object, String key)</td></tr>
-<tr class="memdesc:a5f7fd94cf2b8031a2da910fbefd8e483"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve a specific annotation in a comment associated with the given model element in the AST.  <br /></td></tr>
 <tr class="memitem:ae5d19563dc9410f1d38ea7a0cc844a33" id="r_ae5d19563dc9410f1d38ea7a0cc844a33"><td class="memItemLeft" align="right" valign="top">static Attribute&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae5d19563dc9410f1d38ea7a0cc844a33">findAttributeByName</a> (EObject node, String name)</td></tr>
 <tr class="memdesc:ae5d19563dc9410f1d38ea7a0cc844a33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the attribute with the given name if present, otherwise return null.  <br /></td></tr>
-<tr class="memitem:ad89b57cc25c83fe743d8284d5dde7d1c" id="r_ad89b57cc25c83fe743d8284d5dde7d1c"><td class="memItemLeft" align="right" valign="top">static List&lt; Attribute &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad89b57cc25c83fe743d8284d5dde7d1c">findAttributesByName</a> (EObject node, String name)</td></tr>
-<tr class="memdesc:ad89b57cc25c83fe743d8284d5dde7d1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return all attributes with the given name or null if the node does not support declaring attributes.  <br /></td></tr>
-<tr class="memitem:a7db07eb14fbb3102749b4e0cf540ec6b" id="r_a7db07eb14fbb3102749b4e0cf540ec6b"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7db07eb14fbb3102749b4e0cf540ec6b">getAttributeParameter</a> (Attribute attribute, String parameterName)</td></tr>
-<tr class="memdesc:a7db07eb14fbb3102749b4e0cf540ec6b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the parameter of the given attribute with the given name.  <br /></td></tr>
+<tr class="memitem:ad89b57cc25c83fe743d8284d5dde7d1c" id="r_ad89b57cc25c83fe743d8284d5dde7d1c"><td class="memItemLeft" align="right" valign="top">static List&lt; Attribute &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad89b57cc25c83fe743d8284d5dde7d1c">findAttributesByName</a> (EObject node, String name)  throws IllegalArgumentException </td></tr>
+<tr class="memdesc:ad89b57cc25c83fe743d8284d5dde7d1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of attributes with the given name.  <br /></td></tr>
+<tr class="memitem:a22f44a27aebc003c766bd805b36feb88" id="r_a22f44a27aebc003c766bd805b36feb88"><td class="memItemLeft" align="right" valign="top">static AttrParm&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a22f44a27aebc003c766bd805b36feb88">getAttributeParameter</a> (Attribute attribute, String parameterName)</td></tr>
+<tr class="memdesc:a22f44a27aebc003c766bd805b36feb88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the parameter with the given name for the specified attribute or null if no such parameter is found.  <br /></td></tr>
 <tr class="memitem:a50d96aeef485dba78bfbe61fa66a885b" id="r_a50d96aeef485dba78bfbe61fa66a885b"><td class="memItemLeft" align="right" valign="top">static List&lt; Attribute &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a50d96aeef485dba78bfbe61fa66a885b">getAttributes</a> (EObject node)</td></tr>
-<tr class="memdesc:a50d96aeef485dba78bfbe61fa66a885b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the attributes declared on the given node or null if the node does not support declaring attributes.  <br /></td></tr>
+<tr class="memdesc:a50d96aeef485dba78bfbe61fa66a885b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of attributes declared on the given node.  <br /></td></tr>
 <tr class="memitem:a92b69da36384df14c7f21483e78e9831" id="r_a92b69da36384df14c7f21483e78e9831"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a92b69da36384df14c7f21483e78e9831">getAttributeValue</a> (EObject node, String attrName)</td></tr>
-<tr class="memdesc:a92b69da36384df14c7f21483e78e9831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Search for an attribute with the given name on the given AST node and return its first argument as a String or null if the attribute is not found or if it does not have any arguments.  <br /></td></tr>
-<tr class="memitem:ae5dee3965826e8a387f168b11f29d44e" id="r_ae5dee3965826e8a387f168b11f29d44e"><td class="memItemLeft" align="right" valign="top">static Map&lt; String, String &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae5dee3965826e8a387f168b11f29d44e">getAttributeValues</a> (EObject node, String attrName)</td></tr>
-<tr class="memdesc:ae5dee3965826e8a387f168b11f29d44e"><td class="mdescLeft">&#160;</td><td class="mdescRight">For an attribute with the given name on the given AST node, return a map of the attribute parameters to their values.  <br /></td></tr>
-<tr class="memitem:aa97652a95c2ff870b32450a58ad88118" id="r_aa97652a95c2ff870b32450a58ad88118"><td class="memItemLeft" align="right" valign="top">static Boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa97652a95c2ff870b32450a58ad88118">getBooleanAttributeParameter</a> (Attribute attribute, String parameterName)</td></tr>
-<tr class="memdesc:aa97652a95c2ff870b32450a58ad88118"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the parameter of the given attribute with the given name and interpret it as a boolean.  <br /></td></tr>
+<tr class="memdesc:a92b69da36384df14c7f21483e78e9831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the first argument specified for the first attribute with the given name.  <br /></td></tr>
+<tr class="memitem:a25e9e5dc443df386bdb1475b94626f81" id="r_a25e9e5dc443df386bdb1475b94626f81"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a25e9e5dc443df386bdb1475b94626f81">getBooleanAttributeParameter</a> (Attribute attribute, String parameterName)</td></tr>
+<tr class="memdesc:a25e9e5dc443df386bdb1475b94626f81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if there is a parameter of the given attribute with the given name whose value is "true" (case-insensitive) and return false otherwise.  <br /></td></tr>
 <tr class="memitem:af5533a7c3d5096fb8abedeb74a46a29f" id="r_af5533a7c3d5096fb8abedeb74a46a29f"><td class="memItemLeft" align="right" valign="top">static Attribute&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af5533a7c3d5096fb8abedeb74a46a29f">getEnclaveAttribute</a> (Instantiation node)</td></tr>
 <tr class="memdesc:af5533a7c3d5096fb8abedeb74a46a29f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">@enclave</span> attribute annotated on the given node.  <br /></td></tr>
 <tr class="memitem:af9cd0c04e65b158f756cb6f795ce71f9" id="r_af9cd0c04e65b158f756cb6f795ce71f9"><td class="memItemLeft" align="right" valign="top">static int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af9cd0c04e65b158f756cb6f795ce71f9">getEnclaveNumWorkersFromAttribute</a> (Instantiation node)</td></tr>
@@ -130,7 +126,9 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:aceeeb935fd65583e8715f58dd1601848" id="r_aceeeb935fd65583e8715f58dd1601848"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aceeeb935fd65583e8715f58dd1601848">getLabel</a> (EObject node)</td></tr>
 <tr class="memdesc:aceeeb935fd65583e8715f58dd1601848"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the declared label of the node, as given by the <span class="tt">@label</span> annotation.  <br /></td></tr>
 <tr class="memitem:a7679041b34d82526d983636c48a84dca" id="r_a7679041b34d82526d983636c48a84dca"><td class="memItemLeft" align="right" valign="top">static Map&lt; String, String &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7679041b34d82526d983636c48a84dca">getLayoutOption</a> (EObject node)</td></tr>
-<tr class="memdesc:a7679041b34d82526d983636c48a84dca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">layout</span> annotation for the given element or null if there is no such annotation.  <br /></td></tr>
+<tr class="memdesc:a7679041b34d82526d983636c48a84dca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">@layout</span> annotations for the given element or null if there is no such annotation.  <br /></td></tr>
+<tr class="memitem:a7b332bce66295c7bfa55fcd0a449fa13" id="r_a7b332bce66295c7bfa55fcd0a449fa13"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7b332bce66295c7bfa55fcd0a449fa13">getMaxWait</a> (EObject node)</td></tr>
+<tr class="memdesc:a7b332bce66295c7bfa55fcd0a449fa13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one.  <br /></td></tr>
 <tr class="memitem:af8f04c78d4f4ee91a13cd551f68dcf89" id="r_af8f04c78d4f4ee91a13cd551f68dcf89"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af8f04c78d4f4ee91a13cd551f68dcf89">getPortSide</a> (EObject node)</td></tr>
 <tr class="memdesc:af8f04c78d4f4ee91a13cd551f68dcf89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">@side</span> annotation for the given node (presumably a port) or null if there is no such annotation.  <br /></td></tr>
 <tr class="memitem:a32478a716122f24fa20c8e66ecbe6ba5" id="r_a32478a716122f24fa20c8e66ecbe6ba5"><td class="memItemLeft" align="right" valign="top">static boolean&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a32478a716122f24fa20c8e66ecbe6ba5">hasCBody</a> (Reaction reaction)</td></tr>
@@ -153,46 +151,6 @@ Clément Fournier </dd>
 <dd>
 Alexander Schulz-Rosengarten </dd></dl>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
-<a id="a5f7fd94cf2b8031a2da910fbefd8e483" name="a5f7fd94cf2b8031a2da910fbefd8e483"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5f7fd94cf2b8031a2da910fbefd8e483">&#9670;&#160;</a></span>findAnnotationInComments()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">String org.lflang.AttributeUtils.findAnnotationInComments </td>
-          <td>(</td>
-          <td class="paramtype">EObject</td>          <td class="paramname"><span class="paramname"><em>object</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>key</em></span>&#160;)</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Retrieve a specific annotation in a comment associated with the given model element in the AST. </p>
-<p>This will look for a comment. If one is found, it searches for the given annotation <span class="tt">key</span> and extracts any string that follows the annotation marker. Note that annotations in comments are deprecated, but we still check for them for backwards compatibility.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">object</td><td>The AST model element to search a comment for. </td></tr>
-    <tr><td class="paramname">key</td><td>The specific annotation key to be extracted. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd><span class="tt">null</span> if no JavaDoc style comment was found or if it does not contain the given key. The string immediately following the annotation marker otherwise. </dd></dl>
-
-</div>
-</div>
 <a id="ae5d19563dc9410f1d38ea7a0cc844a33" name="ae5d19563dc9410f1d38ea7a0cc844a33"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae5d19563dc9410f1d38ea7a0cc844a33">&#9670;&#160;</a></span>findAttributeByName()</h2>
 
@@ -230,7 +188,6 @@ Alexander Schulz-Rosengarten </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The attribute with the given name or null if it is not found. </dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="#ad89b57cc25c83fe743d8284d5dde7d1c" title="Return all attributes with the given name or null if the node does not support declaring attributes.">findAttributesByName</a> </dd></dl>
 
 </div>
 </div>
@@ -251,7 +208,7 @@ Alexander Schulz-Rosengarten </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>name</em></span>&#160;)</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>name</em></span>&#160;) throws IllegalArgumentException</td>
         </tr>
       </table>
   </td>
@@ -261,13 +218,26 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return all attributes with the given name or null if the node does not support declaring attributes. </p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="#ae5d19563dc9410f1d38ea7a0cc844a33" title="Return the attribute with the given name if present, otherwise return null.">findAttributeByName</a> </dd></dl>
+<p>Return a list of attributes with the given name. </p>
+<p>An empty list is returned if the node does not have any attributes with the given name.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">node</td><td>The node to get the attributes from. </td></tr>
+    <tr><td class="paramname">name</td><td>The name of the attributes to get. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">IllegalArgumentException</td><td>If the node cannot have attributes </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
-<a id="a7db07eb14fbb3102749b4e0cf540ec6b" name="a7db07eb14fbb3102749b4e0cf540ec6b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7db07eb14fbb3102749b4e0cf540ec6b">&#9670;&#160;</a></span>getAttributeParameter()</h2>
+<a id="a22f44a27aebc003c766bd805b36feb88" name="a22f44a27aebc003c766bd805b36feb88"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a22f44a27aebc003c766bd805b36feb88">&#9670;&#160;</a></span>getAttributeParameter()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -276,7 +246,7 @@ Alexander Schulz-Rosengarten </dd></dl>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.AttributeUtils.getAttributeParameter </td>
+          <td class="memname">AttrParm org.lflang.AttributeUtils.getAttributeParameter </td>
           <td>(</td>
           <td class="paramtype">Attribute</td>          <td class="paramname"><span class="paramname"><em>attribute</em></span>, </td>
         </tr>
@@ -293,8 +263,7 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return the parameter of the given attribute with the given name. </p>
-<p>Return null if no such parameter is found.</p>
+<p>Return the parameter with the given name for the specified attribute or null if no such parameter is found. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">attribute</td><td>The attribute to get the parameter from. </td></tr>
@@ -302,7 +271,6 @@ Alexander Schulz-Rosengarten </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The parameter value or null if no such parameter is found. </dd></dl>
 
 </div>
 </div>
@@ -329,7 +297,20 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return the attributes declared on the given node or null if the node does not support declaring attributes. </p>
+<p>Return a list of attributes declared on the given node. </p>
+<p>An empty list is returned if the node does not have any attributes.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">node</td><td>The node to get the attributes from. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">IllegalArgumentException</td><td>If the node cannot have attributes. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
@@ -360,21 +341,21 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Search for an attribute with the given name on the given AST node and return its first argument as a String or null if the attribute is not found or if it does not have any arguments. </p>
-<p>This should only be used on attributes that are expected to have a single argument.</p>
+<p>Return the first argument specified for the first attribute with the given name. </p>
+<p>If there is no attribute with the given name, return null. If the attribute has no arguments, or if the arguments are not of a suitable form, return null. This ignores any argument name, if one is given, and only returns arguments of the form of strings ("foo"), numbers (123), boolean values (true, false), or the time values <span class="tt">forever</span> or <span class="tt">never</span>. Time values with units are not returned (the return value will be null).</p>
+<p>This is a convenience method for common use cases where an attribute is specified with a single argument of a suitable form. The validator should check that the arguments are of a suitable form.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">node</td><td>The node to search for the attribute. </td></tr>
-    <tr><td class="paramname">attrName</td><td>The name of the attribute to search for. </td></tr>
+    <tr><td class="paramname">node</td><td>The node to get the attribute value from. </td></tr>
+    <tr><td class="paramname">attrName</td><td>The name of the attribute to get the value from. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The first argument of the attribute or null if the attribute is not found or if it does not have any arguments. </dd></dl>
 
 </div>
 </div>
-<a id="ae5dee3965826e8a387f168b11f29d44e" name="ae5dee3965826e8a387f168b11f29d44e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae5dee3965826e8a387f168b11f29d44e">&#9670;&#160;</a></span>getAttributeValues()</h2>
+<a id="a25e9e5dc443df386bdb1475b94626f81" name="a25e9e5dc443df386bdb1475b94626f81"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a25e9e5dc443df386bdb1475b94626f81">&#9670;&#160;</a></span>getBooleanAttributeParameter()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -383,47 +364,7 @@ Alexander Schulz-Rosengarten </dd></dl>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">Map&lt; String, String &gt; org.lflang.AttributeUtils.getAttributeValues </td>
-          <td>(</td>
-          <td class="paramtype">EObject</td>          <td class="paramname"><span class="paramname"><em>node</em></span>, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>attrName</em></span>&#160;)</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>For an attribute with the given name on the given AST node, return a map of the attribute parameters to their values. </p>
-<p>This should only be used on attributes that are expected to have a single argument. This returns null if the given node does not support declaring attributes, and returns an empty map if the attribute is not found or if it does not have any arguments.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">node</td><td>The node to search for the attribute. </td></tr>
-    <tr><td class="paramname">attrName</td><td>The name of the attribute to search for. </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>A map of the attribute parameters to their values or null if the attribute is not found or if it does not have any arguments. </dd></dl>
-
-</div>
-</div>
-<a id="aa97652a95c2ff870b32450a58ad88118" name="aa97652a95c2ff870b32450a58ad88118"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa97652a95c2ff870b32450a58ad88118">&#9670;&#160;</a></span>getBooleanAttributeParameter()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">Boolean org.lflang.AttributeUtils.getBooleanAttributeParameter </td>
+          <td class="memname">boolean org.lflang.AttributeUtils.getBooleanAttributeParameter </td>
           <td>(</td>
           <td class="paramtype">Attribute</td>          <td class="paramname"><span class="paramname"><em>attribute</em></span>, </td>
         </tr>
@@ -440,8 +381,7 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return the parameter of the given attribute with the given name and interpret it as a boolean. </p>
-<p>Returns null if no such parameter is found.</p>
+<p>Return true if there is a parameter of the given attribute with the given name whose value is "true" (case-insensitive) and return false otherwise. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">attribute</td><td>The attribute to get the parameter from. </td></tr>
@@ -449,7 +389,6 @@ Alexander Schulz-Rosengarten </dd></dl>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The parameter value or null if no such parameter is found. </dd></dl>
 
 </div>
 </div>
@@ -547,8 +486,7 @@ Alexander Schulz-Rosengarten </dd></dl>
 </div><div class="memdoc">
 
 <p>Return the first argument specified for the attribute or null if the attribute is not found or if it does not have any arguments. </p>
-<p>This should be used only if the attribute is expected to have a single argument.</p>
-<dl class="params"><dt>Parameters</dt><dd>
+<p>This should be used only if the attribute is expected to have a single argument. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">attr</td><td>The attribute to get the first argument from. </td></tr>
   </table>
@@ -649,14 +587,42 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return the <span class="tt">layout</span> annotation for the given element or null if there is no such annotation. </p>
+<p>Return the <span class="tt">@layout</span> annotations for the given element or null if there is no such annotation. </p>
+<p>Layout annotations have the form: ```</p>
+<p>@layout(option="string", value="any") <span class="tt"> For example, </span> @layout(option="port.side", value="WEST") ``` This will return all such annotations for the specified node in the form of a map from the option name to the value. </p>
+
+</div>
+</div>
+<a id="a7b332bce66295c7bfa55fcd0a449fa13" name="a7b332bce66295c7bfa55fcd0a449fa13"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7b332bce66295c7bfa55fcd0a449fa13">&#9670;&#160;</a></span>getMaxWait()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a> org.lflang.AttributeUtils.getMaxWait </td>
+          <td>(</td>
+          <td class="paramtype">EObject</td>          <td class="paramname"><span class="paramname"><em>node</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">node</td><td>The node to get the layout option from. </td></tr>
+    <tr><td class="paramname">The</td><td>AST node (Instantiation or Connection). </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The layout option of the node or null if there is no such annotation. </dd></dl>
 
 </div>
 </div>

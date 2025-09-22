@@ -56,6 +56,7 @@ var classorg_1_1lflang_1_1ast_1_1ASTUtils =
     [ "inferPortWidth", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a0590d67332f488243792da5b1b16b714", null ],
     [ "initialValue", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a972779d0067b217bc5b6eeffcb6594b9", null ],
     [ "initialValueInt", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a63696b3175b5fc356b48d2c4fe73f404", null ],
+    [ "isBigInteger", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ad28e4c91a60b2fa99e4ce571c237ec9a", null ],
     [ "isBoolean", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a23431639133cb54299f96ba1c5439e0e", null ],
     [ "isComment", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a77321e27be109f520350dc8ed001c53f", null ],
     [ "isFloat", "classorg_1_1lflang_1_1ast_1_1ASTUtils.html#aa7d634dafa132cd296af16535fde2cb2", null ],

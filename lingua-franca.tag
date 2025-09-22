@@ -4742,6 +4742,13 @@
     </member>
     <member kind="function" static="yes">
       <type>static boolean</type>
+      <name>isBigInteger</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
+      <anchor>ad28e4c91a60b2fa99e4ce571c237ec9a</anchor>
+      <arglist>(String literal)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
       <name>isBoolean</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</anchorfile>
       <anchor>a23431639133cb54299f96ba1c5439e0e</anchor>
@@ -6878,13 +6885,6 @@
     <name>org::lflang::AttributeUtils</name>
     <filename>classorg_1_1lflang_1_1AttributeUtils.html</filename>
     <member kind="function" static="yes">
-      <type>static String</type>
-      <name>findAnnotationInComments</name>
-      <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
-      <anchor>a5f7fd94cf2b8031a2da910fbefd8e483</anchor>
-      <arglist>(EObject object, String key)</arglist>
-    </member>
-    <member kind="function" static="yes">
       <type>static Attribute</type>
       <name>findAttributeByName</name>
       <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
@@ -6899,10 +6899,10 @@
       <arglist>(EObject node, String name)</arglist>
     </member>
     <member kind="function" static="yes">
-      <type>static String</type>
+      <type>static AttrParm</type>
       <name>getAttributeParameter</name>
       <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
-      <anchor>a7db07eb14fbb3102749b4e0cf540ec6b</anchor>
+      <anchor>a22f44a27aebc003c766bd805b36feb88</anchor>
       <arglist>(Attribute attribute, String parameterName)</arglist>
     </member>
     <member kind="function" static="yes">
@@ -6920,17 +6920,10 @@
       <arglist>(EObject node, String attrName)</arglist>
     </member>
     <member kind="function" static="yes">
-      <type>static Map&lt; String, String &gt;</type>
-      <name>getAttributeValues</name>
-      <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
-      <anchor>ae5dee3965826e8a387f168b11f29d44e</anchor>
-      <arglist>(EObject node, String attrName)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static Boolean</type>
+      <type>static boolean</type>
       <name>getBooleanAttributeParameter</name>
       <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
-      <anchor>aa97652a95c2ff870b32450a58ad88118</anchor>
+      <anchor>a25e9e5dc443df386bdb1475b94626f81</anchor>
       <arglist>(Attribute attribute, String parameterName)</arglist>
     </member>
     <member kind="function" static="yes">
@@ -6973,6 +6966,13 @@
       <name>getLayoutOption</name>
       <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
       <anchor>a7679041b34d82526d983636c48a84dca</anchor>
+      <arglist>(EObject node)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static TimeValue</type>
+      <name>getMaxWait</name>
+      <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
+      <anchor>a7b332bce66295c7bfa55fcd0a449fa13</anchor>
       <arglist>(EObject node)</arglist>
     </member>
     <member kind="function" static="yes">
@@ -25780,13 +25780,6 @@
     <name>org::lflang::ModelInfo</name>
     <filename>classorg_1_1lflang_1_1ModelInfo.html</filename>
     <member kind="function">
-      <type>void</type>
-      <name>checkCaseInsensitiveNameCollisions</name>
-      <anchorfile>classorg_1_1lflang_1_1ModelInfo.html</anchorfile>
-      <anchor>abd96e57b5a760e9be328fcbeca30492a</anchor>
-      <arglist>(Model model, MessageReporter reporter)</arglist>
-    </member>
-    <member kind="function">
       <type>Set&lt; NamedInstance&lt;?&gt; &gt;</type>
       <name>topologyCycles</name>
       <anchorfile>classorg_1_1lflang_1_1ModelInfo.html</anchorfile>
@@ -33745,6 +33738,13 @@
     </member>
     <member kind="variable">
       <type></type>
+      <name>NATIVE</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html</anchorfile>
+      <anchor>af43ff43155b3bd8bfa0f912d61adb06f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
       <name>NRF52</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html</anchorfile>
       <anchor>a109f4817b0dc1923bbc2407f5bd48ec8</anchor>
@@ -41660,6 +41660,13 @@
     <filename>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</filename>
     <member kind="variable">
       <type></type>
+      <name>BIGINT</name>
+      <anchorfile>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</anchorfile>
+      <anchor>a96cb639772822772bc2b254645db0421</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
       <name>BOOLEAN</name>
       <anchorfile>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</anchorfile>
       <anchor>afd5d10b4ce1f591cdf0bc8a525d283b2</anchor>
@@ -41684,6 +41691,13 @@
       <name>STRING</name>
       <anchorfile>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</anchorfile>
       <anchor>a5e6c6e3e4032d8060b3c7a39ccceee8b</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>TIME</name>
+      <anchorfile>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</anchorfile>
+      <anchor>aa54bc6bb311cc4c20cbde5366b16d36c</anchor>
       <arglist></arglist>
     </member>
   </compound>

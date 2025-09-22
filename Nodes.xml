@@ -9168,11 +9168,6 @@
             <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
           <Subnodes>
              <Node>
-              <Name>checkCaseInsensitiveNameCollisions</Name>
-              <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
-              <Anchor>abd96e57b5a760e9be328fcbeca30492a</Anchor>
-             </Node>
-             <Node>
               <Name>topologyCycles</Name>
               <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
               <Anchor>afceb92dbabb7f9461089f7680a350e92</Anchor>
@@ -16569,6 +16564,11 @@
               <Anchor>a63696b3175b5fc356b48d2c4fe73f404</Anchor>
              </Node>
              <Node>
+              <Name>isBigInteger</Name>
+              <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
+              <Anchor>ad28e4c91a60b2fa99e4ce571c237ec9a</Anchor>
+             </Node>
+             <Node>
               <Name>isBoolean</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
               <Anchor>a23431639133cb54299f96ba1c5439e0e</Anchor>
@@ -18133,11 +18133,6 @@
             <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
           <Subnodes>
              <Node>
-              <Name>findAnnotationInComments</Name>
-              <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-              <Anchor>a5f7fd94cf2b8031a2da910fbefd8e483</Anchor>
-             </Node>
-             <Node>
               <Name>findAttributeByName</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
               <Anchor>ae5d19563dc9410f1d38ea7a0cc844a33</Anchor>
@@ -18150,7 +18145,7 @@
              <Node>
               <Name>getAttributeParameter</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-              <Anchor>a7db07eb14fbb3102749b4e0cf540ec6b</Anchor>
+              <Anchor>a22f44a27aebc003c766bd805b36feb88</Anchor>
              </Node>
              <Node>
               <Name>getAttributes</Name>
@@ -18163,14 +18158,9 @@
               <Anchor>a92b69da36384df14c7f21483e78e9831</Anchor>
              </Node>
              <Node>
-              <Name>getAttributeValues</Name>
-              <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-              <Anchor>ae5dee3965826e8a387f168b11f29d44e</Anchor>
-             </Node>
-             <Node>
               <Name>getBooleanAttributeParameter</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-              <Anchor>aa97652a95c2ff870b32450a58ad88118</Anchor>
+              <Anchor>a25e9e5dc443df386bdb1475b94626f81</Anchor>
              </Node>
              <Node>
               <Name>getEnclaveAttribute</Name>
@@ -18201,6 +18191,11 @@
               <Name>getLayoutOption</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
               <Anchor>a7679041b34d82526d983636c48a84dca</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxWait</Name>
+              <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+              <Anchor>a7b332bce66295c7bfa55fcd0a449fa13</Anchor>
              </Node>
              <Node>
               <Name>getPortSide</Name>
@@ -23446,6 +23441,11 @@
                     <Name>initialValueInt</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
                     <Anchor>a63696b3175b5fc356b48d2c4fe73f404</Anchor>
+                   </Node>
+                   <Node>
+                    <Name>isBigInteger</Name>
+                    <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
+                    <Anchor>ad28e4c91a60b2fa99e4ce571c237ec9a</Anchor>
                    </Node>
                    <Node>
                     <Name>isBoolean</Name>
@@ -39251,6 +39251,11 @@
                           <Anchor>aa785930f3eecca4dd1ffbd09ce0a8b4d</Anchor>
                          </Node>
                          <Node>
+                          <Name>NATIVE</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html</Path>
+                          <Anchor>af43ff43155b3bd8bfa0f912d61adb06f</Anchor>
+                         </Node>
+                         <Node>
                           <Name>NRF52</Name>
                           <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html</Path>
                           <Anchor>a109f4817b0dc1923bbc2407f5bd48ec8</Anchor>
@@ -50014,6 +50019,11 @@
                     <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
                   <Subnodes>
                      <Node>
+                      <Name>BIGINT</Name>
+                      <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
+                      <Anchor>a96cb639772822772bc2b254645db0421</Anchor>
+                     </Node>
+                     <Node>
                       <Name>BOOLEAN</Name>
                       <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
                       <Anchor>afd5d10b4ce1f591cdf0bc8a525d283b2</Anchor>
@@ -50032,6 +50042,11 @@
                       <Name>STRING</Name>
                       <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
                       <Anchor>a5e6c6e3e4032d8060b3c7a39ccceee8b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>TIME</Name>
+                      <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
+                      <Anchor>aa54bc6bb311cc4c20cbde5366b16d36c</Anchor>
                      </Node>
                     </Subnodes>
                    </Node>
@@ -50479,11 +50494,6 @@
                 <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
               <Subnodes>
                  <Node>
-                  <Name>findAnnotationInComments</Name>
-                  <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-                  <Anchor>a5f7fd94cf2b8031a2da910fbefd8e483</Anchor>
-                 </Node>
-                 <Node>
                   <Name>findAttributeByName</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
                   <Anchor>ae5d19563dc9410f1d38ea7a0cc844a33</Anchor>
@@ -50496,7 +50506,7 @@
                  <Node>
                   <Name>getAttributeParameter</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-                  <Anchor>a7db07eb14fbb3102749b4e0cf540ec6b</Anchor>
+                  <Anchor>a22f44a27aebc003c766bd805b36feb88</Anchor>
                  </Node>
                  <Node>
                   <Name>getAttributes</Name>
@@ -50509,14 +50519,9 @@
                   <Anchor>a92b69da36384df14c7f21483e78e9831</Anchor>
                  </Node>
                  <Node>
-                  <Name>getAttributeValues</Name>
-                  <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-                  <Anchor>ae5dee3965826e8a387f168b11f29d44e</Anchor>
-                 </Node>
-                 <Node>
                   <Name>getBooleanAttributeParameter</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
-                  <Anchor>aa97652a95c2ff870b32450a58ad88118</Anchor>
+                  <Anchor>a25e9e5dc443df386bdb1475b94626f81</Anchor>
                  </Node>
                  <Node>
                   <Name>getEnclaveAttribute</Name>
@@ -50547,6 +50552,11 @@
                   <Name>getLayoutOption</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
                   <Anchor>a7679041b34d82526d983636c48a84dca</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>getMaxWait</Name>
+                  <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+                  <Anchor>a7b332bce66295c7bfa55fcd0a449fa13</Anchor>
                  </Node>
                  <Node>
                   <Name>getPortSide</Name>
@@ -51228,11 +51238,6 @@
                 <Name>ModelInfo</Name>
                 <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
               <Subnodes>
-                 <Node>
-                  <Name>checkCaseInsensitiveNameCollisions</Name>
-                  <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
-                  <Anchor>abd96e57b5a760e9be328fcbeca30492a</Anchor>
-                 </Node>
                  <Node>
                   <Name>topologyCycles</Name>
                   <Path>classorg_1_1lflang_1_1ModelInfo.html</Path>
