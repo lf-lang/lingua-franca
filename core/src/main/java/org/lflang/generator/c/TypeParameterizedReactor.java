@@ -95,7 +95,7 @@ public class TypeParameterizedReactor {
       Instantiation instantiation, TypeParameterizedReactor parent, List<String> typeParams) {
     HashMap<String, Type> ret = new HashMap<>();
     if (instantiation.getTypeArgs() != null) {
-      for (int i = 0; i < typeParams.size(); i++) {
+      for (int i = 0; i <  instantiation.getTypeArgs().size(); i++) {
         var arg = instantiation.getTypeArgs().get(i);
         ret.put(typeParams.get(i), parent == null ? arg : parent.resolveType(arg));
       }
