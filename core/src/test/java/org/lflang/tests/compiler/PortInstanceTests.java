@@ -222,4 +222,77 @@ public class PortInstanceTests {
     container.children.add(ri);
     return ri;
   }
+
+  @Test
+  public void testIsWrittenOnlyByPhysicalActionTriggeredReactions() throws Exception {
+    // Test case 1: Input port should return false
+    Reactor main = factory.createReactor();
+    ReactorInstance maini = new ReactorInstance(main, reporter);
+    PortInstance inputPort = newInputPort("input", maini);
+    Assertions.assertFalse(inputPort.isWrittenOnlyByPhysicalActionTriggeredReactions());
+
+    // Test case 2: Output port with no reactions should return true
+    PortInstance outputPort = newOutputPort("output", maini);
+    Assertions.assertTrue(outputPort.isWrittenOnlyByPhysicalActionTriggeredReactions());
+
+    // Test case 3: Output port written by reaction triggered by physical action should return true
+    // First create a physical action
+    org.lflang.lf.Action physicalAction = factory.createAction();
+    physicalAction.setName("physicalAction");
+    physicalAction.setOrigin(org.lflang.lf.ActionOrigin.PHYSICAL);
+    org.lflang.generator.ActionInstance physicalActionInstance = 
+        new org.lflang.generator.ActionInstance(physicalAction, maini);
+    maini.actions.add(physicalActionInstance);
+
+    // Create a reaction triggered by the physical action
+    org.lflang.lf.Reaction reaction = factory.createReaction();
+    org.lflang.lf.VarRef triggerRef = factory.createVarRef();
+    triggerRef.setVariable(physicalAction);
+    reaction.getTriggers().add(triggerRef);
+    
+    org.lflang.lf.VarRef effectRef = factory.createVarRef();
+    effectRef.setVariable(outputPort.getDefinition());
+    reaction.getEffects().add(effectRef);
+    
+    ReactionInstance reactionInstance = new ReactionInstance(reaction, maini, 0);
+    maini.reactions.add(reactionInstance);
+    
+    // Manually set up the dependencies
+    reactionInstance.triggers.add(physicalActionInstance);
+    reactionInstance.effects.add(outputPort);
+    outputPort.getDependsOnReactions().add(reactionInstance);
+    physicalActionInstance.getDependentReactions().add(reactionInstance);
+
+    Assertions.assertTrue(outputPort.isWrittenOnlyByPhysicalActionTriggeredReactions());
+
+    // Test case 4: Output port written by reaction triggered by logical action should return false
+    org.lflang.lf.Action logicalAction = factory.createAction();
+    logicalAction.setName("logicalAction");
+    logicalAction.setOrigin(org.lflang.lf.ActionOrigin.LOGICAL);
+    org.lflang.generator.ActionInstance logicalActionInstance = 
+        new org.lflang.generator.ActionInstance(logicalAction, maini);
+    maini.actions.add(logicalActionInstance);
+
+    PortInstance outputPort2 = newOutputPort("output2", maini);
+    
+    org.lflang.lf.Reaction reaction2 = factory.createReaction();
+    org.lflang.lf.VarRef triggerRef2 = factory.createVarRef();
+    triggerRef2.setVariable(logicalAction);
+    reaction2.getTriggers().add(triggerRef2);
+    
+    org.lflang.lf.VarRef effectRef2 = factory.createVarRef();
+    effectRef2.setVariable(outputPort2.getDefinition());
+    reaction2.getEffects().add(effectRef2);
+    
+    ReactionInstance reactionInstance2 = new ReactionInstance(reaction2, maini, 1);
+    maini.reactions.add(reactionInstance2);
+    
+    // Manually set up the dependencies
+    reactionInstance2.triggers.add(logicalActionInstance);
+    reactionInstance2.effects.add(outputPort2);
+    outputPort2.getDependsOnReactions().add(reactionInstance2);
+    logicalActionInstance.getDependentReactions().add(reactionInstance2);
+
+    Assertions.assertFalse(outputPort2.isWrittenOnlyByPhysicalActionTriggeredReactions());
+  }
 }

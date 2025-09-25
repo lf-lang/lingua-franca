@@ -256,6 +256,83 @@ public class PortInstance extends TriggerInstance<Port> {
     return levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE);
   }
 
+  /**
+   * Determine whether this output port is written to only by reactions that are ultimately
+   * triggered by physical actions within the container ReactorInstance of this PortInstance.
+   * 
+   * <p>This method traces back through the trigger chain of each reaction that writes to this
+   * port to determine if the ultimate trigger is a physical action. A reaction is considered
+   * "ultimately triggered by physical actions" if:
+   * <ul>
+   *   <li>It is directly triggered by a physical action, OR</li>
+   *   <li>It is triggered by another reaction that is ultimately triggered by physical actions</li>
+   * </ul>
+   * 
+   * <p>Returns false if this is not an output port or if any reaction writing to this port
+   * is not ultimately triggered by physical actions.
+   * 
+   * @return true if this is an output port and all reactions writing to it are ultimately
+   *         triggered by physical actions, false otherwise
+   */
+  public boolean isWrittenOnlyByPhysicalActionTriggeredReactions() {
+    // Only output ports can be written to
+    if (!isOutput()) {
+      return false;
+    }
+    
+    // If no reactions write to this port, return true (vacuous case)
+    if (getDependsOnReactions().isEmpty()) {
+      return true;
+    }
+    
+    // Check each reaction that writes to this port
+    for (ReactionInstance reaction : getDependsOnReactions()) {
+      if (!isReactionUltimatelyTriggeredByPhysicalAction(reaction, new java.util.HashSet<>())) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
+  /**
+   * Helper method to determine if a reaction is ultimately triggered by physical actions.
+   * Uses a visited set to prevent infinite recursion in case of cycles.
+   * 
+   * @param reaction The reaction to check
+   * @param visited Set of reactions already visited to prevent cycles
+   * @return true if the reaction is ultimately triggered by physical actions
+   */
+  private boolean isReactionUltimatelyTriggeredByPhysicalAction(ReactionInstance reaction, java.util.Set<ReactionInstance> visited) {
+    // Prevent infinite recursion
+    if (visited.contains(reaction)) {
+      return false; // Cycle detected, assume not triggered by physical action
+    }
+    visited.add(reaction);
+    
+    // Check each trigger of this reaction
+    for (TriggerInstance<?> trigger : reaction.triggers) {
+      if (trigger instanceof ActionInstance) {
+        ActionInstance actionInstance = (ActionInstance) trigger;
+        if (actionInstance.isPhysical()) {
+          return true; // Directly triggered by physical action
+        }
+      } else if (trigger instanceof PortInstance) {
+        PortInstance portInstance = (PortInstance) trigger;
+        // Check if this port is written by reactions ultimately triggered by physical actions
+        for (ReactionInstance writingReaction : portInstance.getDependsOnReactions()) {
+          if (isReactionUltimatelyTriggeredByPhysicalAction(writingReaction, visited)) {
+            return true;
+          }
+        }
+      }
+      // For timers, startup, shutdown, and other triggers, they are not physical actions
+      // so we continue checking other triggers
+    }
+    
+    return false;
+  }
+
   //////////////////////////////////////////////////////
   //// Protected fields.
 
