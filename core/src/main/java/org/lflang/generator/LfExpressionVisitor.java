@@ -36,8 +36,8 @@ public interface LfExpressionVisitor<P, R> {
    * @param e An expression that will be visited
    * @param arg Argument for the visitor
    * @param visitor Visitor
-   * @param <P> Type of parameter expected by the visitor
-   * @param <R> Return type of the visitor
+   * @tparam P Type of parameter expected by the visitor
+   * @tparam R Return type of the visitor
    * @return The return value of the visitor
    */
   static <P, R> R dispatch(

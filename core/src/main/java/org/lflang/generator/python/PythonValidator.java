@@ -164,10 +164,8 @@ public class PythonValidator extends org.lflang.generator.Validator {
    *
    * @param fileConfig The file configuration of this build.
    * @param messageReporter The reporter to which diagnostics should be sent.
-   * @param codeMaps A mapping from generated file paths to code maps that map them back to LF
-   *     sources.
-   * @param protoNames The names of any protocol buffer message types that are used in the LF
-   *     program being built.
+   * @param codeMaps A mapping from generated file paths to code maps that map them back to LF sources.
+   * @param protoNames The names of any protocol buffer message types that are used in the LF program being built.
    */
   public PythonValidator(
       FileConfig fileConfig,
@@ -181,10 +179,28 @@ public class PythonValidator extends org.lflang.generator.Validator {
     this.protoNames = ImmutableSet.copyOf(protoNames);
   }
 
+  // ============================================================================
+  // Validation Strategy Implementation
+  // ============================================================================
+
+  /**
+   * List all validation strategies that exist for the implementor without filtering by platform or
+   * availability.
+   *
+   * @return Collection of validation strategies
+   */
   @Override
   protected Collection<ValidationStrategy> getPossibleStrategies() {
-    return List.of(
-        new ValidationStrategy() {
+    return List.of(createPythonValidationStrategy());
+  }
+
+  /**
+   * Create the Python validation strategy.
+   *
+   * @return The validation strategy for Python
+   */
+  private ValidationStrategy createPythonValidationStrategy() {
+    return new ValidationStrategy() {
           @Override
           public LFCommand getCommand(Path generatedFile) {
             return LFCommand.get(
@@ -400,7 +416,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
           public int getPriority() {
             return 1;
           }
-        });
+        };
   }
 
   @Override

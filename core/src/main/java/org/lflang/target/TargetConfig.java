@@ -126,7 +126,6 @@ public class TargetConfig {
    * Load configuration from the given resource.
    *
    * @param resource A resource to load from.
-   * @param reporter A reporter for reporting issues.
    * @param reporter A message reporter for reporting errors and warnings.
    */
   protected void load(Resource resource, MessageReporter reporter) {
@@ -211,6 +210,8 @@ public class TargetConfig {
    * @param pairs AST node that holds all the target properties.
    * @param relativePath The path from the main resource to the resource from which the new
    *     properties originate.
+   * @param loadOrNot Predicate to determine which properties to load.
+   * @param err Message reporter for error reporting.
    */
   public void update(
       TargetConfig config,
@@ -320,8 +321,6 @@ public class TargetConfig {
    *
    * @param property The property to get the value of
    * @return The current value, or the initial value of none was assigned.
-   * @param <T> The Java type of the returned value.
-   * @param <S> The LF type of the returned value.
    */
   public <T, S extends TargetPropertyType> T getOrDefault(TargetProperty<T, S> property) {
     try {
@@ -389,8 +388,6 @@ public class TargetConfig {
    *
    * @param property The target property to assign the value to.
    * @param value The value to assign to the target property.
-   * @param <T> The Java type of the value.
-   * @param <S> The LF type of the value.
    */
   public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {
     if (value != null) {
@@ -414,8 +411,7 @@ public class TargetConfig {
    * Return the AST node that was used to assign a value for the given target property.
    *
    * @param targetProperty The target property to find a matching AST node for.
-   * @param <T> The Java type of values assigned to the given target property.
-   * @param <S> The LF type of values assigned to the given target property.
+   * @return The KeyValuePair that was used to assign the value, or null if not found.
    */
   public <T, S extends TargetPropertyType> KeyValuePair lookup(
       TargetProperty<T, S> targetProperty) {

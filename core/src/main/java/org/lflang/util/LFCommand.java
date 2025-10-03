@@ -219,7 +219,7 @@ public class LFCommand {
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
    *
-   * @see #get(String, List, boolean, Path)
+   * @see #get get
    */
   public static LFCommand get(final String cmd, final List<String> args) {
     return get(cmd, args, false, Paths.get(""));
@@ -229,7 +229,7 @@ public class LFCommand {
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
    *
-   * @see #get(String, List, boolean, Path)
+   * @see #get get
    */
   public static LFCommand get(final String cmd, final List<String> args, boolean quiet) {
     return get(cmd, args, quiet, Paths.get(""));
@@ -243,7 +243,7 @@ public class LFCommand {
    * following order:
    *
    * <p>1. Check if the given command `cmd` is an executable file within `dir`. 2. If
-   * the above fails 'which <cmd>' (or 'where <cmd>' on Windows) is executed to see if the command
+   * the above fails 'which cmd' (or 'where cmd' on Windows) is executed to see if the command
    * is available on the PATH. 3. If both points above fail, a third attempt is started using bash
    * to indirectly execute the command (see below for an explanation).
    *

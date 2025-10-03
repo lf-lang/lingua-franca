@@ -93,6 +93,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the port.
    * @param coordinationMode The coordination type
+   * @param messageReporter The message reporter for error reporting.
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -500,7 +501,7 @@ public class CExtension implements FedTargetExtension {
 
   /**
    * Add preamble to a separate file to set up federated execution. Return an a string containing
-   * the #includes that are needed by the federate.
+   * the includes that are needed by the federate.
    */
   @Override
   public String generatePreamble(

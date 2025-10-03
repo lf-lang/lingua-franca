@@ -31,7 +31,7 @@ public class CollectionUtil {
    *
    * @param set initial set, nullable
    * @param t new element
-   * @param <T> Type of elements
+   * @tparam T Type of elements
    * @return A new set, or the same
    */
   public static <T> Set<T> plus(Set<T> set, T t) {
@@ -67,7 +67,7 @@ public class CollectionUtil {
 
   /**
    * Remove the given value from all the sets that are values in the given map. Use this if the
-   * values of the map (the sets) were build with {@link #plus(Set, Object)}.
+   * values of the map (the sets) were build with plus(Set, Object).
    *
    * <p>In {@link org.lflang.graph.DirectedGraph}, this is used to properly remove nodes from a
    * graph. There, we use maps to represent edges, where a value in a map is a set of nodes adjacent
@@ -146,7 +146,7 @@ public class CollectionUtil {
    * Returns a copy of the set. The returned set should be considered unmodifiable.
    *
    * @param set initial set, nullable
-   * @param <T> Type of elements
+   * @tparam T Type of elements
    * @return A new set, or the same
    */
   public static <T> Set<T> copy(Set<T> set) {
@@ -159,7 +159,7 @@ public class CollectionUtil {
 
   /**
    * Returns an immutable Set that contains all argument values. Duplicate elements are removed
-   * without error (contrary to {@link Set#of()} and friends).
+   * without error (contrary to Set.of() and friends).
    */
   @SafeVarargs
   public static <T> Set<T> immutableSetOf(T first, T... rest) {
