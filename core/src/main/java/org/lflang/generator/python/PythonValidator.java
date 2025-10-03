@@ -191,7 +191,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
    */
   @Override
   protected Collection<ValidationStrategy> getPossibleStrategies() {
-    return List.of(createPythonValidationStrategy());
+    return List.of(createPythonValidationStrategy(), createPylintValidationStrategy());
   }
 
   /**
@@ -305,8 +305,16 @@ public class PythonValidator extends org.lflang.generator.Validator {
           public int getPriority() {
             return 0;
           }
-        },
-        new ValidationStrategy() {
+        };
+  }
+
+  /**
+   * Create the Pylint validation strategy.
+   *
+   * @return The validation strategy for Pylint
+   */
+  private ValidationStrategy createPylintValidationStrategy() {
+    return new ValidationStrategy() {
           @Override
           public LFCommand getCommand(Path generatedFile) {
             return LFCommand.get(
