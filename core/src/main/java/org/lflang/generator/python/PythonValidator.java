@@ -201,111 +201,106 @@ public class PythonValidator extends org.lflang.generator.Validator {
    */
   private ValidationStrategy createPythonValidationStrategy() {
     return new ValidationStrategy() {
-          @Override
-          public LFCommand getCommand(Path generatedFile) {
-            return LFCommand.get(
-                "python3",
-                List.of("-c", "import compileall; compileall.compile_dir('.', quiet=1)"),
-                true,
-                fileConfig.getSrcGenPkgPath());
-          }
+      @Override
+      public LFCommand getCommand(Path generatedFile) {
+        return LFCommand.get(
+            "python3",
+            List.of("-c", "import compileall; compileall.compile_dir('.', quiet=1)"),
+            true,
+            fileConfig.getSrcGenPkgPath());
+      }
 
-          @Override
-          public Strategy getErrorReportingStrategy() {
-            return (a, b, c) -> {};
-          }
+      @Override
+      public Strategy getErrorReportingStrategy() {
+        return (a, b, c) -> {};
+      }
 
-          @Override
-          public Strategy getOutputReportingStrategy() {
-            return (String validationOutput,
-                MessageReporter messageReporter,
-                Map<Path, CodeMap> map) -> {
-              String[] lines = (validationOutput + "\n\n\n").lines().toArray(String[]::new);
-              for (int i = 0; i < lines.length - 3; i++) {
-                if (!tryReportTypical(lines, i)) {
-                  tryReportAlternative(lines, i);
-                }
-              }
-            };
-          }
-
-          /**
-           * Try to report a typical error message from the Python compiler.
-           *
-           * @param lines The lines of output from the compiler.
-           * @param i The current index at which a message may start. Guaranteed to be less than
-           *     `lines.length - 3`.
-           * @return Whether an error message was reported.
-           */
-          private boolean tryReportTypical(String[] lines, int i) {
-            Matcher main = DIAGNOSTIC_MESSAGE_PATTERN.matcher(lines[i]);
-            Matcher messageMatcher = MESSAGE.matcher(lines[i + 3]);
-            String message = messageMatcher.matches() ? messageMatcher.group() : "Syntax Error";
-            if (main.matches()) {
-              int line = Integer.parseInt(main.group("line"));
-              CodeMap map =
-                  codeMaps.get(
-                      fileConfig
-                          .getSrcGenPkgPath()
-                          .resolve(Path.of(main.group("path")))
-                          .normalize());
-              Position genPosition =
-                  Position.fromOneBased(line, Integer.MAX_VALUE); // Column is just a placeholder.
-              if (map == null) {
-                messageReporter.nowhere().error(message); // Undesirable fallback
-              } else {
-                for (Path lfFile : map.lfSourcePaths()) {
-                  Position lfPosition = map.adjusted(lfFile, genPosition);
-                  // TODO: We could be more precise than just getting the right line, but the way
-                  // the output
-                  //  is formatted (with leading whitespace possibly trimmed) does not make it easy.
-                  messageReporter.at(lfFile, lfPosition).error(message);
-                }
-              }
-              return true;
+      @Override
+      public Strategy getOutputReportingStrategy() {
+        return (String validationOutput,
+            MessageReporter messageReporter,
+            Map<Path, CodeMap> map) -> {
+          String[] lines = (validationOutput + "\n\n\n").lines().toArray(String[]::new);
+          for (int i = 0; i < lines.length - 3; i++) {
+            if (!tryReportTypical(lines, i)) {
+              tryReportAlternative(lines, i);
             }
-            return false;
-          }
-
-          /**
-           * Try to report an alternative error message from the Python compiler.
-           *
-           * @param lines The lines of output from the compiler.
-           * @param i The current index at which a message may start.
-           */
-          private void tryReportAlternative(String[] lines, int i) {
-            Matcher main = ALT_DIAGNOSTIC_MESSAGE_PATTERN.matcher(lines[i]);
-            if (main.matches()) {
-              int line = Integer.parseInt(main.group("line"));
-              Iterable<CodeMap> relevantMaps =
-                  codeMaps.keySet().stream()
-                          .filter(p -> main.group().contains(p.getFileName().toString()))
-                          .map(codeMaps::get)
-                      ::iterator;
-              for (CodeMap map :
-                  relevantMaps) { // There should almost always be exactly one of these
-                for (Path lfFile : map.lfSourcePaths()) {
-                  Position pos =
-                      map.adjusted(
-                          lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)));
-                  messageReporter
-                      .at(lfFile, pos)
-                      .error(main.group().replace("*** ", "").replace("Sorry: ", ""));
-                }
-              }
-            }
-          }
-
-          @Override
-          public boolean isFullBatch() {
-            return true;
-          }
-
-          @Override
-          public int getPriority() {
-            return 0;
           }
         };
+      }
+
+      /**
+       * Try to report a typical error message from the Python compiler.
+       *
+       * @param lines The lines of output from the compiler.
+       * @param i The current index at which a message may start. Guaranteed to be less than
+       *     `lines.length - 3`.
+       * @return Whether an error message was reported.
+       */
+      private boolean tryReportTypical(String[] lines, int i) {
+        Matcher main = DIAGNOSTIC_MESSAGE_PATTERN.matcher(lines[i]);
+        Matcher messageMatcher = MESSAGE.matcher(lines[i + 3]);
+        String message = messageMatcher.matches() ? messageMatcher.group() : "Syntax Error";
+        if (main.matches()) {
+          int line = Integer.parseInt(main.group("line"));
+          CodeMap map =
+              codeMaps.get(
+                  fileConfig.getSrcGenPkgPath().resolve(Path.of(main.group("path"))).normalize());
+          Position genPosition =
+              Position.fromOneBased(line, Integer.MAX_VALUE); // Column is just a placeholder.
+          if (map == null) {
+            messageReporter.nowhere().error(message); // Undesirable fallback
+          } else {
+            for (Path lfFile : map.lfSourcePaths()) {
+              Position lfPosition = map.adjusted(lfFile, genPosition);
+              // TODO: We could be more precise than just getting the right line, but the way
+              // the output
+              //  is formatted (with leading whitespace possibly trimmed) does not make it easy.
+              messageReporter.at(lfFile, lfPosition).error(message);
+            }
+          }
+          return true;
+        }
+        return false;
+      }
+
+      /**
+       * Try to report an alternative error message from the Python compiler.
+       *
+       * @param lines The lines of output from the compiler.
+       * @param i The current index at which a message may start.
+       */
+      private void tryReportAlternative(String[] lines, int i) {
+        Matcher main = ALT_DIAGNOSTIC_MESSAGE_PATTERN.matcher(lines[i]);
+        if (main.matches()) {
+          int line = Integer.parseInt(main.group("line"));
+          Iterable<CodeMap> relevantMaps =
+              codeMaps.keySet().stream()
+                      .filter(p -> main.group().contains(p.getFileName().toString()))
+                      .map(codeMaps::get)
+                  ::iterator;
+          for (CodeMap map : relevantMaps) { // There should almost always be exactly one of these
+            for (Path lfFile : map.lfSourcePaths()) {
+              Position pos =
+                  map.adjusted(lfFile, Position.fromOneBased(line, map.firstNonWhitespace(line)));
+              messageReporter
+                  .at(lfFile, pos)
+                  .error(main.group().replace("*** ", "").replace("Sorry: ", ""));
+            }
+          }
+        }
+      }
+
+      @Override
+      public boolean isFullBatch() {
+        return true;
+      }
+
+      @Override
+      public int getPriority() {
+        return 0;
+      }
+    };
   }
 
   /**
@@ -315,116 +310,115 @@ public class PythonValidator extends org.lflang.generator.Validator {
    */
   private ValidationStrategy createPylintValidationStrategy() {
     return new ValidationStrategy() {
-          @Override
-          public LFCommand getCommand(Path generatedFile) {
-            return LFCommand.get(
-                "pylint",
-                List.of("--output-format=json", generatedFile.getFileName().toString()),
-                true,
-                fileConfig.getSrcGenPath());
-          }
+      @Override
+      public LFCommand getCommand(Path generatedFile) {
+        return LFCommand.get(
+            "pylint",
+            List.of("--output-format=json", generatedFile.getFileName().toString()),
+            true,
+            fileConfig.getSrcGenPath());
+      }
 
-          @Override
-          public Strategy getErrorReportingStrategy() {
-            return (a, b, c) -> {};
-          }
+      @Override
+      public Strategy getErrorReportingStrategy() {
+        return (a, b, c) -> {};
+      }
 
-          @Override
-          public Strategy getOutputReportingStrategy() {
-            return (validationOutput, errorReporter, codeMaps) -> {
-              if (validationOutput.isBlank()) return;
-              try {
-                for (PylintMessage message :
-                    mapper.readValue(validationOutput, PylintMessage[].class)) {
-                  if (shouldIgnore(message)) continue;
-                  CodeMap map = codeMaps.get(message.getPath(fileConfig.getSrcGenPath()));
-                  if (map != null) {
-                    for (Path lfFile : map.lfSourcePaths()) {
-                      Function<Position, Position> adjust = p -> map.adjusted(lfFile, p);
-                      String humanMessage =
-                          DiagnosticReporting.messageOf(
-                              message.message,
-                              message.getPath(fileConfig.getSrcGenPath()),
-                              message.getStart());
-                      Position lfStart = adjust.apply(message.getStart());
-                      Position lfEnd = adjust.apply(message.getEnd());
-                      bestEffortReport(
-                          errorReporter,
-                          adjust,
-                          lfStart,
-                          lfEnd,
-                          lfFile,
-                          message.getSeverity(),
-                          humanMessage);
-                    }
-                  }
+      @Override
+      public Strategy getOutputReportingStrategy() {
+        return (validationOutput, errorReporter, codeMaps) -> {
+          if (validationOutput.isBlank()) return;
+          try {
+            for (PylintMessage message :
+                mapper.readValue(validationOutput, PylintMessage[].class)) {
+              if (shouldIgnore(message)) continue;
+              CodeMap map = codeMaps.get(message.getPath(fileConfig.getSrcGenPath()));
+              if (map != null) {
+                for (Path lfFile : map.lfSourcePaths()) {
+                  Function<Position, Position> adjust = p -> map.adjusted(lfFile, p);
+                  String humanMessage =
+                      DiagnosticReporting.messageOf(
+                          message.message,
+                          message.getPath(fileConfig.getSrcGenPath()),
+                          message.getStart());
+                  Position lfStart = adjust.apply(message.getStart());
+                  Position lfEnd = adjust.apply(message.getEnd());
+                  bestEffortReport(
+                      errorReporter,
+                      adjust,
+                      lfStart,
+                      lfEnd,
+                      lfFile,
+                      message.getSeverity(),
+                      humanMessage);
                 }
-              } catch (JsonProcessingException e) {
-                System.err.printf("Failed to parse \"%s\":%n", validationOutput);
-                e.printStackTrace();
-                errorReporter
-                    .nowhere()
-                    .warning(
-                        "Failed to parse linter output. The Lingua Franca code generator is tested"
-                            + " with Pylint version 2.12.2. Consider updating Pylint if you have an"
-                            + " older version.");
               }
-            };
-          }
-
-          /**
-           * Return whether the given message should be ignored.
-           *
-           * @param message A Pylint message that is a candidate to be reported.
-           * @return whether `message` should be reported.
-           */
-          private boolean shouldIgnore(PylintMessage message) {
-            // Code generation does not preserve whitespace, so this check is unreliable.
-            if (message.symbol.equals("trailing-whitespace")
-                || message.symbol.equals("line-too-long")) return true;
-            // This filters out Pylint messages concerning missing members in types defined by
-            // protocol buffers.
-            // FIXME: Make this unnecessary, perhaps using
-            // https://github.com/nelfin/pylint-protobuf.
-            Matcher matcher = PylintNoNamePattern.matcher(message.message);
-            return message.symbol.equals("no-member")
-                && matcher.matches()
-                && protoNames.contains(matcher.group("name"));
-          }
-
-          /** Make a best-effort attempt to place the diagnostic on the correct line. */
-          private void bestEffortReport(
-              MessageReporter messageReporter,
-              Function<Position, Position> adjust,
-              Position lfStart,
-              Position lfEnd,
-              Path file,
-              DiagnosticSeverity severity,
-              String humanMessage) {
-            if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
-              messageReporter.at(file, new Range(lfStart, lfEnd)).report(severity, humanMessage);
-            } else { // Fallback: Try to report on the correct line, or failing that, just line 1.
-              if (lfStart.equals(Position.ORIGIN))
-                lfStart =
-                    adjust.apply(
-                        Position.fromZeroBased(lfStart.getZeroBasedLine(), Integer.MAX_VALUE));
-              // FIXME: It might be better to improve style of generated code instead of quietly
-              // returning here.
-              if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
-              messageReporter.at(file, lfStart).report(severity, humanMessage);
             }
-          }
-
-          @Override
-          public boolean isFullBatch() {
-            return false;
-          }
-
-          @Override
-          public int getPriority() {
-            return 1;
+          } catch (JsonProcessingException e) {
+            System.err.printf("Failed to parse \"%s\":%n", validationOutput);
+            e.printStackTrace();
+            errorReporter
+                .nowhere()
+                .warning(
+                    "Failed to parse linter output. The Lingua Franca code generator is tested"
+                        + " with Pylint version 2.12.2. Consider updating Pylint if you have an"
+                        + " older version.");
           }
         };
+      }
+
+      /**
+       * Return whether the given message should be ignored.
+       *
+       * @param message A Pylint message that is a candidate to be reported.
+       * @return whether `message` should be reported.
+       */
+      private boolean shouldIgnore(PylintMessage message) {
+        // Code generation does not preserve whitespace, so this check is unreliable.
+        if (message.symbol.equals("trailing-whitespace") || message.symbol.equals("line-too-long"))
+          return true;
+        // This filters out Pylint messages concerning missing members in types defined by
+        // protocol buffers.
+        // FIXME: Make this unnecessary, perhaps using
+        // https://github.com/nelfin/pylint-protobuf.
+        Matcher matcher = PylintNoNamePattern.matcher(message.message);
+        return message.symbol.equals("no-member")
+            && matcher.matches()
+            && protoNames.contains(matcher.group("name"));
+      }
+
+      /** Make a best-effort attempt to place the diagnostic on the correct line. */
+      private void bestEffortReport(
+          MessageReporter messageReporter,
+          Function<Position, Position> adjust,
+          Position lfStart,
+          Position lfEnd,
+          Path file,
+          DiagnosticSeverity severity,
+          String humanMessage) {
+        if (!lfEnd.equals(Position.ORIGIN) && !lfStart.equals(Position.ORIGIN)) { // Ideal case
+          messageReporter.at(file, new Range(lfStart, lfEnd)).report(severity, humanMessage);
+        } else { // Fallback: Try to report on the correct line, or failing that, just line 1.
+          if (lfStart.equals(Position.ORIGIN))
+            lfStart =
+                adjust.apply(Position.fromZeroBased(lfStart.getZeroBasedLine(), Integer.MAX_VALUE));
+          // FIXME: It might be better to improve style of generated code instead of quietly
+          // returning here.
+          if (lfStart.equals(Position.ORIGIN) && severity != DiagnosticSeverity.Error) return;
+          messageReporter.at(file, lfStart).report(severity, humanMessage);
+        }
+      }
+
+      @Override
+      public boolean isFullBatch() {
+        return false;
+      }
+
+      @Override
+      public int getPriority() {
+        return 1;
+      }
+    };
   }
 
   @Override
