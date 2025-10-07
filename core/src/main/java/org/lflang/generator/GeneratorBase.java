@@ -345,7 +345,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /**
    * Return the reaction bank index.
    *
-   * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
+   * @see #setReactionBankIndex
    * @param reaction The reaction.
    * @return The reaction bank index, if one has been set, and -1 otherwise.
    */

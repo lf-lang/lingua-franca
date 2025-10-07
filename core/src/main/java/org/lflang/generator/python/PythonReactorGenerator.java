@@ -99,8 +99,8 @@ public class PythonReactorGenerator {
 
   /**
    * Generate code to instantiate a Python list that will hold the Python
-   * class instance of reactor <code>instance<code>. Will recursively do
-   * the same for the children of <code>instance<code> as well.
+   * class instance of reactor `instance`. Will recursively do
+   * the same for the children of `instance` as well.
    *
    * @param instance The reactor instance for which the Python list will be created.
    */

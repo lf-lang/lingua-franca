@@ -20,7 +20,8 @@ public class PlatformType extends OptionsType<Platform> {
     ZEPHYR("Zephyr"),
     FLEXPRET("FlexPRET"),
     PATMOS("Patmos"),
-    WINDOWS("Windows");
+    WINDOWS("Windows"),
+    NATIVE("Native"); // Used by uC target
 
     final String cMakeName;
 

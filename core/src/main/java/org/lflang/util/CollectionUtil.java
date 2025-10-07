@@ -20,6 +20,8 @@ import java.util.function.Function;
  * take a collection parameter as input to produce a new one with a transformation require the input
  * collection to have been obtained from one of the utility functions of this class in the first
  * place.
+ *
+ * @ingroup Utilities
  */
 public class CollectionUtil {
 

@@ -57,6 +57,7 @@ import org.lflang.util.LFCommand;
  * TestRegistry}.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public abstract class TestBase extends LfInjectedTestBase {
 

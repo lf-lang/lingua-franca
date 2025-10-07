@@ -49,6 +49,7 @@ import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
@@ -162,9 +163,9 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
 
     var color =
-        (reactorInstance.containingEnclaveReactor != reactorInstance)
-            ? Colors.GRAY
-            : ENCLAVE_BORDER_COLOR;
+        AttributeUtils.isEnclave(reactorInstance.getDefinition())
+            ? ENCLAVE_BORDER_COLOR
+            : Colors.GRAY;
 
     Function1<KRoundedRectangle, KRendering> style =
         r -> {

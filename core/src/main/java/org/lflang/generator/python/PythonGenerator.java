@@ -527,7 +527,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
           "PyObject* "
               + PythonReactionGenerator.generateCPythonReactionFunctionName(reactionIndex)
               + ";");
-      if (reaction.getStp() != null) {
+      if (reaction.getMaxWait() != null) {
         selfStructBody.pr(
             "PyObject* "
                 + PythonReactionGenerator.generateCPythonSTPFunctionName(reactionIndex)

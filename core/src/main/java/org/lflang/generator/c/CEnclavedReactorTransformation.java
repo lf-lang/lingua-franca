@@ -250,7 +250,9 @@ public class CEnclavedReactorTransformation implements AstTransformation {
     Reactor def = createEnclaveConnectionClass();
     Instantiation inst = factory.createInstantiation();
     inst.setReactorClass(def);
-    inst.getTypeArgs().add(EcoreUtil.copy(type));
+    if (type != null) {
+      inst.getTypeArgs().add(EcoreUtil.copy(type));
+    }
 
     Assignment hasAfterDelayAssignment = factory.createAssignment();
     hasAfterDelayAssignment.setLhs(getParameter(def, hasAfterDelayParamName));

@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.lflang.generator.MixedRadixInt;
 
+/**
+ * Test the MixedRadixInt class.
+ * @ingroup Tests
+ */
 public class MixedRadixIntTest {
 
   // Constants used many times below.

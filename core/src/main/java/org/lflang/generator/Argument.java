@@ -9,7 +9,6 @@ import org.lflang.target.property.TargetProperty;
  *
  * @param property A target property.
  * @param value The value to assign to it.
- * @param <T> The type of the value.
  * @author Marten Lohstroh
  * @ingroup Generator
  */

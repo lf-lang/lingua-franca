@@ -3,7 +3,10 @@ package org.lflang.util;
 import java.util.Arrays;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
-/** Average asynchronously reported numbers and do something with them. */
+/**
+ * Average asynchronously reported numbers and do something with them.
+ * @ingroup Utilities
+ */
 public class Averager {
   private final int n;
   private final int[] reports;

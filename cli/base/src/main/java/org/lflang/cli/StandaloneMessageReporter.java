@@ -10,7 +10,7 @@ import org.lflang.MessageReporterBase;
 import org.lflang.generator.Range;
 
 /**
- * An error reporter that forwards all messages to an {@link IssueCollector}. They'll be sorted out
+ * An error reporter that forwards all messages to an `IssueCollector`. They'll be sorted out
  * later.
  *
  * @ingroup CLI

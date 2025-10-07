@@ -152,12 +152,12 @@ public class PythonPortGenerator {
   /**
    * Generate code that creates a Python list (i.e., []) for contained banks to be passed to Python reactions.
    * The Python reaction will then subsequently be able to address each individual bank member of the contained
-   * bank using an index or an iterator. Each list member will contain the given <code>port<code>
-   * (which could be a multiport with a width determined by <code>widthSpec<code>).
+   * bank using an index or an iterator. Each list member will contain the given `port`
+   * (which could be a multiport with a width determined by `widthSpec`).
    *
-   * This is to accommodate reactions like <code>reaction() -> s.out<code> where s is a bank. In this example,
-   * the generated Python function will have the signature <code>reaction_function_0(self, s_out)<code>, where
-   * s_out is a list of out ports. This will later be turned into the proper <code>s.out<code> format using the
+   * This is to accommodate reactions like `reaction() -> s.out` where s is a bank. In this example,
+   * the generated Python function will have the signature `reaction_function_0(self, s_out)`, where
+   * s_out is a list of out ports. This will later be turned into the proper `s.out` format using the
    * Python code generated in {@link #generatePythonPortVariableInReaction}.
    *
    * @param reactorName The name of the bank of reactors (which is the name of the reactor class).
@@ -220,8 +220,8 @@ public class PythonPortGenerator {
   }
 
   /**
-   * Generate into the specified string builder (<code>inits<code>) the code to
-   * initialize local variable for <code>port<code> so that it can be used in the body of
+   * Generate into the specified string builder (`inits`) the code to
+   * initialize local variable for `port` so that it can be used in the body of
    * the Python reaction.
    * @param port The port to generate code for.
    */

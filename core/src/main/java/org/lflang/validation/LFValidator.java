@@ -831,7 +831,7 @@ public class LFValidator extends BaseLFValidator {
             Literals.REACTION__CODE);
         return;
       }
-      if (reaction.getDeadline() == null && reaction.getStp() == null) {
+      if (reaction.getDeadline() == null && reaction.getMaxWait() == null) {
         var text = NodeModelUtils.findActualNodeFor(reaction).getText();
         var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
         if (matcher.find()) {
@@ -1315,7 +1315,7 @@ public class LFValidator extends BaseLFValidator {
     String name = attr.getAttrName().toString();
     AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
     if (spec == null) {
-      error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
+      error("Unknown attribute: " + name, Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
     // Check the validity of the attribute.
@@ -1772,15 +1772,6 @@ public class LFValidator extends BaseLFValidator {
       if (ASTUtils.isZero(((Literal) value).getLiteral())) {
         return;
       }
-
-      if (ASTUtils.isForever(((Literal) value).getLiteral())) {
-        return;
-      }
-
-      if (ASTUtils.isNever(((Literal) value).getLiteral())) {
-        return;
-      }
-
       if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
         error("Missing time unit.", feature);
         return;
