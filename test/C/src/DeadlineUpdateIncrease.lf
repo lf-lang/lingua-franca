@@ -1,12 +1,12 @@
 // Verify deadline update from 50 ms to 100 ms works.
 // Also test if the updated deadline works when reaction is triggered again.
 target C {
-    timeout: 100 msec
+  timeout: 100 msec
 }
 
 reactor IncreaseDeadline {
   state deadline_increased: bool = false
-  timer t (0, 100 msec)
+  timer t(0, 100 msec)
 
   reaction(t) {=
     if (!self->deadline_increased) {
@@ -31,5 +31,5 @@ reactor IncreaseDeadline {
 }
 
 main reactor {
-    increaseDeadline = new IncreaseDeadline()
+  increaseDeadline = new IncreaseDeadline()
 }
