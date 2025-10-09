@@ -899,8 +899,15 @@ public class CReactionGenerator {
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
       if (reaction.getMaxWait() != null) {
-        // The following has to match the name chosen in generateReactions
-        var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+        String STPFunctionName;
+        if (reaction.getMaxWait().getCode() != null) {
+          // There is an STP handler.
+          // The following has to match the name chosen in generateReactions
+          STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+        } else {
+          // There is no STP handler body. Invoke the ordinary reaction.
+          STPFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         STPFunctionPointer = "&" + STPFunctionName;
       }
 
