@@ -147,6 +147,9 @@ public class LanguageServerMessageReporter extends MessageReporterBase {
    * @return the line located at the given index
    */
   private Optional<String> getLine(int line) {
+    if (line < 0) {
+      line = 0;
+    }
     return getText().lines().skip(line).findFirst();
   }
 
