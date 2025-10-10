@@ -73,7 +73,7 @@ public class GeneratorUtils {
    *
    * @param resource A resource to be searched.
    * @param nodeType The type of the desired parse tree nodes.
-   * @param <T> The type of the desired parse tree nodes.
+   * @tparam T The type of the desired parse tree nodes.
    * @return all instances of `eObjectType` in `resource`
    */
   public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {

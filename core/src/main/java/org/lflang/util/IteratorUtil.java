@@ -31,10 +31,10 @@ public final class IteratorUtil {
    * Given an iterator of type T, turn it into a stream containing only the instances of the given
    * class of type S.
    *
-   * @param <T> The type of elements the iterator iterates over.
-   * @param <S> The type of class to filter out instance of.
    * @param iterator An iterator of type T.
    * @param cls A given class of type S.
+   * @tparam T The type of elements the iterator iterates over.
+   * @tparam S The type of class to filter out instance of.
    * @return A filtered stream that only has in it instances of the given class.
    */
   public static <T, S> Stream<S> asFilteredStream(Iterator<T> iterator, Class<S> cls) {

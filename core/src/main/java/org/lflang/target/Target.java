@@ -375,7 +375,7 @@ public enum Target {
   /**
    * Return the display name of the target, as it should be written in LF code. This is hence a
    * single identifier. Eg for {@link #CPP} returns `"Cpp"`, for {@link #Python} returns
-   * `"Python"`. Avoid using either {@link #name()} or {@link #toString()}, which have
+   * `"Python"`. Avoid using either name() or toString(), which have
    * unrelated contracts.
    */
   public String getDisplayName() {

@@ -222,8 +222,8 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   }
 
   /**
-   * Generate code that needs to appear at the top of the generated C file, such as #define and
-   * #include statements.
+   * Generate code that needs to appear at the top of the generated C file, such as define and
+   * include statements.
    */
   @Override
   public String generateDirectives() {

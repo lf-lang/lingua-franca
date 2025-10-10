@@ -1070,12 +1070,14 @@ public class ToLf extends LfSwitch<MalleableString> {
   /**
    * Represent the given EList as a string.
    *
-   * @param suffix The token marking the end of the list.
    * @param separator The separator separating elements of the list.
    * @param prefix The token marking the start of the list.
+   * @param suffix The token marking the end of the list.
    * @param nothingIfEmpty Whether the result should be simplified to the empty string as opposed to
    *     just the prefix and suffix.
    * @param whitespaceRigid Whether any whitespace appearing in the
+   * @param suffixSameLine Whether the suffix should be on the same line as the last element.
+   * @param items The list of items to convert to string.
    */
   private <E extends EObject> MalleableString list(
       String separator,

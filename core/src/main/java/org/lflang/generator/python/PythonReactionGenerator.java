@@ -141,7 +141,7 @@ public class PythonReactionGenerator {
    * Generate the reaction in the .c file, which calls the Python reaction through the CPython interface.
    *
    * @param reaction The reaction to generate Python-specific initialization for.
-   * @param r The reactor to which <code>reaction<code> belongs to.
+   * @param r The reactor to which <code>reaction</code> belongs to.
    * @param reactionIndex The index number of the reaction in decl.
    * @param mainDef The main reactor.
    * @param messageReporter An error reporter.
@@ -502,9 +502,9 @@ public class PythonReactionGenerator {
    * Generate the function that is executed whenever the deadline of the reaction with the given
    * reaction index is missed
    *
-   * @param reaction The reaction to generate deadline miss code for
-   * @param reactionIndex The agreed-upon index of the reaction in the reactor (should match the C
-   *     generated code)
+   * @param pythonFunctionName The name of the Python function to generate
+   * @param inits Initialization code for the function
+   * @param reactionBody The body of the reaction function
    * @param reactionParameters The parameters to the deadline violation function, which are the same
    *     as the reaction function
    */

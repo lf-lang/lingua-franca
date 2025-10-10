@@ -71,6 +71,7 @@ public class Progress {
    * Report the progress of the task tracked by `this`.
    *
    * @param message A message describing the progress of the task.
+   * @param percentage The percentage of completion (0-100).
    */
   public void report(String message, Integer percentage) {
     WorkDoneProgressReport report = new WorkDoneProgressReport();

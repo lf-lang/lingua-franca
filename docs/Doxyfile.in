@@ -123,9 +123,9 @@ FILE_VERSION_FILTER    =
 LAYOUT_FILE            = DoxygenLayout.xml
 QUIET                  = YES
 WARNINGS               = YES
-WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_UNDOCUMENTED   = NO
 WARN_IF_DOC_ERROR      = YES
-WARN_IF_INCOMPLETE_DOC = YES
+WARN_IF_INCOMPLETE_DOC = NO
 WARN_NO_PARAMDOC       = NO
 WARN_IF_UNDOC_ENUM_VAL = NO
 WARN_AS_ERROR          = NO
@@ -268,6 +268,9 @@ DOT_CLEANUP            = YES
 ALIASES += generated=""
 ALIASES += ordered=""
 ALIASES += model=""
+# Custom aliases for unknown commands
+ALIASES += layout="@par"
+ALIASES += enclave="@par"
 # Doxygen can't parse nested generics. This filter replaces with a simpler declaration.
 # This means the docs are slightly inaccurate, but this is better than no docs.
 INPUT_FILTER = sed -e 's/RuntimeRange<T extends NamedInstance<?>>/RuntimeRange<T>/g' \
