@@ -37,6 +37,7 @@ import org.lflang.lf.Expression;
 import org.lflang.lf.Host;
 import org.lflang.lf.IPV4Host;
 import org.lflang.lf.IPV6Host;
+import org.lflang.lf.IfLate;
 import org.lflang.lf.Import;
 import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Initializer;
@@ -45,7 +46,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
-import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -59,6 +59,7 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -474,7 +475,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //            ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     //        ( => sources+=VarRef (',' sources+=VarRef)*)?
     //        ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    //        (code=Code)? (maxwait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
+    //        (code=Code)? ((stp=STP) | (iflate=IfLate))? (deadline=Deadline)? (delimited?=';')?
     //        ;
     return sList(
         "reaction",
@@ -485,7 +486,8 @@ public class ToSExpr extends LfSwitch<SExpr> {
         sList("sources", object.getSources()),
         sList("effects", object.getEffects()),
         object.getCode(),
-        object.getMaxWait(),
+        object.getStp(),
+        object.getIflate(),
         object.getDeadline(),
         sList("is-delimited", object.isDelimited()));
   }
@@ -530,10 +532,17 @@ public class ToSExpr extends LfSwitch<SExpr> {
   }
 
   @Override
-  public SExpr caseMaxWait(MaxWait object) {
-    //        maxwait:
-    //        'maxwait' ()'(' value=Expression ')')? code=Code;
-    return sList("maxwait", object.getValue(), object.getCode());
+  public SExpr caseSTP(STP object) {
+    //        stp:
+    //        'STAA' ()'(' value=Expression ')') code=Code;
+    return sList("STAA", object.getValue(), object.getCode());
+  }
+
+  @Override
+  public SExpr caseIfLate(IfLate object) {
+    //        iflate:
+    //        'iflate' code=Code;
+    return sList("iflate", object.getCode());
   }
 
   @Override

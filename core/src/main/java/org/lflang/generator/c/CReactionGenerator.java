@@ -898,9 +898,10 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getMaxWait() != null) {
+      // First check for an iflate handler.
+      if (reaction.getIflate() != null) {
         String STPFunctionName;
-        if (reaction.getMaxWait().getCode() != null) {
+        if (reaction.getIflate().getCode() != null) {
           // There is an STP handler.
           // The following has to match the name chosen in generateReactions
           STPFunctionName = generateStpFunctionName(tpr, reactionCount);
@@ -909,6 +910,10 @@ public class CReactionGenerator {
           STPFunctionName = generateReactionFunctionName(tpr, reactionCount);
         }
         STPFunctionPointer = "&" + STPFunctionName;
+      } else if (reaction.getStp() != null) {
+        // There is an STP handler. Handle it for backward compatibility.
+        // The following has to match the name chosen in generateReactions
+        STPFunctionPointer = "&" + generateStpFunctionName(tpr, reactionCount);
       }
 
       // Set the defaults of the reaction_t struct in the constructor.
@@ -1161,12 +1166,22 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getMaxWait() != null) {
+    if (reaction.getIflate() != null) {
+      if (reaction.getIflate().getCode() != null) {
+        code.pr(
+            generateFunction(
+                generateStpFunctionHeader(tpr, reactionIndex),
+                init,
+                reaction.getIflate().getCode(),
+                suppressLineDirectives));
+      }
+    } else if (reaction.getStp() != null) {
+      // Handle STAA or STP for backward compatibility.
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getMaxWait().getCode(),
+              reaction.getStp().getCode(),
               suppressLineDirectives));
     }
 

@@ -180,12 +180,21 @@ public class PythonReactionGenerator {
             generateCPythonReactionCaller(tpr, reactionIndex, pyObjects, cPyInit)));
 
     // Generate code for the STP violation handler, if there is one.
-    if (reaction.getMaxWait() != null) {
+    if (reaction.getIflate() != null) {
+      if (reaction.getIflate().getCode() != null) {
+        code.pr(
+            generateFunction(
+                CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
+                cInit,
+                reaction.getIflate().getCode(),
+                generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)));
+      }
+    } else if (reaction.getStp() != null) {
       code.pr(
           generateFunction(
               CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
               cInit,
-              reaction.getMaxWait().getCode(),
+              reaction.getStp().getCode(),
               generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)));
     }
     // Generate code for the deadline violation function, if there is one.
@@ -457,7 +466,9 @@ public class PythonReactionGenerator {
         generateCPythonFunctionLinker(
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index)));
-    if (reaction.getDefinition().getMaxWait() != null) {
+    if (reaction.getDefinition().getStp() != null
+        || (reaction.getDefinition().getIflate() != null
+            && reaction.getDefinition().getIflate().getCode() != null)) {
       code.pr(
           generateCPythonFunctionLinker(
               nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
@@ -564,12 +575,21 @@ public class PythonReactionGenerator {
             ASTUtils.toText(reaction.getCode()),
             reactionParameters));
     // Generate code for the STP violation handler function, if there is one.
-    if (reaction.getMaxWait() != null) {
+    if (reaction.getIflate() != null) {
+      if (reaction.getIflate().getCode() != null) {
+        code.pr(
+            generatePythonFunction(
+                generatePythonSTPFunctionName(reactionIndex),
+                "",
+                ASTUtils.toText(reaction.getIflate().getCode()),
+                reactionParameters));
+      }
+    } else if (reaction.getStp() != null) {
       code.pr(
           generatePythonFunction(
               generatePythonSTPFunctionName(reactionIndex),
               "",
-              ASTUtils.toText(reaction.getMaxWait().getCode()),
+              ASTUtils.toText(reaction.getStp().getCode()),
               reactionParameters));
     }
     // Generate code for the deadline violation function, if there is one.
