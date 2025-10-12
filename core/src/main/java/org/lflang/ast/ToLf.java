@@ -318,7 +318,12 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (name=ID '=')? value=AttrParmValue;
     var builder = new Builder();
     if (object.getName() != null) builder.append(object.getName()).append(" = ");
-    return builder.append(object.getValue()).get();
+    var value = object.getValue();
+    if (value == null) {
+      // The value is a Time.
+      return caseTime(object.getTime());
+    }
+    return builder.append(value).get();
   }
 
   @Override
@@ -803,6 +808,7 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseConnection(Connection object) {
+    // (attributes+=Attribute)*
     // ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     //     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     // ('->' | physical?='~>')
@@ -811,6 +817,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (serializer=Serializer)?
     // ';'?
     Builder msb = new Builder();
+    addAttributes(msb, object::getAttributes);
     Builder left = new Builder();
     Builder right = new Builder();
     if (object.isIterated()) {
