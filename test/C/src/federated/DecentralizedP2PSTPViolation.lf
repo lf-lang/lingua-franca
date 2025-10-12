@@ -24,7 +24,7 @@ reactor Platform(
   reaction(in) {=
     lf_print("Received %d on time, which should be unusual.", in->value);
     tag_t current_tag = lf_tag();
-    lf_print("********* Lag is " PRINTF_TIME, current_tag.time - lf_time_physical());
+    lf_print("********* Lag is " PRINTF_TIME, lf_time_physical() - current_tag.time);
     if (in->value != self->expected++) {
       lf_print_error_and_exit("Expected %d but got %d.",
         self->expected - 1,
@@ -34,7 +34,7 @@ reactor Platform(
   =} STAA(stp_offset_param) {=
     lf_print("Received %d late, as expected.", in->value);
     tag_t current_tag = lf_tag();
-    lf_print("********* Lag is " PRINTF_TIME, current_tag.time - lf_time_physical());
+    lf_print("********* Lag is " PRINTF_TIME, lf_time_physical() - current_tag.time);
     if (in->value != self->expected++) {
       lf_print_error_and_exit("Expected %d but got %d.",
         self->expected - 1,
@@ -51,17 +51,18 @@ reactor Platform(
   =}
 }
 
-// The STP offset here will force STP violations in a and b.
-reactor Delay(STP_offset: time = 250 ms) {
+// The delay here will force STP violations in the Platform.
+reactor Delay(STP_offset: time = forever, delay: time = 250 ms) {
   input in: int
   output out: int
 
   reaction(in) -> out {=
+    lf_sleep(self->delay);
     lf_set(out, in->value);
   =} STAA(0) {=
-    // With the 250ms above, STP violations shouldn't occur, but they do
-    // occur sometimes in CI.  Here, we can just have the behavior be the
-    // same as when it does not occur.
+    // With the forever above, STP violations shouldn't occur, but we can just have the
+    // behavior be the same as when it does not occur.
+    lf_sleep(self->delay);
     lf_set(out, in->value);
   =}
 }
