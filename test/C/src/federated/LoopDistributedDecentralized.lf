@@ -1,11 +1,11 @@
 /**
  * This tests a feedback loop with physical actions and decentralized coordination.
- *
+ * NOTE: This test is flaky. It fails occasionally in CI.
+  *
  * @author Edward A. Lee
  */
 target C {
   coordination: decentralized,
-  logging: LOG,
   timeout: 5 sec
 }
 
@@ -21,6 +21,9 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
     int count = 0;
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
+      // Give time for the execution to start to avoid flaky error with an event scheduled
+      // before the start time.
+      lf_sleep(MSEC(100));
       while(!stop && count++ < 30) {
         lf_print("Scheduling action.");
         lf_schedule(actionref, 0);
