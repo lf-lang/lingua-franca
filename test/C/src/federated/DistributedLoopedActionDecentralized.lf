@@ -3,7 +3,7 @@
  * purpose of this test is to check whether the functionalities pertinent to dynamic STP offset
  * adjustments are present and functioning to a degree.
  *
- * This version of the test does not use a centralized coordinator to advance tag. Therefore, the
+ * This version of the test does not use a centralized coordinator to advance the tag. Therefore, the
  * receiver will rely on an STP offset (initially zero) to wait long enough for messages to arrive
  * before advancing its tag. In this test, the STP offset is initially zero and gradually raised
  * every time an STP violation is perceived until no STP violation is observed. Therefore, the exact
