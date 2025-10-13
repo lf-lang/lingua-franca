@@ -1,0 +1,41 @@
+// Verify that deadline increases from 500 ms to 1 sec works.
+// Also, test if the increased deadline works when reaction is triggered again.
+target C {
+  timeout: 1 sec
+}
+
+reactor IncreaseDeadline {
+  state deadline_increased: bool = false
+  state deadline_checked: bool = false
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    if (!self->deadline_increased) {
+        lf_update_deadline(self, SEC(1));
+        lf_sleep(MSEC(500));
+        if (lf_check_deadline(self, true)) {
+            lf_print_error_and_exit("Deadline update failed. Deadline handler should not invoked on lag of 500 msec.");
+        }
+        lf_sleep(MSEC(500));
+        if (!lf_check_deadline(self, true)) {
+            lf_print_error_and_exit("Deadline update failed. Deadline handler was not invoked on lag of 1 sec.");
+        }
+        self->deadline_increased = true;
+    } else {
+        // When the reaction is triggered again, the deadline should not be violated, and enter here.
+        lf_print("Deadline was not violated with lag smaller than 1 sec, as expected.");
+    }
+  =} deadline(500 msec) {=
+    lf_print("Deadline violation detected at Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+    // When the next reaction is invoked on logical time 1 sec, the deadline handler should not be invoked when only sleeping 500 msecs.
+    lf_sleep(MSEC(500));
+    if (self->deadline_checked) {
+      lf_print_error_and_exit("Deadline should not be violated with lag smaller than 1 sec!");
+    }
+    self->deadline_checked = true;
+  =}
+}
+
+main reactor {
+  increaseDeadline = new IncreaseDeadline()
+}
