@@ -180,13 +180,13 @@ public class PythonReactionGenerator {
             generateCPythonReactionCaller(tpr, reactionIndex, pyObjects, cPyInit)));
 
     // Generate code for the STP violation handler, if there is one.
-    if (reaction.getIflate() != null) {
-      if (reaction.getIflate().getCode() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
         code.pr(
             generateFunction(
                 CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
                 cInit,
-                reaction.getIflate().getCode(),
+                reaction.getTardy().getCode(),
                 generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)));
       }
     } else if (reaction.getStp() != null) {
@@ -467,8 +467,8 @@ public class PythonReactionGenerator {
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index)));
     if (reaction.getDefinition().getStp() != null
-        || (reaction.getDefinition().getIflate() != null
-            && reaction.getDefinition().getIflate().getCode() != null)) {
+        || (reaction.getDefinition().getTardy() != null
+            && reaction.getDefinition().getTardy().getCode() != null)) {
       code.pr(
           generateCPythonFunctionLinker(
               nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
@@ -575,13 +575,13 @@ public class PythonReactionGenerator {
             ASTUtils.toText(reaction.getCode()),
             reactionParameters));
     // Generate code for the STP violation handler function, if there is one.
-    if (reaction.getIflate() != null) {
-      if (reaction.getIflate().getCode() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
         code.pr(
             generatePythonFunction(
                 generatePythonSTPFunctionName(reactionIndex),
                 "",
-                ASTUtils.toText(reaction.getIflate().getCode()),
+                ASTUtils.toText(reaction.getTardy().getCode()),
                 reactionParameters));
       }
     } else if (reaction.getStp() != null) {
