@@ -19,7 +19,7 @@ reactor Pi {
     tag_t now = lf_tag();
     lf_print("***** at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
     lf_set(out, 42);
-  =} iflate {=
+  =} tardy {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Pi at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}
@@ -49,7 +49,7 @@ reactor Gather {
       lf_request_stop(); // STAA is not applied at the stop tag, so we can't count on communication completing.
     }
     lf_schedule(a, 0);
-  =} iflate {=
+  =} tardy {=
     tag_t now = lf_tag();
     lf_print_error_and_exit("STP violation at Gather at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
   =}

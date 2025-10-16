@@ -22,7 +22,7 @@ reactor Print {
     instant_t lag = in->physical_time_of_arrival - lf_time_logical();
     lf_print("The message arrived with lag " PRINTF_TIME, lag);
     self->c++;
-  =} iflate {=
+  =} tardy {=
     // This STP handler should never be invoked because the only source of event
     // for Print is the Count reactor.
     lf_print_error_and_exit("Logical STP violation was detected. Only physical STP violations are possible.");

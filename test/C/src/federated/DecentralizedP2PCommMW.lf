@@ -26,7 +26,7 @@ reactor Platform(start: int = 0, expected_start: int = 0, period: time = 100 ms)
         in->value
       );
     }
-  =} iflate {=
+  =} tardy {=
     lf_print("Received %d late.", in->value);
     tag_t current_tag = lf_tag();
     self->expected_start++;

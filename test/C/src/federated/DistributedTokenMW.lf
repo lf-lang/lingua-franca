@@ -1,5 +1,5 @@
 /**
- * Variant of DistributedToken that tests an empty `iflate` handler.
+ * Variant of DistributedToken that tests an empty `tardy` handler.
  *
  * @author Edward A. Lee
  */
@@ -64,7 +64,7 @@ reactor PrintMessage {
       printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
       exit(1);
     }
-  =} iflate
+  =} tardy
 
   // Invoke regular reaction.
   reaction(shutdown) {=

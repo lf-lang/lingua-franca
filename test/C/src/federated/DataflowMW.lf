@@ -19,7 +19,7 @@ reactor Client {
       lf_request_stop();
     }
     lf_set(client_message, val);
-  =} iflate {=
+  =} tardy {=
     lf_print_error_and_exit("Client STP Violated!");
   =}
 }
@@ -46,7 +46,7 @@ reactor Server {
       lf_request_stop();
     }
     lf_set(server_message, val);
-  =} iflate {=
+  =} tardy {=
     lf_print_error_and_exit("Server STP Violated!");
   =}
 }

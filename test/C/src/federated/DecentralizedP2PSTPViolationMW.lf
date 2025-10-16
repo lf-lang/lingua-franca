@@ -27,7 +27,7 @@ reactor Platform(start: int = 0, expected_start: int = 0, period: time = 100 ms)
         in->value
       );
     }
-  =} iflate {=
+  =} tardy {=
     lf_print("Received %d late, as expected.", in->value);
     tag_t current_tag = lf_tag();
     lf_print("********* Lag is " PRINTF_TIME, lf_time_physical() - current_tag.time);
@@ -55,7 +55,7 @@ reactor Delay(STP_offset: time = forever, delay: time = 250 ms) {
   reaction(in) -> out {=
     lf_sleep(self->delay);
     lf_set(out, in->value);
-  =} iflate {=
+  =} tardy {=
     // With the forever above, STP violations shouldn't occur, but we can just have the
     // behavior be the same as when it does not occur.
     lf_sleep(self->delay);

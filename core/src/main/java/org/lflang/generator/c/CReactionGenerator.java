@@ -898,10 +898,10 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      // First check for an iflate handler.
-      if (reaction.getIflate() != null) {
+      // First check for an tardy handler.
+      if (reaction.getTardy() != null) {
         String STPFunctionName;
-        if (reaction.getIflate().getCode() != null) {
+        if (reaction.getTardy().getCode() != null) {
           // There is an STP handler.
           // The following has to match the name chosen in generateReactions
           STPFunctionName = generateStpFunctionName(tpr, reactionCount);
@@ -1166,13 +1166,13 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getIflate() != null) {
-      if (reaction.getIflate().getCode() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
         code.pr(
             generateFunction(
                 generateStpFunctionHeader(tpr, reactionIndex),
                 init,
-                reaction.getIflate().getCode(),
+                reaction.getTardy().getCode(),
                 suppressLineDirectives));
       }
     } else if (reaction.getStp() != null) {
