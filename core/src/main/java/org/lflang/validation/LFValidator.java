@@ -1322,6 +1322,29 @@ public class LFValidator extends BaseLFValidator {
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
+    // Above generic check is not sufficient for maxwait.
+    if (name.equals("maxwait")) {
+      checkMaxWaitAttribute(attr);
+    }
+  }
+
+  private void checkMaxWaitAttribute(Attribute attr) {
+    // Check that the attribute is at the top level.
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Connection)) {
+      warning(
+          "maxwait attribute can only be used in an instantiation or connection.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    var top = container.eContainer();
+    if (!(top instanceof Reactor) || !((Reactor) top).isFederated()) {
+      warning(
+          "maxwait attribute can only be used at the top level in a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
   }
 
   @Check(CheckType.FAST)
