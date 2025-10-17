@@ -225,6 +225,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "maxwait",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    // @absent_after(time)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "absent_after",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     // @icon("value")

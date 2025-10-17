@@ -48,10 +48,10 @@ reactor Platform(start: int = 0, expected_start: int = 0, period: time = 100 ms)
 federated reactor {
   a = new Platform(expected_start=100, period = 500 ms)
   b = new Platform(start=100, period = 1 s)
-  // A maxwait of 250 ms prevents this federate from continuing until it gets all four inputs.
-  // Note that this is an example where a time-varying maxwait would be useful.
-  @maxwait(250 ms)
+  // An absent_after of 250 ms prevents this federate from continuing until it gets all four inputs.
+  // Note that this is an example where a time-varying absent_after would be useful.
+  @absent_after(250 ms)
   a.out -> b.in
-  @maxwait(250 ms)
+  @absent_after(250 ms)
   b.out -> a.in
 }

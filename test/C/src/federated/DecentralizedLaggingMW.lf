@@ -63,10 +63,10 @@ federated reactor {
   @maxwait(forever)
   pi = new[4] Pi()
   // Default maxwait of zero allows Gather to produce an output. Note that it will not
-  // advance to the stop time prematurely because of the maxwait on the connection below.
+  // advance to the stop time prematurely because of the absent_after on the connection below.
   g = new Gather()
-  // A maxwait of forever prevents this federate from continuing until it gets all four inputs.
-  @maxwait(forever)
+  // An absent_after of forever prevents this federate from continuing until it gets all four inputs.
+  @absent_after(forever)
   pi.out -> g.in
   (g.next)+ -> pi.trigger
 }

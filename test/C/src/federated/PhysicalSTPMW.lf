@@ -39,6 +39,6 @@ federated reactor {
   c = new Count(offset = 1 msec, period = 1 sec)
   p = new Print()
 
-  @maxwait(1 us)
+  @absent_after(1 us)
   c.out -> p.in
 }

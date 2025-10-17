@@ -92,8 +92,8 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
 federated reactor {
   left = new Looper()
   right = new Looper(incr=-1)
-  @maxwait(100 ms)
+  @absent_after(100 ms)
   left.out -> right.in
-  @maxwait(100 ms)
+  @absent_after(100 ms)
   right.out -> left.in
 }

@@ -94,8 +94,8 @@ reactor STPReceiver(take_a_break_after: int = 10, break_interval: time = 400 mse
 
 federated reactor {
   sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
-  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
   // Initial maxwait is too small.
   @maxwait(0)
+  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
   sender.out -> stpReceiver.in
 }

@@ -526,14 +526,14 @@ public class FedASTUtils {
   }
 
   /**
-   * Return the maxwait for the destination port of the given connection.
+   * Return the `absent_after` for the destination port of the given connection.
    * If the coordination is not decentralized, return TimeValue.ZERO.
-   * Otherwise, if the connection has a maxwait attribute, return it.
-   * If the connection does not have a maxwait attribute, find the maximum STP
-   * or STAA for the reactions that react to the destination port.
+   * Otherwise, if the connection has an `absent_after` attribute, return it.
+   * If the connection does not have an `absent_after` attribute, find the maximum STP
+   * or STAA for the reactions that react to the destination port (for backward compatibility).
    * This maximum may be nested in contained reactors in the federate.
-   * This method returns TimeValue.ZERO if there are no maxwait offsets for the port.
-   * @param connection The connection to find the maxwait offset for.
+   * This method returns TimeValue.ZERO if there are no `absent_after` offsets for the port.
+   * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
    */
   private static TimeValue findMaxSTAA(
@@ -542,12 +542,12 @@ public class FedASTUtils {
       return TimeValue.ZERO;
     }
 
-    // Start by checking for a maxwait attribute on the connection.
+    // Start by checking for an `absent_after` attribute on the connection.
     Connection conn = connection.getDefinition();
-    // If the connection has a maxwait attribute, return it.
-    var maxwait = AttributeUtils.getMaxWait(conn);
-    if (maxwait != TimeValue.ZERO) {
-      return maxwait;
+    // If the connection has an `absent_after` attribute, return it.
+    var absentAfter = AttributeUtils.getAbsentAfter(conn);
+    if (absentAfter != TimeValue.ZERO) {
+      return absentAfter;
     }
 
     // For backward compatibility, check for STP offsets on the reactions that
