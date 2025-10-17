@@ -18,11 +18,11 @@ reactor Source {
 
 reactor Destination {
   state s = 6
-  input[4] _in
+  input[4] inp
 
-  reaction(_in) {=
+  reaction(inp) {=
     sm = 0
-    for port in _in:
+    for port in inp:
       if port.is_present:
         sm += port.value
     print("Sum of received: " + str(sm))
@@ -55,5 +55,5 @@ reactor InsideContainer {
 main reactor MultiportFromHierarchy {
   a = new Container()
   b = new Destination()
-  a.out -> b._in
+  a.out -> b.inp
 }

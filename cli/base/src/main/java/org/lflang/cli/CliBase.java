@@ -24,8 +24,6 @@ import org.eclipse.xtext.util.CancelIndicator;
 import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.eclipse.xtext.validation.Issue;
-import org.lflang.LFRuntimeModule;
-import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
 import org.lflang.util.FileUtil;
 import picocli.CommandLine;
@@ -42,6 +40,7 @@ import picocli.CommandLine.Spec;
  * @author Christian Menard
  * @author Billy Bao
  * @author Atharva Patil
+ * @ingroup CLI
  */
 public abstract class CliBase implements Runnable {
   /**
@@ -134,8 +133,7 @@ public abstract class CliBase implements Runnable {
     final ReportingBackend reporter = new ReportingBackend(io, toolName + ": ");
 
     // Injector used to obtain Main instance.
-    return new LFStandaloneSetup(new LFRuntimeModule(), new LFStandaloneModule(reporter, io))
-        .createInjectorAndDoEMFRegistration();
+    return new LFCliSetup(reporter, io).createInjectorAndDoEMFRegistration();
   }
 
   /** Resolve to an absolute path, in the given {@link #io} context. */

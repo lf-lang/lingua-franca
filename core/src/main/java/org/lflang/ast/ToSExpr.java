@@ -45,6 +45,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
+import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -58,7 +59,6 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -75,6 +75,11 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
 
+/**
+ * Converts an LF model to an S-expression.
+ *
+ * @ingroup Utilities
+ */
 public class ToSExpr extends LfSwitch<SExpr> {
 
   /**
@@ -469,7 +474,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //            ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     //        ( => sources+=VarRef (',' sources+=VarRef)*)?
     //        ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    //        (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
+    //        (code=Code)? (maxwait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
     //        ;
     return sList(
         "reaction",
@@ -480,7 +485,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
         sList("sources", object.getSources()),
         sList("effects", object.getEffects()),
         object.getCode(),
-        object.getStp(),
+        object.getMaxWait(),
         object.getDeadline(),
         sList("is-delimited", object.isDelimited()));
   }
@@ -525,10 +530,10 @@ public class ToSExpr extends LfSwitch<SExpr> {
   }
 
   @Override
-  public SExpr caseSTP(STP object) {
-    //        STP:
-    //        'STP' '(' value=Expression ')' code=Code;
-    return sList("stp", object.getValue(), object.getCode());
+  public SExpr caseMaxWait(MaxWait object) {
+    //        maxwait:
+    //        'maxwait' ()'(' value=Expression ')')? code=Code;
+    return sList("maxwait", object.getValue(), object.getCode());
   }
 
   @Override
@@ -627,20 +632,20 @@ public class ToSExpr extends LfSwitch<SExpr> {
     //        keyvalue=KeyValuePairs
     //            | array=Array
     //            | literal=Literal
-    //            | (time=INT unit=TimeUnit)
-    //    | id=Path;
+    //            | time=Time
+    //            | id=Path;
     return sList(
         "element",
         object.getKeyvalue(),
         object.getArray(),
         object.getLiteral(),
-        object.getTime() == 0
-                && (object.getKeyvalue() != null
-                    || object.getArray() != null
-                    || object.getLiteral() != null
-                    || object.getId() != null)
+        object.getTime() == null
             ? null
-            : sList("time", object.getTime(), object.getUnit()),
+            : object.getTime().getForever() != null
+                ? "forever"
+                : object.getTime().getNever() != null
+                    ? "never"
+                    : sList("time", object.getTime().getInterval(), object.getTime().getUnit()),
         object.getId());
   }
 

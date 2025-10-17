@@ -11,11 +11,11 @@ preamble {=
 =}
 
 reactor Check(expected=42) {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
-    if _in.value.value != self.expected:
+  reaction(inp) {=
+    print("Received: name = {:s}, value = {:d}".format(inp.value.name, inp.value.value))
+    if inp.value.value != self.expected:
       sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
       exit(1)
   =}
@@ -23,14 +23,14 @@ reactor Check(expected=42) {
 
 reactor Print(scale=2) {
   # Mutable keyword indicates that this reactor wants a writable copy of the input.
-  mutable input _in
+  mutable input inp
 
   output out
 
-  reaction(_in) -> out {=
-    print(_in.value.value)
-    _in.value.value *= self.scale;
-    out.set(_in.value)
+  reaction(inp) -> out {=
+    print(inp.value.value)
+    inp.value.value *= self.scale;
+    out.set(inp.value)
   =}
 }
 
@@ -40,8 +40,8 @@ main reactor StructParallel {
   c2 = new Print(scale=3)
   p1 = new Check(expected=84)
   p2 = new Check(expected=126)
-  s.out -> c1._in
-  s.out -> c2._in
-  c1.out -> p1._in
-  c2.out -> p2._in
+  s.out -> c1.inp
+  s.out -> c2.inp
+  c1.out -> p1.inp
+  c2.out -> p2.inp
 }

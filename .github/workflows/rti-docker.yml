@@ -19,24 +19,25 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - name: Look up the current version and export as environment variable
+        id: version
         run: |
           export LF_VERSION=$(cat core/src/main/resources/org/lflang/StringsBundle.properties | sed -n 's/.*VERSION = \(.*\)/\1/p' | tr '[:upper:]' '[:lower:]')
           echo "lf_version=$LF_VERSION"
           echo "lf_version=$LF_VERSION" >> $GITHUB_ENV
+          echo "version=$LF_VERSION" >> $GITHUB_OUTPUT
       - name: Build and push RTI to Docker Hub
         uses: ./.github/actions/push-rti-docker
         with:
-          tag: ${{ env.lf_version }}
+          tag: ${{ steps.version.outputs.version }}
           latest: false
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        if: ${{ endsWith(env.lf_version, '-snapshot') && github.repository_owner == 'lf-lang' }}
-
+        if: ${{ endsWith(steps.version.outputs.version, '-snapshot') && github.repository_owner == 'lf-lang' }}
       - name: Update latest (released versions only)
         uses: ./.github/actions/push-rti-docker
         with:
-          tag: ${{ env.lf_version }}
+          tag: ${{ steps.version.outputs.version }}
           latest: true
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        if: ${{ !endsWith(env.lf_version, '-snapshot') && github.repository_owner == 'lf-lang' }}
+        if: ${{ !endsWith(steps.version.outputs.version, '-snapshot') && github.repository_owner == 'lf-lang' }}

@@ -1,0 +1,35 @@
+# Test whether the deadline checking function works in Python target
+target Python
+
+reactor A {
+  state i = 0
+  logical action a
+
+  reaction(startup) -> a {=
+    self.i = 0
+    while not self.check_deadline(True):
+        pass
+  =} deadline(10 msec) {=
+    a.schedule(0)
+  =}
+
+  reaction(a) {=
+    self.i = 42
+    # Check that if there is no deadline, check_deadline() returns false.
+    if self.check_deadline():
+        print("ERROR: check_deadline() returned true when there is no deadline")
+        exit(1)
+  =}
+
+  reaction(shutdown) {=
+    if self.i == 42:
+        print("SUCCESS")
+    else:
+        print(f"ERROR: Expected 42, but got {self.i}")
+        exit(1)
+  =}
+}
+
+main reactor {
+  a = new A()
+}

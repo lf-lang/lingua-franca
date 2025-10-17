@@ -6,6 +6,8 @@ import java.util.regex.Pattern;
 /**
  * Represents a range in a document. Ranges have a natural ordering that respects their start
  * position(s) only.
+ *
+ * @ingroup Utilities
  */
 public class Range implements Comparable<Range> {
   public static final Pattern PATTERN =
@@ -24,8 +26,8 @@ public class Range implements Comparable<Range> {
   /* ------------------------- PUBLIC METHODS -------------------------- */
 
   /**
-   * Initializes a Range that starts at {@code startInclusive} and ends at, but does not include,
-   * {@code endExclusive}.
+   * Initializes a Range that starts at `startInclusive` and ends at, but does not include,
+   * `endExclusive`.
    *
    * @param startInclusive the start of the range (inclusive)
    * @param endExclusive the end of the range (exclusive)
@@ -67,10 +69,10 @@ public class Range implements Comparable<Range> {
   }
 
   /**
-   * Compares this to {@code o}.
+   * Compares this to `o`.
    *
    * @param o another Range
-   * @return an integer indicating how this compares to {@code o}
+   * @return an integer indicating how this compares to `o`
    */
   @Override
   public int compareTo(Range o) {
@@ -78,10 +80,10 @@ public class Range implements Comparable<Range> {
   }
 
   /**
-   * Returns whether this contains {@code p}.
+   * Returns whether this contains `p`.
    *
    * @param p an arbitrary Position
-   * @return whether this contains {@code p}
+   * @return whether this contains `p`
    */
   public boolean contains(Position p) {
     return start.compareTo(p) <= 0 && p.compareTo(end) < 0;
@@ -93,23 +95,23 @@ public class Range implements Comparable<Range> {
   }
 
   /**
-   * Converts {@code s} to a Range.
+   * Converts `s` to a Range.
    *
-   * @param s a String that represents a Range, formatted like the output of {@code Range::toString}
-   * @return the Range r such that {@code r.toString()} equals {@code s}
+   * @param s a String that represents a Range, formatted like the output of `Range::toString`
+   * @return the Range r such that `r.toString()` equals `s`
    */
   public static Range fromString(String s) {
     return fromString(s, Position.fromZeroBased(0, 0));
   }
 
   /**
-   * Converts {@code s} to a Range, with the assumption that the positions expressed in {@code s}
-   * are given relative to {@code relativeTo}.
+   * Converts `s` to a Range, with the assumption that the positions expressed in `s`
+   * are given relative to `relativeTo`.
    *
-   * @param s a String that represents a Range, formatted like the output of {@code Range::toString}
-   * @param relativeTo the position relative to which the positions in {@code s} are represented
-   * @return the Range represented by {@code s}, expressed relative to the Position relative to
-   *     which the Position {@code relativeTo} is expressed
+   * @param s a String that represents a Range, formatted like the output of `Range::toString`
+   * @param relativeTo the position relative to which the positions in `s` are represented
+   * @return the Range represented by `s`, expressed relative to the Position relative to
+   *     which the Position `relativeTo` is expressed
    */
   public static Range fromString(String s, Position relativeTo) {
     Matcher matcher = PATTERN.matcher(s);
@@ -122,10 +124,10 @@ public class Range implements Comparable<Range> {
   }
 
   /**
-   * Returns the degenerate range that simply describes the exact location specified by {@code p}.
+   * Returns the degenerate range that simply describes the exact location specified by `p`.
    *
    * @param p an arbitrary Position
-   * @return a Range that starts and ends immediately before {@code p}
+   * @return a Range that starts and ends immediately before `p`
    */
   public static Range degenerateRange(Position p) {
     return new Range(p, p);

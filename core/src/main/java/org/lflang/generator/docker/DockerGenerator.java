@@ -19,6 +19,7 @@ import org.lflang.util.StringUtil;
  *
  * @author Marten Lohstroh
  * @author Hou Seng Wong
+ * @ingroup Docker
  */
 public abstract class DockerGenerator {
 
@@ -153,7 +154,7 @@ public abstract class DockerGenerator {
   }
 
   /**
-   * Return zero or more COPY commands to copy files specified using the {@code files} target
+   * Return zero or more COPY commands to copy files specified using the `files` target
    * property from the builder to the runner.
    */
   protected String generateCopyOfUserFiles() {
@@ -243,7 +244,7 @@ public abstract class DockerGenerator {
   }
 
   /**
-   * Return a new {@code DockerData} object that can be used to generate a Dockerfile in the
+   * Return a new `DockerData` object that can be used to generate a Dockerfile in the
    * directory indicated by the given path.
    *
    * @param path The directory in which to place the generated Dockerfile.
@@ -260,7 +261,7 @@ public abstract class DockerGenerator {
       case C, CCPP -> new CDockerGenerator(context);
       case TS -> new TSDockerGenerator(context);
       case Python -> new PythonDockerGenerator(context);
-      case CPP, Rust ->
+      case CPP, Rust, UC ->
           throw new IllegalArgumentException("No Docker support for " + target + " yet.");
     };
   }

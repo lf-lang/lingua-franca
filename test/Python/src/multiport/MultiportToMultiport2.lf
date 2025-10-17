@@ -11,10 +11,10 @@ reactor Source(width=2) {
 }
 
 reactor Destination(width=2) {
-  input[width] _in
+  input[width] inp
 
-  reaction(_in) {=
-    for (idx, port) in enumerate(_in):
+  reaction(inp) {=
+    for (idx, port) in enumerate(inp):
       if port.is_present:
         print("Received on channel {:d}: ".format(idx), port.value)
         # NOTE: For testing purposes, this assumes the specific
@@ -29,5 +29,5 @@ main reactor MultiportToMultiport2 {
   a1 = new Source(width=3)
   a2 = new Source(width=2)
   b = new Destination(width=5)
-  a1.out, a2.out -> b._in
+  a1.out, a2.out -> b.inp
 }

@@ -14,11 +14,11 @@ reactor Source(bank_index=0, value=0) {
 }
 
 reactor Sink(width=4) {
-  input[width] _in
+  input[width] inp
   state received = False
 
-  reaction(_in) {=
-    for (idx, port) in enumerate(_in):
+  reaction(inp) {=
+    for (idx, port) in enumerate(inp):
       if port.is_present is True:
         print("Received on channel {:d}: {:d}".format(idx, port.value))
         self.received = True
@@ -37,5 +37,5 @@ reactor Sink(width=4) {
 main reactor(width=4) {
   source = new[width] Source(value = {= table[bank_index] =})
   sink = new Sink(width=width)
-  source.out -> sink._in
+  source.out -> sink.inp
 }

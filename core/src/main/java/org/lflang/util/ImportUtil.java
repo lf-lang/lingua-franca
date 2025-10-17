@@ -9,11 +9,12 @@ import org.eclipse.emf.ecore.resource.Resource;
  * This class provides methods to build URIs for accessing library files based on their location in
  * a project structure, specifically targeting the "build/lfc_include" directory for library
  * inclusion.
+ * @ingroup Utilities
  */
 public class ImportUtil {
 
   /**
-   * Builds a package URI based on the provided URI string and resource. It traverses upwards from
+   * Build a package URI based on the provided URI string and resource. This traverses upwards from
    * the current resource URI until it finds the "src" directory, then constructs the final URI
    * pointing to the library file within the "build/lfc_include" directory.
    *

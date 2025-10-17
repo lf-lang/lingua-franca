@@ -49,6 +49,7 @@ public class AttributeSpec {
 
   public static final String VALUE_ATTR = "value";
   public static final String EACH_ATTR = "each";
+  public static final String WORKERS_ATTR = "workers";
   public static final String OPTION_ATTR = "option";
 
   /** A map from a string to a supported AttributeSpec */
@@ -167,6 +168,13 @@ public class AttributeSpec {
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
+        case BIGINT -> {
+          if (!ASTUtils.isBigInteger(parm.getValue())) {
+            validator.error(
+                "Incorrect type: \"" + parm.getName() + "\"" + " should have type Int.",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        }
         case BOOLEAN -> {
           if (!ASTUtils.isBoolean(parm.getValue())) {
             validator.error(
@@ -181,6 +189,18 @@ public class AttributeSpec {
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
+        case TIME -> {
+          if (!ASTUtils.isBigInteger(parm.getValue())
+              && !parm.getValue().equals("forever")
+              && !parm.getValue().equals("never")) {
+            validator.error(
+                "Incorrect type: \""
+                    + parm.getName()
+                    + "\""
+                    + " should be an integer, 'forever', or 'never'.",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        }
         default -> throw new IllegalArgumentException("unexpected type");
       }
     }
@@ -190,8 +210,10 @@ public class AttributeSpec {
   enum AttrParamType {
     STRING,
     INT,
+    BIGINT,
     BOOLEAN,
     FLOAT,
+    TIME,
   }
 
   /*
@@ -203,6 +225,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "label",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @maxwait(time)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "maxwait",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     // @icon("value")
@@ -213,6 +239,20 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "side",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @enclave(workers=int, each=boolean)
+    // `workers` specifies the number of workers to allocate for the enclave. Default is 1.
+    // `each` specifies whether an @enclave attribute applies to all reactors in a bank.
+    // The C target does not support banks of enclaves.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "enclave",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true),
+                new AttrParamSpec(WORKERS_ATTR, AttrParamType.INT, true))));
+
+    // Attribute marking an enclave connection reactor class, which has unordered reactions.
+    ATTRIBUTE_SPECS_BY_NAME.put("_enclave_connection", new AttributeSpec(null));
+
     // @layout(option="string", value="any") e.g. @layout(option="port.side", value="WEST")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "layout",
@@ -220,11 +260,8 @@ public class AttributeSpec {
             List.of(
                 new AttrParamSpec(OPTION_ATTR, AttrParamType.STRING, false),
                 new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    // @enclave(each=boolean)
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "enclave",
-        new AttributeSpec(List.of(new AttrParamSpec(EACH_ATTR, AttrParamType.BOOLEAN, true))));
-    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
+
+    // Attribute used for formal verification experiments.
     // @property(name="<property_name>", tactic="<induction|bmc>", spec="<SMTL_spec>")
     // SMTL is the safety fragment of Metric Temporal Logic (MTL).
     ATTRIBUTE_SPECS_BY_NAME.put(
@@ -237,11 +274,16 @@ public class AttributeSpec {
                 new AttrParamSpec("CT", AttrParamType.INT, true),
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
+
+    // Attributes used internally only by the federated code generation
+    ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
+    // Marker for total port order (TPO) levels.
     ATTRIBUTE_SPECS_BY_NAME.put(
         "_tpoLevel",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "_networkReactor",
-        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // Marker for network sender.
+    ATTRIBUTE_SPECS_BY_NAME.put("_network_sender", new AttributeSpec(null));
+    // Marker for network receiver.
+    ATTRIBUTE_SPECS_BY_NAME.put("_network_receiver", new AttributeSpec(null));
   }
 }

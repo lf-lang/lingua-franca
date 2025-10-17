@@ -25,8 +25,8 @@ preamble {=
 =}
 
 reactor Looper(incr = 1, delay = 0 msec) {
-  input in_
-  input in2
+  input inp
+  input inp2
   output out
   output out2
   physical action a(delay)
@@ -49,16 +49,16 @@ reactor Looper(incr = 1, delay = 0 msec) {
     self->count += self->incr;
   =}
 
-  reaction(in_) {=
+  reaction(inp) {=
     lf_print("Received %d at logical time (" PRINTF_TIME ", %d).",
       in->value,
       current_tag.time - start_time, current_tag.microstep
     );
   =}
 
-  reaction(in2) {=
-    lf_print("Received %d on in2 at logical time (" PRINTF_TIME ", %d).",
-      in2->value,
+  reaction(inp2) {=
+    lf_print("Received %d on inp2 at logical time (" PRINTF_TIME ", %d).",
+      inp2->value,
       current_tag.time - start_time, current_tag.microstep
     );
   =}
@@ -82,8 +82,8 @@ reactor Looper(incr = 1, delay = 0 msec) {
 federated reactor(delay = 0) {
   left = new Looper()
   right = new Looper(incr = -1)
-  left.out -> right.in_
-  right.out -> left.in_
-  right.out2 -> left.in2
-  left.out2 -> right.in2
+  left.out -> right.inp
+  right.out -> left.inp
+  right.out2 -> left.inp2
+  left.out2 -> right.inp2
 }

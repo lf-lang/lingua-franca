@@ -19,10 +19,10 @@ reactor Source {
 }
 
 reactor Destination {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    if _in.is_present is not True:
+  reaction(inp) {=
+    if inp.is_present is not True:
       sys.stderr.write("Reaction to input of triggered even though all inputs are absent!\n")
       exit(1)
   =}
@@ -35,5 +35,5 @@ reactor Destination {
 main reactor TriggerDownstreamOnlyIfPresent2 {
   s = new Source()
   d = new[2] Destination()
-  s.out -> d._in
+  s.out -> d.inp
 }

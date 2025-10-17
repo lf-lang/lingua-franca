@@ -6,9 +6,10 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.lflang.MessageReporter;
 
 /**
- * {@code DiagnosticReporting} provides utilities for reporting validation output.
+ * Utilities for reporting validation output.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public class DiagnosticReporting {
 
@@ -47,11 +48,11 @@ public class DiagnosticReporting {
   }
 
   /**
-   * Convert {@code severity} into a {@code DiagnosticSeverity} using a heuristic that should be
+   * Convert `severity` into a `DiagnosticSeverity` using a heuristic that should be
    * compatible with many tools.
    *
    * @param severity The string representation of a diagnostic severity.
-   * @return The {@code DiagnosticSeverity} representation of {@code severity}.
+   * @return The `DiagnosticSeverity` representation of `severity`.
    */
   public static DiagnosticSeverity severityOf(String severity) {
     severity = severity.toLowerCase();

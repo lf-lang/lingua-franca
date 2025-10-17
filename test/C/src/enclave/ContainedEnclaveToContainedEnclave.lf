@@ -1,0 +1,30 @@
+// This tests enclave connections spanning multiple levels of hierarchy. We have two contained enclaves communicating
+// through the ports of their parents. The naive implementation will create an EnclaveConnectionReactor also in the
+// parent and effectively create three coordinated enclaves
+target C {
+  timeout: 1 s
+}
+
+import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
+
+reactor Source {
+  output out: instant_t
+
+  @enclave
+  e1 = new EnclaveSource()
+  e1.out -> out after 50 msec
+}
+
+reactor Dest {
+  input in: instant_t
+  @enclave
+  r1 = new EnclaveSink()
+  in -> r1.in
+}
+
+main reactor {
+  src = new Source()
+  dest = new Dest()
+
+  src.out -> dest.in
+}

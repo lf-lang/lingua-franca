@@ -14,5 +14,5 @@ federated reactor DistributedStopDecentralized {
   sender = new Sender()
   receiver = new Receiver()
 
-  sender.out -> receiver.in_
+  sender.out -> receiver.inp
 }

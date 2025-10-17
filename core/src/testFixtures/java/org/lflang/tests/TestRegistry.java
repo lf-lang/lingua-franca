@@ -35,6 +35,7 @@ import org.lflang.tests.TestBase.TestLevel;
  * A registry to retrieve tests from, organized by target and category.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 @Singleton
 public class TestRegistry {
@@ -337,7 +338,7 @@ public class TestRegistry {
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
     ZEPHYR_BOARDS(false, "zephyr" + File.separator + "boards", TestLevel.BUILD),
     FLEXPRET(false, "flexpret", TestLevel.BUILD),
-    PATMOS(false, "patmos", TestLevel.BUILD),
+    PATMOS(false, "patmos", TestLevel.EXECUTION),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 

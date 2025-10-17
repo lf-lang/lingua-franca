@@ -23,7 +23,7 @@ reactor Print(STP_offset_param: time = 0) {
     } else {
       lf_print_error_and_exit("Message arrived " PRINTF_TIME " early.", STP_discrepency);
     }
-  =} STP(STP_offset_param) {=
+  =} STAA(STP_offset_param) {=
     // This STP handler should never be invoked because the only source of event
     // for Print is the Count reactor.
     lf_print_error_and_exit("Logical STP violation was detected. Only physical STP violations are possible.");

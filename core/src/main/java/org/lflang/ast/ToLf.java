@@ -48,6 +48,7 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
+import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -62,7 +63,6 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -84,6 +84,8 @@ import org.lflang.util.StringUtil;
 /**
  * Switch class for converting AST nodes to their textual representation as it would appear in LF
  * code.
+ *
+ * @ingroup Utilities
  */
 public class ToLf extends LfSwitch<MalleableString> {
 
@@ -149,7 +151,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return super.doSwitch(eObject).addComments(allComments.stream()).setSourceEObject(eObject);
   }
 
-  /** Return all comments contained by ancestors of {@code node} that belong to said ancestors. */
+  /** Return all comments contained by ancestors of `node` that belong to said ancestors. */
   static Set<INode> getAncestorComments(INode node) {
     Set<INode> ancestorComments = new HashSet<>();
     for (ICompositeNode ancestor = node.getParent();
@@ -163,8 +165,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return the next composite sibling of {@code node}, as given by sequential application of {@code
-   * getNextSibling}.
+   * Return the next composite sibling of `node`, as given by sequential application of
+   * `getNextSibling`.
    */
   static ICompositeNode getNextCompositeSibling(INode node, Function<INode, INode> getNextSibling) {
     INode sibling = node;
@@ -176,7 +178,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return the siblings following {@code node} up to (and not including) the next non-leaf sibling.
+   * Return the siblings following `node` up to (and not including) the next non-leaf sibling.
    */
   private static Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
     INode sibling = node;
@@ -188,8 +190,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments that follow {@code node} in the source code and that either satisfy {@code
-   * filter} or that cannot belong to any following sibling of {@code node}.
+   * Return comments that follow `node` in the source code and that either satisfy `filter`
+   * or that cannot belong to any following sibling of `node`.
    */
   private static Stream<String> getFollowingComments(
       ICompositeNode node, Predicate<INode> precedingFilter, Predicate<INode> followingFilter) {
@@ -205,7 +207,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments contained by {@code node} that logically belong to this node (and not to any of
+   * Return comments contained by `node` that logically belong to this node (and not to any of
    * its children).
    */
   private static List<INode> getContainedCodeComments(INode node) {
@@ -229,7 +231,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return all comments that are part of {@code node}, regardless of where they appear relative to
+   * Return all comments that are part of `node`, regardless of where they appear relative to
    * the main content of the node.
    */
   private static List<INode> getContainedComments(INode node) {
@@ -320,12 +322,17 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseTime(Time t) {
-    // (interval=INT unit=TimeUnit)
+    // (interval=INT unit=TimeUnit) | forever=Forever | never=Never
+    if (t.getForever() != null || t.getInterval() == Long.MAX_VALUE) {
+      return MalleableString.anyOf("forever");
+    }
+    if (t.getNever() != null || t.getInterval() == Long.MIN_VALUE) {
+      return MalleableString.anyOf("never");
+    }
     final var interval = Integer.toString(t.getInterval());
-    if (t.getUnit() == null) {
+    if (t.getUnit() == null || t.getUnit().equals("")) {
       return MalleableString.anyOf(interval);
     }
-
     return MalleableString.anyOf(interval + " " + t.getUnit());
   }
 
@@ -647,7 +654,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)(maxwait=MaxWait)?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -678,7 +685,7 @@ public class ToLf extends LfSwitch<MalleableString> {
                   .collect(new Joiner(", ")));
     }
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
-    if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
+    if (object.getMaxWait() != null) msb.append(" ").append(doSwitch(object.getMaxWait()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();
   }
@@ -738,9 +745,9 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
-  public MalleableString caseSTP(STP object) {
-    // 'STP' '(' value=Expression ')' code=Code
-    return handler(object, "STP", STP::getValue, STP::getCode);
+  public MalleableString caseMaxWait(MaxWait object) {
+    // 'maxwait' '(' value=Expression ')' code=Code
+    return handler(object, "STAA", MaxWait::getValue, MaxWait::getCode);
   }
 
   private <T extends EObject> MalleableString handler(
@@ -906,15 +913,23 @@ public class ToLf extends LfSwitch<MalleableString> {
     // keyvalue=KeyValuePairs
     // | array=Array
     // | literal=Literal
-    // | (time=INT unit=TimeUnit)
+    // | Time
     // | id=Path
     if (object.getKeyvalue() != null) return doSwitch(object.getKeyvalue());
     if (object.getArray() != null) return doSwitch(object.getArray());
     if (object.getLiteral() != null) return MalleableString.anyOf(object.getLiteral());
     if (object.getId() != null) return MalleableString.anyOf(object.getId());
-    if (object.getUnit() != null)
-      return MalleableString.anyOf(String.format("%d %s", object.getTime(), object.getUnit()));
-    return MalleableString.anyOf(String.valueOf(object.getTime()));
+    if (object.getTime() != null) {
+      var time = object.getTime();
+      if (time.getForever() != null || time.getInterval() == Long.MAX_VALUE) {
+        return MalleableString.anyOf("forever");
+      }
+      if (time.getNever() != null || time.getInterval() == Long.MIN_VALUE) {
+        return MalleableString.anyOf("never");
+      }
+      return MalleableString.anyOf(String.format("%d %s", time.getInterval(), time.getUnit()));
+    }
+    return MalleableString.anyOf("ERROR");
   }
 
   @Override
@@ -1147,7 +1162,7 @@ public class ToLf extends LfSwitch<MalleableString> {
    * @param statementListList A list of groups of statements.
    * @param forceWhitespace Whether to force a line of vertical whitespace regardless of textual
    *     input
-   * @return A string representation of {@code statementListList}.
+   * @return A string representation of `statementListList`.
    */
   private MalleableString indentedStatements(
       List<EList<? extends EObject>> statementListList, boolean forceWhitespace) {

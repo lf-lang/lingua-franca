@@ -1,6 +1,5 @@
 package org.lflang.target.property;
 
-import org.lflang.LocalStrings;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
@@ -38,7 +37,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var noBuild = false;
     var builderBase = "";
     var runnerBase = "";
-    var rti = DockerOptions.DOCKERHUB_RTI_IMAGE;
+    var rti = DockerOptions.LOCAL_RTI_IMAGE;
     var shell = DockerOptions.DEFAULT_SHELL;
     var preBuildScript = "";
     var postBuildScript = "";
@@ -149,17 +148,13 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       String envFile,
       String dockerConfigFile) {
 
-    /** Default location to pull the rti from. */
-    public static final String DOCKERHUB_RTI_IMAGE =
-        "lflang/rti:" + LocalStrings.VERSION.toLowerCase();
-
     public static final String DEFAULT_SHELL = "/bin/sh";
 
     /** String to indicate a local build of the rti. */
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, false, "", "", DOCKERHUB_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "");
+      this(enabled, false, "", "", LOCAL_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "");
     }
   }
 

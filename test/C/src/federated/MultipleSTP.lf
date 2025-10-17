@@ -22,9 +22,9 @@ reactor Print {
 
   reaction(x) {=
     lf_print("****** Received %d", x->value);
-  =} STP(20 ms) {=  =}
+  =} STAA(20 ms) {=  =}
 
-  reaction(z) {=  =} STP(20 ms) {=  =}
+  reaction(z) {=  =} STAA(20 ms) {=  =}
 }
 
 federated reactor {

@@ -18,11 +18,11 @@ reactor Print {
 
 # expected parameter is for testing.
 reactor Check(expected=42) {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    print("Received: name = {:s}, value = {:d}\n".format(_in.value.name, _in.value.value))
-    if _in.value.value != self.expected:
+  reaction(inp) {=
+    print("Received: name = {:s}, value = {:d}\n".format(inp.value.name, inp.value.value))
+    if inp.value.value != self.expected:
       sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
       exit(1)
   =}
@@ -31,5 +31,5 @@ reactor Check(expected=42) {
 main reactor {
   s = new Print()
   p = new Check()
-  s.out -> p._in
+  s.out -> p.inp
 }

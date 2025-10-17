@@ -24,9 +24,8 @@
 
 package org.lflang;
 
-import static org.lflang.util.CollectionUtil.immutableSetOf;
-
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -53,20 +52,41 @@ public enum TimeUnit {
   HOUR("hour", "h", "hours"),
   /** Day. */
   DAY("day", "d", "days"),
-  WEEK("week", "weeks"),
+  WEEK("week", "wk", "weeks"),
   ;
 
   private final Set<String> allNames;
   private final String canonicalName;
+  private final String siName;
 
-  TimeUnit(String canonicalName, String... aliases) {
+  /**
+   * Construct a time unit.
+   *
+   * @param canonicalName The name used in the generated code for the unit.
+   * @param siName The SI unit name, if there is one, and otherwise a short name.
+   * @param aliases Any number of alternative names for the unit.
+   */
+  TimeUnit(String canonicalName, String siName, String... aliases) {
     this.canonicalName = canonicalName;
-    this.allNames = immutableSetOf(canonicalName, aliases);
+    this.siName = siName;
+    var all = new LinkedHashSet<String>();
+    all.add(canonicalName);
+    all.add(siName);
+    all.addAll(Arrays.asList(aliases));
+    this.allNames = all;
   }
 
   /** Returns the name that is preferred when displaying this unit. */
   public String getCanonicalName() {
     return canonicalName;
+  }
+
+  /** Returns the name that is preferred when displaying this unit. */
+  public static String staticGetCanonicalName(TimeUnit unit) {
+    if (unit == null) {
+      return null;
+    }
+    return unit.getCanonicalName();
   }
 
   /** Returns true if the given name is one of the aliases of this unit. */
@@ -105,6 +125,6 @@ public enum TimeUnit {
 
   @Override
   public String toString() {
-    return this.canonicalName;
+    return this.siName;
   }
 }

@@ -20,14 +20,14 @@ reactor Destination {
   preamble {=
     import sys
   =}
-  input[4] in_
+  input[4] inp
   state count = 0
 
-  reaction(in_) {=
-    for i in range(len(in_)):
-      if in_[i].is_present:
-        print("Received {}.".format(in_[i].value))
-        if in_[i].value != self.count:
+  reaction(inp) {=
+    for i in range(len(inp)):
+      if inp[i].is_present:
+        print("Received {}.".format(inp[i].value))
+        if inp[i].value != self.count:
           self.sys.stderr.write("Expected {}.\n".format(self.count))
           self.sys.exit(1)
         self.count += 1
@@ -43,5 +43,5 @@ reactor Destination {
 federated reactor DistributedMultiport {
   s = new Source()
   d = new Destination()
-  s.out -> d.in_
+  s.out -> d.inp
 }

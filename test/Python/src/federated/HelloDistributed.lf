@@ -10,24 +10,24 @@ reactor Source {
   output out
 
   reaction(startup) -> out {=
-    print("Sending 'Hello World!' message from source federate.");
+    print("Sending 'Hello World!' message from source federate.")
     out.set("Hello World!")
     request_stop()
   =}
 }
 
 reactor Destination {
-  input _in
+  input inp
   state received = False
 
   reaction(startup) {=
     print("Destination started.")
   =}
 
-  reaction(_in) {=
-    print(f"At logical time {lf.time.logical_elapsed()}, destination received {_in.value}")
-    if _in.value != "Hello World!":
-      sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n");
+  reaction(inp) {=
+    print(f"At logical time {lf.time.logical_elapsed()}, destination received {inp.value}")
+    if inp.value != "Hello World!":
+      sys.stderr.write("ERROR: Expected to receive 'Hello World!'\n")
       exit(1)
     self.received = True
   =}
@@ -45,5 +45,5 @@ federated reactor HelloDistributed at localhost {
   # =} Reactor s is in federate Source
   s = new Source()
   d = new Destination()  # Reactor d is in federate Destination
-  s.out -> d._in  # This version preserves the timestamp.
+  s.out -> d.inp  # This version preserves the timestamp.
 }

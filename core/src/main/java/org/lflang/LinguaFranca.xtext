@@ -1,30 +1,3 @@
-/* The Lingua Franca grammar. */
-
-/*************
-Copyright (c) 2020, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
 /**
  * Grammar for Lingua Franca.
  * A note of caution: extending this grammar with productions that introduce
@@ -205,7 +178,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
+    (code=Code)? (maxWait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
@@ -223,8 +196,8 @@ Watchdog:
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
 
-STP:
-    ('STP' | 'STAA') '(' value=Expression ')' code=Code;
+MaxWait:
+    ('STP' | 'STAA' | 'maxwait') ('(' value=Expression ')')? (code=Code)?;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
@@ -237,6 +210,7 @@ Instantiation:
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
+    (attributes+=Attribute)*
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>')
@@ -253,11 +227,11 @@ Serializer:
 
 /////////// Attributes
 Attribute:
-    '@' attrName=ID ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
+    '@' attrName=(ID | 'maxwait') ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
 ;
 
 AttrParm:
-    (name=ID '=')? value=Literal;
+    (name=ID '=')? (value=Literal | time=Time);
 
 /////////// For target parameters
 
@@ -274,7 +248,7 @@ Element:
     keyvalue=KeyValuePairs
     | array=Array
     | literal=Literal
-    | (time=INT unit=TimeUnit)
+    | time=Time
     | id=Path;
 
 ///////// Pieces
@@ -339,7 +313,7 @@ ParameterReference:
 ;
 
 Time:
-    (interval=INT unit=TimeUnit)
+    (interval=INT unit=TimeUnit) | forever=Forever | never=Never
 ;
 
 Port:
@@ -401,7 +375,7 @@ Never:
 ;
 
 Literal:
-    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean | Forever | Never
+    STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
 ;
 
 Boolean:
@@ -529,7 +503,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' | 'forever' | 'never' |
+    'extends' | 'forever' | 'never' | 'maxwait' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |

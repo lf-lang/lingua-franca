@@ -7,6 +7,11 @@ import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
+/**
+ * Generate code for the bodies of the reactions involved in connections with the 'after' keyword.
+ *
+ * @ingroup Generator
+ */
 public class CDelayBodyGenerator implements DelayBodyGenerator {
 
   protected CTypes types;

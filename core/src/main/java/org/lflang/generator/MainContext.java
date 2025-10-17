@@ -14,10 +14,11 @@ import org.lflang.generator.IntegratedBuilder.ReportProgress;
 import org.lflang.target.TargetConfig;
 
 /**
- * A {@code MainContext} is an {@code LFGeneratorContext} that is not nested in any other generator
- * context. There is one {@code MainContext} for every build process.
+ * An `LFGeneratorContext` that is not nested in any other generator context. There is one
+ * `MainContext` for every build process.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public class MainContext implements LFGeneratorContext {
 
@@ -27,7 +28,7 @@ public class MainContext implements LFGeneratorContext {
   /** The indicator that shows whether this build process is canceled. */
   private final CancelIndicator cancelIndicator;
 
-  /** The {@code ReportProgress} function of {@code this}. */
+  /** The `ReportProgress` function of `this`. */
   private final ReportProgress reportProgress;
 
   private final FileConfig fileConfig;
@@ -44,8 +45,7 @@ public class MainContext implements LFGeneratorContext {
   private final MessageReporter messageReporter;
 
   /**
-   * Initialize the context of a build process whose cancellation is indicated by {@code
-   * cancelIndicator}
+   * Initialize the context of a build process whose cancellation is indicated by `cancelIndicator`
    *
    * @param mode The mode of this build process.
    * @param cancelIndicator The cancel indicator of the code generation process to which this
@@ -66,13 +66,12 @@ public class MainContext implements LFGeneratorContext {
   }
 
   /**
-   * Initialize the context of a build process whose cancellation is indicated by {@code
-   * cancelIndicator}
+   * Initialize the context of a build process whose cancellation is indicated by `cancelIndicator`
    *
    * @param mode The mode of this build process.
    * @param cancelIndicator The cancel indicator of the code generation process to which this
    *     corresponds.
-   * @param reportProgress The {@code ReportProgress} function of {@code this}.
+   * @param reportProgress The `ReportProgress` function of `this`.
    * @param args Any arguments that may be used to affect the product of the build.
    * @param resource ...
    * @param fsa ...

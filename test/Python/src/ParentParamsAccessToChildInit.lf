@@ -1,0 +1,29 @@
+target Python
+
+preamble {=
+  table = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+=}
+
+reactor Child(bank_index=0, parent_index=0, value=0) {
+  preamble {=
+    table = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+  =}
+
+  reaction(startup) {=
+    print("Child bank_index:{:d} parent_index:{:d} value:{:d}".format(self.bank_index, self.parent_index, self.value))
+  =}
+}
+
+reactor Parent(bank_index=0, n_parents=0, n_children=1) {
+  c = new[n_children] Child(
+      parent_index=bank_index,
+      value = {= table[(self.bank_index * self.n_children + bank_index) % (len(table))] =})
+
+  reaction(startup) {=
+    print("Parent[{:d}/{:d}] bank_index:{:d}".format(self.bank_index + 1, self.n_parents, self.bank_index))
+  =}
+}
+
+main reactor ParentParamsAccessToChildInit(n_parents=2, per_parent_n_children=3) {
+  p = new[n_parents] Parent(n_parents=n_parents, n_children=per_parent_n_children)
+}

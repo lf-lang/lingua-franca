@@ -1,0 +1,23 @@
+target C
+
+reactor Parent(n_triggers: int = 1) {
+}
+
+reactor Child extends Parent {
+  input[n_triggers] in: int
+
+  reaction(in) {=
+    lf_print("in: %d", in[0]->value);
+    if (in[0]->value != 42) {
+      lf_print_error_and_exit("Expected 42");
+    }
+  =}
+}
+
+main reactor {
+  c = new Child()
+
+  reaction(startup) -> c.in {=
+    lf_set(c.in[0], 42);
+  =}
+}

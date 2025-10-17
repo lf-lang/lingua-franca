@@ -7,6 +7,11 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 
+/**
+ * Generate Python code for state variables.
+ *
+ * @ingroup Generator
+ */
 public class PythonStateGenerator {
   /**
    * Generate state variable instantiations for reactor "decl"

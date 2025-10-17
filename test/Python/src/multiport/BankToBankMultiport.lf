@@ -18,11 +18,11 @@ reactor Source(width=1) {
 
 reactor Destination(width=1) {
   state s = 6
-  input[width] _in
+  input[width] inp
 
-  reaction(_in) {=
+  reaction(inp) {=
     sm = 0
-    for port in _in:
+    for port in inp:
       if port.is_present:
         sm += port.value
 
@@ -46,5 +46,5 @@ reactor Destination(width=1) {
 main reactor BankToBankMultiport(bank_width=4) {
   a = new[bank_width] Source(width=4)
   b = new[bank_width] Destination(width=4)
-  a.out -> b._in
+  a.out -> b.inp
 }

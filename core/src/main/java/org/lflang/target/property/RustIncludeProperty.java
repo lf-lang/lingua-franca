@@ -15,10 +15,10 @@ import org.lflang.util.FileUtil;
 import org.lflang.util.StringUtil;
 
 /**
- * List of module files to link into the crate as top-level. For instance, a {@code target Rust {
- * rust-modules: [ "foo.rs" ] }} will cause the file to be copied into the generated project, and
- * the generated {@code main.rs} will include it with a {@code mod foo;}. If one of the paths is a
- * directory, it must contain a {@code mod.rs} file, and all its contents are copied.
+ * List of module files to link into the crate as top-level. For instance, a `target Rust {
+ * rust-modules: [ "foo.rs" ] `} will cause the file to be copied into the generated project, and
+ * the generated `main.rs` will include it with a `mod foo;`. If one of the paths is a
+ * directory, it must contain a `mod.rs` file, and all its contents are copied.
  */
 public final class RustIncludeProperty extends TargetProperty<List<Path>, UnionType> {
 

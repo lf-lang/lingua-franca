@@ -14,12 +14,12 @@ reactor Source {
 }
 
 reactor Destination(bank_index=0) {
-  input _in
+  input inp
   state received = 0
 
-  reaction(_in) {=
-    print("Destination " + str(self.bank_index) + " received " + str(_in.value))
-    if self.bank_index != _in.value:
+  reaction(inp) {=
+    print("Destination " + str(self.bank_index) + " received " + str(inp.value))
+    if self.bank_index != inp.value:
       sys.stderr.write("ERROR: Expected " + str(self.bank_index))
       exit(1)
     self.received = True
@@ -36,5 +36,5 @@ reactor Destination(bank_index=0) {
 main reactor MultiportToBank {
   a = new Source()
   b = new[3] Destination()
-  a.out -> b._in
+  a.out -> b.inp
 }

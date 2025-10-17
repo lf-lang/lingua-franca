@@ -1,0 +1,20 @@
+// This tests shutdown through trivial starvation with two enclaves
+target C
+
+reactor E(id: int = 0) {
+  reaction(startup) {=
+    lf_print("Enclave %u started", self->id);
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Enclave %u shut down", self->id);
+  =}
+}
+
+main reactor {
+  @enclave
+  e1 = new E(id=0)
+
+  @enclave
+  e2 = new E(id=1)
+}

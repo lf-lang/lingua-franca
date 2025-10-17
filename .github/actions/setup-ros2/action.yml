@@ -4,6 +4,6 @@ runs:
   using: "composite"
   steps:
    - name: Setup ROS2
-     uses: ros-tooling/setup-ros@0.7.9
+     uses: ros-tooling/setup-ros@0.7.13
      with:
        required-ros-distributions: jazzy

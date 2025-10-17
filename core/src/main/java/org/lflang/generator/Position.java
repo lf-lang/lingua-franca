@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
  * position other than the origin.
  *
  * @author Peter Donovan
+ * @ingroup Utilities
  */
 public class Position implements Comparable<Position> {
   public static final Pattern PATTERN = Pattern.compile("\\((?<line>[0-9]+), (?<column>[0-9]+)\\)");
@@ -26,7 +27,7 @@ public class Position implements Comparable<Position> {
    *
    * @param line the zero-based line number
    * @param column the zero-based column number
-   * @return a Position describing the position described by {@code line} and {@code column}.
+   * @return a Position describing the position described by `line` and `column`.
    */
   public static Position fromZeroBased(int line, int column) {
     return new Position(line, column);
@@ -37,18 +38,18 @@ public class Position implements Comparable<Position> {
    *
    * @param line the one-based line number
    * @param column the one-based column number
-   * @return a Position describing the position described by {@code line} and {@code column}.
+   * @return a Position describing the position described by `line` and `column`.
    */
   public static Position fromOneBased(int line, int column) {
     return new Position(line - 1, column - 1);
   }
 
   /**
-   * Return the Position that equals the displacement caused by {@code text}, assuming that {@code
-   * text} starts in column 0.
+   * Return the Position that equals the displacement caused by `text`, assuming that
+   * `text` starts in column 0.
    *
    * @param text an arbitrary string
-   * @return the Position that equals the displacement caused by {@code text}
+   * @return the Position that equals the displacement caused by `text`
    */
   public static Position displacementOf(String text) {
     String[] lines = text.lines().toArray(String[]::new);
@@ -57,11 +58,11 @@ public class Position implements Comparable<Position> {
   }
 
   /**
-   * Return the Position that describes the same location in {@code content} as {@code offset}.
+   * Return the Position that describes the same location in `content` as `offset`.
    *
-   * @param offset a location, expressed as an offset from the beginning of {@code content}
+   * @param offset a location, expressed as an offset from the beginning of `content`
    * @param content the content of a document
-   * @return the Position that describes the same location in {@code content} as {@code offset}
+   * @return the Position that describes the same location in `content` as `offset`
    */
   public static Position fromOffset(int offset, String content) {
     int lineNumber = 0;
@@ -92,48 +93,48 @@ public class Position implements Comparable<Position> {
   /* -----------------------  PUBLIC METHODS  ------------------------- */
 
   /**
-   * Return the one-based line number described by this {@code Position}.
+   * Return the one-based line number described by this `Position`.
    *
-   * @return the one-based line number described by this {@code Position}
+   * @return the one-based line number described by this `Position`
    */
   public int getOneBasedLine() {
     return line + 1;
   }
 
   /**
-   * Return the one-based column number described by this {@code Position}.
+   * Return the one-based column number described by this `Position`.
    *
-   * @return the one-based column number described by this {@code Position}
+   * @return the one-based column number described by this `Position`
    */
   public int getOneBasedColumn() {
     return column + 1;
   }
 
   /**
-   * Return the zero-based line number described by this {@code Position}.
+   * Return the zero-based line number described by this `Position`.
    *
-   * @return the zero-based line number described by this {@code Position}
+   * @return the zero-based line number described by this `Position`
    */
   public int getZeroBasedLine() {
     return line;
   }
 
   /**
-   * Return the zero-based column number described by this {@code Position}.
+   * Return the zero-based column number described by this `Position`.
    *
-   * @return the zero-based column number described by this {@code Position}
+   * @return the zero-based column number described by this `Position`
    */
   public int getZeroBasedColumn() {
     return column;
   }
 
   /**
-   * Return the Position that equals the displacement of ((text whose displacement equals {@code
-   * this}) concatenated with {@code text}). Note that this is not necessarily equal to ({@code
-   * this} + displacementOf(text)).
+   * Return the Position that equals the displacement of ((text whose displacement equals `this`)
+   * concatenated with `text`). Note that this is not necessarily equal to
+   * (`this` + displacementOf(text)).
    *
    * @param text an arbitrary string
-   * @return the Position that equals the displacement caused by {@code text}
+   * @return the Position that equals the displacement caused by `text`
    */
   public Position plus(String text) {
     text += "\n"; // Turn line separators into line terminators.
@@ -145,22 +146,22 @@ public class Position implements Comparable<Position> {
   }
 
   /**
-   * Return the sum of this and another {@code Position}. The result has meaning because Positions
+   * Return the sum of this and another `Position`. The result has meaning because Positions
    * are relative.
    *
-   * @param other another {@code Position}
-   * @return the sum of this and {@code other}
+   * @param other another `Position`
+   * @return the sum of this and `other`
    */
   public Position plus(Position other) {
     return new Position(line + other.line, column + other.column);
   }
 
   /**
-   * Return the difference of this and another {@code Position}. The result has meaning because
+   * Return the difference of this and another `Position`. The result has meaning because
    * Positions are relative.
    *
-   * @param other another {@code Position}
-   * @return the difference of this and {@code other}
+   * @param other another `Position`
+   * @return the difference of this and `other`
    */
   public Position minus(Position other) {
     return new Position(line - other.line, column - other.column);
@@ -189,11 +190,10 @@ public class Position implements Comparable<Position> {
   }
 
   /**
-   * Return the Position represented by {@code s}.
+   * Return the Position represented by `s`.
    *
-   * @param s a String that represents a Position, formatted like the output of {@code
-   *     Position::toString}.
-   * @return the Position represented by {@code s}
+   * @param s a String that represents a Position, formatted like the output of `Position::toString`.
+   * @return the Position represented by `s`
    */
   public static Position fromString(String s) {
     Matcher matcher = PATTERN.matcher(s);
@@ -210,10 +210,10 @@ public class Position implements Comparable<Position> {
   }
 
   /**
-   * Remove the names from the named capturing groups that appear in {@code regex}.
+   * Remove the names from the named capturing groups that appear in `regex`.
    *
    * @param regex an arbitrary regular expression
-   * @return a string representation of {@code regex} with the names removed from the named
+   * @return a string representation of `regex` with the names removed from the named
    *     capturing groups
    */
   public static String removeNamedCapturingGroups(Pattern regex) { // FIXME: Does this belong here?

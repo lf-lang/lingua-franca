@@ -30,7 +30,7 @@ reactor Platform(
         in->value
       );
     }
-  =} STP(stp_offset_param) {=
+  =} STAA(stp_offset_param) {=
     lf_print("Received %d late.", in->value);
     tag_t current_tag = lf_tag();
     self->expected_start++;

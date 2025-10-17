@@ -8,5 +8,5 @@ import Source, Print from "../StructAsType.lf"
 federated reactor {
   s = new Source()
   p = new Print()
-  s.out -> p._in
+  s.out -> p.inp
 }

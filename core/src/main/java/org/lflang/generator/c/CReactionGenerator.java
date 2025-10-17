@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -36,6 +37,11 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
@@ -289,7 +295,7 @@ public class CReactionGenerator {
     }
     // Search for instances of the parent within the tail of the breadcrumbs list.
     Reactor container = ASTUtils.toDefinition(nestedBreadcrumbs.get(0).getReactorClass());
-    for (Instantiation instantiation : container.getInstantiations()) {
+    for (Instantiation instantiation : ASTUtils.allInstantiations(container)) {
       // Put this new instantiation at the head of the list.
       nestedBreadcrumbs.add(0, instantiation);
       if (ASTUtils.toDefinition(instantiation.getReactorClass()) == parent) {
@@ -892,7 +898,7 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getStp() != null) {
+      if (reaction.getMaxWait() != null) {
         // The following has to match the name chosen in generateReactions
         var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
         STPFunctionPointer = "&" + STPFunctionName;
@@ -929,6 +935,11 @@ public class CReactionGenerator {
                       + tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())
                       + "];"
                   : "self->_lf__reaction_" + reactionCount + ".mode = NULL;"));
+      // If the reactor is a network receiver, then set the is_an_input_reaction to true.
+      if (AttributeUtils.findAttributeByName(tpr.reactor(), "_network_receiver") != null) {
+        constructorCode.pr(
+            "self->_lf__reaction_" + reactionCount + ".is_an_input_reaction = true;");
+      }
       // Increment the reactionCount even if the reaction is not in the federate
       // so that reaction indices are consistent across federates.
       reactionCount++;
@@ -986,6 +997,14 @@ public class CReactionGenerator {
               // Need to set the element_size in the trigger_t and the action struct.
               "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize + ";",
               "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"));
+      // Set the length field to the default 1 (for non-arrays or variable-size arrays) or,
+      // for fixed-length arrays, the actual length.
+      var arrayLength = CUtil.fixedSizeArrayTypeLength(ASTUtils.getInferredType(action));
+      constructorCode.pr(
+          String.join(
+              "\n",
+              "self->_lf__" + action.getName() + ".tmplt.length = " + arrayLength + ";",
+              "self->_lf_" + action.getName() + ".length = " + arrayLength + ";"));
     }
 
     // Next handle inputs.
@@ -1135,12 +1154,12 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getStp() != null) {
+    if (reaction.getMaxWait() != null) {
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getStp().getCode(),
+              reaction.getMaxWait().getCode(),
               suppressLineDirectives));
     }
 
@@ -1251,7 +1270,7 @@ public class CReactionGenerator {
   }
 
   /**
-   * Return the start of a function declaration for a function that takes a {@code void*} argument
+   * Return the start of a function declaration for a function that takes a `void*` argument
    * and returns void.
    *
    * @param functionName

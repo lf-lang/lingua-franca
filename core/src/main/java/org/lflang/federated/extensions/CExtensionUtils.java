@@ -34,6 +34,12 @@ import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
+/**
+ * Utility class for the C extension.
+ *
+ * @author Soroush Bateni
+ * @ingroup Federated
+ */
 public class CExtensionUtils {
 
   // Regular expression pattern for shared_ptr types.
@@ -101,44 +107,38 @@ public class CExtensionUtils {
    */
   public static String stpStructs(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
-    federate.staaOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
-    if (!federate.staaOffsets.isEmpty()) {
-      // Create a static array of trigger_t pointers.
-      // networkMessageActions is a list of Actions, but we
-      // need a list of trigger struct names for ActionInstances.
-      // There should be exactly one ActionInstance in the
-      // main reactor for each Action.
-      for (int i = 0; i < federate.staaOffsets.size(); ++i) {
-        // Find the corresponding ActionInstance.
-        List<Action> networkActions =
-            federate.staToNetworkActionMap.get(federate.staaOffsets.get(i));
+    // Create a static array of trigger_t pointers.
+    // networkMessageActions is a list of Actions, but we
+    // need a list of trigger struct names for ActionInstances.
+    // There should be exactly one ActionInstance in the
+    // main reactor for each Action.
+    var i = 0;
+    for (var offset : federate.staaOffsets) {
+      // Find the corresponding ActionInstance.
+      List<Action> networkActions = federate.staToNetworkActionMap.get(offset);
 
-        code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+      code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+      code.pr(
+          "staa_lst[" + i + "]->STAA = " + CTypes.getInstance().getTargetTimeExpr(offset) + ";");
+      code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
+      code.pr(
+          "staa_lst["
+              + i
+              + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
+              + networkActions.size()
+              + ");");
+      var tableCount = 0;
+      for (Action action : networkActions) {
         code.pr(
             "staa_lst["
                 + i
-                + "]->STAA = "
-                + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
-                + ";");
-        code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
-        code.pr(
-            "staa_lst["
-                + i
-                + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
-                + networkActions.size()
-                + ");");
-        var tableCount = 0;
-        for (Action action : networkActions) {
-          code.pr(
-              "staa_lst["
-                  + i
-                  + "]->actions["
-                  + tableCount++
-                  + "] = _lf_action_table["
-                  + federate.networkMessageActions.indexOf(action)
-                  + "];");
-        }
+                + "]->actions["
+                + tableCount++
+                + "] = _lf_action_table["
+                + federate.networkMessageActions.indexOf(action)
+                + "];");
       }
+      i++;
     }
     return code.getCode();
   }
@@ -329,8 +329,8 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate code that sends the neighbor structure message to the RTI. See {@code
-   * MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code network/api/net_common.h}.
+   * Generate code that sends the neighbor structure message to the RTI. See
+   * `MSG_TYPE_NEIGHBOR_STRUCTURE` in `network/api/net_common.h`.
    *
    * @param federate The federate that is sending its neighbor structure
    */
@@ -477,7 +477,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is
+   * Surround `code` with blocks to ensure that code only executes if the program is
    * federated.
    */
   public static String surroundWithIfFederated(String code) {
@@ -505,7 +505,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround `code` with blocks to ensure that code only executes if the program is federated
    * and has a centralized coordination.
    */
   public static String surroundWithIfFederatedCentralized(String code) {
@@ -518,7 +518,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround `code` with blocks to ensure that code only executes if the program is federated
    * and has a decentralized coordination.
    */
   public static String surroundWithIfFederatedDecentralized(String code) {

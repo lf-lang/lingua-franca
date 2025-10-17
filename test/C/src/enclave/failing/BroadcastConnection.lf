@@ -1,0 +1,21 @@
+// This tests the ability to handle broadcast connections from an enclave
+// to other enclaves and non-enclaves
+target C {
+  timeout: 1 sec
+}
+
+import EnclaveSink, EnclaveSource from "../lib/SimpleEnclave.lf"
+
+main reactor {
+  @enclave
+  e1 = new EnclaveSource()
+
+  @enclave
+  e2 = new EnclaveSink()
+  @enclave
+  e3 = new EnclaveSink()
+
+  e4 = new EnclaveSink()
+
+  (e1.out)+ -> e2.in, e3.in, e4.in after 50 msec
+}

@@ -21,8 +21,10 @@ import org.lflang.lf.Code;
 import org.lflang.util.StringUtil;
 
 /**
- * A {@code MalleableString} is an object with multiple valid textual representations. These textual
+ * A `MalleableString` is an object with multiple valid textual representations. These textual
  * representations are code that may have associated comments.
+ *
+ * @ingroup Utilities
  */
 public abstract class MalleableString {
 
@@ -68,8 +70,8 @@ public abstract class MalleableString {
   }
 
   /**
-   * Render this using {@code indentation} spaces per indentation level and {@code
-   * singleLineCommentMarker} to mark the beginnings of single-line comments.
+   * Render this using `indentation` spaces per indentation level and `singleLineCommentMarker`
+   * to mark the beginnings of single-line comments.
    */
   public abstract RenderResult render(
       int indentation,
@@ -117,7 +119,7 @@ public abstract class MalleableString {
     return ret;
   }
 
-  /** Build a {@code MalleableString} in a manner analogous to the way we build {@code String}s. */
+  /** Build a `MalleableString` in a manner analogous to the way we build `String`s. */
   public static final class Builder {
 
     private final List<MalleableString> components = new ArrayList<>();
@@ -163,25 +165,24 @@ public abstract class MalleableString {
     }
   }
 
-  /** Join {@code MalleableString}s together using the given separator. */
+  /** Join `MalleableString`s together using the given separator. */
   public static final class Joiner implements Collector<MalleableString, Builder, MalleableString> {
     private final Function<Builder, Builder> appendSeparator;
     private final Function<Builder, Builder> prependPrefix;
     private final Function<Builder, Builder> appendSuffix;
 
-    /** Join strings using {@code separator}. */
+    /** Join strings using `separator`. */
     public Joiner(String separator) {
       this(MalleableString.anyOf(separator));
     }
 
-    /** Join strings using {@code separator}. */
+    /** Join strings using `separator`. */
     public Joiner(MalleableString separator) {
       this(separator, MalleableString.anyOf(""), MalleableString.anyOf(""));
     }
 
     /**
-     * Join strings using {@code separator} and delimit the result with {@code prefix} and {@code
-     * suffix}.
+     * Join strings using `separator` and delimit the result with `prefix` and `suffix`.
      */
     public Joiner(MalleableString separator, MalleableString prefix, MalleableString suffix) {
       this.appendSeparator =
@@ -191,8 +192,7 @@ public abstract class MalleableString {
     }
 
     /**
-     * Join strings using {@code separator} and delimit the result with {@code prefix} and {@code
-     * suffix}.
+     * Join strings using `separator` and delimit the result with `prefix` and `suffix`.
      */
     public Joiner(String separator, String prefix, String suffix) {
       this(
@@ -232,7 +232,7 @@ public abstract class MalleableString {
     }
   }
 
-  /** The result of rendering a {@code MalleableString}. */
+  /** The result of rendering a `MalleableString`. */
   public record RenderResult(
       Stream<String> unplacedComments, String rendering, int levelsOfCommentDisplacement) {
     private RenderResult with(Stream<String> moreUnplacedComments) {
@@ -430,7 +430,7 @@ public abstract class MalleableString {
     }
   }
 
-  /** Represent an indented version of another {@code MalleableString}. */
+  /** Represent an indented version of another `MalleableString`. */
   private static final class Indented extends MalleableString {
 
     private final MalleableString nested;
@@ -493,7 +493,7 @@ public abstract class MalleableString {
     }
   }
 
-  /** Represent a {@code MalleableString} that admits multiple possible representations. */
+  /** Represent a `MalleableString` that admits multiple possible representations. */
   private abstract static class MalleableStringWithAlternatives<T> extends MalleableString {
     protected abstract List<T> getPossibilities();
 
@@ -540,7 +540,7 @@ public abstract class MalleableString {
     }
   }
 
-  /** A {@code Fork} can be represented by multiple possible {@code MalleableString}s. */
+  /** A `Fork` can be represented by multiple possible `MalleableString`s. */
   private static final class Fork extends MalleableStringWithAlternatives<MalleableString> {
     private final ImmutableList<MalleableString> possibilities;
 
@@ -582,7 +582,7 @@ public abstract class MalleableString {
     }
   }
 
-  /** A {@code Leaf} can be represented by multiple possible {@code String}s. */
+  /** A `Leaf` can be represented by multiple possible `String`s. */
   private static final class Leaf extends MalleableStringWithAlternatives<String> {
     private List<String> possibilities;
 
