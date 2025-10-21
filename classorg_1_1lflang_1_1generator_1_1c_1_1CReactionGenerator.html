@@ -108,9 +108,9 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:ad3e77975316393134a6ff825a89bd22b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the top level C function header for the deadline function numbered "reactionIndex" in "r".  <br /></td></tr>
 <tr class="memitem:a737615e17717b217836b80e0e5a412da" id="r_a737615e17717b217836b80e0e5a412da"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a737615e17717b217836b80e0e5a412da">generateDeadlineFunctionName</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr, int reactionIndex)</td></tr>
 <tr class="memdesc:a737615e17717b217836b80e0e5a412da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the name of the deadline function for reaction.  <br /></td></tr>
-<tr class="memitem:a66d467067754b38e46fc4fed5bc9ec6b" id="r_a66d467067754b38e46fc4fed5bc9ec6b"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a66d467067754b38e46fc4fed5bc9ec6b">generateDelayBody</a> (String ref, String actionName, boolean isTokenType)</td></tr>
-<tr class="memdesc:a66d467067754b38e46fc4fed5bc9ec6b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the body of a reaction that takes an input and schedules an action with the value of that input.  <br /></td></tr>
-<tr class="memitem:a7d11ce377935221f48c1f0cd5401a0bd" id="r_a7d11ce377935221f48c1f0cd5401a0bd"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7d11ce377935221f48c1f0cd5401a0bd">generateForwardBody</a> (String outputName, String targetType, String actionName, boolean isTokenType)</td></tr>
+<tr class="memitem:a2ead6fa323d7e076894a52b1b2f5a648" id="r_a2ead6fa323d7e076894a52b1b2f5a648"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a2ead6fa323d7e076894a52b1b2f5a648">generateDelayBody</a> (String ref, String actionName, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
+<tr class="memdesc:a2ead6fa323d7e076894a52b1b2f5a648"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the body of a reaction that takes an input and schedules an action with the value of that input.  <br /></td></tr>
+<tr class="memitem:a61d2f62998a41b87e85ce2e7de42981b" id="r_a61d2f62998a41b87e85ce2e7de42981b"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a61d2f62998a41b87e85ce2e7de42981b">generateForwardBody</a> (String outputName, String targetType, String actionName, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type)</td></tr>
 <tr class="memitem:a3441783cbc5e9429ce1636aa615fae07" id="r_a3441783cbc5e9429ce1636aa615fae07"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a3441783cbc5e9429ce1636aa615fae07">generateFunction</a> (String header, String init, Code code, boolean suppressLineDirectives)</td></tr>
 <tr class="memitem:adffe6058e7ea7ac1162b37b96ca7ca02" id="r_adffe6058e7ea7ac1162b37b96ca7ca02"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#adffe6058e7ea7ac1162b37b96ca7ca02">generateFunctionHeader</a> (String functionName)</td></tr>
 <tr class="memdesc:adffe6058e7ea7ac1162b37b96ca7ca02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the start of a function declaration for a function that takes a <span class="tt">void*</span> argument and returns void.  <br /></td></tr>
@@ -257,8 +257,8 @@ Static Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a66d467067754b38e46fc4fed5bc9ec6b" name="a66d467067754b38e46fc4fed5bc9ec6b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a66d467067754b38e46fc4fed5bc9ec6b">&#9670;&#160;</a></span>generateDelayBody()</h2>
+<a id="a2ead6fa323d7e076894a52b1b2f5a648" name="a2ead6fa323d7e076894a52b1b2f5a648"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2ead6fa323d7e076894a52b1b2f5a648">&#9670;&#160;</a></span>generateDelayBody()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -279,7 +279,7 @@ Static Protected Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>isTokenType</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -299,8 +299,8 @@ Static Protected Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a7d11ce377935221f48c1f0cd5401a0bd" name="a7d11ce377935221f48c1f0cd5401a0bd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7d11ce377935221f48c1f0cd5401a0bd">&#9670;&#160;</a></span>generateForwardBody()</h2>
+<a id="a61d2f62998a41b87e85ce2e7de42981b" name="a61d2f62998a41b87e85ce2e7de42981b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a61d2f62998a41b87e85ce2e7de42981b">&#9670;&#160;</a></span>generateForwardBody()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -326,7 +326,7 @@ Static Protected Attributes</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>isTokenType</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a></td>          <td class="paramname"><span class="paramname"><em>type</em></span>&#160;)</td>
         </tr>
       </table>
   </td>

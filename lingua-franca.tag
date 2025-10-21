@@ -14840,15 +14840,15 @@
       <type>static String</type>
       <name>generateDelayBody</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</anchorfile>
-      <anchor>a66d467067754b38e46fc4fed5bc9ec6b</anchor>
-      <arglist>(String ref, String actionName, boolean isTokenType)</arglist>
+      <anchor>a2ead6fa323d7e076894a52b1b2f5a648</anchor>
+      <arglist>(String ref, String actionName, InferredType type)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
       <name>generateForwardBody</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</anchorfile>
-      <anchor>a7d11ce377935221f48c1f0cd5401a0bd</anchor>
-      <arglist>(String outputName, String targetType, String actionName, boolean isTokenType)</arglist>
+      <anchor>a61d2f62998a41b87e85ce2e7de42981b</anchor>
+      <arglist>(String outputName, String targetType, String actionName, InferredType type)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static String</type>
