@@ -1,13 +1,5 @@
 /**
- * Distributed LF program where a MessageGenerator creates a string message that is sent to a
- * receiver that prints the message. The type is char*, so this tests the transport of
- * token-encapsulated messages. Three executable programs are generated, Distributed,
- * Distributed_Sender, and Distributed_Receiver.
- *
- * This program uses a 'logical' connection -> with a STP violation handler, decentralized
- * coordination, and an 'after' that is sufficiently large to get deterministic timestamps. Hence,
- * it realizes a 'poor man's Ptides' that does not require clock synchronization nor HLA-style
- * centralized control over the advancement of time.
+ * Variant of DistributedToken that tests an empty `tardy` handler.
  *
  * @author Edward A. Lee
  */
@@ -72,23 +64,9 @@ reactor PrintMessage {
       printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
       exit(1);
     }
-  =} STAA(0) {=
-    printf("PrintMessage: At (elapsed) tag " PRINTF_TAG ", receiver receives: %s\n"
-      "Original intended tag was " PRINTF_TAG ".\n",
-      lf_time_logical_elapsed(),
-      lf_tag().microstep,
-      message->value,
-      message->intended_tag.time - lf_time_start(),
-      message->intended_tag.microstep);
-    // Check the trailing number only of the message.
-    self->count++;
-    int trailing_number = atoi(&message->value[12]);
-    if (trailing_number != self->count) {
-      printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
-      exit(1);
-    }
-  =}
+  =} tardy
 
+  // Invoke regular reaction.
   reaction(shutdown) {=
     if (self->count == 0) {
       printf("ERROR: No messages received.\n");
@@ -97,7 +75,7 @@ reactor PrintMessage {
   =}
 }
 
-federated reactor DistributedToken {
+federated reactor {
   msg = new MessageGenerator(root = "Hello World")
   dsp = new PrintMessage()
   msg.message -> dsp.message after 40 msec

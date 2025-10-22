@@ -48,7 +48,6 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.KeyValuePair;
 import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Literal;
-import org.lflang.lf.MaxWait;
 import org.lflang.lf.Method;
 import org.lflang.lf.MethodArgument;
 import org.lflang.lf.Mode;
@@ -63,8 +62,10 @@ import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -317,7 +318,12 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (name=ID '=')? value=AttrParmValue;
     var builder = new Builder();
     if (object.getName() != null) builder.append(object.getName()).append(" = ");
-    return builder.append(object.getValue()).get();
+    var value = object.getValue();
+    if (value == null) {
+      // The value is a Time.
+      return caseTime(object.getTime());
+    }
+    return builder.append(value).get();
   }
 
   @Override
@@ -654,7 +660,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // ((('named' name=ID)? code=Code) | 'named' name=ID)(maxwait=MaxWait)?(deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)((stp=STP) |
+    // (tardy=Tardy))?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -685,7 +692,8 @@ public class ToLf extends LfSwitch<MalleableString> {
                   .collect(new Joiner(", ")));
     }
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
-    if (object.getMaxWait() != null) msb.append(" ").append(doSwitch(object.getMaxWait()));
+    if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
+    if (object.getTardy() != null) msb.append(" ").append(doSwitch(object.getTardy()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();
   }
@@ -745,9 +753,9 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   @Override
-  public MalleableString caseMaxWait(MaxWait object) {
-    // 'maxwait' '(' value=Expression ')' code=Code
-    return handler(object, "STAA", MaxWait::getValue, MaxWait::getCode);
+  public MalleableString caseSTP(STP object) {
+    // 'stp' '(' value=Expression ')' code=Code
+    return handler(object, "STAA", STP::getValue, STP::getCode);
   }
 
   private <T extends EObject> MalleableString handler(
@@ -758,6 +766,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         .append(" ")
         .append(doSwitch(getCode.apply(object)))
         .get();
+  }
+
+  @Override
+  public MalleableString caseTardy(Tardy object) {
+    // 'tardy' code=Code
+    if (object.getCode() != null) {
+      return new Builder().append("tardy ").append(doSwitch(object.getCode())).get();
+    } else {
+      return new Builder().append("tardy").get();
+    }
   }
 
   @Override
@@ -790,6 +808,7 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseConnection(Connection object) {
+    // (attributes+=Attribute)*
     // ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     //     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     // ('->' | physical?='~>')
@@ -798,6 +817,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (serializer=Serializer)?
     // ';'?
     Builder msb = new Builder();
+    addAttributes(msb, object::getAttributes);
     Builder left = new Builder();
     Builder right = new Builder();
     if (object.isIterated()) {

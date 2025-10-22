@@ -921,10 +921,22 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getMaxWait() != null) {
-        // The following has to match the name chosen in generateReactions
-        var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+      // First check for an tardy handler.
+      if (reaction.getTardy() != null) {
+        String STPFunctionName;
+        if (reaction.getTardy().getCode() != null) {
+          // There is an STP handler.
+          // The following has to match the name chosen in generateReactions
+          STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+        } else {
+          // There is no STP handler body. Invoke the ordinary reaction.
+          STPFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         STPFunctionPointer = "&" + STPFunctionName;
+      } else if (reaction.getStp() != null) {
+        // There is an STP handler. Handle it for backward compatibility.
+        // The following has to match the name chosen in generateReactions
+        STPFunctionPointer = "&" + generateStpFunctionName(tpr, reactionCount);
       }
 
       // Set the defaults of the reaction_t struct in the constructor.
@@ -1177,12 +1189,22 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getMaxWait() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generateFunction(
+                generateStpFunctionHeader(tpr, reactionIndex),
+                init,
+                reaction.getTardy().getCode(),
+                suppressLineDirectives));
+      }
+    } else if (reaction.getStp() != null) {
+      // Handle STAA or STP for backward compatibility.
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getMaxWait().getCode(),
+              reaction.getStp().getCode(),
               suppressLineDirectives));
     }
 

@@ -178,7 +178,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    (code=Code)? (maxWait=MaxWait)? (deadline=Deadline)? (delimited?=';')?
+    (code=Code)? ((stp=STP) | (tardy=Tardy))? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
@@ -196,8 +196,11 @@ Watchdog:
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
 
-MaxWait:
-    ('STP' | 'STAA' | 'maxwait') ('(' value=Expression ')')? (code=Code)?;
+STP:
+    ('STP' | 'STAA') '(' value=Expression ')' (code=Code);
+
+Tardy:
+    present?='tardy' (code=Code)?;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
@@ -227,7 +230,7 @@ Serializer:
 
 /////////// Attributes
 Attribute:
-    '@' attrName=(ID | 'maxwait') ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
+    '@' attrName=ID ('(' (attrParms+=AttrParm (',' attrParms+=AttrParm)* ','?)? ')')?
 ;
 
 AttrParm:
@@ -503,7 +506,7 @@ Token:
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' | 'forever' | 'never' | 'maxwait' |
+    'extends' | 'forever' | 'never' | 'tardy' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |

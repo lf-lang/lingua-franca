@@ -190,14 +190,10 @@ public class AttributeSpec {
           }
         }
         case TIME -> {
-          if (!ASTUtils.isBigInteger(parm.getValue())
-              && !parm.getValue().equals("forever")
-              && !parm.getValue().equals("never")) {
+          // TIME attributes use parm.getTime(), not parm.getValue(), unless the value is "0"
+          if (parm.getTime() == null && !parm.getValue().equals("0")) {
             validator.error(
-                "Incorrect type: \""
-                    + parm.getName()
-                    + "\""
-                    + " should be an integer, 'forever', or 'never'.",
+                "Incorrect time specification: \"" + parm.getName() + "\"",
                 Literals.ATTRIBUTE__ATTR_NAME);
           }
         }
@@ -228,6 +224,10 @@ public class AttributeSpec {
     // @maxwait(time)
     ATTRIBUTE_SPECS_BY_NAME.put(
         "maxwait",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    // @absent_after(time)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "absent_after",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
