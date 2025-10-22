@@ -1,0 +1,11 @@
+// Source produces a statically allocated array, which it passes to Print. The destination
+// references the array directly.
+target C
+
+import Source, Print from "ArrayAsType.lf"
+
+main reactor {
+  s = new Source()
+  p = new Print()
+  s.out -> p.in after 100 msec
+}
