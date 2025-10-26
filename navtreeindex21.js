@@ -1,5 +1,9 @@
 var NAVTREEINDEX21 =
 {
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html#af44aa1c33c4a2f62a385ae18d2a09541":[4,8,32,18],
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html#afc6768563083e4403de7f0d1dd375f68":[4,8,32,22],
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html#aff3ae7508377e27da65c5deaf4c31534":[4,8,32,10],
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html":[4,8,33],
 "classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html#a0267f19ce7ff14b1a410e2a39b7989c2":[4,8,33,23],
 "classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html#a0b6820b95f35eff2cf460e32920bf015":[4,8,33,16],
 "classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html#a1ebac2651a6dd6b8044d96eb597402d6":[4,8,33,17],
@@ -245,9 +249,5 @@ var NAVTREEINDEX21 =
 "classorg_1_1lflang_1_1tests_1_1util_1_1StringUtilTest.html#a3dac2b18ddbe3420f76ff607f053f3bd":[4,8,43,0],
 "classorg_1_1lflang_1_1tests_1_1util_1_1StringUtilTest.html#af6ab6156cbe53bbc00ddcea17068957e":[4,8,43,1],
 "classorg_1_1lflang_1_1util_1_1ArduinoUtil.html":[4,9,19],
-"classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a82cee16a77ac543ec277e24ed1c26ffa":[4,9,19,0],
-"classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a860910885d5cba430ed86b9a9721ede1":[4,9,19,1],
-"classorg_1_1lflang_1_1util_1_1Averager.html":[4,9,20],
-"classorg_1_1lflang_1_1util_1_1Averager.html#a624e0369ae8a2d9b94c8293ba711c018":[4,9,20,0],
-"classorg_1_1lflang_1_1util_1_1Averager.html#a728d369b53b60a1e112e9a41ab11cf30":[4,9,20,1]
+"classorg_1_1lflang_1_1util_1_1ArduinoUtil.html#a82cee16a77ac543ec277e24ed1c26ffa":[4,9,19,0]
 };

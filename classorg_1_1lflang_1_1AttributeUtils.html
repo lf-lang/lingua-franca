@@ -107,6 +107,8 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:ae5d19563dc9410f1d38ea7a0cc844a33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the attribute with the given name if present, otherwise return null.  <br /></td></tr>
 <tr class="memitem:ad89b57cc25c83fe743d8284d5dde7d1c" id="r_ad89b57cc25c83fe743d8284d5dde7d1c"><td class="memItemLeft" align="right" valign="top">static List&lt; Attribute &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ad89b57cc25c83fe743d8284d5dde7d1c">findAttributesByName</a> (EObject node, String name)  throws IllegalArgumentException </td></tr>
 <tr class="memdesc:ad89b57cc25c83fe743d8284d5dde7d1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of attributes with the given name.  <br /></td></tr>
+<tr class="memitem:acb2e62bd824b94b69e6ea1e1c06a2cb8" id="r_acb2e62bd824b94b69e6ea1e1c06a2cb8"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#acb2e62bd824b94b69e6ea1e1c06a2cb8">getAbsentAfter</a> (EObject node)</td></tr>
+<tr class="memdesc:acb2e62bd824b94b69e6ea1e1c06a2cb8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the value of the <span class="tt">@absent_after</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one.  <br /></td></tr>
 <tr class="memitem:a22f44a27aebc003c766bd805b36feb88" id="r_a22f44a27aebc003c766bd805b36feb88"><td class="memItemLeft" align="right" valign="top">static AttrParm&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a22f44a27aebc003c766bd805b36feb88">getAttributeParameter</a> (Attribute attribute, String parameterName)</td></tr>
 <tr class="memdesc:a22f44a27aebc003c766bd805b36feb88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the parameter with the given name for the specified attribute or null if no such parameter is found.  <br /></td></tr>
 <tr class="memitem:a50d96aeef485dba78bfbe61fa66a885b" id="r_a50d96aeef485dba78bfbe61fa66a885b"><td class="memItemLeft" align="right" valign="top">static List&lt; Attribute &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a50d96aeef485dba78bfbe61fa66a885b">getAttributes</a> (EObject node)</td></tr>
@@ -230,6 +232,39 @@ Alexander Schulz-Rosengarten </dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
     <tr><td class="paramname">IllegalArgumentException</td><td>If the node cannot have attributes </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="acb2e62bd824b94b69e6ea1e1c06a2cb8" name="acb2e62bd824b94b69e6ea1e1c06a2cb8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acb2e62bd824b94b69e6ea1e1c06a2cb8">&#9670;&#160;</a></span>getAbsentAfter()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a> org.lflang.AttributeUtils.getAbsentAfter </td>
+          <td>(</td>
+          <td class="paramtype">EObject</td>          <td class="paramname"><span class="paramname"><em>node</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return the value of the <span class="tt">@absent_after</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">The</td><td>AST node (a Connection). </td></tr>
   </table>
   </dd>
 </dl>

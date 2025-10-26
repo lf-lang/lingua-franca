@@ -5343,13 +5343,6 @@
     </member>
     <member kind="function">
       <type>Boolean</type>
-      <name>caseMaxWait</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
-      <anchor>a1fb6ab6f19a6a29a23a2c9b403789c5f</anchor>
-      <arglist>(MaxWait object)</arglist>
-    </member>
-    <member kind="function">
-      <type>Boolean</type>
       <name>caseMethod</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
       <anchor>ae75bf5020d8362bfecf5aae4d5c3d83f</anchor>
@@ -5459,6 +5452,20 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
       <anchor>a726665d555b202e7187f238a0b4c0cdc</anchor>
       <arglist>(StateVar object)</arglist>
+    </member>
+    <member kind="function">
+      <type>Boolean</type>
+      <name>caseSTP</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
+      <anchor>aa258c22769eb1c4888d498f874c03732</anchor>
+      <arglist>(STP object)</arglist>
+    </member>
+    <member kind="function">
+      <type>Boolean</type>
+      <name>caseTardy</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1IsEqual.html</anchorfile>
+      <anchor>a13eb33da09f91302796350b3099eab00</anchor>
+      <arglist>(Tardy object)</arglist>
     </member>
     <member kind="function">
       <type>Boolean</type>
@@ -6002,13 +6009,6 @@
     </member>
     <member kind="function">
       <type>MalleableString</type>
-      <name>caseMaxWait</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
-      <anchor>ae87112fc9a005d0e651e33ad79a4e9e3</anchor>
-      <arglist>(MaxWait object)</arglist>
-    </member>
-    <member kind="function">
-      <type>MalleableString</type>
       <name>caseMethod</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
       <anchor>aeb41e727261fd8d3a1741b89a3ca1043</anchor>
@@ -6118,6 +6118,20 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
       <anchor>aa5fa170aaabc1651463346da0cfdb5b8</anchor>
       <arglist>(StateVar object)</arglist>
+    </member>
+    <member kind="function">
+      <type>MalleableString</type>
+      <name>caseSTP</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
+      <anchor>a5acfab82652eba9b2bc28665bfe28324</anchor>
+      <arglist>(STP object)</arglist>
+    </member>
+    <member kind="function">
+      <type>MalleableString</type>
+      <name>caseTardy</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToLf.html</anchorfile>
+      <anchor>a60cced156d3dca26c21b50a8385a617c</anchor>
+      <arglist>(Tardy object)</arglist>
     </member>
     <member kind="function">
       <type>MalleableString</type>
@@ -6442,13 +6456,6 @@
     </member>
     <member kind="function">
       <type>SExpr</type>
-      <name>caseMaxWait</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
-      <anchor>a6d63a16460060f1723189de04e0eb690</anchor>
-      <arglist>(MaxWait object)</arglist>
-    </member>
-    <member kind="function">
-      <type>SExpr</type>
       <name>caseMethod</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
       <anchor>a447b244296c95f56c2547da3d8ea24e8</anchor>
@@ -6551,6 +6558,20 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
       <anchor>a589ac389cf40ef707b3ab3e26c2a8484</anchor>
       <arglist>(StateVar object)</arglist>
+    </member>
+    <member kind="function">
+      <type>SExpr</type>
+      <name>caseSTP</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
+      <anchor>a2eb56123fcc6191b9cd95f54696e9cca</anchor>
+      <arglist>(STP object)</arglist>
+    </member>
+    <member kind="function">
+      <type>SExpr</type>
+      <name>caseTardy</name>
+      <anchorfile>classorg_1_1lflang_1_1ast_1_1ToSExpr.html</anchorfile>
+      <anchor>a295ad5ff43673ff8a2566087ddede93f</anchor>
+      <arglist>(Tardy object)</arglist>
     </member>
     <member kind="function">
       <type>SExpr</type>
@@ -6897,6 +6918,13 @@
       <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
       <anchor>ad89b57cc25c83fe743d8284d5dde7d1c</anchor>
       <arglist>(EObject node, String name)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static TimeValue</type>
+      <name>getAbsentAfter</name>
+      <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
+      <anchor>acb2e62bd824b94b69e6ea1e1c06a2cb8</anchor>
+      <arglist>(EObject node)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static AttrParm</type>

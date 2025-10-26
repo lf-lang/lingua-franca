@@ -1,5 +1,9 @@
 var NAVTREEINDEX6 =
 {
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#adfe6453339f346604a253fad4c9d1ed6":[4,1,11,10],
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html":[4,1,12],
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a09c6106ae11c6207042c93de9586cca8":[4,1,12,2],
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a1a378860676d6ce83754657b2a23cce5":[4,1,12,1],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a2675445261edf13b6728fcaac1bc37b6":[4,1,12,4],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a3546fddade78beea3d81f22b21b0151b":[4,1,12,10],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a411ab32e4825be959b29f1c9a5dfdba9":[4,1,12,12],
@@ -245,9 +249,5 @@ var NAVTREEINDEX6 =
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f119bf8898184d899461ea0c62116bd":[4,3,9,32],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f800b9c19e9a05c6666e9d09547a50a":[4,3,9,21],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a1823e46b5758701c421f719ee9ac5b40":[4,3,9,24],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a241c0d4aa022944a3bbf5b15de8b36c1":[4,3,9,23],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a2520a505004537b42fb1c4bc5eb0e1d7":[4,3,9,7],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a2556ebf0e072dfa70c7439d370bacd49":[4,3,9,6],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a26b0e3b9a63c995b1c8a284964d5ab62":[4,3,9,17],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a2e9b1f70e6448fc94fe56bccf1b4805c":[4,3,9,42]
+"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a241c0d4aa022944a3bbf5b15de8b36c1":[4,3,9,23]
 };
