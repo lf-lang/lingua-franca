@@ -1,0 +1,44 @@
+/**
+ * This is a test that verifies that there is no STP violation even if a message arrives late as
+ * long as it has not been erroneously assumed absent.
+ */
+target C {
+  timeout: 1900 msec,
+  coordination: decentralized
+}
+
+import Count from "../lib/Count.lf"
+
+reactor Print {
+  input in: int
+  state c: int = 1
+
+  reaction(in) {=
+    interval_t elapsed_time = lf_time_logical_elapsed();
+    lf_print("At time " PRINTF_TIME ", received %d", elapsed_time, in->value);
+    if (in->value != self->c) {
+      lf_print_error_and_exit("Expected to receive %d.", self->c);
+    }
+    instant_t lag = in->physical_time_of_arrival - lf_time_logical();
+    lf_print("The message arrived with lag " PRINTF_TIME, lag);
+    self->c++;
+  =} tardy {=
+    // This STP handler should never be invoked because the only source of event
+    // for Print is the Count reactor.
+    lf_print_error_and_exit("Logical STP violation was detected. Only physical STP violations are possible.");
+  =}
+
+  reaction(shutdown) {=
+    if (self->c != 3) {
+      lf_print_error_and_exit("Expected to receive 2 items but got %d.", self->c);
+    }
+  =}
+}
+
+federated reactor {
+  c = new Count(offset = 1 msec, period = 1 sec)
+  p = new Print()
+
+  @absent_after(1 us)
+  c.out -> p.in
+}

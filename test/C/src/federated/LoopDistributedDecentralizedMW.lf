@@ -15,7 +15,7 @@ preamble {=
   void* ping(void* actionref);
 =}
 
-reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
+reactor Looper(incr: int = 1, delay: time = 0 msec) {
   preamble {=
     bool stop = false;
     int count = 0;
@@ -38,7 +38,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
   =}
   input in: int
   output out: int
-  physical action a(stp_offset)
+  physical action a
   state count: int = 0
   state inputs: int = 0
 
@@ -61,12 +61,12 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
     char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
     lf_comma_separated_time(time_buffer, time_lag);
     lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
-  =} STAA(stp_offset) {=
+  =} tardy {=
     self->inputs++;
     instant_t time_lag = lf_time_physical() - lf_time_logical();
     char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
     lf_comma_separated_time(time_buffer, time_lag);
-    lf_print("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+    lf_print("Input received late. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
   =} deadline(10 msec) {=
     // Note: Could conceivably get both an STP violation and a deadline violation,
     // which will result in double counting this input. This is OK, though.
@@ -89,9 +89,11 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
   =}
 }
 
-federated reactor LoopDistributedDecentralized(delay: time = 0) {
-  left = new Looper(stp_offset = 900 usec)
-  right = new Looper(incr=-1, stp_offset = 2400 usec)
+federated reactor {
+  left = new Looper()
+  right = new Looper(incr=-1)
+  @absent_after(100 ms)
   left.out -> right.in
+  @absent_after(100 ms)
   right.out -> left.in
 }
