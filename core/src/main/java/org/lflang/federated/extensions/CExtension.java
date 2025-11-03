@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
@@ -696,8 +697,7 @@ public class CExtension implements FedTargetExtension {
               .filter(
                   param ->
                       (param.getName().equalsIgnoreCase("STP_offset")
-                              || param.getName().equalsIgnoreCase("STA")
-                              || param.getName().equalsIgnoreCase("maxwait"))
+                              || param.getName().equalsIgnoreCase("STA"))
                           && (param.getType() == null || param.getType().isTime()))
               .findFirst();
 
@@ -710,6 +710,12 @@ public class CExtension implements FedTargetExtension {
         else if (globalSTP instanceof CodeExprImpl)
           code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
         else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
+      } else {
+        // Check for an annotation on the federate instantiation.
+        var maxwait = AttributeUtils.getMaxWait(federate.instantiation);
+        if (maxwait != TimeValue.ZERO) {
+          code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(maxwait) + ");");
+        }
       }
     }
 

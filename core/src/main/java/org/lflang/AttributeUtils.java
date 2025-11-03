@@ -324,18 +324,29 @@ public class AttributeUtils {
   public static TimeValue getMaxWait(EObject node) {
     final var attr = findAttributeByName(node, "maxwait");
     if (attr != null) {
-      // The attribute is expected to have a single argument of type Time
-      // or one of the literals "forever", "never", or "0".
+      // The attribute is expected to have a single argument of type Time or the literal "0".
       // The validator checks this.
       final var time = attr.getAttrParms().get(0).getTime();
-      if (time == null) {
-        if (attr.getAttrParms().get(0).getValue().equals("forever")) {
-          return TimeValue.MAX_VALUE;
-        } else if (attr.getAttrParms().get(0).getValue().equals("never")) {
-          // Interpret "never" as 0.
-          return TimeValue.ZERO;
-        }
-      } else {
+      if (time != null) {
+        return ASTUtils.toTimeValue(time);
+      }
+    }
+    return TimeValue.ZERO;
+  }
+
+  /**
+   * Return the value of the `@absent_after` attribute of the given node or TimeValue.ZERO if does not
+   * have one.
+   *
+   * @param The AST node (a Connection).
+   */
+  public static TimeValue getAbsentAfter(EObject node) {
+    final var attr = findAttributeByName(node, "absent_after");
+    if (attr != null) {
+      // The attribute is expected to have a single argument of type Time or the literal "0".
+      // The validator checks this.
+      final var time = attr.getAttrParms().get(0).getTime();
+      if (time != null) {
         return ASTUtils.toTimeValue(time);
       }
     }

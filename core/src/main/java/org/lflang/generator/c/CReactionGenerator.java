@@ -327,42 +327,65 @@ public class CReactionGenerator {
    *
    * @param actionName The action to schedule
    */
-  public static String generateDelayBody(String ref, String actionName, boolean isTokenType) {
+  public static String generateDelayBody(String ref, String actionName, InferredType type) {
     // Note that the action.type set by the base class is actually
     // the port type.
-    return isTokenType
-        ? String.join(
-            "\n",
-            "if (" + ref + "->is_present) {",
-            "    // Put the whole token on the event queue, not just the payload.",
-            "    // This way, the length and element_size are transported.",
-            "    lf_schedule_token(" + actionName + ", 0, " + ref + "->token);",
-            "}")
-        : "lf_schedule_copy(" + actionName + ", 0, &" + ref + "->value, 1);  // Length is 1.";
+    if (CUtil.isTokenType(type)) {
+      return String.join(
+          "\n",
+          "if (" + ref + "->is_present) {",
+          "    // Put the whole token on the event queue, not just the payload.",
+          "    // This way, the length and element_size are transported.",
+          "    lf_schedule_token(" + actionName + ", 0, " + ref + "->token);",
+          "}");
+    } else {
+      var length = (CUtil.isFixedSizeArrayType(type)) ? CUtil.fixedSizeArrayTypeLength(type) : 1;
+      return "lf_schedule_copy(" + actionName + ", 0, &" + ref + "->value, " + length + ");";
+    }
   }
 
   public static String generateForwardBody(
-      String outputName, String targetType, String actionName, boolean isTokenType) {
-    return isTokenType
-        ? String.join(
-            "\n",
-            DISABLE_REACTION_INITIALIZATION_MARKER,
-            "lf_critical_section_enter(self->base.environment);",
-            "self->_lf_"
-                + outputName
-                + ".value = ("
-                + targetType
-                + ")self->_lf__"
-                + actionName
-                + ".tmplt.token->value;",
-            "_lf_replace_template_token((token_template_t*)&self->_lf_"
-                + outputName
-                + ", (lf_token_t*)self->_lf__"
-                + actionName
-                + ".tmplt.token);",
-            "self->_lf_" + outputName + ".is_present = true;",
-            "lf_critical_section_exit(self->base.environment);")
-        : "lf_set(" + outputName + ", " + actionName + "->value);";
+      String outputName, String targetType, String actionName, InferredType type) {
+    if (CUtil.isFixedSizeArrayType(type)) {
+      // For fixed size arrays, we need to copy the data from the action to the port.
+      String actionRef = "self->_lf__" + actionName + ".tmplt";
+      return String.join(
+          "\n",
+          DISABLE_REACTION_INITIALIZATION_MARKER,
+          "lf_critical_section_enter(self->base.environment);",
+          "memcpy(self->_lf_"
+              + outputName
+              + ".value, "
+              + actionRef
+              + ".token->value, "
+              + actionRef
+              + ".length * "
+              + actionRef
+              + ".type.element_size);",
+          "self->_lf_" + outputName + ".is_present = true;",
+          "lf_critical_section_exit(self->base.environment);");
+    } else if (CUtil.isTokenType(type)) {
+      return String.join(
+          "\n",
+          DISABLE_REACTION_INITIALIZATION_MARKER,
+          "lf_critical_section_enter(self->base.environment);",
+          "self->_lf_"
+              + outputName
+              + ".value = ("
+              + targetType
+              + ")self->_lf__"
+              + actionName
+              + ".tmplt.token->value;",
+          "_lf_replace_template_token((token_template_t*)&self->_lf_"
+              + outputName
+              + ", (lf_token_t*)self->_lf__"
+              + actionName
+              + ".tmplt.token);",
+          "self->_lf_" + outputName + ".is_present = true;",
+          "lf_critical_section_exit(self->base.environment);");
+    } else {
+      return "lf_set(" + outputName + ", " + actionName + "->value);";
+    }
   }
 
   /**
@@ -898,10 +921,22 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getMaxWait() != null) {
-        // The following has to match the name chosen in generateReactions
-        var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+      // First check for an tardy handler.
+      if (reaction.getTardy() != null) {
+        String STPFunctionName;
+        if (reaction.getTardy().getCode() != null) {
+          // There is an STP handler.
+          // The following has to match the name chosen in generateReactions
+          STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+        } else {
+          // There is no STP handler body. Invoke the ordinary reaction.
+          STPFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         STPFunctionPointer = "&" + STPFunctionName;
+      } else if (reaction.getStp() != null) {
+        // There is an STP handler. Handle it for backward compatibility.
+        // The following has to match the name chosen in generateReactions
+        STPFunctionPointer = "&" + generateStpFunctionName(tpr, reactionCount);
       }
 
       // Set the defaults of the reaction_t struct in the constructor.
@@ -1154,12 +1189,22 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getMaxWait() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generateFunction(
+                generateStpFunctionHeader(tpr, reactionIndex),
+                init,
+                reaction.getTardy().getCode(),
+                suppressLineDirectives));
+      }
+    } else if (reaction.getStp() != null) {
+      // Handle STAA or STP for backward compatibility.
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
               init,
-              reaction.getMaxWait().getCode(),
+              reaction.getStp().getCode(),
               suppressLineDirectives));
     }
 

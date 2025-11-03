@@ -831,7 +831,9 @@ public class LFValidator extends BaseLFValidator {
             Literals.REACTION__CODE);
         return;
       }
-      if (reaction.getDeadline() == null && reaction.getMaxWait() == null) {
+      if (reaction.getDeadline() == null
+          && reaction.getStp() == null
+          && reaction.getTardy() == null) {
         var text = NodeModelUtils.findActualNodeFor(reaction).getText();
         var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
         if (matcher.find()) {
@@ -1320,6 +1322,50 @@ public class LFValidator extends BaseLFValidator {
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
+    // Above generic check is not sufficient for maxwait and absent_after.
+    if (name.equals("maxwait")) {
+      checkMaxWaitAttribute(attr);
+    } else if (name.equals("absent_after")) {
+      checkAbsentAfterAttribute(attr);
+    }
+  }
+
+  private void checkMaxWaitAttribute(Attribute attr) {
+    // Check that the attribute is at the top level.
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Connection)) {
+      warning(
+          "maxwait attribute can only be used in an instantiation or connection.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    var top = container.eContainer();
+    if (!(top instanceof Reactor) || !((Reactor) top).isFederated()) {
+      warning(
+          "maxwait attribute can only be used at the top level in a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+  }
+
+  private void checkAbsentAfterAttribute(Attribute attr) {
+    // Check that the attribute is at the top level.
+    var container = attr.eContainer();
+    if (!(container instanceof Connection)) {
+      warning(
+          "absent_after attribute can only be used in a connection.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    var top = container.eContainer();
+    if (!(top instanceof Reactor) || !((Reactor) top).isFederated()) {
+      warning(
+          "absent_after attribute can only be used at the top level in a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
   }
 
   @Check(CheckType.FAST)

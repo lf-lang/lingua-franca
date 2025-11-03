@@ -991,9 +991,7 @@ public class CGenerator extends GeneratorBase {
     }
     header.pr("#include \"include/core/reactor.h\"");
     src.pr("#include \"include/api/schedule.h\"");
-    src.pr(
-        CExtensionUtils.surroundWithIfFederated(
-            "#include <string.h>")); // For memcpy. Only needed for federated.
+    src.pr("#include <string.h>"); // For memcpy.
     if (CPreambleGenerator.arduinoBased(targetConfig)) {
       src.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
     } else {

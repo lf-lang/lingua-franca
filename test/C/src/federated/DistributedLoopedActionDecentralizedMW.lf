@@ -32,18 +32,8 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
     );
     self->total_received_messages++;
     if (in->value != self->received_messages) {
-      lf_print_warning("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
+      lf_print_error_and_exit("Skipped expected value %d. Received value %d.", self->received_messages, in->value);
       self->received_messages = in->value;
-      // exit(1); // The receiver should tolerate this type of error
-            // in this test because multiple messages arriving
-            // at a given tag (t, m) can overwrite each other.
-            // Because messages arrive in order, only the last
-            // value that is received on the port at a given tag
-            // can be observed. Note that with an accurate STP
-            // offset, this type of error should be extremely
-            // rare.
-            // FIXME: Messages should not be dropped or
-            // overwritten.
     }
     self->received_messages++;
     if (self->received_messages == self->take_a_break_after) {
@@ -51,7 +41,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
       self->breaks++;
       self->received_messages = 0;
     }
-  =} STAA(0) {=
+  =} tardy {=
     // STP violation should NOT passed down to this inner reactor.
     lf_print_error_and_exit("STP violation should have been handled by the enclosing reactor and not passed down!");
   =}
@@ -68,10 +58,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
   =}
 }
 
-reactor STPReceiver(
-    take_a_break_after: int = 10,
-    break_interval: time = 400 msec,
-    stp_offset: time = 0) {
+reactor STPReceiver(take_a_break_after: int = 10, break_interval: time = 400 msec) {
   input in: int
   state last_time_updated_stp: time = 0
   receiver = new Receiver(take_a_break_after=10, break_interval = 400 msec)
@@ -83,7 +70,7 @@ reactor STPReceiver(
         current_tag.time - lf_time_start(), current_tag.microstep, in->value
     );
     lf_set(receiver.in, in->value);
-  =} STAA(stp_offset) {=
+  =} tardy {=
     tag_t current_tag = lf_tag();
     lf_print("At tag " PRINTF_TAG ", received %d LATE. Intended tag is " PRINTF_TAG,
         current_tag.time - lf_time_start(), current_tag.microstep,
@@ -94,9 +81,8 @@ reactor STPReceiver(
 
     // Update the STP offset at most once per time step.
     if (current_tag.time != self->last_time_updated_stp) {
-      lf_print("Raising the STP offset by " PRINTF_TIME ".", MSEC(10));
-      self->stp_offset += MSEC(10);
-      lf_set_stp_offset(self->stp_offset);
+      lf_print("Raising the STP offset by " PRINTF_TIME ".", MSEC(100));
+      lf_set_fed_maxwait(lf_get_fed_maxwait() + MSEC(100));
       self->last_time_updated_stp = current_tag.time;
     }
   =}
@@ -106,12 +92,10 @@ reactor STPReceiver(
   =}
 }
 
-federated reactor DistributedLoopedActionDecentralized {
+federated reactor {
   sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
-  stpReceiver = new STPReceiver(
-      take_a_break_after=10,
-      break_interval = 400 msec,
-      stp_offset = 100 ms)
-
+  // Initial maxwait is too small.
+  @maxwait(0)
+  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
   sender.out -> stpReceiver.in
 }

@@ -16,6 +16,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
@@ -525,14 +526,32 @@ public class FedASTUtils {
   }
 
   /**
-   * Find the maximum maxwait (STP offset, STAA) for the destination port of the given
-   * connection. This maximum may be nested in contained reactors in the federate.
-   * This method returns TimeValue.ZERO if there are no maxwait offsets for the port.
-   * @param connection The connection to find the maxwait offset for.
+   * Return the `absent_after` for the destination port of the given connection.
+   * If the coordination is not decentralized, return TimeValue.ZERO.
+   * Otherwise, if the connection has an `absent_after` attribute, return it.
+   * If the connection does not have an `absent_after` attribute, find the maximum STP
+   * or STAA for the reactions that react to the destination port (for backward compatibility).
+   * This maximum may be nested in contained reactors in the federate.
+   * This method returns TimeValue.ZERO if there are no `absent_after` offsets for the port.
+   * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
    */
   private static TimeValue findMaxSTAA(
       FedConnectionInstance connection, CoordinationMode coordination) {
+    if (coordination != CoordinationMode.DECENTRALIZED) {
+      return TimeValue.ZERO;
+    }
+
+    // Start by checking for an `absent_after` attribute on the connection.
+    Connection conn = connection.getDefinition();
+    // If the connection has an `absent_after` attribute, return it.
+    var absentAfter = AttributeUtils.getAbsentAfter(conn);
+    if (absentAfter != TimeValue.ZERO) {
+      return absentAfter;
+    }
+
+    // For backward compatibility, check for STP offsets on the reactions that
+    // react to the destination port.
     Variable port = connection.getDestinationPortInstance().getDefinition();
     FederateInstance instance = connection.dstFederate;
     Reactor reactor = connection.getDestinationPortInstance().getParent().reactorDefinition;
@@ -572,59 +591,56 @@ public class FedASTUtils {
             .collect(Collectors.toList());
 
     // Find a list of STP offsets (if any exists)
-    if (coordination == CoordinationMode.DECENTRALIZED) {
-      for (Reaction r : safe(reactionsWithPort)) {
-        // If STP offset is determined, add it
-        // If not, assume it is zero
-        if (r.getMaxWait() != null) {
-          if (r.getMaxWait().getValue() instanceof ParameterReference) {
-            List<Instantiation> instantList = new ArrayList<>();
-            instantList.add(instance.instantiation);
-            final var param = ((ParameterReference) r.getMaxWait().getValue()).getParameter();
-            STPList.add(ASTUtils.initialValue(param, instantList));
-          } else {
-            STPList.add(r.getMaxWait().getValue());
-          }
+    for (Reaction r : safe(reactionsWithPort)) {
+      // If STP offset is determined, add it
+      // If not, assume it is zero
+      if (r.getStp() != null) {
+        if (r.getStp().getValue() instanceof ParameterReference) {
+          List<Instantiation> instantList = new ArrayList<>();
+          instantList.add(instance.instantiation);
+          final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
+          STPList.add(ASTUtils.initialValue(param, instantList));
+        } else {
+          STPList.add(r.getStp().getValue());
         }
       }
-      // Check the children for STPs as well
-      for (Connection c : safe(connectionsWithPort)) {
-        VarRef childPort = c.getRightPorts().get(0);
-        Reactor childReactor = (Reactor) childPort.getVariable().eContainer();
-        // Find the list of reactions that have the port as trigger or
-        // source (could be a variable name)
-        List<Reaction> childReactionsWithPort =
-            ASTUtils.allReactions(childReactor).stream()
-                .filter(
-                    r ->
-                        r.getTriggers().stream()
-                                .anyMatch(
-                                    t -> {
-                                      if (t instanceof VarRef) {
-                                        // Check if the variables match
-                                        return ((VarRef) t).getVariable()
-                                            == childPort.getVariable();
-                                      } else {
-                                        // Not a network port (startup or shutdown)
-                                        return false;
-                                      }
-                                    })
-                            || r.getSources().stream()
-                                .anyMatch(s -> s.getVariable() == childPort.getVariable()))
-                .collect(Collectors.toList());
+    }
+    // Check the children for STPs as well
+    for (Connection c : safe(connectionsWithPort)) {
+      VarRef childPort = c.getRightPorts().get(0);
+      Reactor childReactor = (Reactor) childPort.getVariable().eContainer();
+      // Find the list of reactions that have the port as trigger or
+      // source (could be a variable name)
+      List<Reaction> childReactionsWithPort =
+          ASTUtils.allReactions(childReactor).stream()
+              .filter(
+                  r ->
+                      r.getTriggers().stream()
+                              .anyMatch(
+                                  t -> {
+                                    if (t instanceof VarRef) {
+                                      // Check if the variables match
+                                      return ((VarRef) t).getVariable() == childPort.getVariable();
+                                    } else {
+                                      // Not a network port (startup or shutdown)
+                                      return false;
+                                    }
+                                  })
+                          || r.getSources().stream()
+                              .anyMatch(s -> s.getVariable() == childPort.getVariable()))
+              .collect(Collectors.toList());
 
-        for (Reaction r : safe(childReactionsWithPort)) {
-          // If STP offset is determined, add it
-          // If not, assume it is zero
-          if (r.getMaxWait() != null) {
-            if (r.getMaxWait().getValue() instanceof ParameterReference) {
-              List<Instantiation> instantList = new ArrayList<>();
-              instantList.add(childPort.getContainer());
-              final var param = ((ParameterReference) r.getMaxWait().getValue()).getParameter();
-              STPList.add(ASTUtils.initialValue(param, instantList));
-            } else {
-              STPList.add(r.getMaxWait().getValue());
-            }
+      for (Reaction r : safe(childReactionsWithPort)) {
+        // If STP offset is determined, add it
+        // If not, assume it is zero
+        if (r.getStp() != null) {
+          if (r.getStp().getValue() instanceof ParameterReference) {
+            List<Instantiation> instantList = new ArrayList<>();
+            instantList.add(childPort.getContainer());
+            final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
+            STPList.add(ASTUtils.initialValue(param, instantList));
+          } else {
+            STPList.add(r.getStp().getValue());
           }
         }
       }
