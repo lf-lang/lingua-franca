@@ -744,14 +744,14 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of network drivers for incoming connections to -1.",
+            "// Initialize the array of network channels for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.netchans_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of network drivers for outgoing connections to -1.",
+            "// Initialize the array of network channels for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.netchans_for_outbound_p2p_connections[i] = NULL;",
             "}"));
