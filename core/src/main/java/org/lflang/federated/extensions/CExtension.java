@@ -518,7 +518,7 @@ public class CExtension implements FedTargetExtension {
         extern "C" {
         #endif""");
     includes.pr("#include \"core/federated/federate.h\"");
-    includes.pr("#include \"network/api/net_driver.h\"");
+    includes.pr("#include \"network/api/net_abstraction.h\"");
     includes.pr("#include \"network/api/net_common.h\"");
     includes.pr("#include \"network/api/net_util.h\"");
     includes.pr("#include \"core/federated/clock-sync.h\"");
@@ -541,7 +541,7 @@ public class CExtension implements FedTargetExtension {
     var code = new CodeBuilder();
 
     code.pr("#include \"core/federated/federate.h\"");
-    code.pr("#include \"network/api/net_driver.h\"");
+    code.pr("#include \"network/api/net_abstraction.h\"");
     code.pr("#include \"network/api/net_common.h\"");
     code.pr("#include \"network/api/net_util.h\"");
     code.pr("#include \"core/federated/clock-sync.h\"");
@@ -684,7 +684,7 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&lf_outbound_netchan_mutex);",
+            "lf_mutex_init(&lf_outbound_net_abstraction_mutex);",
             "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
@@ -744,16 +744,16 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of network channels for incoming connections to -1.",
+            "// Initialize the array of network abstractions for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.netchans_for_inbound_p2p_connections[i] = NULL;",
+            "    _fed.net_abstractions_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of network channels for outgoing connections to -1.",
+            "// Initialize the array of network abstractions for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.netchans_for_outbound_p2p_connections[i] = NULL;",
+            "    _fed.net_abstractions_for_outbound_p2p_connections[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
@@ -769,7 +769,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Connect to the RTI. This sets _fed.netchan_to_RTI and _lf_rti_socket_UDP.",
+            "// Connect to the RTI. This sets _fed.net_abstraction_to_RTI and _lf_rti_socket_UDP.",
             "lf_connect_to_rti("
                 + addDoubleQuotes(rtiConfig.getHost())
                 + ", "
@@ -779,7 +779,7 @@ public class CExtension implements FedTargetExtension {
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(_fed.netchan_to_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(_fed.net_abstraction_to_RTI);");
     }
 
     if (numberOfInboundConnections > 0) {
