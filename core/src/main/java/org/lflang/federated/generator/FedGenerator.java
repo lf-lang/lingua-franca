@@ -59,6 +59,7 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
@@ -67,6 +68,7 @@ import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
@@ -166,6 +168,12 @@ public class FedGenerator {
     // The action will be physical for physical connections and logical
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
+
+    // If communication mode is SST, generate configurations for SST.
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
+    }
 
     FedEmitter fedEmitter =
         new FedEmitter(

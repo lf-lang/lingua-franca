@@ -11,13 +11,17 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.federated.generator.SSTGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.DNETProperty;
+import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -93,6 +97,9 @@ public class FedLauncherGenerator {
     StringBuilder distCode = new StringBuilder();
     shCode.append(getSetupCode()).append("\n");
     String distHeader = getDistHeader();
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      shCode.append(getSSTAuthExecutionCode()).append("\n");
+    }
     String host = rtiConfig.getHost();
     String target = host;
 
@@ -260,6 +267,10 @@ public class FedLauncherGenerator {
   }
 
   private String getSetupCode() {
+    String killAuthCommand =
+        (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
+            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true\n"
+            : "";
     return String.join(
         "\n",
         "#!/bin/bash -l",
@@ -277,7 +288,7 @@ public class FedLauncherGenerator {
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
         "        exit 0",
         "    else",
-        "        printf \"Killing federate %s.\\n\" ${pids[*]}",
+        killAuthCommand + "        printf \"Killing federate %s.\\n\" ${pids[*]}",
         "        # The || true clause means this is not an error if kill fails.",
         "        kill ${pids[@]} || true",
         "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
@@ -293,6 +304,32 @@ public class FedLauncherGenerator {
         "FEDERATION_ID=`openssl rand -hex 24`",
         "echo \"Federate " + fileConfig.name + " in Federation ID '$FEDERATION_ID'\"",
         "# Launch the federates:");
+  }
+
+  private String getSSTAuthExecutionCode() {
+    String authLaunchCode =
+        "java -jar "
+            + targetConfig.get(SSTPathProperty.INSTANCE)
+            + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
+            + fileConfig.getSSTAuthPath().toString()
+            + "/properties/exampleAuth101.properties --password="
+            + fileConfig.name;
+
+    String launchCodeWithLogging = String.join(" ", authLaunchCode, ">& auth.log &");
+    String launchCodeWithoutLogging = String.join(" ", authLaunchCode, "&");
+
+    return String.join(
+        "\n",
+        "\n# Prompt for the password before starting SST Auth",
+        "echo \"Executing Auth.\"",
+        "# Launch the SST Auth.",
+        "if [ \"$1\" = \"-l\" ]; then",
+        launchCodeWithLogging,
+        "else",
+        launchCodeWithoutLogging,
+        "fi",
+        "# Store the PID of the Auth",
+        "AUTH=$!");
   }
 
   private String getDistHeader() {
@@ -317,6 +354,12 @@ public class FedLauncherGenerator {
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
+    }
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      commands.add(
+          "                        -sst "
+              + SSTGenerator.getSSTConfig(fileConfig, "rti").toString()
+              + " \\");
     }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
