@@ -8,7 +8,7 @@ import org.lflang.lf.Element;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.UnionType;
 
-/** Note: {@code set} implements an "append" semantics. */
+/** Note: `set` implements an "append" semantics. */
 public abstract class StringListProperty extends TargetProperty<List<String>, UnionType> {
 
   public StringListProperty() {

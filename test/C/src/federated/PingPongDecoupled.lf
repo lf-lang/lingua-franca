@@ -1,0 +1,74 @@
+target C {
+  coordination: decentralized  // logging: debug
+}
+
+reactor Ping(count: size_t = 10, STA: time = 0) {
+  input receive: size_t
+  input start: bool
+  output send: size_t
+  output finished: bool
+  state pingsLeft: size_t = count
+  logical action serve
+
+  reaction(start, serve) -> send {=
+    lf_set(send, self->pingsLeft--);
+    lf_print("**************************** Ping sent");
+  =}
+
+  reaction(receive) -> serve, finished {=
+    lf_print("**************************** Ping received");
+    if (self->pingsLeft > 0) {
+        lf_schedule(serve, MSEC(10));
+    } else {
+        self->pingsLeft = self->count;
+        lf_set(finished, true);
+    }
+  =} STAA(forever) {=  =}
+}
+
+reactor Pong(expected: size_t = 10) {
+  input receive: size_t
+  output send: size_t
+  state count: size_t = 0
+
+  reaction(receive) -> send {=
+    lf_print("**************************** Pong received and sent");
+    self->count++;
+    lf_set(send, receive->value);
+  =} STAA(1 hour) {=  =}
+
+  reaction(shutdown) {=
+    if (self->count != self->expected) {
+        lf_print_error_and_exit("Pong expected to receive %zu inputs, but it received %zu.\n",
+            self->expected, self->count
+        );
+        exit(1);
+    }
+    lf_print("Success.\n");
+  =}
+}
+
+reactor Start(STA: time = 0) {
+  input finish: bool
+  output start: bool
+
+  reaction(startup) -> start {=
+    lf_set(start, true);
+  =}
+
+  reaction(finish) {=
+    lf_print("Benchmark finished.\n");
+    lf_request_stop();
+  =}
+}
+
+federated reactor(numIterations: size_t = 12, count: size_t = 10) {
+  start = new Start()
+  ping = new Ping(count=count)
+  pong = new Pong(expected=count)
+
+  start.start -> ping.start
+  ping.finished -> start.finish
+  ping.send -> pong.receive
+  pong.send -> ping.receive
+}

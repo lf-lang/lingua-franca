@@ -14,6 +14,7 @@ import picocli.CommandLine.Command;
  * Command lin tool for generating diagrams from Lingua Franca programs.
  *
  * @author Christian Menard
+ * @ingroup CLI
  */
 @Command(
     name = "lfd",

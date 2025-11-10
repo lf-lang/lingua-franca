@@ -22,6 +22,7 @@ import org.lflang.target.Target;
  * @author {Soroush Bateni
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CActionGenerator {
   /**
@@ -91,6 +92,9 @@ public class CActionGenerator {
         "\n",
         "_lf_initialize_template((token_template_t*)",
         "        &(" + selfStruct + "->_lf__" + actionName + "),",
+        payloadSize + ");",
+        "_lf_initialize_template((token_template_t*)",
+        "        &(" + selfStruct + "->_lf_" + actionName + "),",
         payloadSize + ");",
         selfStruct + "->_lf__" + actionName + ".status = absent;");
   }

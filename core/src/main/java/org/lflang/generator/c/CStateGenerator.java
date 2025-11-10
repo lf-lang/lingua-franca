@@ -6,6 +6,11 @@ import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.StateVar;
 
+/**
+ * Generate code for state variables.
+ *
+ * @ingroup Generator
+ */
 public class CStateGenerator {
   /**
    * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"

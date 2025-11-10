@@ -41,7 +41,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp: time = 0) {
     lf_readable_time(time_buffer, time_lag);
     lf_print("Received %d. Logical time is behind physical time by %s.", in->value, time_buffer);
     self->received_count = self->count;
-  =} STP(stp) {=
+  =} STAA(stp) {=
     instant_t time_lag = lf_time_physical() - lf_time_logical();
     char time_buffer[LF_TIME_BUFFER_LENGTH];
     lf_readable_time(time_buffer, time_lag);

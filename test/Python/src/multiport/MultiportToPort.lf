@@ -15,13 +15,13 @@ reactor Source {
 }
 
 reactor Destination(expected=0) {
-  input _in
+  input inp
   state received = False
 
-  reaction(_in) {=
-    print("Received: ", _in.value)
+  reaction(inp) {=
+    print("Received: ", inp.value)
     self.received = True
-    if _in.value != self.expected:
+    if inp.value != self.expected:
       sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
       exit(1)
   =}
@@ -38,5 +38,5 @@ main reactor MultiportToPort {
   a = new Source()
   b1 = new Destination()
   b2 = new Destination(expected=1)
-  a.out -> b1._in, b2._in
+  a.out -> b1.inp, b2.inp
 }

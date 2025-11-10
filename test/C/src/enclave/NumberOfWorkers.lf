@@ -1,0 +1,37 @@
+// Test that we get the right number of workers allocated.
+target C {
+  timeout: 1 sec,
+  fast: true
+}
+
+preamble {=
+  #include "environment.h" // To get access to worker_thread_count
+=}
+
+reactor E(num_workers_specified: int = 1) {
+  reaction(startup) {=
+    int workers = self->base.environment->num_workers;
+    LF_TEST(workers == self->num_workers_specified, "Specified %u workers, got %u",
+        self->num_workers_specified, workers);
+  =}
+}
+
+main reactor {
+  // Not specified == 1 workers
+  @enclave
+  e1 = new E(num_workers_specified=1)
+
+  @enclave(workers = 2)
+  e2 = new E(num_workers_specified=2)
+
+  // Specify 0, will still give you 1 worker
+  @enclave(workers = 0)
+  e3 = new E(num_workers_specified=1)
+
+  // Main reactor should only get a single worker since the breadth of its
+  // reaction instance graph is 1
+  reaction(startup) {=
+    int workers = self->base.environment->num_workers;
+    LF_TEST(workers == 1, "Main reactor expected 1 worker, got %u", workers);
+  =}
+}

@@ -20,7 +20,8 @@ public class PlatformType extends OptionsType<Platform> {
     ZEPHYR("Zephyr"),
     FLEXPRET("FlexPRET"),
     PATMOS("Patmos"),
-    WINDOWS("Windows");
+    WINDOWS("Windows"),
+    NATIVE("Native"); // Used by uC target
 
     final String cMakeName;
 
@@ -47,7 +48,7 @@ public class PlatformType extends OptionsType<Platform> {
       return Platform.AUTO;
     }
 
-    /** Return {@code true} if the given platform supports federated. */
+    /** Return `true` if the given platform supports federated. */
     public static boolean supportsFederated(Platform platform) {
       return switch (platform) {
         case AUTO, LINUX, MAC -> true;

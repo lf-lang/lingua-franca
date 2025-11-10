@@ -1,31 +1,5 @@
-/**
- * Instance of a federate specification.
- *
- * <p>Copyright (c) 2020, The University of California at Berkeley.
- *
- * <p>Redistribution and use in source and binary forms, with or without modification, are permitted
- * provided that the following conditions are met:
- *
- * <p>1. Redistributions of source code must retain the above copyright notice, this list of
- * conditions and the following disclaimer.
- *
- * <p>2. Redistributions in binary form must reproduce the above copyright notice, this list of
- * conditions and the following disclaimer in the documentation and/or other materials provided with
- * the distribution.
- *
- * <p>THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
- * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
- * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * *************
- */
 package org.lflang.federated.generator;
 
-import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,7 +7,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.MessageReporter;
@@ -44,9 +21,7 @@ import org.lflang.generator.ActionInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
-import org.lflang.generator.TriggerInstance;
 import org.lflang.lf.Action;
-import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Import;
@@ -63,7 +38,6 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.Timer;
 import org.lflang.lf.TriggerRef;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.Variable;
 import org.lflang.target.TargetConfig;
 
 /**
@@ -72,6 +46,7 @@ import org.lflang.target.TargetConfig;
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FederateInstance {
 
@@ -80,7 +55,7 @@ public class FederateInstance {
    *
    * @param instantiation The AST node of the instantiation.
    * @param id An identifier.
-   * @param bankIndex If {@code instantiation.widthSpec !== null}, this gives the bank position.
+   * @param bankIndex If `instantiation.widthSpec !== null`, this gives the bank position.
    * @param messageReporter An object for reporting messages to the user.
    */
   public FederateInstance(
@@ -129,7 +104,7 @@ public class FederateInstance {
   }
 
   /** A list of individual connections between federates */
-  public Set<FedConnectionInstance> connections = new HashSet<>();
+  public Set<FedConnectionInstance> connections = new LinkedHashSet<>();
 
   /** The counter used to assign IDs to network senders. */
   public int networkIdSender = 0;
@@ -175,8 +150,8 @@ public class FederateInstance {
   public List<FederateInstance> networkMessageSourceFederate = new ArrayList<>();
 
   /**
-   * List of after delay values of the corresponding entries of {@code networkMessageActions}. These
-   * will be {@code null} in the case of zero-delay connections and {@code 0} in the case of
+   * List of after delay values of the corresponding entries of `networkMessageActions`. These
+   * will be `null` in the case of zero-delay connections and `0` in the case of
    * microstep-delay connections.
    */
   public List<Expression> networkMessageActionDelays = new ArrayList<>();
@@ -269,11 +244,8 @@ public class FederateInstance {
   /** Cached result of analysis of which reactions to exclude from main. */
   private Set<Reaction> excludeReactions = null;
 
-  /** Keep a unique list of enabled serializers */
-  public List<TimeValue> staaOffsets = new ArrayList<>();
-
-  /** The STA offsets that have been recorded thus far. */
-  public Set<Long> currentSTAOffsets = new HashSet<>();
+  /** A list of unique STAA offsets over all input ports of this federate. */
+  public SortedSet<TimeValue> staaOffsets = new TreeSet<TimeValue>();
 
   /** Keep a map of STP values to a list of network actions */
   public HashMap<TimeValue, List<Action>> staToNetworkActionMap = new HashMap<>();
@@ -285,8 +257,8 @@ public class FederateInstance {
   private final MessageReporter messageReporter;
 
   /**
-   * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * Return `true` if the class declaration of the given `instantiation` references the
+   * `declaration` of a reactor class, either directly or indirectly (i.e, via a superclass or
    * a contained instantiation of the reactor class).
    *
    * @param declaration The reactor declaration to check whether it is referenced.
@@ -296,8 +268,8 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if the class declaration of the given {@code instantiation} references the
-   * {@code declaration} of a reactor class, either directly or indirectly (i.e, via a superclass or
+   * Return `true` if the class declaration of the given `instantiation` references the
+   * `declaration` of a reactor class, either directly or indirectly (i.e, via a superclass or
    * a contained instantiation of the reactor class).
    *
    * <p>An instantiation references the declaration of a reactor class if it is an instance of that
@@ -358,7 +330,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate references the given import.
+   * Return `true` if this federate references the given import.
    *
    * @param imp The import to check whether it is referenced.
    */
@@ -372,7 +344,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate references the given parameter.
+   * Return `true` if this federate references the given parameter.
    *
    * @param param The parameter to check whether it is referenced.
    */
@@ -405,7 +377,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * Return `true` if this federate includes a top-level reaction that references the given
    * action as a trigger, a source, or an effect.
    *
    * @param action The action to check whether it is to be included.
@@ -419,20 +391,20 @@ public class FederateInstance {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(react.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
-            if (Objects.equal(triggerAsVarRef.getVariable(), action)) {
+            if (Objects.equals(triggerAsVarRef.getVariable(), action)) {
               return true;
             }
           }
         }
         // Look in sources
         for (VarRef source : convertToEmptyListIfNull(react.getSources())) {
-          if (Objects.equal(source.getVariable(), action)) {
+          if (Objects.equals(source.getVariable(), action)) {
             return true;
           }
         }
         // Look in effects
         for (VarRef effect : convertToEmptyListIfNull(react.getEffects())) {
-          if (Objects.equal(effect.getVariable(), action)) {
+          if (Objects.equals(effect.getVariable(), action)) {
             return true;
           }
         }
@@ -443,7 +415,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if the specified reaction should be included in the code generated for this
+   * Return `true` if the specified reaction should be included in the code generated for this
    * federate at the top-level. This means that if the reaction is triggered by or sends data to a
    * port of a contained reactor, then that reaction is in the federate. Otherwise, return false.
    *
@@ -481,7 +453,7 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate includes a top-level reaction that references the given
+   * Return `true` if this federate includes a top-level reaction that references the given
    * timer as a trigger, a source, or an effect.
    *
    * @param timer The action to check whether it is to be included.
@@ -494,7 +466,7 @@ public class FederateInstance {
         // Look in triggers
         for (TriggerRef trigger : convertToEmptyListIfNull(r.getTriggers())) {
           if (trigger instanceof VarRef triggerAsVarRef) {
-            if (Objects.equal(triggerAsVarRef.getVariable(), timer)) {
+            if (Objects.equals(triggerAsVarRef.getVariable(), timer)) {
               return true;
             }
           }
@@ -505,9 +477,9 @@ public class FederateInstance {
   }
 
   /**
-   * Return {@code true} if this federate instance includes the given instance.
+   * Return `true` if this federate instance includes the given instance.
    *
-   * <p>NOTE: If the instance is a bank within the top level, then this returns {@code true} even
+   * <p>NOTE: If the instance is a bank within the top level, then this returns `true` even
    * though only one of the bank members is included in the federate.
    *
    * @param instance The reactor instance to check whether it is to be included.
@@ -607,8 +579,12 @@ public class FederateInstance {
           if (end._isInZeroDelayCycle
               || (end == next && destination == next)
               || visited.contains(destination)) return;
-          visited.add(destination);
           if (setOfDelays.contains(null)) {
+            // Only if we have a zero-delay connection to destination do we add it to visited.
+            // If we have a delayed connection to destination, we should not skip a future
+            // zero-delay
+            // connection there.
+            visited.add(destination);
             // There is a zero-delay connection to destination.
             if (destination == end) {
               // Found a zero delay cycle.
@@ -680,11 +656,9 @@ public class FederateInstance {
     LinkedHashMap<Output, TimeValue> physicalActionToOutputMinDelay = new LinkedHashMap<>();
     // Find reactions that write to the output port of the reactor
     for (PortInstance output : instance.outputs) {
-      for (ReactionInstance reaction : output.getDependsOnReactions()) {
-        TimeValue minDelay = findNearestPhysicalActionTrigger(reaction);
-        if (!Objects.equal(minDelay, TimeValue.MAX_VALUE)) {
-          physicalActionToOutputMinDelay.put((Output) output.getDefinition(), minDelay);
-        }
+      TimeValue minDelay = minDelayFromPhysicalActionTo(null, output);
+      if (!Objects.equals(minDelay, TimeValue.MAX_VALUE)) {
+        physicalActionToOutputMinDelay.put((Output) output.getDefinition(), minDelay);
       }
     }
     return physicalActionToOutputMinDelay;
@@ -699,49 +673,103 @@ public class FederateInstance {
   }
 
   /**
-   * Find the nearest (shortest) path to a physical action trigger from this 'reaction' in terms of
-   * minimum delay.
+   * Return the shortest total delay from an upstream physical action to the specified output port
+   * or TimeValue.MAX_VALUE if there is no upstream physical action.
    *
-   * @param reaction The reaction to start with
-   * @return The minimum delay found to the nearest physical action and TimeValue.MAX_VALUE
-   *     otherwise
+   * @param port A port (either input or output) wrt which the min delay is a calculated.
    */
-  public TimeValue findNearestPhysicalActionTrigger(ReactionInstance reaction) {
-    TimeValue minDelay = TimeValue.MAX_VALUE;
-    for (TriggerInstance<? extends Variable> trigger : reaction.triggers) {
-      if (trigger.getDefinition() instanceof Action action) {
-        ActionInstance actionInstance = (ActionInstance) trigger;
-        if (action.getOrigin() == ActionOrigin.PHYSICAL) {
-          if (actionInstance.getMinDelay().isEarlierThan(minDelay)) {
-            minDelay = actionInstance.getMinDelay();
-          }
-        } else if (action.getOrigin() == ActionOrigin.LOGICAL) {
-          // Logical action
-          // Follow it upstream inside the reactor
-          for (ReactionInstance uReaction : actionInstance.getDependsOnReactions()) {
-            // Avoid a loop
-            if (!Objects.equal(uReaction, reaction)) {
-              TimeValue uMinDelay =
-                  actionInstance.getMinDelay().add(findNearestPhysicalActionTrigger(uReaction));
-              if (uMinDelay.isEarlierThan(minDelay)) {
-                minDelay = uMinDelay;
-              }
-            }
+  private TimeValue minDelayFromPhysicalActionTo(
+      Map<ReactionInstance, TimeValue> visited, PortInstance port) {
+    if (visited == null) {
+      visited = new HashMap<ReactionInstance, TimeValue>();
+    }
+    // For each output port, it may depend on reactions or be connected to upstream ports or both.
+    TimeValue result = TimeValue.MAX_VALUE;
+    // Check reactions that write directly to this port first.
+    for (ReactionInstance reaction : port.getDependsOnReactions()) {
+      TimeValue minDelay = minDelayFromPhysicalActionTo(visited, reaction);
+      if (minDelay.isEarlierThan(result)) result = minDelay;
+    }
+    // Check upstream ports that connect to this port.
+    for (var upstreamPort : port.getDependsOnPorts()) {
+      var minDelayOnConnections = port.minDelayFrom(upstreamPort.instance);
+      for (var reaction : upstreamPort.instance.getDependsOnReactions()) {
+        var minDelayToReaction =
+            minDelayFromPhysicalActionTo(visited, reaction).add(minDelayOnConnections);
+        if (minDelayToReaction.isEarlierThan(result)) result = minDelayToReaction;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * If the specified time is less than the time already stored in the map for the specified
+   * reaction, or if there is no time stored in the map, then set the map to the specified time.
+   *
+   * @param map The map.
+   * @param time The time.
+   * @return True if the value was replaced.
+   */
+  private boolean replaceIfLess(
+      Map<ReactionInstance, TimeValue> map, ReactionInstance reaction, TimeValue time) {
+    var previous = map.get(reaction);
+    if (previous == null || time.isEarlierThan(previous)) {
+      map.put(reaction, time);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Return the shortest total delay from an upstream physical action to the specified reaction.
+   *
+   * @param visited A set of reactions that have been visited used to avoid deep loops.
+   * @param reaction The reaction.
+   * @return The minimum delay found to the nearest physical action and TimeValue.MAX_VALUE if there
+   *     is no upstream physical action.
+   */
+  private TimeValue minDelayFromPhysicalActionTo(
+      Map<ReactionInstance, TimeValue> visited, ReactionInstance reaction) {
+    if (visited == null) {
+      visited = new HashMap<ReactionInstance, TimeValue>();
+    }
+    var previousDelay = visited.get(reaction);
+    if (previousDelay != null) {
+      // The reaction is either in progress or resolved. Either way, return its delay.
+      return previousDelay;
+    }
+    visited.put(reaction, TimeValue.MAX_VALUE);
+    for (var trigger : reaction.triggers) {
+      if (trigger instanceof ActionInstance action) {
+        var actionDelay = action.getMinDelay();
+        if (action.isPhysical()) {
+          replaceIfLess(visited, reaction, actionDelay);
+        } else {
+          // Logical action. Follow it upstream.
+          // Assume that all after delays have been converted to delay reactors, which use logical
+          // actions.
+          for (ReactionInstance uReaction : action.getDependsOnReactions()) {
+            var uDelay = minDelayFromPhysicalActionTo(visited, uReaction).add(actionDelay);
+            replaceIfLess(visited, reaction, uDelay);
           }
         }
-
-      } else if (trigger.getDefinition() instanceof Output) {
-        // Outputs of contained reactions
-        PortInstance outputInstance = (PortInstance) trigger;
-        for (ReactionInstance uReaction : outputInstance.getDependsOnReactions()) {
-          TimeValue uMinDelay = findNearestPhysicalActionTrigger(uReaction);
-          if (uMinDelay.isEarlierThan(minDelay)) {
-            minDelay = uMinDelay;
-          }
+      } else if (trigger instanceof PortInstance port) {
+        // Regardless of whether the port is an output of a contained reactor or an input of
+        // the container reactor, recurse on reactions that write to it as well as the upstream
+        // ports connected to it.
+        for (ReactionInstance uReaction : port.getDependsOnReactions()) {
+          var uDelay = minDelayFromPhysicalActionTo(visited, uReaction);
+          replaceIfLess(visited, reaction, uDelay);
+        }
+        for (var upstreamPort : port.getDependsOnPorts()) {
+          var uDelay = minDelayFromPhysicalActionTo(visited, upstreamPort.instance);
+          // Add the connection delay.
+          var connectionDelay = port.minDelayFrom(upstreamPort.instance);
+          replaceIfLess(visited, reaction, uDelay.add(connectionDelay));
         }
       }
     }
-    return minDelay;
+    return visited.get(reaction);
   }
 
   // TODO: Put this function into a utils file instead

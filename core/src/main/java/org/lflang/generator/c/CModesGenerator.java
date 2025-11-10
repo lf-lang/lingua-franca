@@ -14,6 +14,7 @@ import org.lflang.lf.Reactor;
  * @author Edward A. Lee
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CModesGenerator {
   /**
@@ -124,9 +125,9 @@ public class CModesGenerator {
     if (!instance.modes.isEmpty()) {
       code.pr("// Register for transition handling");
       code.pr(
-          CUtil.getEnvironmentStruct(instance)
+          CUtil.getEnvironmentStruct(instance.containingEnclave)
               + ".modes->modal_reactor_states[modal_reactor_count["
-              + CUtil.getEnvironmentId(instance)
+              + instance.containingEnclaveReactor.uniqueID()
               + "]++] = &((self_base_t*)"
               + nameOfSelfStruct
               + ")->_lf__mode_state;");
@@ -149,8 +150,8 @@ public class CModesGenerator {
       String varName,
       String source,
       String type) {
-    var env = CUtil.getEnvironmentStruct(instance);
-    var envId = CUtil.getEnvironmentId(instance);
+    var env = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var envId = instance.containingEnclaveReactor.uniqueID();
     return String.join(
         "\n",
         "// Register for automatic reset",

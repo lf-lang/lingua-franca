@@ -9,13 +9,13 @@ import org.lflang.target.property.TargetProperty;
  *
  * @param property A target property.
  * @param value The value to assign to it.
- * @param <T> The type of the value.
  * @author Marten Lohstroh
+ * @ingroup Generator
  */
 public record Argument<T>(TargetProperty<T, ?> property, T value) {
 
   /**
-   * Update the target configuration if the value of this argument is not {@code null}.
+   * Update the target configuration if the value of this argument is not `null`.
    *
    * @param config The target configuration to update.
    * @param reporter An error reporter to report the use of unsupported target properties.

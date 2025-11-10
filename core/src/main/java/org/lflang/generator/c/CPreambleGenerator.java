@@ -27,6 +27,7 @@ import org.lflang.util.StringUtil;
  * @author Hou Seng Wong
  * @author Peter Donovan
  * @author Anirudh Rengarajan
+ * @ingroup Generator
  */
 public class CPreambleGenerator {
 

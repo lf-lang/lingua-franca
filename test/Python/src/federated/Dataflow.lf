@@ -24,7 +24,7 @@ reactor Client(STA=forever) {
         request_stop()
     # Need to unconditionally produce output or downstream could lock up waiting for it.
     client_message.set(val)
-  =} STP(forever) {=
+  =} STAA(forever) {=
     print("Client STAA Violated!")
     exit(1)
   =}
@@ -51,7 +51,7 @@ reactor Server(STA=forever) {
         request_stop()
     # Need to unconditionally produce output or downstream could lock up waiting for it.
     server_message.set(val)
-  =} STP(forever) {=
+  =} STAA(forever) {=
     print("Server STAA Violated!")
     exit(1)
   =}

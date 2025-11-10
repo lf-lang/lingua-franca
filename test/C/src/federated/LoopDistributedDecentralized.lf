@@ -1,11 +1,11 @@
 /**
- * This tests a feedback loop with physical actions and decentralized coordination.
+ * This tests a feedback loop with physical actions and decentralized coordination. NOTE: This test
+ * is flaky. It fails occasionally in CI.
  *
  * @author Edward A. Lee
  */
 target C {
   coordination: decentralized,
-  logging: LOG,
   timeout: 5 sec
 }
 
@@ -21,6 +21,9 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
     int count = 0;
     // Thread to trigger an action once every second.
     void* ping(void* actionref) {
+      // Give time for the execution to start to avoid flaky error with an event scheduled
+      // before the start time.
+      lf_sleep(MSEC(100));
       while(!stop && count++ < 30) {
         lf_print("Scheduling action.");
         lf_schedule(actionref, 0);
@@ -58,7 +61,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp_offset: time = 0) {
     char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
     lf_comma_separated_time(time_buffer, time_lag);
     lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
-  =} STP(stp_offset) {=
+  =} STAA(stp_offset) {=
     self->inputs++;
     instant_t time_lag = lf_time_physical() - lf_time_logical();
     char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807

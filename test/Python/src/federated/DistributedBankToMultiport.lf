@@ -9,13 +9,13 @@ reactor Destination {
   preamble {=
     import sys
   =}
-  input[2] in_
+  input[2] inp
   state count = 1
 
-  reaction(in_) {=
-    for i in range(len(in_)):
-      print("Received {}.".format(in_[i].value))
-      if self.count != in_[i].value:
+  reaction(inp) {=
+    for i in range(len(inp)):
+      print("Received {}.".format(inp[i].value))
+      if self.count != inp[i].value:
         self.sys.stderr.write("Expected {}.\n".format(self.count))
         self.sys.exit(1)
     self.count += 1
@@ -31,5 +31,5 @@ reactor Destination {
 federated reactor {
   s = new[2] Count()
   d = new Destination()
-  s.out -> d.in_
+  s.out -> d.inp
 }

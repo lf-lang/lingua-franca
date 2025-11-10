@@ -7,6 +7,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
+/**
+ * Generate code for the bodies of reactions that handle connections with logical delays specified
+ * with the `after` keyword.
+ *
+ * @ingroup Generator
+ */
 public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
 
   public PythonDelayBodyGenerator(PythonTypes types) {

@@ -32,10 +32,15 @@ import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
 
+/**
+ * Utilities for file operations.
+ * @ingroup Utilities
+ */
 public class FileUtil {
 
   /**
@@ -53,7 +58,7 @@ public class FileUtil {
   /**
    * Return the name of the file associated with the given resource, excluding its file extension.
    *
-   * @param r Any {@code Resource}.
+   * @param r Any `Resource`.
    * @return The name of the file associated with the given resource, excluding its file extension.
    * @throws IllegalArgumentException If the resource has an invalid URI.
    */
@@ -207,8 +212,8 @@ public class FileUtil {
 
   /**
    * Copy the given source directory into the given destination directory. For example, if the
-   * source directory is {@code foo/bar} and the destination is {@code baz}, then copies of the
-   * contents of {@code foo/bar} will be located in {@code baz/bar}.
+   * source directory is `foo/bar` and the destination is `baz`, then copies of the
+   * contents of `foo/bar` will be located in `baz/bar`.
    *
    * @param srcDir The source directory path.
    * @param dstDir The destination directory path.
@@ -237,7 +242,7 @@ public class FileUtil {
   /**
    * Copy a given source file to a given destination file.
    *
-   * <p>This also creates new directories on the path to {@code dstFile} that do not yet exist.
+   * <p>This also creates new directories on the path to `dstFile` that do not yet exist.
    *
    * @param srcFile The source file path.
    * @param dstFile The destination file path.
@@ -256,7 +261,7 @@ public class FileUtil {
   /**
    * Copy a given source file to a given destination file.
    *
-   * <p>This also creates new directories for any directories on the path to {@code dstFile} that do
+   * <p>This also creates new directories for any directories on the path to `dstFile` that do
    * not yet exist.
    *
    * @param srcFile The source file path.
@@ -268,7 +273,7 @@ public class FileUtil {
   }
 
   /**
-   * Find the given {@code file} in the package and return the path to the file that was found; null
+   * Find the given `file` in the package and return the path to the file that was found; null
    * if it was not found.
    *
    * @param file The file to look for.
@@ -297,11 +302,11 @@ public class FileUtil {
    * first, relative to the source file and relative to the package root. Entries that cannot be
    * found in the file system are looked for on the class path.
    *
-   * <p>If {@code contentsOnly} is true, then for each entry that is a directory, only its contents
-   * are copied, not the directory itself. For example, if the entry is a directory {@code foo/bar}
-   * and the destination is {@code baz}, then copies of the contents of {@code foo/bar} will be
-   * located directly in {@code baz}. If {@code contentsOnly} is false, then copies of the contents
-   * of {@code foo/bar} will be located in {@code baz/bar}.
+   * <p>If `contentsOnly` is true, then for each entry that is a directory, only its contents
+   * are copied, not the directory itself. For example, if the entry is a directory `foo/bar`
+   * and the destination is `baz`, then copies of the contents of `foo/bar` will be
+   * located directly in `baz`. If `contentsOnly` is false, then copies of the contents
+   * of `foo/bar` will be located in `baz/bar`.
    *
    * @param entries The files or directories to copy from.
    * @param dstDir The location to copy the files to.
@@ -355,14 +360,14 @@ public class FileUtil {
   }
 
   /**
-   * If the given {@code entry} is a file, then copy it into the destination. If the {@code entry}
-   * is a directory and {@code contentsOnly} is true, then copy its contents to the destination
-   * directory. If the {@code entry} is a directory and {@code contentsOnly} is true, then copy it
+   * If the given `entry` is a file, then copy it into the destination. If the `entry`
+   * is a directory and `contentsOnly` is true, then copy its contents to the destination
+   * directory. If the `entry` is a directory and `contentsOnly` is true, then copy it
    * including its contents to the destination directory.
    *
    * @param entry A file or directory to copy to the destination directory.
    * @param dstDir A directory to copy the entry or its contents to.
-   * @param contentsOnly If true and {@code entry} is a directory, then copy its contents but not
+   * @param contentsOnly If true and `entry` is a directory, then copy its contents but not
    *     the directory itself.
    * @throws IOException If the operation fails.
    */
@@ -419,7 +424,7 @@ public class FileUtil {
   }
 
   /**
-   * Look up the given {@code entry} in the classpath. If it is found and is a file, copy it into
+   * Look up the given `entry` in the classpath. If it is found and is a file, copy it into
    * the destination directory. If the entry is not found or not a file, throw an exception.
    *
    * @param entry A file copy to the destination directory.
@@ -453,12 +458,12 @@ public class FileUtil {
   }
 
   /**
-   * Look up the given {@code entry} in the classpath. If it is a file, copy it into the destination
-   * directory. If the {@code entry} is a directory and {@code contentsOnly} is true, then copy its
-   * contents to the destination directory. If the {@code entry} is a directory and {@code
-   * contentsOnly} is true, then copy it including its contents to the destination directory.
+   * Look up the given `entry` in the classpath. If it is a file, copy it into the destination
+   * directory. If the `entry` is a directory and `contentsOnly` is true, then copy its
+   * contents to the destination directory. If the `entry` is a directory and `contentsOnly`
+   * is true, then copy it including its contents to the destination directory.
    *
-   * <p>This also creates new directories for any directories on the destination path that do not
+   * This also creates new directories for any directories on the destination path that do not
    * yet exist.
    *
    * @param entry The entry to be found on the class path and copied to the given destination.
@@ -520,10 +525,10 @@ public class FileUtil {
   }
 
   /**
-   * Given a JAR file and a {@code srcFile} entry, copy it into the given destination directory.
+   * Given a JAR file and a `srcFile` entry, copy it into the given destination directory.
    *
-   * @param jar The JAR file from which to copy {@code srcFile}.
-   * @param srcFile The source file to copy from the given {@code jar}.
+   * @param jar The JAR file from which to copy `srcFile`.
+   * @param srcFile The source file to copy from the given `jar`.
    * @param dstDir The directory to top the source file into.
    * @param skipIfUnchanged If true, don't overwrite the destination file if its content would * not
    *     be changed.
@@ -542,9 +547,9 @@ public class FileUtil {
   /**
    * Copy the contents from an entry in a JAR to destination directory in the filesystem. The entry
    * may be a file, in which case it will be copied under the same name into the destination
-   * directory. If the entry is a directory, then if {@code contentsOnly} is true, only the contents
+   * directory. If the entry is a directory, then if `contentsOnly` is true, only the contents
    * of the directory will be copied into the destination directory (not the directory itself). A
-   * directory will be copied as a whole, including its contents, if {@code contentsOnly} is false.
+   * directory will be copied as a whole, including its contents, if `contentsOnly` is false.
    *
    * <p>This method should only be used in standalone mode (lfc).
    *
@@ -574,11 +579,11 @@ public class FileUtil {
 
   /**
    * Given a connection to a JAR file that points to an entry that is a directory, recursively copy
-   * all entries located in that directory into the given {@code dstDir}.
+   * all entries located in that directory into the given `dstDir`.
    *
-   * <p>If {@code contentsOnly} is true, only the contents of the directory will be copied into the
+   * <p>If `contentsOnly` is true, only the contents of the directory will be copied into the
    * destination directory (not the directory itself). The directory will be copied as a whole,
-   * including its contents, if {@code contentsOnly} is false.
+   * including its contents, if `contentsOnly` is false.
    *
    * @param connection A connection to a JAR file that points to a directory entry.
    * @param dstDir The destination directory to copy the matching entries to.
@@ -623,13 +628,13 @@ public class FileUtil {
 
   /**
    * Given a connection to a JAR file that points to an entry that is a file, copy the file into the
-   * given {@code dstDir}.
+   * given `dstDir`.
    *
    * @param connection A connection to a JAR file that points to a directory entry.
    * @param dstDir The destination directory to copy the file to.
    * @param skipIfUnchanged
-   * @return {@code true} the connection entry is a file, and it was copied successfully; {@code
-   *     false} if the connection entry is not a file and the copy operation was aborted.
+   * @return `true` the connection entry is a file, and it was copied successfully or
+   *  `false` if the connection entry is not a file and the copy operation was aborted.
    * @throws IOException If the operation failed.
    */
   private static boolean copyFileFromJar(
@@ -775,7 +780,7 @@ public class FileUtil {
   }
 
   /**
-   * Delete the given file or directory if it exists. If {@code fileOrDirectory} is a directory,
+   * Delete the given file or directory if it exists. If `fileOrDirectory` is a directory,
    * deletion is recursive.
    *
    * @param fileOrDirectory The file or directory to delete.
@@ -840,6 +845,27 @@ public class FileUtil {
       }
     }
     return null;
+  }
+
+  /**
+   * Fetch a resource from the jar.
+   *
+   * @param resourceSet The resource set
+   * @param entry The path to the resource within the jar
+   * @throws IOException If the resource cannot be found.
+   */
+  public static Resource getResourceFromClassPath(ResourceSet resourceSet, final String entry)
+      throws IOException {
+    Resource res;
+    try {
+      URL resource = FileConfig.class.getResource(entry);
+      JarURLConnection connection = (JarURLConnection) resource.openConnection();
+      String path = connection.getURL().toString();
+      res = resourceSet.getResource(URI.createURI(path), true);
+    } catch (Exception e) {
+      throw new IOException("Unexpected error while resolving " + entry + " on the classpath");
+    }
+    return res;
   }
 
   public static Path getRelativePath(Resource source, Resource target) {

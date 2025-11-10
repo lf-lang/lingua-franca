@@ -43,7 +43,7 @@ reactor Print {
       lf_print_error_and_exit("Expected to receive %d.", self->c);
     }
     self->c++;
-  =} STP(1 sec) {=
+  =} STAA(1 sec) {=
     lf_print_warning("STP violation at tag " PRINTF_TAG
         ". This should not happen because the STP offset is large. Checking value anyway.",
         lf_tag().time - lf_time_start(), lf_tag().microstep);

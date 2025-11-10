@@ -10,10 +10,11 @@ import org.lflang.MessageReporter;
 import org.lflang.target.TargetConfig;
 
 /**
- * An {@code LFGeneratorContext} is the context of a Lingua Franca build process. It is the point of
- * communication between a build process and the environment in which it is executed.
+ * The context of a Lingua Franca build process. It is the point of communication between a build
+ * process and the environment in which it is executed.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public interface LFGeneratorContext extends IGeneratorContext {
 
@@ -44,8 +45,7 @@ public interface LFGeneratorContext extends IGeneratorContext {
   }
 
   /**
-   * Mark the code generation process performed in this context as finished with the result {@code
-   * result}.
+   * Mark the code generation process performed in this context as finished with the result `result`.
    *
    * @param result The result of the code generation process that was performed in this context.
    */
@@ -89,14 +89,14 @@ public interface LFGeneratorContext extends IGeneratorContext {
   }
 
   /**
-   * Return the {@code LFGeneratorContext} that best describes the given {@code context} when
-   * building {@code Resource}.
+   * Return the `LFGeneratorContext` that best describes the given `context` when
+   * building `Resource`.
    *
    * @param resource
    * @param fsa
    * @param context The context of a Lingua Franca build process.
-   * @return The {@code LFGeneratorContext} that best describes the given {@code context} when
-   *     building {@code Resource}.
+   * @return The `LFGeneratorContext` that best describes the given `context` when
+   *     building `Resource`.
    */
   static LFGeneratorContext lfGeneratorContextOf(
       Resource resource, IFileSystemAccess2 fsa, IGeneratorContext context) {

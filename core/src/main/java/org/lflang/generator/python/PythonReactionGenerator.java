@@ -30,6 +30,11 @@ import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate Python code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class PythonReactionGenerator {
   /**
    * Generate code to call reaction numbered "reactionIndex" in reactor "reactor".
@@ -175,7 +180,16 @@ public class PythonReactionGenerator {
             generateCPythonReactionCaller(tpr, reactionIndex, pyObjects, cPyInit)));
 
     // Generate code for the STP violation handler, if there is one.
-    if (reaction.getStp() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generateFunction(
+                CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
+                cInit,
+                reaction.getTardy().getCode(),
+                generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)));
+      }
+    } else if (reaction.getStp() != null) {
       code.pr(
           generateFunction(
               CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
@@ -430,7 +444,7 @@ public class PythonReactionGenerator {
     code.pr(nameOfSelfStruct + "->_lf_name = \"" + instance.uniqueID() + "_lf\";");
 
     for (ReactionInstance reaction : instance.reactions) {
-      // Reactions marked with a {@code @_c_body} attribute are generated in C
+      // Reactions marked with a `@_c_body` attribute are generated in C
       if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
       // Create a PyObject for each reaction
       code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
@@ -452,7 +466,9 @@ public class PythonReactionGenerator {
         generateCPythonFunctionLinker(
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index)));
-    if (reaction.getDefinition().getStp() != null) {
+    if (reaction.getDefinition().getStp() != null
+        || (reaction.getDefinition().getTardy() != null
+            && reaction.getDefinition().getTardy().getCode() != null)) {
       code.pr(
           generateCPythonFunctionLinker(
               nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
@@ -543,7 +559,7 @@ public class PythonReactionGenerator {
    */
   public static String generatePythonReaction(
       Reactor reactor, Reaction reaction, int reactionIndex) {
-    // Reactions marked with a {@code @_c_body} attribute are generated in C
+    // Reactions marked with a `@_c_body` attribute are generated in C
     if (AttributeUtils.hasCBody(reaction)) return "";
 
     CodeBuilder code = new CodeBuilder();
@@ -559,7 +575,16 @@ public class PythonReactionGenerator {
             ASTUtils.toText(reaction.getCode()),
             reactionParameters));
     // Generate code for the STP violation handler function, if there is one.
-    if (reaction.getStp() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generatePythonFunction(
+                generatePythonSTPFunctionName(reactionIndex),
+                "",
+                ASTUtils.toText(reaction.getTardy().getCode()),
+                reactionParameters));
+      }
+    } else if (reaction.getStp() != null) {
       code.pr(
           generatePythonFunction(
               generatePythonSTPFunctionName(reactionIndex),

@@ -1,11 +1,3 @@
-/**
- * @file
- * @author Benjamin Asch
- * @author Edward A. Lee
- * @copyright (c) 2023, The University of California at Berkeley License in <a
- *     href="https://github.com/lf-lang/lingua-franca/blob/master/LICENSE">BSD 2-clause</a>
- * @brief Instance of a watchdog
- */
 package org.lflang.generator;
 
 import java.util.LinkedHashSet;
@@ -21,6 +13,8 @@ import org.lflang.lf.Watchdog;
  * a parameter is referenced, it is looked up in the given (grand)parent reactor instance.
  *
  * @author Benjamin Asch
+ * @author Edward A. Lee
+ * @ingroup Instances
  */
 public class WatchdogInstance extends TriggerInstance<Watchdog> {
 

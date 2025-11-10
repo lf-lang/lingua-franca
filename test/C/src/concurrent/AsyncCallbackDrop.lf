@@ -39,7 +39,6 @@ main reactor {
   timer t(0, 200 msec)
   state thread_id: lf_thread_t = 0
   state expected_time: time = 100 msec
-  state toggle: bool = false
 
   physical action a(100 msec, 100 msec, "drop"): int
   state i: int = 0
@@ -60,11 +59,6 @@ main reactor {
       printf("ERROR: Received: %d, expected 0 because the second event should have been dropped.\n", a->value);
       exit(2);
     }
-    if (self->toggle) {
-      self->toggle = false;
-      self->expected_time += 200000000LL;
-    } else {
-      self->toggle = true;
-    }
+    self->expected_time += 200000000LL;
   =}
 }

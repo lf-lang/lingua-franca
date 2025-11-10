@@ -1,0 +1,30 @@
+target Python {
+  timeout: 1 sec
+}
+
+reactor C {
+  output x
+  output z
+  timer t(0, 100 msec)
+
+  reaction(t) -> x, z {=
+    x.set(42)
+    z.set(44)
+  =}
+}
+
+main reactor {
+  c = new C()
+  state triggered = True
+
+  reaction(c.z) {=
+    print("c.z = ", c.z.value)
+    self.triggered = True
+  =}
+
+  reaction(shutdown) {=
+    if not self.triggered:
+      sys.stderr.write("Reaction never triggered.\n")
+      exit(1)
+  =}
+}

@@ -16,6 +16,7 @@ import org.eclipse.xtext.util.CancelIndicator;
  * A class for reporting the progress of an ongoing task.
  *
  * @author Peter Donovan
+ * @ingroup LSP
  */
 public class Progress {
   private static int nextToken = 0;
@@ -27,12 +28,11 @@ public class Progress {
   private final boolean cancellable;
 
   /**
-   * Initialize the {@code Progress} of a task titled {@code title} that is triggered via {@code
-   * client}.
+   * Initialize the `Progress` of a task titled `title` that is triggered via `client`.
    *
    * @param client A language client through which a task was triggered.
    * @param title The title of the task.
-   * @param cancellable Whether the task tracked by {@code this} can be cancelled.
+   * @param cancellable Whether the task tracked by `this` can be cancelled.
    */
   public Progress(LanguageClient client, String title, boolean cancellable) {
     this.client = client;
@@ -43,22 +43,22 @@ public class Progress {
     client.createProgress(new WorkDoneProgressCreateParams(Either.forRight(token)));
   }
 
-  /** Cancel the task tracked by the {@code Progress} that has token {@code token}. */
+  /** Cancel the task tracked by the `Progress` that has token `token`. */
   public static void cancel(int token) {
     if (cancellations.containsKey(token)) cancellations.put(token, true);
   }
 
   /**
-   * Returns the cancel indicator for the task tracked by this {@code Progress}.
+   * Return the cancel indicator for the task tracked by this `Progress`.
    *
-   * @return the cancel indicator for the task tracked by this {@code Progress}
+   * @return the cancel indicator for the task tracked by this `Progress`
    */
   public CancelIndicator getCancelIndicator() {
     if (cancellable) return () -> cancellations.get(token);
     return () -> false;
   }
 
-  /** Report that the task tracked by {@code this} is done. */
+  /** Report that the task tracked by `this` is done. */
   public void begin() {
     WorkDoneProgressBegin begin = new WorkDoneProgressBegin();
     begin.setTitle(title);
@@ -68,7 +68,7 @@ public class Progress {
   }
 
   /**
-   * Report the progress of the task tracked by {@code this}.
+   * Report the progress of the task tracked by `this`.
    *
    * @param message A message describing the progress of the task.
    */
@@ -81,7 +81,7 @@ public class Progress {
   }
 
   /**
-   * Marks the task tracked by {@code this} as terminated.
+   * Mark the task tracked by `this` as terminated.
    *
    * @param message A message describing the outcome of the task.
    */

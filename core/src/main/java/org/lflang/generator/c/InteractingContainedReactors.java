@@ -21,6 +21,7 @@ import org.lflang.lf.VarRef;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class InteractingContainedReactors {
   /**

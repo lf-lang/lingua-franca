@@ -1,11 +1,3 @@
-/**
- * @file
- * @author Benjamin Asch
- * @author Edward A. Lee
- * @copyright (c) 2023, The University of California at Berkeley. License: <a
- *     href="https://github.com/lf-lang/lingua-franca/blob/master/LICENSE">BSD 2-clause</a>
- * @brief Code generation methods for watchdogs in C.
- */
 package org.lflang.generator.c;
 
 import java.util.List;
@@ -29,6 +21,7 @@ import org.lflang.util.StringUtil;
  *
  * @author Benjamin Asch
  * @author Edward A. Lee
+ * @ingroup Generator
  */
 public class CWatchdogGenerator {
 
@@ -60,9 +53,9 @@ public class CWatchdogGenerator {
     var temp = new CodeBuilder();
     var reactorRef = CUtil.reactorRef(instance);
     int watchdogCount = 0;
-    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
-    var enclaveId = CUtil.getEnvironmentId(instance);
+    var enclaveInfo = instance.containingEnclave;
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var enclaveId = instance.containingEnclaveReactor.uniqueID();
 
     for (Watchdog watchdog :
         ASTUtils.allWatchdogs(ASTUtils.toDefinition(instance.getDefinition().getReactorClass()))) {
@@ -91,7 +84,6 @@ public class CWatchdogGenerator {
       watchdogCount += 1;
       foundOne = true;
     }
-    // temp.pr("#endif");
     if (foundOne) {
       code.pr(temp.toString());
     }

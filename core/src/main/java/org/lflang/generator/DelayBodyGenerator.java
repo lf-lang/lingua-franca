@@ -4,6 +4,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
+/**
+ * Interface for generating code for the body of reactions that handle connections with logical
+ * delays specified with the `after` keyword.
+ *
+ * @ingroup Generator
+ */
 public interface DelayBodyGenerator {
 
   /** Constant that specifies how to name generated delay reactors. */

@@ -1,0 +1,60 @@
+// This tests that a physical action will avoid the termination of enclaves
+target C;
+preamble {=
+    #include "platform.h"
+=}
+
+
+reactor Src {
+    preamble {=
+        void* schedule_once(void * act) {
+            lf_sleep(MSEC(100));
+            lf_schedule(act, 0);
+        }
+    =}
+
+    physical action a;
+    output out: instant_t;
+    state thread:lf_thread_t
+    state cnt:int = 0;
+
+    reaction(startup) -> a {=
+        lf_thread_create(&self->thread, &schedule_once, a);
+    =}
+
+    reaction(a) -> out {=
+        lf_set(out, lf_time_logical_elapsed());
+        self->cnt++;
+    =}
+
+    reaction(shutdown) {=
+        LF_TEST(self->cnt==1, "Premature shutdown");
+    =}
+
+}
+
+reactor Dest {
+    input in:instant_t
+    state cnt:int=0
+
+    reaction(in) {=
+        LF_TEST(in->value == lf_time_logical_elapsed() - MSEC(50), "Received wrong number");
+        self->cnt++;
+
+        lf_request_stop();
+    =}
+
+    reaction(shutdown) {=
+        LF_TEST(self->cnt==1, "Premature shutdown");
+    =}
+}
+
+
+main reactor {
+    @enclave
+    src = new Src()
+
+    dest = new Dest()
+
+    src.out -> dest.in after 50 msec
+}

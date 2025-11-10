@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -36,6 +37,11 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
@@ -289,7 +295,7 @@ public class CReactionGenerator {
     }
     // Search for instances of the parent within the tail of the breadcrumbs list.
     Reactor container = ASTUtils.toDefinition(nestedBreadcrumbs.get(0).getReactorClass());
-    for (Instantiation instantiation : container.getInstantiations()) {
+    for (Instantiation instantiation : ASTUtils.allInstantiations(container)) {
       // Put this new instantiation at the head of the list.
       nestedBreadcrumbs.add(0, instantiation);
       if (ASTUtils.toDefinition(instantiation.getReactorClass()) == parent) {
@@ -321,42 +327,65 @@ public class CReactionGenerator {
    *
    * @param actionName The action to schedule
    */
-  public static String generateDelayBody(String ref, String actionName, boolean isTokenType) {
+  public static String generateDelayBody(String ref, String actionName, InferredType type) {
     // Note that the action.type set by the base class is actually
     // the port type.
-    return isTokenType
-        ? String.join(
-            "\n",
-            "if (" + ref + "->is_present) {",
-            "    // Put the whole token on the event queue, not just the payload.",
-            "    // This way, the length and element_size are transported.",
-            "    lf_schedule_token(" + actionName + ", 0, " + ref + "->token);",
-            "}")
-        : "lf_schedule_copy(" + actionName + ", 0, &" + ref + "->value, 1);  // Length is 1.";
+    if (CUtil.isTokenType(type)) {
+      return String.join(
+          "\n",
+          "if (" + ref + "->is_present) {",
+          "    // Put the whole token on the event queue, not just the payload.",
+          "    // This way, the length and element_size are transported.",
+          "    lf_schedule_token(" + actionName + ", 0, " + ref + "->token);",
+          "}");
+    } else {
+      var length = (CUtil.isFixedSizeArrayType(type)) ? CUtil.fixedSizeArrayTypeLength(type) : 1;
+      return "lf_schedule_copy(" + actionName + ", 0, &" + ref + "->value, " + length + ");";
+    }
   }
 
   public static String generateForwardBody(
-      String outputName, String targetType, String actionName, boolean isTokenType) {
-    return isTokenType
-        ? String.join(
-            "\n",
-            DISABLE_REACTION_INITIALIZATION_MARKER,
-            "lf_critical_section_enter(self->base.environment);",
-            "self->_lf_"
-                + outputName
-                + ".value = ("
-                + targetType
-                + ")self->_lf__"
-                + actionName
-                + ".tmplt.token->value;",
-            "_lf_replace_template_token((token_template_t*)&self->_lf_"
-                + outputName
-                + ", (lf_token_t*)self->_lf__"
-                + actionName
-                + ".tmplt.token);",
-            "self->_lf_" + outputName + ".is_present = true;",
-            "lf_critical_section_exit(self->base.environment);")
-        : "lf_set(" + outputName + ", " + actionName + "->value);";
+      String outputName, String targetType, String actionName, InferredType type) {
+    if (CUtil.isFixedSizeArrayType(type)) {
+      // For fixed size arrays, we need to copy the data from the action to the port.
+      String actionRef = "self->_lf__" + actionName + ".tmplt";
+      return String.join(
+          "\n",
+          DISABLE_REACTION_INITIALIZATION_MARKER,
+          "lf_critical_section_enter(self->base.environment);",
+          "memcpy(self->_lf_"
+              + outputName
+              + ".value, "
+              + actionRef
+              + ".token->value, "
+              + actionRef
+              + ".length * "
+              + actionRef
+              + ".type.element_size);",
+          "self->_lf_" + outputName + ".is_present = true;",
+          "lf_critical_section_exit(self->base.environment);");
+    } else if (CUtil.isTokenType(type)) {
+      return String.join(
+          "\n",
+          DISABLE_REACTION_INITIALIZATION_MARKER,
+          "lf_critical_section_enter(self->base.environment);",
+          "self->_lf_"
+              + outputName
+              + ".value = ("
+              + targetType
+              + ")self->_lf__"
+              + actionName
+              + ".tmplt.token->value;",
+          "_lf_replace_template_token((token_template_t*)&self->_lf_"
+              + outputName
+              + ", (lf_token_t*)self->_lf__"
+              + actionName
+              + ".tmplt.token);",
+          "self->_lf_" + outputName + ".is_present = true;",
+          "lf_critical_section_exit(self->base.environment);");
+    } else {
+      return "lf_set(" + outputName + ", " + actionName + "->value);";
+    }
   }
 
   /**
@@ -892,10 +921,22 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getStp() != null) {
-        // The following has to match the name chosen in generateReactions
-        var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+      // First check for an tardy handler.
+      if (reaction.getTardy() != null) {
+        String STPFunctionName;
+        if (reaction.getTardy().getCode() != null) {
+          // There is an STP handler.
+          // The following has to match the name chosen in generateReactions
+          STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+        } else {
+          // There is no STP handler body. Invoke the ordinary reaction.
+          STPFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         STPFunctionPointer = "&" + STPFunctionName;
+      } else if (reaction.getStp() != null) {
+        // There is an STP handler. Handle it for backward compatibility.
+        // The following has to match the name chosen in generateReactions
+        STPFunctionPointer = "&" + generateStpFunctionName(tpr, reactionCount);
       }
 
       // Set the defaults of the reaction_t struct in the constructor.
@@ -929,6 +970,11 @@ public class CReactionGenerator {
                       + tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())
                       + "];"
                   : "self->_lf__reaction_" + reactionCount + ".mode = NULL;"));
+      // If the reactor is a network receiver, then set the is_an_input_reaction to true.
+      if (AttributeUtils.findAttributeByName(tpr.reactor(), "_network_receiver") != null) {
+        constructorCode.pr(
+            "self->_lf__reaction_" + reactionCount + ".is_an_input_reaction = true;");
+      }
       // Increment the reactionCount even if the reaction is not in the federate
       // so that reaction indices are consistent across federates.
       reactionCount++;
@@ -986,6 +1032,14 @@ public class CReactionGenerator {
               // Need to set the element_size in the trigger_t and the action struct.
               "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize + ";",
               "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"));
+      // Set the length field to the default 1 (for non-arrays or variable-size arrays) or,
+      // for fixed-length arrays, the actual length.
+      var arrayLength = CUtil.fixedSizeArrayTypeLength(ASTUtils.getInferredType(action));
+      constructorCode.pr(
+          String.join(
+              "\n",
+              "self->_lf__" + action.getName() + ".tmplt.length = " + arrayLength + ";",
+              "self->_lf_" + action.getName() + ".length = " + arrayLength + ";"));
     }
 
     // Next handle inputs.
@@ -1135,7 +1189,17 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getStp() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generateFunction(
+                generateStpFunctionHeader(tpr, reactionIndex),
+                init,
+                reaction.getTardy().getCode(),
+                suppressLineDirectives));
+      }
+    } else if (reaction.getStp() != null) {
+      // Handle STAA or STP for backward compatibility.
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
@@ -1251,7 +1315,7 @@ public class CReactionGenerator {
   }
 
   /**
-   * Return the start of a function declaration for a function that takes a {@code void*} argument
+   * Return the start of a function declaration for a function that takes a `void*` argument
    * and returns void.
    *
    * @param functionName

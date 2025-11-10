@@ -1,0 +1,51 @@
+target C {
+  timeout: 2 sec,
+  fast: true
+}
+
+preamble {=
+  #include "platform.h"
+=}
+
+reactor Sender {
+  output out: int
+
+  timer t(0, 50 msec)
+  state cnt: int = 0
+
+  reaction(t) -> out {=
+    lf_set(out, self->cnt++);
+  =}
+}
+
+reactor Receiver {
+  input in: int
+  state last: instant_t = 0
+  state cnt: int = 0
+
+  reaction(in) {=
+    instant_t now = lf_time_logical_elapsed();
+    lf_print("Received event t=" PRINTF_TIME ", count=%u", now, in->value);
+
+    LF_TEST(self->cnt == in->value, "recv=%u exp=%u", in->value, self->cnt);
+    if (now != 0) {
+        LF_TEST(now - self->last == MSEC(50), "now=" PRINTF_TIME " last=" PRINTF_TIME, now, self->last);
+    }
+
+    self->last = now;
+    self->cnt++;
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->cnt == 40, "Expected 40 events, got %u", self->cnt);
+  =}
+}
+
+main reactor {
+  @enclave
+  sender = new Sender()
+  @enclave
+  receiver = new Receiver()
+
+  sender.out -> receiver.in after 50 msec
+}

@@ -1,0 +1,82 @@
+/**
+ * Variant of DistributedToken that tests an empty `tardy` handler.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+  timeout: 5 secs,
+  coordination: decentralized
+}
+
+/**
+ * Reactor that generates a sequence of messages, one per second. The message will be a string
+ * consisting of a root string followed by a count.
+ * @param root The root string.
+ * @output message The message.
+ */
+reactor MessageGenerator(root: string = "") {
+  // Output type char* instead of string is used for dynamically allocated character arrays (as
+  // opposed to static constant strings).
+  output message: char*
+  state count: int = 1
+  // Send first message after 1 sec so that the startup reactions do not factor into the transport
+  // time measurement on the first message.
+  timer t(1 sec, 1 sec)
+
+  reaction(t) -> message {=
+    // With NULL, 0 arguments, snprintf tells us how many bytes are needed.
+    // Add one for the null terminator.
+    int length = snprintf(NULL, 0, "%s %d", self->root, self->count) + 1;
+
+    // Dynamically allocate memory for the output.
+    char* array = (char*)malloc(length * sizeof(char));
+
+    // Populate the output string and increment the count.
+    snprintf(array, length, "%s %d", self->root, self->count++);
+    printf("MessageGenerator: At time " PRINTF_TIME ", send message: %s\n",
+      lf_time_logical_elapsed(),
+      array
+    );
+
+    // Set the output.
+    lf_set_array(message, array, length);
+  =}
+}
+
+/**
+ * Reactor that prints an incoming string.
+ * @param prefix A prefix for the message.
+ * @input message The message.
+ */
+reactor PrintMessage {
+  input message: char*
+  state count: int = 0
+
+  reaction(message) {=
+    printf("PrintMessage: At (elapsed) logical time " PRINTF_TIME ", receiver receives: %s\n",
+      lf_time_logical_elapsed(),
+      message->value
+    );
+    // Check the trailing number only of the message.
+    self->count++;
+    int trailing_number = atoi(&message->value[12]);
+    if (trailing_number != self->count) {
+      printf("ERROR: Expected message to be 'Hello World %d'.\n", self->count);
+      exit(1);
+    }
+  =} tardy
+
+  // Invoke regular reaction.
+  reaction(shutdown) {=
+    if (self->count == 0) {
+      printf("ERROR: No messages received.\n");
+      exit(2);
+    }
+  =}
+}
+
+federated reactor {
+  msg = new MessageGenerator(root = "Hello World")
+  dsp = new PrintMessage()
+  msg.message -> dsp.message after 40 msec
+}

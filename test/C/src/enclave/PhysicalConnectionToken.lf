@@ -1,0 +1,62 @@
+target C {
+  timeout: 1 sec
+}
+
+reactor Src {
+  output out: int*
+  timer t(0, 100 msec)
+
+  reaction(t) -> out {=
+    int * x = (int *) malloc(sizeof(int));
+    *x = 42;
+    lf_set(out, x);
+  =}
+}
+
+reactor Double {
+  mutable input in: int*
+  output out: int*
+
+  state check: bool = false
+
+  reaction(in) -> out {=
+    *(in->value) *= 2;
+    lf_set_token(out, in->token);
+    self->check = true;
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->check, "Double reactor was not invoked");
+  =}
+}
+
+reactor Dest {
+  input in: int*
+
+  state check: bool = false
+
+  reaction(in) {=
+    lf_print("Received %d at " PRINTF_TAG, *in->value, lf_time_logical_elapsed(), lf_tag().microstep);
+    self->check = true;
+    LF_TEST(*in->value == 84, "Received wrong value: %d", *in->value);
+    LF_TEST(lf_time_logical_elapsed() > 0, "Logical time has not advanced!");
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->check, "Dest reactor was not invoked");
+  =}
+}
+
+main reactor {
+  @enclave
+  src = new Src()
+
+  @enclave
+  dbl = new Double()
+
+  @enclave
+  dest = new Dest()
+
+  src.out ~> dbl.in
+  dbl.out ~> dest.in
+}

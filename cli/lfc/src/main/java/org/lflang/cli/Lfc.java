@@ -44,6 +44,7 @@ import picocli.CommandLine.Option;
  * @author Marten Lohstroh
  * @author Christian Menard
  * @author Atharva Patil
+ * @ingroup CLI
  */
 @Command(
     name = "lfc",
@@ -263,7 +264,7 @@ public class Lfc extends CliBase {
   }
 
   /**
-   * Return a build type if one has been specified via the CLI arguments, or {@code null} otherwise.
+   * Return a build type if one has been specified via the CLI arguments, or `null` otherwise.
    */
   private BuildType getBuildType() {
     BuildType resolved = null;
@@ -278,7 +279,7 @@ public class Lfc extends CliBase {
   }
 
   /**
-   * Return a log level if one has been specified via the CLI arguments, or {@code null} otherwise.
+   * Return a log level if one has been specified via the CLI arguments, or `null` otherwise.
    */
   private LogLevel getLogging() {
     LogLevel resolved = null;
@@ -293,8 +294,8 @@ public class Lfc extends CliBase {
   }
 
   /**
-   * Return a URI that points to the RTI if one has been specified via the CLI arguments, or {@code
-   * null} otherwise.
+   * Return a URI that points to the RTI if one has been specified via the CLI arguments,
+   * or `null` otherwise.
    */
   private URI getRtiUri() {
     URI uri = null;
@@ -308,7 +309,7 @@ public class Lfc extends CliBase {
     return uri;
   }
 
-  /** Return a scheduler one has been specified via the CLI arguments, or {@code null} otherwise. */
+  /** Return a scheduler one has been specified via the CLI arguments, or `null` otherwise. */
   private Scheduler getScheduler() {
     Scheduler resolved = null;
     if (scheduler != null) {
@@ -323,7 +324,7 @@ public class Lfc extends CliBase {
 
   /**
    * Return a URI that points to an external runtime if one has been specified via the CLI
-   * arguments, or {@code null} otherwise.
+   * arguments, or `null` otherwise.
    */
   private URI getExternalRuntimeUri() {
     URI externalRuntimeUri = null;
@@ -335,7 +336,7 @@ public class Lfc extends CliBase {
 
   /**
    * Return tracing options if tracing has been explicitly disabled or enabled via the CLI
-   * arguments, or {@code null} otherwise.
+   * arguments, or `null` otherwise.
    */
   private TracingOptions getTracingOptions() {
     if (tracing != null) {
@@ -345,7 +346,7 @@ public class Lfc extends CliBase {
     }
   }
 
-  /** Return the single threaded mode has been specified, or {@code null} if none was specified. */
+  /** Return the single threaded mode has been specified, or `null` if none was specified. */
   private Boolean getSingleThreaded() {
     Boolean singleThreaded = null;
     // Set one of the mutually-exclusive threading options.
@@ -355,7 +356,7 @@ public class Lfc extends CliBase {
     return singleThreaded;
   }
 
-  /** Return the number of workers specified, or {@code null} if none was specified. */
+  /** Return the number of workers specified, or `null` if none was specified. */
   private Integer getWorkers() {
     Integer workers = null;
     // Set one of the mutually-exclusive threading options.

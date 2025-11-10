@@ -12,13 +12,12 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * {@code LfFormatStep} is used by the Spotless Gradle plugin as a custom formatting step for
- * formatting LF code.
+ * Used by the Spotless Gradle plugin as a custom formatting step for formatting LF code.
  */
 public final class LfFormatStep {
   private LfFormatStep() {}
 
-  /** Return a {@code FormatterStep} for LF code. */
+  /** Return a `FormatterStep` for LF code. */
   public static FormatterStep create() throws IOException, InterruptedException {
     return new Step();
   }
@@ -39,7 +38,7 @@ public final class LfFormatStep {
     }
 
     @Override
-    public String format(@SuppressWarnings("NullableProblems") String rawUnix, File file)
+    public synchronized String format(@SuppressWarnings("NullableProblems") String rawUnix, File file)
         throws IOException, InterruptedException {
       initializeFormatter();
       StringBuilder output = new StringBuilder();

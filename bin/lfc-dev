@@ -4,7 +4,7 @@
 # Description:      Build and run the Lingua Franca compiler (lfc).
 # Authors:          Marten Lohstroh
 #                   Christian Menard
-# Usage:            Usage: lfc-dev [options] files...
+# Usage:            Usage: lfc-dev --help
 #============================================================================
 
 #============================================================================
@@ -54,6 +54,35 @@ fi
 
 gradlew="${base}/gradlew"
 
+# Parse arguments for script-specific options
+gradle_args=""
+lfc_args=()
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --offline)
+            gradle_args="--offline"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: lfc-dev [options] files..."
+            echo ""
+            echo "Build and run the Lingua Franca compiler (lfc)."
+            echo ""
+            echo "Options:"
+            echo "  --offline    Run Gradle in offline mode"
+            echo "  -h, --help   Show this help message"
+            echo ""
+            echo "All other arguments are passed to the lfc compiler."
+            exit 0
+            ;;
+        *)
+            lfc_args+=("$1")
+            shift
+            ;;
+    esac
+done
+
 # Launch the tool.
-"${gradlew}" --quiet -p "${base}" assemble ":cli:lfc:assemble"
-"${base}/build/install/lf-cli/bin/lfc" "$@"
+"${gradlew}" --quiet ${gradle_args} -p "${base}" assemble ":cli:lfc:assemble"
+"${base}/build/install/lf-cli/bin/lfc" "${lfc_args[@]}"

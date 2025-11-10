@@ -393,7 +393,7 @@ public class CAst {
   }
 
   /**
-   * Handle state variables appearing as self-><name>. If the state variable appears on both sides
+   * Handle state variables appearing as `self-><name>`. If the state variable appears on both sides
    * of an assignment, such as `self-><name> = self-><name> + 1`, then `self-><name>` on the RHS is
    * marked as a "previous state" with `prev` set to true.
    */
@@ -416,7 +416,7 @@ public class CAst {
     }
   }
 
-  /** Handle trigger values appearing as <name>->value */
+  /** Handle trigger values appearing as `<name>->value` */
   public static class TriggerValueNode extends AstNode implements Visitable {
     public String name;
 
@@ -435,7 +435,7 @@ public class CAst {
     }
   }
 
-  /** Handle trigger presence appearing as <name>->is_present */
+  /** Handle trigger presence appearing as `<name>->is_present` */
   public static class TriggerIsPresentNode extends AstNode implements Visitable {
     public String name;
 

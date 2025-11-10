@@ -16,6 +16,12 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
+/**
+ * Interface for federated target extensions.
+ *
+ * @author Soroush Bateni
+ * @ingroup Federated
+ */
 public interface FedTargetExtension {
 
   /**
@@ -24,7 +30,7 @@ public interface FedTargetExtension {
    * @param context The context of the original code generation process.
    * @param federateNames The names of all the federates in the program.
    * @param federate The federate instance.
-   * @param fileConfig An instance of {@code FedFileConfig}.
+   * @param fileConfig An instance of `FedFileConfig`.
    * @param messageReporter Used to report errors.
    */
   void initializeTargetConfig(
@@ -59,13 +65,10 @@ public interface FedTargetExtension {
   /** Generate code for initializing a network output reactor from its startup reaction. */
   String outputInitializationBody();
 
-  /** Generate code for initializing a network input reactor from its startup reaction. */
-  String inputInitializationBody();
-
   /** Generate code for the parameter that specifies the sender index. */
   void addSenderIndexParameter(Reactor sender);
 
-  /** Generate code for the sender index argument of {@code instantiation}. */
+  /** Generate code for the sender index argument of `instantiation`. */
   void supplySenderIndexParameter(Instantiation inst, int idx);
 
   /**
@@ -99,7 +102,7 @@ public interface FedTargetExtension {
   default void annotateReaction(Reaction reaction) {}
 
   /**
-   * Return the type for the raw network buffer in the target language (e.g., {@code uint_8} in C).
+   * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C).
    * This would be the type of the network messages after serialization and before deserialization.
    * It is primarily used to determine the type for the network action at the receiver.
    */

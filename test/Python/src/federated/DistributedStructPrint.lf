@@ -10,5 +10,5 @@ import Print, Check from "../StructPrint.lf"
 federated reactor {
   s = new Print()
   p = new Check()
-  s.out -> p._in
+  s.out -> p.inp
 }

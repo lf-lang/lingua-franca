@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2019-2022, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator;
 
 import java.util.ArrayList;
@@ -30,8 +6,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
-import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Port;
@@ -52,6 +28,7 @@ import org.lflang.lf.Watchdog;
  *
  * @author Edward A. Lee
  * @author Marten Lohstroh
+ * @ingroup Instances
  */
 public class ReactionInstance extends NamedInstance<Reaction> {
 
@@ -68,8 +45,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public ReactionInstance(Reaction definition, ReactorInstance parent, int index) {
     super(definition, parent);
     this.index = index;
-
-    String body = ASTUtils.toText(definition.getCode());
 
     // Identify the dependencies for this reaction.
     // First handle the triggers.
@@ -270,10 +245,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (index > 0) {
       // Find the previous ordered reaction in the parent's reaction list.
       int earlierIndex = index - 1;
-      ReactionInstance earlierOrderedReaction = parent.reactions.get(earlierIndex);
-      while (--earlierIndex >= 0) {
-        earlierOrderedReaction = parent.reactions.get(earlierIndex);
-      }
       if (earlierIndex >= 0) {
         dependsOnReactionsCache.add(parent.reactions.get(index - 1));
       }
@@ -294,6 +265,43 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   }
 
   /**
+   * @brief Return the reactor that is the enclave in charge of this reaction.
+   *     <p>If the containing reactor is an enclave connection reactor, then the enclave in charge
+   *     of this reaction depends on which reaction this is. The first two reactions use the enclave
+   *     of the destination reactor, while the last reaction uses the enclave of the source reactor.
+   */
+  public ReactorInstance getContainingEnclaveReactor() {
+    if (AttributeUtils.isEnclaveConnection(parent.getDefinition())) {
+      if (index < 2) {
+        // The first two reactions use the enclave of the destination reactor.
+        // There should be only effect and only one eventual destination, so we return
+        // the first one we find.
+        for (var effect : effects) {
+          if (effect instanceof PortInstance) {
+            var portInstance = (PortInstance) effect;
+            for (var destination : portInstance.eventualDestinations()) {
+              return destination.instance.parent.containingEnclaveReactor;
+            }
+          }
+        }
+      } else {
+        // The last reaction uses the enclave of the source reactor.
+        for (var source : sources) {
+          if (source instanceof PortInstance) {
+            var portInstance = (PortInstance) source;
+            for (var sourceRange : portInstance.eventualSources()) {
+              return sourceRange.instance.parent.containingEnclaveReactor;
+            }
+          }
+        }
+      }
+    }
+    // The containing reactor is not an enclave connection reactor or the enclave connection
+    // reactor is not property structured.
+    return parent.containingEnclaveReactor;
+  }
+
+  /**
    * Return a set of levels that runtime instances of this reaction have. A ReactionInstance may
    * have more than one level if it lies within a bank and its dependencies on other reactions pass
    * through multiports.
@@ -301,9 +309,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public Set<Integer> getLevels() {
     Set<Integer> result = new LinkedHashSet<>();
     // Force calculation of levels if it has not been done.
-    // FIXME: Comment out this as I think it is redundant.
-    //  If it is NOT redundant then deadline propagation is not correct
-    // parent.assignLevels();
     for (Runtime runtime : runtimeInstances) {
       result.add(runtime.level);
     }
@@ -312,7 +317,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
 
   /**
    * Return a set of deadlines that runtime instances of this reaction have. A ReactionInstance may
-   * have more than one deadline if it lies within.
+   * have more than one deadline if it lies within a bank.
    */
   public Set<TimeValue> getInferredDeadlines() {
     Set<TimeValue> result = new LinkedHashSet<>();
@@ -330,9 +335,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   public List<Integer> getLevelsList() {
     List<Integer> result = new LinkedList<>();
     // Force calculation of levels if it has not been done.
-    // FIXME: Comment out this as I think it is redundant.
-    //  If it is NOT redundant then deadline propagation is not correct
-    // parent.assignLevels();
     for (Runtime runtime : runtimeInstances) {
       result.add(runtime.level);
     }
@@ -342,7 +344,7 @@ public class ReactionInstance extends NamedInstance<Reaction> {
   /**
    * Return a list of the deadlines that runtime instances of this reaction have. The size of this
    * list is the total number of runtime instances. A ReactionInstance may have more than one
-   * deadline if it lies within
+   * deadline if it lies within a bank.
    */
   public List<TimeValue> getInferredDeadlinesList() {
     List<TimeValue> result = new LinkedList<>();
@@ -373,13 +375,13 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    * Return an array of runtime instances of this reaction in a <i>natural order</i>, defined as
    * follows. The position within the returned list of the runtime instance is given by a
    * mixed-radix number where the low-order digit is the bank index within the container reactor (or
-   * {@code 0} if it is not a bank), the second low order digit is the bank index of the container's
-   * container (or {@code 0} if it is not a bank), etc., until the container that is directly
+   * `0` if it is not a bank), the second low order digit is the bank index of the container's
+   * container (or `0` if it is not a bank), etc., until the container that is directly
    * contained by the top level (the top-level reactor need not be included because its index is
-   * always {@code 0}).
+   * always `0`).
    *
    * <p>The size of the returned array is the product of the widths of all the container {@link
-   * ReactorInstance} objects. If none of these is a bank, then the size will be {@code 1}.
+   * ReactorInstance} objects. If none of these is a bank, then the size will be `1`.
    *
    * <p>This method creates this array the first time it is called, but then holds on to it. The
    * array is used by {@link ReactionInstanceGraph} to determine and record levels and deadline for
@@ -407,65 +409,6 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     return getName() + " of " + parent.getFullName();
   }
 
-  /**
-   * Determine logical execution time for each reaction during compile time based on immediate
-   * downstream logical delays (after delays and actions) and label each reaction with the minimum
-   * of all such delays.
-   */
-  public TimeValue assignLogicalExecutionTime() {
-    if (this.let != null) {
-      return this.let;
-    }
-
-    if (this.parent.isGeneratedDelay()) {
-      return this.let = TimeValue.ZERO;
-    }
-
-    TimeValue let = null;
-
-    // Iterate over effect and find minimum delay.
-    for (TriggerInstance<? extends Variable> effect : effects) {
-      if (effect instanceof PortInstance) {
-        var afters =
-            this.parent.getParent().children.stream()
-                .filter(
-                    c -> {
-                      if (c.isGeneratedDelay()) {
-                        return c.inputs
-                            .get(0)
-                            .getDependsOnPorts()
-                            .get(0)
-                            .instance
-                            .equals((PortInstance) effect);
-                      }
-                      return false;
-                    })
-                .map(c -> c.actions.get(0).getMinDelay())
-                .min(TimeValue::compare);
-
-        if (afters.isPresent()) {
-          if (let == null) {
-            let = afters.get();
-          } else {
-            let = TimeValue.min(afters.get(), let);
-          }
-        }
-      } else if (effect instanceof ActionInstance) {
-        var action = ((ActionInstance) effect).getMinDelay();
-        if (let == null) {
-          let = action;
-        } else {
-          let = TimeValue.min(action, let);
-        }
-      }
-    }
-
-    if (let == null) {
-      let = TimeValue.ZERO;
-    }
-    return this.let = let;
-  }
-
   //////////////////////////////////////////////////////
   //// Private variables.
 
@@ -485,12 +428,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    */
   private List<Runtime> runtimeInstances;
 
-  private TimeValue let = null;
-
   ///////////////////////////////////////////////////////////
   //// Inner classes
-
-  public record SourcePort(PortInstance port, int index) {}
 
   /** Inner class representing a runtime instance of a reaction. */
   public class Runtime {

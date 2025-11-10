@@ -8,6 +8,7 @@ import org.lflang.generator.TimerInstance;
  *
  * @author Edward A. Lee
  * @author {Soroush Bateni
+ * @ingroup Generator
  */
 public class CTimerGenerator {
   /**
@@ -15,12 +16,12 @@ public class CTimerGenerator {
    *
    * @param timer The timer to initialize for.
    */
-  public static String generateInitializer(TimerInstance timer) {
+  public static String generateInitializer(TimerInstance timer, CEnclaveInstance enc) {
     var triggerStructName = CUtil.reactorRef(timer.getParent()) + "->_lf__" + timer.getName();
     var offset = CTypes.getInstance().getTargetTimeExpr(timer.getOffset());
     var period = CTypes.getInstance().getTargetTimeExpr(timer.getPeriod());
     var mode = timer.getMode(false);
-    var envId = CUtil.getEnvironmentId(timer.getParent());
+    var envId = enc.getReactorInstance().uniqueID();
     var modeRef =
         mode != null
             ? "&"
@@ -37,7 +38,8 @@ public class CTimerGenerator {
             triggerStructName + ".offset = " + offset + ";",
             triggerStructName + ".period = " + period + ";",
             "// Associate timer with the environment of its parent",
-            "envs["
+            CUtil.ENVIRONMENT_VARIABLE_NAME
+                + "["
                 + envId
                 + "].timer_triggers[timer_triggers_count["
                 + envId

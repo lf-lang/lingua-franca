@@ -12,5 +12,5 @@ import Source, Destination from "../../federated/DistributedMultiport.lf"
 federated reactor DistributedMultiportContainerized at rti {
   s = new Source()
   d = new Destination()
-  s.out -> d.in_
+  s.out -> d.inp
 }
