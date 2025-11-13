@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-<tagfile doxygen_version="1.14.0">
+<tagfile doxygen_version="1.15.0">
   <compound kind="class">
     <name>org::lflang::analyses::c::AbstractAstVisitor</name>
     <filename>classorg_1_1lflang_1_1analyses_1_1c_1_1AbstractAstVisitor.html</filename>
@@ -14090,8 +14090,8 @@
     <member kind="function">
       <type>void</type>
       <name>applyTransformation</name>
-      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html</anchorfile>
-      <anchor>ab777adeb6b5cbd289e7b671b44d8161c</anchor>
+      <anchorfile>interfaceorg_1_1lflang_1_1ast_1_1AstTransformation.html</anchorfile>
+      <anchor>a1364195c302212fb923035cb0b0e007d</anchor>
       <arglist>(List&lt; Reactor &gt; reactors)</arglist>
     </member>
     <member kind="function">
@@ -43139,6 +43139,1105 @@
     <name>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2LICENSE</name>
     <title>LICENSE</title>
     <filename>md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2LICENSE.html</filename>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/action</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/action/</path>
+    <filename>dir_75165dd8eb435067d44e04b477dbc5cc.html</filename>
+    <file>AbstractAction.java</file>
+    <file>CollapseAllReactorsAction.java</file>
+    <file>ExpandAllReactorsAction.java</file>
+    <file>FilterCycleAction.java</file>
+    <file>MemorizingExpandCollapseAction.java</file>
+    <file>ShowCycleAction.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/</path>
+    <filename>dir_d09228d9c1a95ee8288bdae671193724.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/c</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/statespace</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/uclid</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/ast</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/ast/</path>
+    <filename>dir_d3cf5f9dc09b4717c298e47824539f22.html</filename>
+    <file>AstTransformation.java</file>
+    <file>ASTUtils.java</file>
+    <file>DelayedConnectionTransformation.java</file>
+    <file>FormattingUtil.java</file>
+    <file>IsEqual.java</file>
+    <file>LfParsingHelper.java</file>
+    <file>MalleableString.java</file>
+    <file>ToLf.java</file>
+    <file>ToSExpr.java</file>
+    <file>ToText.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/</path>
+    <filename>dir_63924526968a8142e83e23ea81e4ad16.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/c</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/c/</path>
+    <filename>dir_8e17bff4e7e7e0f07b51b0396c487ca7.html</filename>
+    <file>AbstractAstVisitor.java</file>
+    <file>AstUtils.java</file>
+    <file>AstVisitor.java</file>
+    <file>BuildAstParseTreeVisitor.java</file>
+    <file>CAst.java</file>
+    <file>CAstVisitor.java</file>
+    <file>CBaseAstVisitor.java</file>
+    <file>CToUclidVisitor.java</file>
+    <file>IfNormalFormAstVisitor.java</file>
+    <file>VariablePrecedenceVisitor.java</file>
+    <file>Visitable.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/c</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/c/</path>
+    <filename>dir_1b8b4bd90f3e11629f3e505dafdd6d07.html</filename>
+    <file>CActionGenerator.java</file>
+    <file>CCmakeGenerator.java</file>
+    <file>CCompiler.java</file>
+    <file>CConstructorGenerator.java</file>
+    <file>CCoreFilesUtils.java</file>
+    <file>CDelayBodyGenerator.java</file>
+    <file>CEnclavedReactorTransformation.java</file>
+    <file>CEnclaveGenerator.java</file>
+    <file>CEnclaveGraph.java</file>
+    <file>CEnclaveInstance.java</file>
+    <file>CFileConfig.java</file>
+    <file>CGenerator.java</file>
+    <file>CMainFunctionGenerator.java</file>
+    <file>CMethodGenerator.java</file>
+    <file>CMixedRadixGenerator.java</file>
+    <file>CModesGenerator.java</file>
+    <file>CParameterGenerator.java</file>
+    <file>CPortGenerator.java</file>
+    <file>CPreambleGenerator.java</file>
+    <file>CReactionGenerator.java</file>
+    <file>CReactorHeaderFileGenerator.java</file>
+    <file>CStateGenerator.java</file>
+    <file>CTimerGenerator.java</file>
+    <file>CTracingGenerator.java</file>
+    <file>CTriggerObjectsGenerator.java</file>
+    <file>CTypes.java</file>
+    <file>CUtil.java</file>
+    <file>CWatchdogGenerator.java</file>
+    <file>InteractingContainedReactors.java</file>
+    <file>TypeParameterizedReactor.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/</path>
+    <filename>dir_a925d90263b3fe92f2ae5dbf5c9f7490.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/lflang/cli/</path>
+    <filename>dir_5ac793647ca51f97418611eb82965903.html</filename>
+    <file>CliBase.java</file>
+    <file>LFCliSetup.java</file>
+    <file>LFStandaloneModule.java</file>
+    <file>StandaloneIssueAcceptor.java</file>
+    <file>StandaloneMessageReporter.java</file>
+    <file>VersionProvider.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/lflang/cli/</path>
+    <filename>dir_6cde6e28cf85cf157dd766abbe8b494d.html</filename>
+    <file>CliToolTestFixture.java</file>
+    <file>TestUtils.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/lflang/cli/</path>
+    <filename>dir_8d29e26333052d0f6db30592f19f56c2.html</filename>
+    <file>Lfc.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/lflang/cli/</path>
+    <filename>dir_5fc99bd13dceb1e08ef0307f9f748d41.html</filename>
+    <file>LfcCliTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/lflang/cli/</path>
+    <filename>dir_54792dc1776532c3788a78474a8de354.html</filename>
+    <file>Lfd.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/lflang/cli/</path>
+    <filename>dir_2fc9f24bce5d765709603ffee8bb7061.html</filename>
+    <file>DiagramGenerationTest.java</file>
+    <file>LfdCliTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/lflang/cli/</path>
+    <filename>dir_8a517e3e2e86ac3f541195b0376e03e5.html</filename>
+    <file>Lff.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/lflang/cli</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/lflang/cli/</path>
+    <filename>dir_b426877d398d293967746b62fd6d7a2c.html</filename>
+    <file>LffCliTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/compiler</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/compiler/</path>
+    <filename>dir_563eccf40f5219793d59a8e317fcb4e7.html</filename>
+    <file>EquivalenceUnitTests.java</file>
+    <file>FormattingUnitTests.java</file>
+    <file>LinguaFrancaASTUtilsTest.java</file>
+    <file>LinguaFrancaDependencyAnalysisTest.java</file>
+    <file>LinguaFrancaParsingTest.java</file>
+    <file>LinguaFrancaScopingTest.java</file>
+    <file>LinguaFrancaValidationTest.java</file>
+    <file>MixedRadixIntTest.java</file>
+    <file>PortInstanceTests.java</file>
+    <file>RangeTests.java</file>
+    <file>RoundTripTests.java</file>
+    <file>TargetConfigTests.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/</path>
+    <filename>dir_17c55e3ddbd64f01fc89b7bfbbec24f1.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/</path>
+    <filename>dir_5803dd49fd131bb5eec93ca5dc6f40c8.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/diagram</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/diagram/</path>
+    <filename>dir_bf0f768d06ba02f6beb6fc59fa13c395.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/diagram/lsp</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/docker</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/docker/</path>
+    <filename>dir_71b4500034d94af3d3fcb9166fef26f3.html</filename>
+    <file>CDockerGenerator.java</file>
+    <file>DockerComposeGenerator.java</file>
+    <file>DockerData.java</file>
+    <file>DockerGenerator.java</file>
+    <file>FedDockerComposeGenerator.java</file>
+    <file>PythonDockerGenerator.java</file>
+    <file>RtiDockerGenerator.java</file>
+    <file>TSDockerGenerator.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/docs</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/docs/</path>
+    <filename>dir_9bf683417e041b53d2751307d1f3a38b.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/docs/markdown</dir>
+    <file>doxygen.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/extensions</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/extensions/</path>
+    <filename>dir_fd706e1df3b098cc6502da8a7bcafdc4.html</filename>
+    <file>CExtension.java</file>
+    <file>CExtensionUtils.java</file>
+    <file>FedTargetExtension.java</file>
+    <file>FedTargetExtensionFactory.java</file>
+    <file>PythonExtension.java</file>
+    <file>TSExtension.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/</path>
+    <filename>dir_f02b178189653d304c2159c61b6fa73d.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/extensions</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/generator</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/launcher</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/serialization</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/validation</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/formatting2</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/formatting2/</path>
+    <filename>dir_c06b319ba3c9e6934521600218dd0ebf.html</filename>
+    <file>LFFormatter.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/generator</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/generator/</path>
+    <filename>dir_5df4192faa03f834f0d1f639116d4ef8.html</filename>
+    <file>FedASTUtils.java</file>
+    <file>FedConnectionInstance.java</file>
+    <file>FedEmitter.java</file>
+    <file>FederateInstance.java</file>
+    <file>FederateTargetConfig.java</file>
+    <file>FederationFileConfig.java</file>
+    <file>FedGenerator.java</file>
+    <file>FedImportEmitter.java</file>
+    <file>FedMainEmitter.java</file>
+    <file>FedPreambleEmitter.java</file>
+    <file>FedReactorEmitter.java</file>
+    <file>FedTargetEmitter.java</file>
+    <file>FedUtils.java</file>
+    <file>LineAdjustingMessageReporter.java</file>
+    <file>SynchronizedMessageReporter.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/</path>
+    <filename>dir_e05201f745e8477455462f9dd2209481.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/c</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/docker</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/python</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/rust</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/ts</dir>
+    <file>ActionInstance.java</file>
+    <file>Argument.java</file>
+    <file>CodeBuilder.java</file>
+    <file>CodeMap.java</file>
+    <file>DeadlineInstance.java</file>
+    <file>DelayBodyGenerator.java</file>
+    <file>DiagnosticReporting.java</file>
+    <file>GenerationException.java</file>
+    <file>GeneratorArguments.java</file>
+    <file>GeneratorBase.java</file>
+    <file>GeneratorCommandFactory.java</file>
+    <file>GeneratorResult.java</file>
+    <file>GeneratorUtils.java</file>
+    <file>HumanReadableReportingStrategy.java</file>
+    <file>IntegratedBuilder.java</file>
+    <file>InvalidLfSourceException.java</file>
+    <file>InvalidSourceException.java</file>
+    <file>LanguageServerMessageReporter.java</file>
+    <file>LfExpressionVisitor.java</file>
+    <file>LFGenerator.java</file>
+    <file>LFGeneratorContext.java</file>
+    <file>MainContext.java</file>
+    <file>MixedRadixInt.java</file>
+    <file>ModeInstance.java</file>
+    <file>NamedInstance.java</file>
+    <file>ParameterInstance.java</file>
+    <file>PortInstance.java</file>
+    <file>Position.java</file>
+    <file>Range.java</file>
+    <file>ReactionInstance.java</file>
+    <file>ReactionInstanceGraph.java</file>
+    <file>ReactorInstance.java</file>
+    <file>RuntimeRange.java</file>
+    <file>SendRange.java</file>
+    <file>StateVariableInstance.java</file>
+    <file>SubContext.java</file>
+    <file>TargetTypes.java</file>
+    <file>TimerInstance.java</file>
+    <file>TriggerInstance.java</file>
+    <file>UnsupportedGeneratorFeatureException.java</file>
+    <file>ValidationStrategy.java</file>
+    <file>Validator.java</file>
+    <file>WatchdogInstance.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/graph</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/graph/</path>
+    <filename>dir_275d6e58d0deb3ee9d48db6fce59f52a.html</filename>
+    <file>ConnectionGraph.java</file>
+    <file>DirectedGraph.java</file>
+    <file>Graph.java</file>
+    <file>InstantiationGraph.java</file>
+    <file>NodeAnnotation.java</file>
+    <file>NodeAnnotations.java</file>
+    <file>PrecedenceGraph.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/ide</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/ide/</path>
+    <filename>dir_c387bb858039cac5397e856fde05c67a.html</filename>
+    <file>LFIdeModule.java</file>
+    <file>LFIdeSetup.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/</path>
+    <filename>dir_528f8453c5c41063130121a191984527.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/</path>
+    <filename>dir_3d2728b30f3693c0b3653e5f3e5b34d7.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/</path>
+    <filename>dir_966c9ce61d7fb94ae1ca0d68c439135c.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/</path>
+    <filename>dir_fc7e71648ca3e253a0c0fdd2da221299.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/</path>
+    <filename>dir_fb8195ac9ef59f0e700f44cb9b8ccc13.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/</path>
+    <filename>dir_c0fb134945d607b06627cc15abd41931.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/</path>
+    <filename>dir_4ccdda927909692960c4ddd8bb19d06f.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/</path>
+    <filename>dir_025bf0e1b4dd104ef56cb69419b427cc.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/</path>
+    <filename>dir_f6a0e036859b2030fb8fa2c1f4f507cd.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/</path>
+    <filename>dir_c2a1ed23034cb2ac33fc60bc421c4099.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/</path>
+    <filename>dir_e1ea16b7784dc5fbab6af8a3fc374aaf.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/</path>
+    <filename>dir_f00fe97b363a9dadf8cb178c2a62cd80.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/</path>
+    <filename>dir_92fd6661b1d7c83f416dd4a788156856.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/</path>
+    <filename>dir_9fad140222a8ef63137d82fe01aed254.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/launcher</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/launcher/</path>
+    <filename>dir_e3928428e4fa8d90f76a3bf32ef50a53.html</filename>
+    <file>BuildConfig.java</file>
+    <file>CBuildConfig.java</file>
+    <file>FedLauncherGenerator.java</file>
+    <file>PyBuildConfig.java</file>
+    <file>RtiConfig.java</file>
+    <file>TsBuildConfig.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/</path>
+    <filename>dir_771ef73d929bd735dea557f0c69595a5.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/</path>
+    <filename>dir_e1b23778a9dd74fdf24956cb7c0eb198.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/</path>
+    <filename>dir_c62dcf03be8264854eb20a9b9d500961.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/lflang/</path>
+    <filename>dir_270194ead246cd1760f0698337a428fe.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/lflang/</path>
+    <filename>dir_5abbd2d57c6586318d07e4185e47f4b1.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/lflang/</path>
+    <filename>dir_9962b158bd4c41a0dc2cbc4f2d9abc5c.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/lflang/</path>
+    <filename>dir_7aaa5851e7cf4dc8928e4656e79d2066.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/lflang/</path>
+    <filename>dir_5f947f4c0ff0328af178819d3047883a.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/lflang/</path>
+    <filename>dir_ef627c221757ecf1e3fd896eb4efe9fa.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/lflang/</path>
+    <filename>dir_3648bb7db3ca18056cdb8ef833b9ea3a.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/lflang/</path>
+    <filename>dir_6f94cc0521f412977d5df9c12344869c.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/lflang/cli</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/</path>
+    <filename>dir_41cbbec5b3a2a0b401d968e2bc35259c.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/</path>
+    <filename>dir_f4b01a0297a16b4099b457b76d904a17.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/ast</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/formatting2</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/graph</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/ide</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/scoping</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/util</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/validation</dir>
+    <file>AttributeUtils.java</file>
+    <file>DefaultMessageReporter.java</file>
+    <file>FileConfig.java</file>
+    <file>InferredType.java</file>
+    <file>LFResourceDescriptionStrategy.java</file>
+    <file>LFResourceProvider.java</file>
+    <file>LFRuntimeModule.java</file>
+    <file>LFStandaloneSetup.java</file>
+    <file>LFSyntaxErrorMessageProvider.java</file>
+    <file>LinguaFranca.xtext</file>
+    <file>LocalStrings.java</file>
+    <file>MainConflictChecker.java</file>
+    <file>MessageReporter.java</file>
+    <file>MessageReporterBase.java</file>
+    <file>ModelInfo.java</file>
+    <file>TimeUnit.java</file>
+    <file>TimeValue.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/</path>
+    <filename>dir_3480b59bed7025efccbf3e68ac553cf9.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/lflang/</path>
+    <filename>dir_e258959eb3c065dc15c18c6788d91288.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/lflang/tests</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/</path>
+    <filename>dir_48effc26f2d5ecfda7606a7ac9a30ec9.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/diagram</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca</name>
+    <path>/Users/runner/work/lingua-franca/</path>
+    <filename>dir_853ef5e5b21dcc61de70b9f0e5587274.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/</path>
+    <filename>dir_9af2677f166f3f6682dd377062a6a6b8.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/docs</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/test</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/lsp</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/lsp/</path>
+    <filename>dir_b3ce80a9fc39f3096679368454f093aa.html</filename>
+    <file>ErrorInserter.java</file>
+    <file>LspTests.java</file>
+    <file>MockCancelIndicator.java</file>
+    <file>MockLanguageClient.java</file>
+    <file>MockReportProgress.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/</path>
+    <filename>dir_b0d0bd8c584477212792e62710330407.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/diagram/lsp</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang/diagram/lsp/</path>
+    <filename>dir_c666809c76fb610e15150d9edc0a4dd2.html</filename>
+    <file>BuildArgs.java</file>
+    <file>LanguageDiagramServer.java</file>
+    <file>LFLanguageClient.java</file>
+    <file>LFLanguageServer.java</file>
+    <file>LFLanguageServerExtension.java</file>
+    <file>LibraryFile.java</file>
+    <file>NodePosition.java</file>
+    <file>Progress.java</file>
+    <file>ReactorNode.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/</path>
+    <filename>dir_c79f132386bf54de18155a92743866b1.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/</path>
+    <filename>dir_4d4632ef398c743bdc43df25b6e1d7d8.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/</path>
+    <filename>dir_5cbe2605b03afdfa1dc02ede9c5bcfc0.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/</path>
+    <filename>dir_f7379bb501744aca3e52fc966df6cfce.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/</path>
+    <filename>dir_a33ba6f99de842bf8ba0642856c235c2.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/</path>
+    <filename>dir_9f9ea03e8ae5dbde46ac00a499a790f8.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/docs/markdown</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/docs/markdown/</path>
+    <filename>dir_4886e937d58f83d0a4439850d25a1893.html</filename>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/</path>
+    <filename>dir_6fd790330dd9bd08e6805d08aad00a24.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/</path>
+    <filename>dir_aeefb8577b689fe26e6b7c1b7a3bc1af.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/</path>
+    <filename>dir_a272b9f16d4a304d6bb8254a4049e5cd.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/</path>
+    <filename>dir_bcc0b1ae9f46b5230f25d8f649c0de8a.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/</path>
+    <filename>dir_3f11bdfac79a2aefcb4b84aec9f60e3b.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/</path>
+    <filename>dir_8ee4e9fd0e67c8a4901d3f3e4f3ec638.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/</path>
+    <filename>dir_062318a9f53052cd1470c2d3fcf681ce.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/</path>
+    <filename>dir_82640a2117529be76da941ad63fc177d.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/</path>
+    <filename>dir_91c5508c1a121a99c106a8dbf780b649.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/</path>
+    <filename>dir_524598def2e526ee8c046434dd13cede.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/</path>
+    <filename>dir_b5f8f153d0621031dabf52ca06b1ffcc.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/</path>
+    <filename>dir_bb3a50c68c3ecd24a09bf6d9e56d596b.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/</path>
+    <filename>dir_3c0c52037643a5866e4d56643b0f86f6.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main/java/org/lflang</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/postprocessor</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/postprocessor/</path>
+    <filename>dir_14a7d542872c906b01aff0cc39501aef.html</filename>
+    <file>ReactionPortAdjustment.java</file>
+    <file>ReactorPortAdjustment.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/</path>
+    <filename>dir_53503e9a16b073d24f84a4855a366cd2.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/type</dir>
+    <file>AuthProperty.java</file>
+    <file>BooleanProperty.java</file>
+    <file>BuildCommandsProperty.java</file>
+    <file>BuildTypeProperty.java</file>
+    <file>CargoDependenciesProperty.java</file>
+    <file>CargoFeaturesProperty.java</file>
+    <file>ClockSyncModeProperty.java</file>
+    <file>ClockSyncOptionsProperty.java</file>
+    <file>CmakeIncludeProperty.java</file>
+    <file>CmakeInitIncludeProperty.java</file>
+    <file>CompileDefinitionsProperty.java</file>
+    <file>CompilerProperty.java</file>
+    <file>CoordinationOptionsProperty.java</file>
+    <file>CoordinationProperty.java</file>
+    <file>DNETProperty.java</file>
+    <file>DockerProperty.java</file>
+    <file>ExportDependencyGraphProperty.java</file>
+    <file>ExternalRuntimePathProperty.java</file>
+    <file>FastProperty.java</file>
+    <file>FedSetupProperty.java</file>
+    <file>FileListProperty.java</file>
+    <file>FilesProperty.java</file>
+    <file>KeepaliveProperty.java</file>
+    <file>LoggingProperty.java</file>
+    <file>NoCompileProperty.java</file>
+    <file>NoRuntimeValidationProperty.java</file>
+    <file>NoSourceMappingProperty.java</file>
+    <file>PlatformProperty.java</file>
+    <file>PrintStatisticsProperty.java</file>
+    <file>ProtobufsProperty.java</file>
+    <file>PythonVersionProperty.java</file>
+    <file>Ros2DependenciesProperty.java</file>
+    <file>Ros2Property.java</file>
+    <file>RuntimeVersionProperty.java</file>
+    <file>RustIncludeProperty.java</file>
+    <file>SchedulerProperty.java</file>
+    <file>SingleFileProjectProperty.java</file>
+    <file>SingleThreadedProperty.java</file>
+    <file>StringListProperty.java</file>
+    <file>StringProperty.java</file>
+    <file>TargetProperty.java</file>
+    <file>TimeOutProperty.java</file>
+    <file>TracePluginProperty.java</file>
+    <file>TracingProperty.java</file>
+    <file>VerifyProperty.java</file>
+    <file>WorkersProperty.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/python</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/python/</path>
+    <filename>dir_44455979f353106da2cde4a8e6b1354c.html</filename>
+    <file>PyFileConfig.java</file>
+    <file>PythonActionGenerator.java</file>
+    <file>PythonDelayBodyGenerator.java</file>
+    <file>PythonGenerator.java</file>
+    <file>PythonMainFunctionGenerator.java</file>
+    <file>PythonMethodGenerator.java</file>
+    <file>PythonModeGenerator.java</file>
+    <file>PythonParameterGenerator.java</file>
+    <file>PythonPortGenerator.java</file>
+    <file>PythonPreambleGenerator.java</file>
+    <file>PythonReactionGenerator.java</file>
+    <file>PythonReactorGenerator.java</file>
+    <file>PythonStateGenerator.java</file>
+    <file>PythonTypes.java</file>
+    <file>PythonValidator.java</file>
+    <file>PyUtil.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner</name>
+    <path>/Users/runner/</path>
+    <filename>dir_308bc1499b5f97ed0ba0865f54916185.html</filename>
+    <dir>/Users/runner/work</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/runtime</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/runtime/</path>
+    <filename>dir_da898faa32675d2c2e35824faefea771.html</filename>
+    <file>CArduinoTest.java</file>
+    <file>CCppTest.java</file>
+    <file>CFlexPRETTest.java</file>
+    <file>CPatmosTest.java</file>
+    <file>CppRos2Test.java</file>
+    <file>CppTest.java</file>
+    <file>CSchedulerTest.java</file>
+    <file>CTest.java</file>
+    <file>CVerifierTest.java</file>
+    <file>CZephyrTest.java</file>
+    <file>PythonTest.java</file>
+    <file>RustTest.java</file>
+    <file>TypeScriptTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/rust</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/rust/</path>
+    <filename>dir_26b7b2aa1c61286e1a7d6ced61641894.html</filename>
+    <file>CargoDependencySpec.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/scoping</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/scoping/</path>
+    <filename>dir_cb615becfc458098937734989eca148a.html</filename>
+    <file>LFGlobalScopeProvider.java</file>
+    <file>LFScopeProvider.java</file>
+    <file>LFScopeProviderImpl.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/serialization</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/serialization/</path>
+    <filename>dir_af057d0ae95959ae23bce345d188e08a.html</filename>
+    <file>SerializationTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/serialization</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/serialization/</path>
+    <filename>dir_0ba6377a9ab5362775c48b3661bbea26.html</filename>
+    <file>FedCustomPythonSerialization.java</file>
+    <file>FedNativePythonSerialization.java</file>
+    <file>FedROS2CPPSerialization.java</file>
+    <file>FedSerialization.java</file>
+    <file>SupportedSerializers.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/</path>
+    <filename>dir_3c935b676ebf07e11a5f9a463a982ff0.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/main</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/</path>
+    <filename>dir_9aa3098e9d1b152ac347e704c2e3f184.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/main</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/</path>
+    <filename>dir_27a180325de68f87f03735e413496d5b.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/main</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/</path>
+    <filename>dir_fe333143f35cf98e2fc22149d28384b7.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/main</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/</path>
+    <filename>dir_925c714c9686f527bf4d0d0410818d5a.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/lsp/src</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/</path>
+    <filename>dir_3dfbd39668566e8a392160b7a40713f3.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/lsp/src/main</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/statespace</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/statespace/</path>
+    <filename>dir_e8ba8411d7e70ebc921fd786ba55cc66.html</filename>
+    <file>Event.java</file>
+    <file>EventQueue.java</file>
+    <file>StateInfo.java</file>
+    <file>StateSpaceDiagram.java</file>
+    <file>StateSpaceExplorer.java</file>
+    <file>StateSpaceNode.java</file>
+    <file>Tag.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/styles</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/styles/</path>
+    <filename>dir_e95fdf89b1739b2795691e4100445002.html</filename>
+    <file>LinguaFrancaShapeExtensions.java</file>
+    <file>LinguaFrancaStyleExtensions.java</file>
+    <file>ReactorFigureComponents.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/</path>
+    <filename>dir_f8cfd94749d86bc8bee10880460b8ff1.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/action</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/postprocessor</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/styles</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/util</dir>
+    <file>AbstractSynthesisExtensions.java</file>
+    <file>LinguaFrancaSynthesis.java</file>
+    <file>ReactorParameterDisplayModes.java</file>
+    <file>SynthesisRegistration.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/</path>
+    <filename>dir_79782975e2a5add8dc39655f03bececa.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property</dir>
+    <file>Target.java</file>
+    <file>TargetConfig.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/</path>
+    <filename>dir_84e27dea4d943ca6628e1c3c2dce394f.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfc/src/test/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/</path>
+    <filename>dir_9b93ae4fde13c5e79d307435ed9d4c32.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lfd/src/test/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/</path>
+    <filename>dir_d8f0fe321c5ad4ec0ec0f53a393e92c8.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/lff/src/test/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/</path>
+    <filename>dir_14800be9102f989359ba64c806fe1e68.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/test</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/test/</path>
+    <filename>dir_466640a743d1a866f8658c8f78a46042.html</filename>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/</path>
+    <filename>dir_0bc039adb2014cbfa821563afdbcf258.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src/testFixtures/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/</path>
+    <filename>dir_8f0f35d7cb94cb3155d564117de9e03d.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/</path>
+    <filename>dir_0163b5a511c43405b750b360b8787ea5.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/lsp</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/runtime</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/serialization</dir>
+    <file>RunSingleTest.java</file>
+    <file>RuntimeTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/</path>
+    <filename>dir_4f140fe0c037e4ff24d0e65201512edd.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/compiler</dir>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/util</dir>
+    <file>LFParsingTest.java</file>
+    <file>LfParsingTestHelper.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/lflang/tests</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/testFixtures/java/org/lflang/tests/</path>
+    <filename>dir_c8b6a86c4a89853c43daf316f3626e2b.html</filename>
+    <file>Configurators.java</file>
+    <file>LfInjectedTestBase.java</file>
+    <file>LFInjectorProvider.java</file>
+    <file>LFTest.java</file>
+    <file>TestBase.java</file>
+    <file>TestError.java</file>
+    <file>TestRegistry.java</file>
+    <file>Transformers.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/ts</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/ts/</path>
+    <filename>dir_c7c59b1d3841f727f9008e6ac71b51e4.html</filename>
+    <file>TSTypes.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/type</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/type/</path>
+    <filename>dir_94cce52afbea33bf96ae4e83b3a22300.html</filename>
+    <file>ArrayType.java</file>
+    <file>BuildTypeType.java</file>
+    <file>ClockSyncModeType.java</file>
+    <file>CoordinationModeType.java</file>
+    <file>DictionaryType.java</file>
+    <file>LoggingType.java</file>
+    <file>OptionsType.java</file>
+    <file>PlatformType.java</file>
+    <file>PrimitiveType.java</file>
+    <file>SchedulerType.java</file>
+    <file>StringDictionaryType.java</file>
+    <file>TargetPropertyType.java</file>
+    <file>UnionType.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/uclid</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/analyses/uclid/</path>
+    <filename>dir_514d3fa1ee5226581d12f9811389cc0e.html</filename>
+    <file>MTLVisitor.java</file>
+    <file>UclidGenerator.java</file>
+    <file>UclidRunner.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users</name>
+    <path>/Users/</path>
+    <filename>dir_d522931ffa1371640980b621734a4381.html</filename>
+    <dir>/Users/runner</dir>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/util</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/diagram/synthesis/util/</path>
+    <filename>dir_647478c589fec186c2411567b9e5d427.html</filename>
+    <file>CycleVisualization.java</file>
+    <file>InterfaceDependenciesVisualization.java</file>
+    <file>LayoutPostProcessing.java</file>
+    <file>ModeDiagrams.java</file>
+    <file>NamedInstanceUtil.java</file>
+    <file>ReactorIcons.java</file>
+    <file>SynthesisMessageReporter.java</file>
+    <file>UtilityExtensions.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/util</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/util/</path>
+    <filename>dir_99380847bd348d1ffcd5bf983d78c025.html</filename>
+    <file>ArduinoUtil.java</file>
+    <file>Averager.java</file>
+    <file>CollectionUtil.java</file>
+    <file>FileUtil.java</file>
+    <file>FlexPRETUtil.java</file>
+    <file>ImportUtil.java</file>
+    <file>IteratorUtil.java</file>
+    <file>LFCommand.java</file>
+    <file>Pair.java</file>
+    <file>StringUtil.java</file>
+    <file>TargetResourceNotFoundException.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/util</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests/util/</path>
+    <filename>dir_41e6828fc135a6098bc6d02209956828.html</filename>
+    <file>StringUtilTest.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/validation</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/validation/</path>
+    <filename>dir_a6f228976c90ee28c78850321b2df772.html</filename>
+    <file>FedValidator.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/validation</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/validation/</path>
+    <filename>dir_1037ad3ba9cac383a5f61d3060063636.html</filename>
+    <file>AttributeSpec.java</file>
+    <file>BaseLFValidator.java</file>
+    <file>LFNamesAreUniqueValidationHelper.java</file>
+    <file>LFValidator.java</file>
+    <file>ValidatorMessageReporter.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work</name>
+    <path>/Users/runner/work/</path>
+    <filename>dir_61c33e2faf3f402353c3e4f8a1de3ade.html</filename>
+    <dir>/Users/runner/work/lingua-franca</dir>
   </compound>
   <compound kind="page">
     <name>index</name>

@@ -130,7 +130,7 @@ var hierarchy =
       [ "org.lflang.validation.LFNamesAreUniqueValidationHelper", "classorg_1_1lflang_1_1validation_1_1LFNamesAreUniqueValidationHelper.html", null ]
     ] ],
     [ "org.lflang.analyses.c.AstUtils", "classorg_1_1lflang_1_1analyses_1_1c_1_1AstUtils.html", null ],
-    [ "org.lflang.analyses.c.AstVisitor< T >", "interfaceorg_1_1lflang_1_1analyses_1_1c_1_1AstVisitor.html", [
+    [ "org.lflang.analyses.c.AstVisitor&lt; T &gt;", "interfaceorg_1_1lflang_1_1analyses_1_1c_1_1AstVisitor.html", [
       [ "org.lflang.analyses.c.AbstractAstVisitor< T >", "classorg_1_1lflang_1_1analyses_1_1c_1_1AbstractAstVisitor.html", [
         [ "org.lflang.analyses.c.CBaseAstVisitor< T >", "classorg_1_1lflang_1_1analyses_1_1c_1_1CBaseAstVisitor.html", null ]
       ] ],
@@ -140,10 +140,10 @@ var hierarchy =
     ] ],
     [ "org.lflang.analyses.c.CAst", "classorg_1_1lflang_1_1analyses_1_1c_1_1CAst.html", null ],
     [ "org.lflang.analyses.c.CAst.VariableNode.Type", "enumorg_1_1lflang_1_1analyses_1_1c_1_1CAst_1_1VariableNode_1_1Type.html", null ],
-    [ "org.lflang.analyses.c.CBaseAstVisitor< String >", "classorg_1_1lflang_1_1analyses_1_1c_1_1CBaseAstVisitor.html", [
+    [ "org.lflang.analyses.c.CBaseAstVisitor&lt; String &gt;", "classorg_1_1lflang_1_1analyses_1_1c_1_1CBaseAstVisitor.html", [
       [ "org.lflang.analyses.c.CToUclidVisitor", "classorg_1_1lflang_1_1analyses_1_1c_1_1CToUclidVisitor.html", null ]
     ] ],
-    [ "org.lflang.analyses.c.CBaseAstVisitor< Void >", "classorg_1_1lflang_1_1analyses_1_1c_1_1CBaseAstVisitor.html", [
+    [ "org.lflang.analyses.c.CBaseAstVisitor&lt; Void &gt;", "classorg_1_1lflang_1_1analyses_1_1c_1_1CBaseAstVisitor.html", [
       [ "org.lflang.analyses.c.IfNormalFormAstVisitor", "classorg_1_1lflang_1_1analyses_1_1c_1_1IfNormalFormAstVisitor.html", null ],
       [ "org.lflang.analyses.c.VariablePrecedenceVisitor", "classorg_1_1lflang_1_1analyses_1_1c_1_1VariablePrecedenceVisitor.html", null ]
     ] ],
@@ -305,7 +305,7 @@ var hierarchy =
         [ "org.lflang.generator.python.PyFileConfig", "classorg_1_1lflang_1_1generator_1_1python_1_1PyFileConfig.html", null ]
       ] ]
     ] ],
-    [ "org.lflang.generator.Argument< T >", "classorg_1_1lflang_1_1generator_1_1Argument.html", null ],
+    [ "org.lflang.generator.Argument&lt; T &gt;", "classorg_1_1lflang_1_1generator_1_1Argument.html", null ],
     [ "org.lflang.generator.c.CActionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html", null ],
     [ "org.lflang.generator.c.CCmakeGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CCmakeGenerator.html", null ],
     [ "org.lflang.generator.c.CCmakeGenerator.SetUpMainTarget", "interfaceorg_1_1lflang_1_1generator_1_1c_1_1CCmakeGenerator_1_1SetUpMainTarget.html", [
@@ -372,34 +372,34 @@ var hierarchy =
     [ "org.lflang.generator.IntegratedBuilder.ReportProgress", "interfaceorg_1_1lflang_1_1generator_1_1IntegratedBuilder_1_1ReportProgress.html", [
       [ "org.lflang.tests.lsp.MockReportProgress", "classorg_1_1lflang_1_1tests_1_1lsp_1_1MockReportProgress.html", null ]
     ] ],
-    [ "org.lflang.generator.LfExpressionVisitor< P, R >", "interfaceorg_1_1lflang_1_1generator_1_1LfExpressionVisitor.html", [
+    [ "org.lflang.generator.LfExpressionVisitor&lt; P, R &gt;", "interfaceorg_1_1lflang_1_1generator_1_1LfExpressionVisitor.html", [
       [ "org.lflang.generator.LfExpressionVisitor< P, R >.DefaultLfVisitor< P, R >", "classorg_1_1lflang_1_1generator_1_1LfExpressionVisitor_1_1DefaultLfVisitor.html", null ]
     ] ],
-    [ "org.lflang.generator.LfExpressionVisitor< P, Expression >", "interfaceorg_1_1lflang_1_1generator_1_1LfExpressionVisitor.html", [
+    [ "org.lflang.generator.LfExpressionVisitor&lt; P, Expression &gt;", "interfaceorg_1_1lflang_1_1generator_1_1LfExpressionVisitor.html", [
       [ "org.lflang.generator.LfExpressionVisitor< P, R >.LfExpressionDeepCopyVisitor< P >", "classorg_1_1lflang_1_1generator_1_1LfExpressionVisitor_1_1LfExpressionDeepCopyVisitor.html", null ]
     ] ],
     [ "org.lflang.generator.LFGeneratorContext.Mode", "enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html", null ],
     [ "org.lflang.generator.MixedRadixInt", "classorg_1_1lflang_1_1generator_1_1MixedRadixInt.html", null ],
-    [ "org.lflang.generator.NamedInstance< T extends EObject >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", null ],
-    [ "org.lflang.generator.NamedInstance< Instantiation >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; T extends EObject &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", null ],
+    [ "org.lflang.generator.NamedInstance&lt; Instantiation &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.ReactorInstance", "classorg_1_1lflang_1_1generator_1_1ReactorInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< Mode >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; Mode &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.ModeInstance", "classorg_1_1lflang_1_1generator_1_1ModeInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< Parameter >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; Parameter &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.ParameterInstance", "classorg_1_1lflang_1_1generator_1_1ParameterInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< Reaction >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; Reaction &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.ReactionInstance", "classorg_1_1lflang_1_1generator_1_1ReactionInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< StateVar >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; StateVar &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.StateVariableInstance", "classorg_1_1lflang_1_1generator_1_1StateVariableInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< T >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; T &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.TriggerInstance< T extends Variable >", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< VarRef >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; VarRef &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "org.lflang.generator.ModeInstance.Transition", "classorg_1_1lflang_1_1generator_1_1ModeInstance_1_1Transition.html", null ]
     ] ],
     [ "org.lflang.generator.python.PythonActionGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonActionGenerator.html", null ],
@@ -413,7 +413,7 @@ var hierarchy =
     [ "org.lflang.generator.python.PythonReactorGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonReactorGenerator.html", null ],
     [ "org.lflang.generator.python.PythonStateGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonStateGenerator.html", null ],
     [ "org.lflang.generator.ReactionInstance.Runtime", "classorg_1_1lflang_1_1generator_1_1ReactionInstance_1_1Runtime.html", null ],
-    [ "org.lflang.generator.RuntimeRange< PortInstance >", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", [
+    [ "org.lflang.generator.RuntimeRange&lt; PortInstance &gt;", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", [
       [ "org.lflang.generator.RuntimeRange< T >.Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html", [
         [ "org.lflang.generator.SendRange", "classorg_1_1lflang_1_1generator_1_1SendRange.html", null ]
       ] ]
@@ -425,25 +425,25 @@ var hierarchy =
       ] ],
       [ "org.lflang.generator.ts.TSTypes", "classorg_1_1lflang_1_1generator_1_1ts_1_1TSTypes.html", null ]
     ] ],
-    [ "org.lflang.generator.TriggerInstance< Action >", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
+    [ "org.lflang.generator.TriggerInstance&lt; Action &gt;", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
       [ "org.lflang.generator.ActionInstance", "classorg_1_1lflang_1_1generator_1_1ActionInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.TriggerInstance< Port >", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
+    [ "org.lflang.generator.TriggerInstance&lt; Port &gt;", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
       [ "org.lflang.generator.PortInstance", "classorg_1_1lflang_1_1generator_1_1PortInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.TriggerInstance< Timer >", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
+    [ "org.lflang.generator.TriggerInstance&lt; Timer &gt;", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
       [ "org.lflang.generator.TimerInstance", "classorg_1_1lflang_1_1generator_1_1TimerInstance.html", null ]
     ] ],
-    [ "org.lflang.generator.TriggerInstance< Watchdog >", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
+    [ "org.lflang.generator.TriggerInstance&lt; Watchdog &gt;", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
       [ "org.lflang.generator.WatchdogInstance", "classorg_1_1lflang_1_1generator_1_1WatchdogInstance.html", null ]
     ] ],
     [ "org.lflang.generator.ValidationStrategy", "interfaceorg_1_1lflang_1_1generator_1_1ValidationStrategy.html", null ],
     [ "org.lflang.generator.Validator", "classorg_1_1lflang_1_1generator_1_1Validator.html", [
       [ "org.lflang.generator.python.PythonValidator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonValidator.html", null ]
     ] ],
-    [ "org.lflang.generator.Validator.Pair< S, T >", "classorg_1_1lflang_1_1generator_1_1Validator_1_1Pair.html", null ],
-    [ "org.lflang.graph.ConnectionGraph< V extends Object, E extends Object >", "classorg_1_1lflang_1_1graph_1_1ConnectionGraph.html", null ],
-    [ "org.lflang.graph.Graph< T >", "interfaceorg_1_1lflang_1_1graph_1_1Graph.html", [
+    [ "org.lflang.generator.Validator.Pair&lt; S, T &gt;", "classorg_1_1lflang_1_1generator_1_1Validator_1_1Pair.html", null ],
+    [ "org.lflang.graph.ConnectionGraph&lt; V extends Object, E extends Object &gt;", "classorg_1_1lflang_1_1graph_1_1ConnectionGraph.html", null ],
+    [ "org.lflang.graph.Graph&lt; T &gt;", "interfaceorg_1_1lflang_1_1graph_1_1Graph.html", [
       [ "org.lflang.graph.DirectedGraph< T >", "classorg_1_1lflang_1_1graph_1_1DirectedGraph.html", [
         [ "org.lflang.analyses.statespace.StateSpaceDiagram", "classorg_1_1lflang_1_1analyses_1_1statespace_1_1StateSpaceDiagram.html", null ],
         [ "org.lflang.graph.PrecedenceGraph< T extends Object >", "classorg_1_1lflang_1_1graph_1_1PrecedenceGraph.html", [
@@ -452,8 +452,8 @@ var hierarchy =
       ] ]
     ] ],
     [ "org.lflang.graph.NodeAnnotation", "classorg_1_1lflang_1_1graph_1_1NodeAnnotation.html", null ],
-    [ "org.lflang.graph.NodeAnnotations< T extends Object >", "classorg_1_1lflang_1_1graph_1_1NodeAnnotations.html", null ],
-    [ "org.lflang.graph.PrecedenceGraph< Reactor >", "classorg_1_1lflang_1_1graph_1_1PrecedenceGraph.html", [
+    [ "org.lflang.graph.NodeAnnotations&lt; T extends Object &gt;", "classorg_1_1lflang_1_1graph_1_1NodeAnnotations.html", null ],
+    [ "org.lflang.graph.PrecedenceGraph&lt; Reactor &gt;", "classorg_1_1lflang_1_1graph_1_1PrecedenceGraph.html", [
       [ "org.lflang.graph.InstantiationGraph", "classorg_1_1lflang_1_1graph_1_1InstantiationGraph.html", null ]
     ] ],
     [ "org.lflang.InferredType", "classorg_1_1lflang_1_1InferredType.html", null ],
@@ -477,8 +477,8 @@ var hierarchy =
     [ "org.lflang.scoping.LFScopeProviderImpl.RefType", "enumorg_1_1lflang_1_1scoping_1_1LFScopeProviderImpl_1_1RefType.html", null ],
     [ "org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOptions.html", null ],
     [ "org.lflang.target.property.CoordinationOptionsProperty.CoordinationOptions", "classorg_1_1lflang_1_1target_1_1property_1_1CoordinationOptionsProperty_1_1CoordinationOptions.html", null ],
-    [ "org.lflang.target.property.TargetProperty< T, S extends TargetPropertyType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", null ],
-    [ "org.lflang.target.property.TargetProperty< Boolean, PrimitiveType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; T, S extends TargetPropertyType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", null ],
+    [ "org.lflang.target.property.TargetProperty&lt; Boolean, PrimitiveType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.BooleanProperty", "classorg_1_1lflang_1_1target_1_1property_1_1BooleanProperty.html", [
         [ "org.lflang.target.property.AuthProperty", "classorg_1_1lflang_1_1target_1_1property_1_1AuthProperty.html", null ],
         [ "org.lflang.target.property.DNETProperty", "classorg_1_1lflang_1_1target_1_1property_1_1DNETProperty.html", null ],
@@ -495,34 +495,34 @@ var hierarchy =
         [ "org.lflang.target.property.VerifyProperty", "classorg_1_1lflang_1_1target_1_1property_1_1VerifyProperty.html", null ]
       ] ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< BuildType, BuildTypeType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; BuildType, BuildTypeType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.BuildTypeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1BuildTypeProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< ClockSyncMode, ClockSyncModeType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; ClockSyncMode, ClockSyncModeType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.ClockSyncModeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncModeProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< ClockSyncOptions, DictionaryType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; ClockSyncOptions, DictionaryType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.ClockSyncOptionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< CoordinationMode, CoordinationModeType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; CoordinationMode, CoordinationModeType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.CoordinationProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CoordinationProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< CoordinationOptions, DictionaryType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.CoordinationOptionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CoordinationOptionsProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< DockerOptions, UnionType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; DockerOptions, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.DockerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1DockerProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< Integer, PrimitiveType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; Integer, PrimitiveType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.WorkersProperty", "classorg_1_1lflang_1_1target_1_1property_1_1WorkersProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< List< Path >, UnionType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.RustIncludeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< List< String >, ArrayType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; List&lt; String &gt;, ArrayType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.Ros2DependenciesProperty", "classorg_1_1lflang_1_1target_1_1property_1_1Ros2DependenciesProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< List< String >, UnionType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; List&lt; String &gt;, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.BuildCommandsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1BuildCommandsProperty.html", null ],
       [ "org.lflang.target.property.FileListProperty", "classorg_1_1lflang_1_1target_1_1property_1_1FileListProperty.html", [
         [ "org.lflang.target.property.CmakeIncludeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty.html", null ],
@@ -534,22 +534,22 @@ var hierarchy =
         [ "org.lflang.target.property.CargoFeaturesProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CargoFeaturesProperty.html", null ]
       ] ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< LogLevel, LoggingType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; LogLevel, LoggingType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.LoggingProperty", "classorg_1_1lflang_1_1target_1_1property_1_1LoggingProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< Map< String, CargoDependencySpec >, CargoDependenciesPropertyType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; Map&lt; String, CargoDependencySpec &gt;, CargoDependenciesPropertyType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.CargoDependenciesProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CargoDependenciesProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< Map< String, String >, StringDictionaryType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.CompileDefinitionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< PlatformOptions, UnionType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; PlatformOptions, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.PlatformProperty", "classorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< Scheduler, SchedulerType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; Scheduler, SchedulerType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.SchedulerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SchedulerProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< String, PrimitiveType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; String, PrimitiveType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.FedSetupProperty", "classorg_1_1lflang_1_1target_1_1property_1_1FedSetupProperty.html", null ],
       [ "org.lflang.target.property.StringProperty", "classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html", [
         [ "org.lflang.target.property.CompilerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CompilerProperty.html", null ],
@@ -559,10 +559,10 @@ var hierarchy =
         [ "org.lflang.target.property.TracePluginProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html", null ]
       ] ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< TimeValue, PrimitiveType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.TimeOutProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TimeOutProperty.html", null ]
     ] ],
-    [ "org.lflang.target.property.TargetProperty< TracingOptions, UnionType >", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+    [ "org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.TracingProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty.html", null ]
     ] ],
     [ "org.lflang.target.property.TracingProperty.TracingOptions", "classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOptions.html", null ],
@@ -577,22 +577,22 @@ var hierarchy =
       [ "org.lflang.target.property.TracingProperty.TracingOption", "enumorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOption.html", null ]
     ] ],
     [ "org.lflang.target.property.type.LoggingType.LogLevel", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType_1_1LogLevel.html", null ],
-    [ "org.lflang.target.property.type.OptionsType< BuildType >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+    [ "org.lflang.target.property.type.OptionsType&lt; BuildType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.BuildTypeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType.html", null ]
     ] ],
-    [ "org.lflang.target.property.type.OptionsType< ClockSyncMode >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+    [ "org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.ClockSyncModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType.html", null ]
     ] ],
-    [ "org.lflang.target.property.type.OptionsType< CoordinationMode >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+    [ "org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.CoordinationModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html", null ]
     ] ],
-    [ "org.lflang.target.property.type.OptionsType< LogLevel >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+    [ "org.lflang.target.property.type.OptionsType&lt; LogLevel &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.LoggingType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType.html", null ]
     ] ],
-    [ "org.lflang.target.property.type.OptionsType< Platform >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+    [ "org.lflang.target.property.type.OptionsType&lt; Platform &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.PlatformType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType.html", null ]
     ] ],
-    [ "org.lflang.target.property.type.OptionsType< Scheduler >", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+    [ "org.lflang.target.property.type.OptionsType&lt; Scheduler &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.SchedulerType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType.html", null ]
     ] ],
     [ "org.lflang.target.property.type.PlatformType.Platform", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html", null ],

@@ -80,7 +80,7 @@ var group__Instances =
       [ "uniqueIDCount", "classorg_1_1lflang_1_1generator_1_1ModeInstance.html#a28d661c783189176e86e43d54e4b8f76", null ],
       [ "width", "classorg_1_1lflang_1_1generator_1_1ModeInstance.html#a28cb0ab446f4de043e16c9327c198ab0", null ]
     ] ],
-    [ "org.lflang.generator.NamedInstance< T extends EObject >", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
+    [ "org.lflang.generator.NamedInstance&lt; T extends EObject &gt;", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html", [
       [ "NamedInstance", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html#a186a8092380b44c8a879d75a27d91f7c", null ],
       [ "getDefinition", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html#a0b661e9f7d91c7d9f2c815e968aa10c9", null ],
       [ "getDepth", "classorg_1_1lflang_1_1generator_1_1NamedInstance.html#a6d6af7cccc27c21f342d765f21ca7712", null ],
@@ -328,7 +328,7 @@ var group__Instances =
       [ "watchdogs", "classorg_1_1lflang_1_1generator_1_1ReactorInstance.html#ad2da15feb8799c10c0c7004281fcc520", null ],
       [ "width", "classorg_1_1lflang_1_1generator_1_1ReactorInstance.html#a28cb0ab446f4de043e16c9327c198ab0", null ]
     ] ],
-    [ "org.lflang.generator.RuntimeRange< T >", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", [
+    [ "org.lflang.generator.RuntimeRange&lt; T &gt;", "classorg_1_1lflang_1_1generator_1_1RuntimeRange.html", [
       [ "Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html", [
         [ "Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html#a7f53b446b1efc6660c14e06427884ab6", null ],
         [ "Port", "classorg_1_1lflang_1_1generator_1_1RuntimeRange_1_1Port.html#a785626be71f7aa98cd2f744956e71282", null ],
@@ -443,7 +443,7 @@ var group__Instances =
       [ "dependentReactions", "classorg_1_1lflang_1_1generator_1_1TimerInstance.html#a5707123aa8691ccd7c64b54f87fdd789", null ],
       [ "dependsOnReactions", "classorg_1_1lflang_1_1generator_1_1TimerInstance.html#a2dd11fae53d58c404f4f4ed48a6dd939", null ]
     ] ],
-    [ "org.lflang.generator.TriggerInstance< T extends Variable >", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
+    [ "org.lflang.generator.TriggerInstance&lt; T extends Variable &gt;", "classorg_1_1lflang_1_1generator_1_1TriggerInstance.html", [
       [ "BuiltinTriggerVariable", "classorg_1_1lflang_1_1generator_1_1TriggerInstance_1_1BuiltinTriggerVariable.html", [
         [ "BuiltinTriggerVariable", "classorg_1_1lflang_1_1generator_1_1TriggerInstance_1_1BuiltinTriggerVariable.html#ab653f1dca2ef503dfaca83d8860f4cc6", null ],
         [ "getName", "classorg_1_1lflang_1_1generator_1_1TriggerInstance_1_1BuiltinTriggerVariable.html#aa96b2d62cfc63c7e95b2c6cb67c25c80", null ],

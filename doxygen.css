@@ -1,4 +1,4 @@
-/* The standard CSS for doxygen 1.14.0*/
+/* The standard CSS for doxygen 1.15.0*/
 
 body {
 	background-color: white;
@@ -340,6 +340,7 @@ pre.fragment {
 span.tt {
         white-space: pre;
 	font-family: 'JetBrains Mono',Consolas,Monaco,'Andale Mono','Ubuntu Mono',monospace,fixed;
+	background-color: #FBFCFD;
 }
 
 .clipboard {
@@ -1510,6 +1511,10 @@ dl.warning dt, dl.attention dt, dl.important dt {
 	color: #b61825;
 }
 
+dl.warning .tt, dl.attention .tt, dl.important .tt {
+	background-color: hsl(from #f8d1cc h s calc(l + -3));
+}
+
 dl.note, dl.remark {
 	background: #faf3d8;
 	border-left: 8px solid #f3a600;
@@ -1518,6 +1523,10 @@ dl.note, dl.remark {
 
 dl.note dt, dl.remark dt {
 	color: #f3a600;
+}
+
+dl.note .tt, dl.remark .tt {
+	background-color: hsl(from #faf3d8 h s calc(l + -3));
 }
 
 dl.todo {
@@ -1530,6 +1539,10 @@ dl.todo dt {
 	color: #1879C4;
 }
 
+dl.todo .tt {
+	background-color: hsl(from #e4f3ff h s calc(l + -3));
+}
+
 dl.test {
 	background: #e8e8ff;
 	border-left: 8px solid #3939C4;
@@ -1538,6 +1551,10 @@ dl.test {
 
 dl.test dt {
 	color: #3939C4;
+}
+
+dl.test .tt {
+	background-color: hsl(from #e8e8ff h s calc(l + -3));
 }
 
 dl.bug dt a {
@@ -1554,6 +1571,10 @@ dl.bug dt a {
 	color: #5b2bdd !important;
 }
 
+dl.bug .tt {
+	background-color: hsl(from #e4dafd h s calc(l + -3));
+}
+
 dl.deprecated {
 	background: #ecf0f3;
 	border-left: 8px solid #5b6269;
@@ -1564,11 +1585,10 @@ dl.deprecated dt a {
 	color: #5b6269 !important;
 }
 
-dl.note dd, dl.warning dd, dl.pre dd, dl.post dd,
-dl.remark dd, dl.attention dd, dl.important dd, dl.invariant dd,
-dl.bug dd, dl.deprecated dd, dl.todo dd, dl.test dd {
-	margin-inline-start: 0px;
+dl.deprecated .tt {
+	background-color: hsl(from #ecf0f3 h s calc(l + -3));
 }
+
 
 dl.invariant, dl.pre, dl.post {
 	background: #d8f1e3;
@@ -1578,6 +1598,16 @@ dl.invariant, dl.pre, dl.post {
 
 dl.invariant dt, dl.pre dt, dl.post dt {
 	color: #44b86f;
+}
+
+dl.invariant .tt, dl.pre .tt, dl.post .tt {
+	background-color: hsl(from #d8f1e3 h s calc(l + -3));
+}
+
+dl.note dd, dl.warning dd, dl.pre dd, dl.post dd,
+dl.remark dd, dl.attention dd, dl.important dd, dl.invariant dd,
+dl.bug dd, dl.deprecated dd, dl.todo dd, dl.test dd {
+	margin-inline-start: 0px;
 }
 
 
@@ -2038,7 +2068,7 @@ details[open]>summary::before {
 
 
 html {
---timestamp: 'Sun Oct 26 2025 10:20:23'
+--timestamp: 'Thu Nov 13 2025 14:48:37';
 }
 span.timestamp { content: ' '; }
 span.timestamp:before { content: var(--timestamp); }

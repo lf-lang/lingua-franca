@@ -6826,17 +6826,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>applyTransformation</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.generator.c.CEnclavedReactorTransformation</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html</Path>
-    <Anchor>ab777adeb6b5cbd289e7b671b44d8161c</Anchor>
-    <DeclaredIn>CEnclavedReactorTransformation.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>ARDUINO</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>

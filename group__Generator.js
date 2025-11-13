@@ -1,6 +1,6 @@
 var group__Generator =
 [
-    [ "org.lflang.generator.Argument< T >", "classorg_1_1lflang_1_1generator_1_1Argument.html", [
+    [ "org.lflang.generator.Argument&lt; T &gt;", "classorg_1_1lflang_1_1generator_1_1Argument.html", [
       [ "Argument", "classorg_1_1lflang_1_1generator_1_1Argument.html#a404f9d87d34be5688399b628dfaaf8a8", null ],
       [ "update", "classorg_1_1lflang_1_1generator_1_1Argument.html#a5abdf7ecf22c22ea6bb3dca40a913f0f", null ]
     ] ],
@@ -55,7 +55,7 @@ var group__Generator =
     ] ],
     [ "org.lflang.generator.c.CEnclavedReactorTransformation", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html", [
       [ "CEnclavedReactorTransformation", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#a8e161eeae52db318f8f0c2a8c341c864", null ],
-      [ "applyTransformation", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#ab777adeb6b5cbd289e7b671b44d8161c", null ],
+      [ "applyTransformation", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#a1364195c302212fb923035cb0b0e007d", null ],
       [ "setEnvParams", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#ae7effaa1c9228a0afbf7d019106da613", null ],
       [ "connectionReactor", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#af24a5057a94242e14fd60894765d8835", null ],
       [ "connGraph", "classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#a67ce75216f7a13a5e4a60db5c5b6ecc4", null ],
@@ -435,7 +435,7 @@ var group__Generator =
       [ "isHostWindows", "classorg_1_1lflang_1_1generator_1_1GeneratorUtils.html#affcb5e223231b1bda991f765d8f6982c", null ],
       [ "refreshProject", "classorg_1_1lflang_1_1generator_1_1GeneratorUtils.html#a1e62f0797f9cf5f107992158803e2b8d", null ]
     ] ],
-    [ "org.lflang.generator.LfExpressionVisitor< P, R >", "interfaceorg_1_1lflang_1_1generator_1_1LfExpressionVisitor.html", [
+    [ "org.lflang.generator.LfExpressionVisitor&lt; P, R &gt;", "interfaceorg_1_1lflang_1_1generator_1_1LfExpressionVisitor.html", [
       [ "DefaultLfVisitor", "classorg_1_1lflang_1_1generator_1_1LfExpressionVisitor_1_1DefaultLfVisitor.html", [
         [ "dispatch", "classorg_1_1lflang_1_1generator_1_1LfExpressionVisitor_1_1DefaultLfVisitor.html#a1ea0fffe968c23a36f2fcdc6dc0e1bd5", null ],
         [ "visitBracedListExpr", "classorg_1_1lflang_1_1generator_1_1LfExpressionVisitor_1_1DefaultLfVisitor.html#acc05e281c62215dad461dba40a1aee12", null ],
