@@ -1,4 +1,7 @@
-// Variant of DecentralizedP2PComm that has STP violations.
+/**
+ * Variant of DecentralizedP2PComm that has STP violations.
+ * @deprecated Use DecentralizedP2PSTPViolationMW.lf instead.
+ */
 target C {
   timeout: 5 sec,
   tracing: true,

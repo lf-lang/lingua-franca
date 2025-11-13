@@ -1,3 +1,4 @@
+/** @deprecated Use DecentralizedP2PCommMW.lf instead. */
 target C {
   timeout: 5 sec,
   tracing: true,
