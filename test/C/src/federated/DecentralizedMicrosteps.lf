@@ -6,6 +6,7 @@
  * advances past the start time. It also uses lf_request_stop() to stop the execution.
  *
  * @author Edward A. Lee
+ * @deprecated Use DecentralizedMicrostepsMW.lf instead.
  */
 target C {
   coordination: decentralized

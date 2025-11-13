@@ -34,7 +34,7 @@ reactor ImportantActuator {
       self->success++; // Message was on-time
     }
     self->c++;
-  =} STAA(0) {=
+  =} tardy {=
     tag_t current_tag = lf_tag();
     lf_print("Message violated STP offset by " PRINTF_TAG ".",
         current_tag.time - in->intended_tag.time,
@@ -68,7 +68,7 @@ reactor Print {
          in->value,
          in->intended_tag.time - lf_time_start(),
          in->intended_tag.microstep);
-  =} STAA(0) {=
+  =} tardy {=
     tag_t current_tag = lf_tag();
     lf_print("STP Violation: At tag " PRINTF_TAG " Print received %d. Intended tag is " PRINTF_TAG ".",
          current_tag.time - lf_time_start(),
