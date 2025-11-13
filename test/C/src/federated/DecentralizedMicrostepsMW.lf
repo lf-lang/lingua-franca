@@ -1,11 +1,11 @@
 /**
- * @brief A federated system with a decentralized coordinator that has large `maxwait`
- * and `absent_after` offsets.
+ * @brief A federated system with a decentralized coordinator that has large `maxwait` and
+ * `absent_after` offsets.
  *
- * This test verifies that a large `maxwait` and `absent_after` offset can be used 
- * when the data flow is predictable even if the the program is lagging behind physical time.
- * This version uses microsteps and never advances past the start time. It also uses
- * lf_request_stop() to stop the execution.
+ * This test verifies that a large `maxwait` and `absent_after` offset can be used when the data
+ * flow is predictable even if the the program is lagging behind physical time. This version uses
+ * microsteps and never advances past the start time. It also uses lf_request_stop() to stop the
+ * execution.
  *
  * @author Edward A. Lee
  */
