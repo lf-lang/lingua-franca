@@ -17,7 +17,7 @@ import org.lflang.util.LFCommand;
  *
  * <p>In addition to the basic functionality of LFCommand, this class additionally ensures that
  * error messages (or optionally warnings) are shown when a command is not found and that certain
-   * environment variables are set (see {@link #createCommand}).
+ * environment variables are set (see {@link #createCommand}).
  *
  * @ingroup Generator
  */

@@ -38,4 +38,3 @@ else
   echo "OK: No Doxygen warnings found (false positives filtered out)."
   exit 0
 fi
-
