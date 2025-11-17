@@ -32,6 +32,7 @@ public interface FedTargetExtension {
    * @param federate The federate instance.
    * @param fileConfig An instance of `FedFileConfig`.
    * @param messageReporter Used to report errors.
+   * @param rtiConfig The RTI configuration settings.
    */
   void initializeTargetConfig(
       LFGeneratorContext context,
@@ -52,6 +53,7 @@ public interface FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
    * @param coordinationMode The coordination type
+   * @param messageReporter Used to report errors and warnings.
    */
   String generateNetworkReceiverBody(
       Action action,
@@ -80,6 +82,7 @@ public interface FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
    * @param coordinationMode Whether the federated program is centralized or decentralized.
+   * @param messageReporter Used to report errors and warnings.
    */
   String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -112,7 +115,9 @@ public interface FedTargetExtension {
    * Add preamble to the source to set up federated execution.
    *
    * @param federate The federate to which the generated setup code will correspond.
+   * @param fileConfig The federation file configuration.
    * @param rtiConfig The settings of the RTI.
+   * @param messageReporter Used to report errors and warnings.
    */
   String generatePreamble(
       FederateInstance federate,

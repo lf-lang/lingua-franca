@@ -533,6 +533,7 @@ public class ASTUtils {
    * definition.
    *
    * @param definition The reactor definition.
+   * @param feature The structural feature to collect.
    * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
    * @return A list of all elements of type T found
    */
@@ -1694,6 +1695,7 @@ public class ASTUtils {
    * Find the main reactor and set its name if none was defined.
    *
    * @param resource The resource to find the main reactor in.
+   * @param name The name to set for the main reactor.
    */
   public static void setMainName(Resource resource, String name) {
     Reactor main =

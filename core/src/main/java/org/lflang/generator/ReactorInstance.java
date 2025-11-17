@@ -67,6 +67,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    *
    * @param reactor The top-level reactor.
    * @param reporter The error reporter.
+   * @param reactors The list of all reactors in the program.
    */
   public ReactorInstance(Reactor reactor, MessageReporter reporter, List<Reactor> reactors) {
     this(ASTUtils.createInstantiation(reactor), null, reporter, -1, reactors);
@@ -783,6 +784,7 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
    * @param parent The parent, or null for the main rector.
    * @param reporter An error reporter.
    * @param desiredDepth The depth to which to expand the hierarchy.
+   * @param reactors The list of all reactors in the program.
    */
   public ReactorInstance(
       Instantiation definition,

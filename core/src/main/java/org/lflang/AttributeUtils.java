@@ -319,7 +319,7 @@ public class AttributeUtils {
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
    * have one.
    *
-   * @param The AST node (Instantiation or Connection).
+   * @param node The AST node (Instantiation or Connection).
    */
   public static TimeValue getMaxWait(EObject node) {
     final var attr = findAttributeByName(node, "maxwait");
@@ -338,7 +338,7 @@ public class AttributeUtils {
    * Return the value of the `@absent_after` attribute of the given node or TimeValue.ZERO if does not
    * have one.
    *
-   * @param The AST node (a Connection).
+   * @param node The AST node (a Connection).
    */
   public static TimeValue getAbsentAfter(EObject node) {
     final var attr = findAttributeByName(node, "absent_after");

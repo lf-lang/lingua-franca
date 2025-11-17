@@ -211,6 +211,8 @@ public class TargetConfig {
    * @param pairs AST node that holds all the target properties.
    * @param relativePath The path from the main resource to the resource from which the new
    *     properties originate.
+   * @param loadOrNot Predicate to determine whether a property should be loaded.
+   * @param err Message reporter for errors.
    */
   public void update(
       TargetConfig config,

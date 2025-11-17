@@ -75,6 +75,7 @@ public class CCompiler {
    *
    * @param generator An instance of GeneratorBase, only used to report error line numbers in the
    *     Eclipse IDE.
+   * @param context The generator context.
    * @return true if compilation succeeds, false otherwise.
    */
   public boolean runCCompiler(GeneratorBase generator, LFGeneratorContext context)
@@ -347,6 +348,7 @@ public class CCompiler {
    * @param fileName The base name of the file without any extensions
    * @param cppMode Indicate whether the compiler is in C++ mode In C++ mode, the compiler produces
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
+   * @param targetConfig The target configuration.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
     return fileName + getFileExtension(cppMode, targetConfig);

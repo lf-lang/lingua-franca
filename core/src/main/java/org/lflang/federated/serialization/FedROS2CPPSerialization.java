@@ -88,6 +88,8 @@ public class FedROS2CPPSerialization implements FedSerialization {
    * Variant of @see generateNetworkSerializerCode(String varName, String originalType) that also
    * supports shared pointer (i.e., std::shared_ptr<>) definitions of ROS port types.
    *
+   * @param varName The variable name.
+   * @param originalType The original type name.
    * @param isSharedPtrType Indicates whether the port type is a shared pointer or not.
    */
   public StringBuilder generateNetworkSerializerCode(

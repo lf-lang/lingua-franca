@@ -97,8 +97,9 @@ public class CWatchdogGenerator {
    *
    * @param src The place to put the code
    * @param header The place to put header code
-   * @param suppressLineDirectives Whether to suppress the generation of line directives.
    * @param tpr The reactor declaration
+   * @param suppressLineDirectives Whether to suppress the generation of line directives.
+   * @param messageReporter Used to report errors and warnings.
    */
   protected static void generateWatchdogs(
       CodeBuilder src,

@@ -1096,6 +1096,8 @@ public class ToLf extends LfSwitch<MalleableString> {
    * @param nothingIfEmpty Whether the result should be simplified to the empty string as opposed to
    *     just the prefix and suffix.
    * @param whitespaceRigid Whether any whitespace appearing in the
+   * @param suffixSameLine Whether the suffix should be on the same line as the last element.
+   * @param items The list of elements to convert to a string.
    */
   private <E extends EObject> MalleableString list(
       String separator,

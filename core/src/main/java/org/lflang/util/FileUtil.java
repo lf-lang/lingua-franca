@@ -308,11 +308,11 @@ public class FileUtil {
    * located directly in `baz`. If `contentsOnly` is false, then copies of the contents
    * of `foo/bar` will be located in `baz/bar`.
    *
-   * @param entries The files or directories to copy from.
-   * @param dstDir The location to copy the files to.
-   * @param fileConfig The file configuration that specifies where the find entries the given
-   *     entries.
-   * @param messageReporter An error reporter to report problems.
+   * @param entries The list of file or directory entries to copy.
+   * @param dstDir The destination directory.
+   * @param fileConfig The file configuration that specifies where to find entries.
+   * @param messageReporter Used to report errors and warnings.
+   * @param fileEntriesOnly Whether to copy only file entries.
    */
   public static void copyFilesOrDirectories(
       List<String> entries,
@@ -659,6 +659,7 @@ public class FileUtil {
    * support files (including semaphores and thread folders)
    *
    * @param srcGenPath The folder to search for folders and files to delete.
+   * @param threadingOn Whether threading is enabled.
    * @throws IOException If the given folder and unneeded files cannot be deleted.
    */
   public static void arduinoDeleteHelper(Path srcGenPath, boolean threadingOn) throws IOException {
@@ -731,6 +732,7 @@ public class FileUtil {
    * Convert all includes recursively inside files within a specified folder to relative links
    *
    * @param dir The folder to search for includes to change.
+   * @param includePath The include path.
    * @param messageReporter Error reporter
    * @throws IOException If the given set of files cannot be relativized.
    */
