@@ -126,7 +126,6 @@ public class TargetConfig {
    * Load configuration from the given resource.
    *
    * @param resource A resource to load from.
-   * @param reporter A reporter for reporting issues.
    * @param reporter A message reporter for reporting errors and warnings.
    */
   protected void load(Resource resource, MessageReporter reporter) {

@@ -143,7 +143,7 @@ public class PythonReactionGenerator {
    *
    * @param reaction The reaction to generate Python-specific initialization for.
    * @param tpr The type-parameterized reactor.
-   * @param r The reactor to which <code>reaction<code> belongs to.
+   * @param r The reactor to which <code>reaction</code> belongs to.
    * @param reactionIndex The index number of the reaction in decl.
    * @param mainDef The main reactor.
    * @param messageReporter An error reporter.

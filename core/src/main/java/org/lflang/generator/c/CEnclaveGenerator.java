@@ -396,7 +396,7 @@ public class CEnclaveGenerator {
 
   /**
    * Generate the `lf_get_downstream_of` function which points the `result` argument to the
-   * beginning of an array of the id`s of the enclaves downstream of `enclave_id`.
+   * beginning of an array of the IDs of the enclaves downstream of `enclave_id`.
    */
   private String generateGetDownstreamOf() {
     CodeBuilder code = new CodeBuilder();

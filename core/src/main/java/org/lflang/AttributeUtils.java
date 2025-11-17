@@ -241,12 +241,21 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the `@layout` annotations for the given element or null if there is no such annotation.
-   * Layout annotations have the form: ```
+   * Return the layout annotations for the given element or null if there is no such annotation.
+   * Layout annotations have the form:
    *
-   * @layout(option="string", value="any") ``` For example, ```
-   * @layout(option="port.side", value="WEST") ``` This will return all such annotations for the
-   *     specified node in the form of a map from the option name to the value.
+   * <pre>{@code
+   * @layout(option="string", value="any")
+   * }</pre>
+   *
+   * For example:
+   *
+   * <pre>{@code
+   * @layout(option="port.side", value="WEST")
+   * }</pre>
+   *
+   * This will return all such annotations for the specified node in the form of a map from the option
+   * name to the value.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
     final List<Attribute> attrs = findAttributesByName(node, "layout");
