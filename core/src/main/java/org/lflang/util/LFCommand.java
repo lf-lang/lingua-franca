@@ -219,7 +219,7 @@ public class LFCommand {
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
    *
-   * @see #get(String, List, boolean, Path)
+   * @see #get
    */
   public static LFCommand get(final String cmd, final List<String> args) {
     return get(cmd, args, false, Paths.get(""));
@@ -229,7 +229,7 @@ public class LFCommand {
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
    *
-   * @see #get(String, List, boolean, Path)
+   * @see #get
    */
   public static LFCommand get(final String cmd, final List<String> args, boolean quiet) {
     return get(cmd, args, quiet, Paths.get(""));
