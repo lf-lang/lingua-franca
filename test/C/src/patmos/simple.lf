@@ -2,15 +2,22 @@
  * This file is an LF sample code, which is equivalent to the following ForSyDe code. For more
  * information refer to this paper: https://ieeexplore.ieee.org/document/11121303
  *
- * import ForSyDe.Shallow system :: Signal Integer
- * -> Signal Integer system input = output where output = adder input internal adder = zipWithSY (+)
- * internal = delaySY 5 output
+ * import ForSyDe.Shallow -- This line imports the ForSyDe shallow Embedded Domain-Specific Language
+ * system :: Signal Integer -> Signal Integer -- This line defines the system function prototype.
+ * system input = output where -- This line defines the system function, and its input and output.
+ * output = adder input internal -- This line defines the output signal as the result of the adder.
+ * adder = zipWithSY (+) -- This line defines the adder reactor using the zipWithSY function.
+ * internal = delaySY 5 output -- Defines the internal signal as a delayed version of the output.
  */
 target C {
   platform: "Patmos",
-  build-type: Debug,
-  single-threaded: true
+  single-threaded: true,
+  timeout: 5 msec
 }
+
+preamble {=
+  #define EXPECTED 26
+=}
 
 reactor Source {
   output out: int
@@ -18,13 +25,8 @@ reactor Source {
   state s: int = 1
 
   reaction(t) -> out {=
-    if (self->s <= 10) {
-      lf_set(out, self->s);
-      ++self->s;
-    }
-    else {
-      exit(1);
-    }
+    lf_set(out, self->s);
+    ++self->s;
   =}
 }
 
@@ -34,7 +36,17 @@ reactor Sink {
 
   reaction(in) {=
     self->last_received = in->value;
-    lf_print("Received %d", in->value);
+    lf_print("Received %d at %lld", in->value, lf_time_logical_elapsed());
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Shutdown reaction called.");
+    if(self->last_received == EXPECTED) {
+      lf_print("Last received value was equal to EXPECTED.");
+    } else {
+      lf_print("ERROR: Last received value was %d, but expected %d.", self->last_received, EXPECTED);
+      exit(1);
+    }
   =}
 }
 
@@ -46,7 +58,7 @@ reactor Adder {
 
   reaction(in1, in2) -> out {=
     if (in2->is_present) {
-       self->result = in1->value+in2->value;
+       self->result = in1->value + in2->value;
     }
     else {
       self->result = in1->value + 5;
