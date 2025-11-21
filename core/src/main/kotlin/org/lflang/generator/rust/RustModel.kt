@@ -557,7 +557,7 @@ object RustModelBuilder {
                                 childLfName = container.name,
                                 lfName = variable.name,
                                 isInput = variable is Input,
-                                dataType = container.reactor.instantiateType(formalType, it.container.typeArgs),
+                                dataType = container.instantiateType(formalType),
                                 widthSpecMultiport = variable.widthSpec?.toRustExpr(),
                                 widthSpecChild = container.widthSpec?.toRustExpr(),
                             )
@@ -690,8 +690,9 @@ val Reactor.globalId: ReactorId
  * would be `generic.typeOfPort("port", listOf("String"))`.
  *
  */
-fun Reactor.instantiateType(formalType: TargetCode, typeArgs: List<Type>): TargetCode {
-    val typeParams = typeParms
+fun Instantiation.instantiateType(formalType: TargetCode): TargetCode {
+    val typeArgs = this.typeArgs
+    val typeParams = reactor.typeParms
     assert(typeArgs.size == typeParams.size)
 
     return if (typeArgs.isEmpty()) formalType
