@@ -128,7 +128,7 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:aceeeb935fd65583e8715f58dd1601848" id="r_aceeeb935fd65583e8715f58dd1601848"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aceeeb935fd65583e8715f58dd1601848">getLabel</a> (EObject node)</td></tr>
 <tr class="memdesc:aceeeb935fd65583e8715f58dd1601848"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the declared label of the node, as given by the <span class="tt">@label</span> annotation.  <br /></td></tr>
 <tr class="memitem:a7679041b34d82526d983636c48a84dca" id="r_a7679041b34d82526d983636c48a84dca"><td class="memItemLeft" align="right" valign="top">static Map&lt; String, String &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7679041b34d82526d983636c48a84dca">getLayoutOption</a> (EObject node)</td></tr>
-<tr class="memdesc:a7679041b34d82526d983636c48a84dca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">@layout</span> annotations for the given element or null if there is no such annotation.  <br /></td></tr>
+<tr class="memdesc:a7679041b34d82526d983636c48a84dca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the layout annotations for the given element or null if there is no such annotation.  <br /></td></tr>
 <tr class="memitem:a7b332bce66295c7bfa55fcd0a449fa13" id="r_a7b332bce66295c7bfa55fcd0a449fa13"><td class="memItemLeft" align="right" valign="top">static <a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a7b332bce66295c7bfa55fcd0a449fa13">getMaxWait</a> (EObject node)</td></tr>
 <tr class="memdesc:a7b332bce66295c7bfa55fcd0a449fa13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one.  <br /></td></tr>
 <tr class="memitem:af8f04c78d4f4ee91a13cd551f68dcf89" id="r_af8f04c78d4f4ee91a13cd551f68dcf89"><td class="memItemLeft" align="right" valign="top">static String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#af8f04c78d4f4ee91a13cd551f68dcf89">getPortSide</a> (EObject node)</td></tr>
@@ -264,7 +264,7 @@ Alexander Schulz-Rosengarten </dd></dl>
 <p>Return the value of the <span class="tt">@absent_after</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">The</td><td>AST node (a Connection). </td></tr>
+    <tr><td class="paramname">node</td><td>The AST node (a Connection). </td></tr>
   </table>
   </dd>
 </dl>
@@ -622,9 +622,14 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return the <span class="tt">@layout</span> annotations for the given element or null if there is no such annotation. </p>
-<p>Layout annotations have the form: ```</p>
-<p>@layout(option="string", value="any") <span class="tt"> For example, </span> @layout(option="port.side", value="WEST") ``` This will return all such annotations for the specified node in the form of a map from the option name to the value. </p>
+<p>Return the layout annotations for the given element or null if there is no such annotation. </p>
+<p>Layout annotations have the form:</p>
+<pre><code class="JavaDocCode"><br/>
+@layout(option="string", value="any")<br/>
+</code></pre><p>For example:</p>
+<pre><code class="JavaDocCode"><br/>
+@layout(option="port.side", value="WEST")<br/>
+</code></pre><p>This will return all such annotations for the specified node in the form of a map from the option name to the value. </p>
 
 </div>
 </div>
@@ -654,7 +659,7 @@ Alexander Schulz-Rosengarten </dd></dl>
 <p>Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">The</td><td>AST node (Instantiation or Connection). </td></tr>
+    <tr><td class="paramname">node</td><td>The AST node (Instantiation or Connection). </td></tr>
   </table>
   </dd>
 </dl>

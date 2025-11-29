@@ -223,7 +223,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Returns an immutable Set that contains all argument values. </p>
-<p>Duplicate elements are removed without error (contrary to <code><a class="el" href="">Set#of()</a></code> and friends). </p>
+<p>Duplicate elements are removed without error (contrary to <span class="tt">Set.of()</span> and friends). </p>
 
 </div>
 </div>
@@ -362,7 +362,7 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Remove the given value from all the sets that are values in the given map. </p>
-<p>Use this if the values of the map (the sets) were build with <code><a class="el" href="">plus(Set, Object)</a></code>.</p>
+<p>Use this if the values of the map (the sets) were build with <code><a class="el" href="#ac2805303149ce3fbf37f22ad3891ac5c">plus</a></code>.</p>
 <p>In <code><a class="el" href="classorg_1_1lflang_1_1graph_1_1DirectedGraph.html">org.lflang.graph.DirectedGraph</a></code>, this is used to properly remove nodes from a graph. There, we use maps to represent edges, where a value in a map is a set of nodes adjacent to the key for that value. Hence, when a node is removed, it needs to be removed not just as a key, but it also needs to be removed from the neighbors sets of any other keys that may contain it.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">

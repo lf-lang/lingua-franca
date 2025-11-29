@@ -135,7 +135,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ae2ee495f6a70d4b49df0613d06a53f98" id="r_ae2ee495f6a70d4b49df0613d06a53f98"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae2ee495f6a70d4b49df0613d06a53f98">prEndSourceLineNumber</a> (boolean suppress)</td></tr>
 <tr class="memdesc:ae2ee495f6a70d4b49df0613d06a53f98"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print a tag marking the end of a block corresponding to the source LF file.  <br /></td></tr>
 <tr class="memitem:aaac146f04fd6fe63520a1b867ce90320" id="r_aaac146f04fd6fe63520a1b867ce90320"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aaac146f04fd6fe63520a1b867ce90320">prSourceLineNumber</a> (EObject eObject, boolean suppress)</td></tr>
-<tr class="memdesc:aaac146f04fd6fe63520a1b867ce90320"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the #line compiler directive with the line number of the specified object.  <br /></td></tr>
+<tr class="memdesc:aaac146f04fd6fe63520a1b867ce90320"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print the <span class="tt">#line</span> compiler directive with the line number of the specified object.  <br /></td></tr>
 <tr class="memitem:aa222e7f98bbd28f38b44eb25815efbc8" id="r_aa222e7f98bbd28f38b44eb25815efbc8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="#adfb43ba41fca5d32834adcbb878ef3d6">CodeBuilder</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aa222e7f98bbd28f38b44eb25815efbc8">removeLines</a> (String prefix)</td></tr>
 <tr class="memdesc:aa222e7f98bbd28f38b44eb25815efbc8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Remove all lines that start with the specified prefix and return a new <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html" title="Helper class for printing code with indentation.">CodeBuilder</a> with the result.  <br /></td></tr>
 <tr class="memitem:a266cfc60ed416b5b2d37257ac8923491" id="r_a266cfc60ed416b5b2d37257ac8923491"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a266cfc60ed416b5b2d37257ac8923491">startChannelIteration</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1PortInstance.html">PortInstance</a> port)</td></tr>
@@ -562,7 +562,7 @@ Peter Donovan </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Print the #line compiler directive with the line number of the specified object. </p>
+<p>Print the <span class="tt">#line</span> compiler directive with the line number of the specified object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">eObject</td><td>The node. </td></tr>
@@ -740,7 +740,7 @@ Peter Donovan </dd></dl>
 </div><div class="memdoc">
 
 <p>Start a scoped block that iterates over the specified range of port channels. </p>
-<p>This must be followed by a call to <code><a class="el" href="">endScopedRangeBlock(RuntimeRange)</a></code>.</p>
+<p>This must be followed by a call to <code><a class="el" href="#a7919b5ffaf29490c56b8d905a6aedebf">endScopedRangeBlock</a></code>.</p>
 <p>This block should NOT be nested, where each block is put within a similar block for the reactor's parent. Within the created block, every use of <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ac08c69f9e1cbc7f04737f5ce6300af1e">CUtil#reactorRef(ReactorInstance, String)</a></code> must provide the second argument, a runtime index variable name, that must match the runtimeIndex parameter given here.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -794,7 +794,7 @@ dst_runtime: The runtime index of the destination port&amp;#39;s parent or the p
 </ul>
 <p>For convenience, the above variable names are defined in the private class variables sc, sb, sr, and dc, db, dr.</p>
 <p>This block should NOT be nested, where each block is put within a similar block for the reactor's parent. Within the created block, every use of <code><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ac08c69f9e1cbc7f04737f5ce6300af1e">CUtil#reactorRef(ReactorInstance, String)</a></code> and related functions must provide the above variable names.</p>
-<p>This must be followed by a call to <code><a class="el" href="">endScopedRangeBlock(SendRange, RuntimeRange)</a></code>.x</p>
+<p>This must be followed by a call to <code><a class="el" href="#a7919b5ffaf29490c56b8d905a6aedebf">endScopedRangeBlock</a></code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">srcRange</td><td>The send range. </td></tr>

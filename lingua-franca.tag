@@ -14090,8 +14090,8 @@
     <member kind="function">
       <type>void</type>
       <name>applyTransformation</name>
-      <anchorfile>interfaceorg_1_1lflang_1_1ast_1_1AstTransformation.html</anchorfile>
-      <anchor>a1364195c302212fb923035cb0b0e007d</anchor>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html</anchorfile>
+      <anchor>ab777adeb6b5cbd289e7b671b44d8161c</anchor>
       <arglist>(List&lt; Reactor &gt; reactors)</arglist>
     </member>
     <member kind="function">

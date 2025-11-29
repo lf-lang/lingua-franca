@@ -180,10 +180,12 @@ Hou Seng Wong </dd></dl>
 <p>Generate the struct type definitions for the action of the reactor. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">tpr</td><td>The type-parameterized reactor. </td></tr>
     <tr><td class="paramname">action</td><td>The action to generate the struct for </td></tr>
     <tr><td class="paramname">target</td><td>The target of the code generation (C, CCpp or Python) </td></tr>
     <tr><td class="paramname">types</td><td>The helper object for types related stuff </td></tr>
     <tr><td class="paramname">federatedExtension</td><td>The code needed to support federated execution </td></tr>
+    <tr><td class="paramname">userFacing</td><td>Whether this is user-facing code. </td></tr>
   </table>
   </dd>
 </dl>
@@ -226,6 +228,7 @@ Hou Seng Wong </dd></dl>
 <p>Generate the declarations of actions in the self struct. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">tpr</td><td>The type-parameterized reactor. </td></tr>
     <tr><td class="paramname">body</td><td>The content of the self struct </td></tr>
     <tr><td class="paramname">constructorCode</td><td>The constructor code of the reactor </td></tr>
   </table>

@@ -292,7 +292,9 @@ Static Protected Attributes</h2></td></tr>
 <p>Generate code for the body of a reaction that takes an input and schedules an action with the value of that input. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">ref</td><td>Reference to the input port. </td></tr>
     <tr><td class="paramname">actionName</td><td>The action to schedule </td></tr>
+    <tr><td class="paramname">type</td><td>The type of the data. </td></tr>
   </table>
   </dd>
 </dl>
@@ -475,6 +477,10 @@ Static Protected Attributes</h2></td></tr>
     <tr><td class="paramname">reaction</td><td>The initialization code will be generated for this specific reaction </td></tr>
     <tr><td class="paramname">tpr</td><td>The reactor that has the reaction </td></tr>
     <tr><td class="paramname">reactionIndex</td><td>The index of the reaction relative to other reactions in the reactor, starting from 0 </td></tr>
+    <tr><td class="paramname">types</td><td>The C-specific type conversion functions. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
+    <tr><td class="paramname">mainDef</td><td>The main reactor instantiation. </td></tr>
+    <tr><td class="paramname">requiresTypes</td><td>Whether type information is required. </td></tr>
   </table>
   </dd>
 </dl>
@@ -523,6 +529,8 @@ Static Protected Attributes</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">effect</td><td>The effect declared by the reaction. This must refer to an output. </td></tr>
     <tr><td class="paramname">tpr</td><td>The reactor containing the reaction. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
+    <tr><td class="paramname">requiresTypes</td><td>Whether type information is required. </td></tr>
   </table>
   </dd>
 </dl>
@@ -593,6 +601,11 @@ Static Protected Attributes</h2></td></tr>
     <tr><td class="paramname">reaction</td><td>The reaction. </td></tr>
     <tr><td class="paramname">tpr</td><td>The reactor. </td></tr>
     <tr><td class="paramname">reactionIndex</td><td>The position of the reaction within the reactor. </td></tr>
+    <tr><td class="paramname">mainDef</td><td>The main reactor instantiation. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
+    <tr><td class="paramname">types</td><td>The C-specific type conversion functions. </td></tr>
+    <tr><td class="paramname">targetConfig</td><td>The target configuration. </td></tr>
+    <tr><td class="paramname">requiresType</td><td>Whether type information is required. </td></tr>
   </table>
   </dd>
 </dl>
@@ -642,6 +655,7 @@ Static Protected Attributes</h2></td></tr>
     <tr><td class="paramname">body</td><td>The place to put the code for the self struct. </td></tr>
     <tr><td class="paramname">tpr</td><td><code><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a></code> </td></tr>
     <tr><td class="paramname">constructorCode</td><td>The place to put the constructor code. </td></tr>
+    <tr><td class="paramname">types</td><td>The C-specific type conversion functions. </td></tr>
   </table>
   </dd>
 </dl>
@@ -871,6 +885,7 @@ Static Protected Attributes</h2></td></tr>
     <tr><td class="paramname">containedReactor</td><td>The contained reactor instantiation. </td></tr>
     <tr><td class="paramname">breadcrumbs</td><td>null on first call (non-recursive). </td></tr>
     <tr><td class="paramname">max</td><td>0 on first call. </td></tr>
+    <tr><td class="paramname">mainDef</td><td>The main reactor instantiation. </td></tr>
   </table>
   </dd>
 </dl>

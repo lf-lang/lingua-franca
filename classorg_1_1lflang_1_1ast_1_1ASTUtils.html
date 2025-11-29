@@ -1109,6 +1109,7 @@ Christian Menard </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">definition</td><td>The reactor definition. </td></tr>
+    <tr><td class="paramname">feature</td><td>The structural feature to collect. </td></tr>
     <tr><td class="paramname">&lt;T&gt;</td><td>The type of elements to collect (e.g., Port, Timer, etc.) </td></tr>
   </table>
   </dd>
@@ -2137,7 +2138,7 @@ Christian Menard </dd></dl>
 <p>Infer the width of a port reference in a connection. </p>
 <p>The port reference one or two parts, a port and an (optional) container which is an Instantiation that may refer to a bank of reactors. The width will be the product of the bank width and the port width. The returned value will be 1 if the port is not in a bank and is not a multiport.</p>
 <p>If the width cannot be determined, this will return -1. The width cannot be determined if the list of instantiations is missing or incomplete.</p>
-<p>The instantiations list is as in <code><a class="el" href="">initialValue(Parameter, List)</a></code>. The first element on this list should be the instantiation that contains the specified connection.</p>
+<p>The instantiations list is as in <code><a class="el" href="#a972779d0067b217bc5b6eeffcb6594b9">initialValue</a></code>. The first element on this list should be the instantiation that contains the specified connection.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">reference</td><td>A port reference. </td></tr>
@@ -2267,7 +2268,7 @@ Christian Menard </dd></dl>
 </div><div class="memdoc">
 
 <p>Given a parameter return its integer value or null if it does not have an integer value. </p>
-<p>If the value of the parameter is a list of integers, return the sum of value in the list. The instantiations parameter is as in <code><a class="el" href="">initialValue(Parameter, List)</a></code>.</p>
+<p>If the value of the parameter is a list of integers, return the sum of value in the list. The instantiations parameter is as in <code><a class="el" href="#a972779d0067b217bc5b6eeffcb6594b9">initialValue</a></code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">parameter</td><td>The parameter. </td></tr>
@@ -3035,6 +3036,7 @@ Christian Menard </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">resource</td><td>The resource to find the main reactor in. </td></tr>
+    <tr><td class="paramname">name</td><td>The name to set for the main reactor. </td></tr>
   </table>
   </dd>
 </dl>
@@ -3551,8 +3553,8 @@ Christian Menard </dd></dl>
 </div><div class="memdoc">
 
 <p>Given the width specification of port or instantiation and an (optional) list of nested instantiations, return the width if it can be determined and -1 if not. </p>
-<p>This will not be able to be determined if either the width is variable (in which case you should use <code><a class="el" href="">inferPortWidth(VarRef, Connection, List)</a></code> ) or the list of instantiations is incomplete or missing. If there are parameter references in the width, they are evaluated to the extent possible given the instantiations list. </p>
-<p>The instantiations list is as in <code><a class="el" href="">initialValue(Parameter, List)</a></code>. If the spec belongs to an instantiation (for a bank of reactors), then the first element on this list should be the instantiation that contains this instantiation. If the spec belongs to a port, then the first element on the list should be the instantiation of the reactor that contains the port. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This will not be able to be determined if either the width is variable (in which case you should use <code><a class="el" href="#a0590d67332f488243792da5b1b16b714">inferPortWidth</a></code> ) or the list of instantiations is incomplete or missing. If there are parameter references in the width, they are evaluated to the extent possible given the instantiations list. </p>
+<p>The instantiations list is as in <code><a class="el" href="#a972779d0067b217bc5b6eeffcb6594b9">initialValue</a></code>. If the spec belongs to an instantiation (for a bank of reactors), then the first element on this list should be the instantiation that contains this instantiation. If the spec belongs to a port, then the first element on the list should be the instantiation of the reactor that contains the port. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">spec</td><td>The width specification or null (to return 1). </td></tr>
     <tr><td class="paramname">instantiations</td><td>The (optional) list of instantiations. </td></tr>
@@ -3595,7 +3597,7 @@ Christian Menard </dd></dl>
 <p>Given an instantiation of a reactor or bank of reactors, return the width. </p>
 <p>This will be 1 if this is not a reactor bank. Otherwise, this will attempt to determine the width. If the width is declared as a literal constant, it will return that constant. If the width is specified as a reference to a parameter, this will throw an exception. If the width is variable, this will find connections in the enclosing reactor and attempt to infer the width. If the width cannot be determined, it will throw an exception.</p>
 <p>IMPORTANT: This method should not be used you really need to determine the width! It will not evaluate parameter values.</p>
-<dl class="section see"><dt>See also</dt><dd>#width(WidthSpec, List) </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="#abe61f1e228f51fdd8f16767b914f9741" title="Given the width specification of port or instantiation and an (optional) list of nested instantiation...">width</a> </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">instantiation</td><td>A reactor instantiation. </td></tr>

@@ -205,6 +205,7 @@ Static Public Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">srcGenPath</td><td>The folder to search for folders and files to delete. </td></tr>
+    <tr><td class="paramname">threadingOn</td><td>Whether threading is enabled. </td></tr>
   </table>
   </dd>
 </dl>
@@ -558,10 +559,11 @@ Static Public Member Functions</h2></td></tr>
 <p>If <span class="tt">contentsOnly</span> is true, then for each entry that is a directory, only its contents are copied, not the directory itself. For example, if the entry is a directory <span class="tt">foo/bar</span> and the destination is <span class="tt">baz</span>, then copies of the contents of <span class="tt">foo/bar</span> will be located directly in <span class="tt">baz</span>. If <span class="tt">contentsOnly</span> is false, then copies of the contents of <span class="tt">foo/bar</span> will be located in <span class="tt">baz/bar</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">entries</td><td>The files or directories to copy from. </td></tr>
-    <tr><td class="paramname">dstDir</td><td>The location to copy the files to. </td></tr>
-    <tr><td class="paramname">fileConfig</td><td>The file configuration that specifies where the find entries the given entries. </td></tr>
-    <tr><td class="paramname">messageReporter</td><td>An error reporter to report problems. </td></tr>
+    <tr><td class="paramname">entries</td><td>The list of file or directory entries to copy. </td></tr>
+    <tr><td class="paramname">dstDir</td><td>The destination directory. </td></tr>
+    <tr><td class="paramname">fileConfig</td><td>The file configuration that specifies where to find entries. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
+    <tr><td class="paramname">fileEntriesOnly</td><td>Whether to copy only file entries. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1276,6 +1278,7 @@ Static Public Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">dir</td><td>The folder to search for includes to change. </td></tr>
+    <tr><td class="paramname">includePath</td><td>The include path. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Error reporter </td></tr>
   </table>
   </dd>

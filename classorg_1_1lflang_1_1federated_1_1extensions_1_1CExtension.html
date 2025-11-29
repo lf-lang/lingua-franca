@@ -355,6 +355,7 @@ Billy Bao </dd></dl>
     <tr><td class="paramname">connection</td><td>The federated connection being lowered. </td></tr>
     <tr><td class="paramname">type</td><td>The type of the data conveyed by the port. </td></tr>
     <tr><td class="paramname">coordinationMode</td><td>The coordination type </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
   </table>
   </dd>
 </dl>
@@ -412,6 +413,7 @@ Billy Bao </dd></dl>
     <tr><td class="paramname">connection</td><td>The federated connection being lowered. </td></tr>
     <tr><td class="paramname">type</td><td>The type of the data conveyed by the connection. </td></tr>
     <tr><td class="paramname">coordinationMode</td><td>Centralized or decentralized. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
   </table>
   </dd>
 </dl>
@@ -484,7 +486,7 @@ Billy Bao </dd></dl>
 </div><div class="memdoc">
 
 <p>Add preamble to a separate file to set up federated execution. </p>
-<p>Return an a string containing the #includes that are needed by the federate. </p>
+<p>Return an a string containing the <span class="tt">#include</span> directives that are needed by the federate. </p>
 
 <p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a9ab525ad95ab8bdb4ee69c70048df120">org.lflang.federated.extensions.FedTargetExtension</a>.</p>
 
@@ -596,6 +598,7 @@ Billy Bao </dd></dl>
     <tr><td class="paramname">federate</td><td>The federate instance. </td></tr>
     <tr><td class="paramname">fileConfig</td><td>An instance of <span class="tt">FedFileConfig</span>. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Used to report errors. </td></tr>
+    <tr><td class="paramname">rtiConfig</td><td>The RTI configuration settings. </td></tr>
   </table>
   </dd>
 </dl>
@@ -686,6 +689,7 @@ Billy Bao </dd></dl>
     <tr><td class="paramname">result</td><td>An accumulator of the generated code. </td></tr>
     <tr><td class="paramname">sendingFunction</td><td>The name of the function that sends the serialized data. </td></tr>
     <tr><td class="paramname">commonArgs</td><td>Arguments passed to <span class="tt">sendingFunction</span> regardless of serialization method. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
   </table>
   </dd>
 </dl>

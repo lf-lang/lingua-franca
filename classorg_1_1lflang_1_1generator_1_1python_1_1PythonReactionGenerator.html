@@ -261,6 +261,7 @@ Static Public Member Functions</h2></td></tr>
     <tr><td class="paramname">reactor</td><td>The reactor containing the reaction </td></tr>
     <tr><td class="paramname">reactionIndex</td><td>The index of the reaction </td></tr>
     <tr><td class="paramname">pyObjects</td><td>CPython related objects </td></tr>
+    <tr><td class="paramname">inits</td><td>Initialization code. </td></tr>
   </table>
   </dd>
 </dl>
@@ -517,16 +518,12 @@ Static Public Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">reaction</td><td>The reaction to generate Python-specific initialization for. </td></tr>
-    <tr><td class="paramname">r</td><td>The reactor to which <code>reaction<code> belongs to.
-</code></code></td></tr>
-    <tr><td class="paramname">reactionIndex</td><td><code><code>The index number of the reaction in decl.
-</code></code></td></tr>
-    <tr><td class="paramname">mainDef</td><td><code><code>The main reactor.
-</code></code></td></tr>
-    <tr><td class="paramname">messageReporter</td><td><code><code>An error reporter.
-</code></code></td></tr>
-    <tr><td class="paramname">types</td><td><code><code>A helper class for type-related stuff.
-</code></code></td></tr>
+    <tr><td class="paramname">tpr</td><td>The type-parameterized reactor. </td></tr>
+    <tr><td class="paramname">r</td><td>The reactor to which <code>reaction</code> belongs to. </td></tr>
+    <tr><td class="paramname">reactionIndex</td><td>The index number of the reaction in decl. </td></tr>
+    <tr><td class="paramname">mainDef</td><td>The main reactor. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>An error reporter. </td></tr>
+    <tr><td class="paramname">types</td><td>A helper class for type-related stuff. </td></tr>
   </table>
   </dd>
 </dl>
@@ -646,8 +643,9 @@ Static Public Member Functions</h2></td></tr>
 <p>Generate the function that is executed whenever the deadline of the reaction with the given reaction index is missed. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">reaction</td><td>The reaction to generate deadline miss code for </td></tr>
-    <tr><td class="paramname">reactionIndex</td><td>The agreed-upon index of the reaction in the reactor (should match the C generated code) </td></tr>
+    <tr><td class="paramname">pythonFunctionName</td><td>The name of the Python function. </td></tr>
+    <tr><td class="paramname">inits</td><td>Initialization code. </td></tr>
+    <tr><td class="paramname">reactionBody</td><td>The body of the reaction. </td></tr>
     <tr><td class="paramname">reactionParameters</td><td>The parameters to the deadline violation function, which are the same as the reaction function </td></tr>
   </table>
   </dd>
@@ -692,6 +690,7 @@ Static Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">reactor</td><td>The reactor </td></tr>
     <tr><td class="paramname">reaction</td><td>The reaction of reactor </td></tr>
+    <tr><td class="paramname">reactionIndex</td><td>The index of the reaction. </td></tr>
   </table>
   </dd>
 </dl>

@@ -110,7 +110,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a219a86c27fb4e52857c5e5badb7a3357" id="r_a219a86c27fb4e52857c5e5badb7a3357"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a219a86c27fb4e52857c5e5badb7a3357">generateAuxiliaryStructs</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> builder, <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr, boolean userFacing)</td></tr>
 <tr class="memdesc:a219a86c27fb4e52857c5e5badb7a3357"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the aliases for inputs, outputs, and struct type definitions for actions of the specified reactor in the specified federate.  <br /></td></tr>
 <tr class="memitem:aecfa36fbd40fa871c72f33f5511d5bb6" id="r_aecfa36fbd40fa871c72f33f5511d5bb6"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aecfa36fbd40fa871c72f33f5511d5bb6">generateDirectives</a> ()</td></tr>
-<tr class="memdesc:aecfa36fbd40fa871c72f33f5511d5bb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code that needs to appear at the top of the generated C file, such as #define and #include statements.  <br /></td></tr>
+<tr class="memdesc:aecfa36fbd40fa871c72f33f5511d5bb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code that needs to appear at the top of the generated C file, such as <span class="tt">#define</span> and <span class="tt">#include</span> statements.  <br /></td></tr>
 <tr class="memitem:aae930b08140595cbe631af741bce267a" id="r_aae930b08140595cbe631af741bce267a"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#aae930b08140595cbe631af741bce267a">generatePythonCode</a> (String pyModuleName)</td></tr>
 <tr class="memdesc:aae930b08140595cbe631af741bce267a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the Python code constructed from reactor classes and user-written classes.  <br /></td></tr>
 <tr class="memitem:a94cc16d3e7642564862c35a43638aa2f" id="r_a94cc16d3e7642564862c35a43638aa2f"><td class="memItemLeft" align="right" valign="top">Map&lt; Path, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeMap.html">CodeMap</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a94cc16d3e7642564862c35a43638aa2f">generatePythonFiles</a> (String lfModuleName, String pyModuleName, String pyFileName)  throws IOException </td></tr>
@@ -296,7 +296,9 @@ Package Attributes</h2></td></tr>
 <p>Generate the aliases for inputs, outputs, and struct type definitions for actions of the specified reactor in the specified federate. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">builder</td><td>The code builder. </td></tr>
     <tr><td class="paramname">tpr</td><td>The concrete reactor class. </td></tr>
+    <tr><td class="paramname">userFacing</td><td>Whether this is user-facing code. </td></tr>
   </table>
   </dd>
 </dl>
@@ -318,7 +320,7 @@ Package Attributes</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Generate code that needs to appear at the top of the generated C file, such as #define and #include statements. </p>
+<p>Generate code that needs to appear at the top of the generated C file, such as <span class="tt">#define</span> and <span class="tt">#include</span> statements. </p>
 
 </div>
 </div>
@@ -496,6 +498,7 @@ Package Attributes</h2></td></tr>
 <p>This function has a single argument that is a void* pointing to a struct that contains parameters, state variables, inputs (triggering or not), actions (triggering or produced), and outputs.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">src</td><td>The code builder. </td></tr>
     <tr><td class="paramname">reaction</td><td>The reaction. </td></tr>
     <tr><td class="paramname">tpr</td><td>The reactor. </td></tr>
     <tr><td class="paramname">reactionIndex</td><td>The position of the reaction within the reactor. </td></tr>
@@ -715,6 +718,7 @@ Package Attributes</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">reactor</td><td>The given reactor </td></tr>
+    <tr><td class="paramname">src</td><td>The code builder. </td></tr>
   </table>
   </dd>
 </dl>

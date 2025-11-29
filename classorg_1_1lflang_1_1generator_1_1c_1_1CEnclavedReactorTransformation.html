@@ -105,8 +105,8 @@ $(function(){initNavTree('classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReact
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a1364195c302212fb923035cb0b0e007d" id="r_a1364195c302212fb923035cb0b0e007d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="interfaceorg_1_1lflang_1_1ast_1_1AstTransformation.html#a1364195c302212fb923035cb0b0e007d">applyTransformation</a> (List&lt; Reactor &gt; reactors)</td></tr>
-<tr class="memdesc:a1364195c302212fb923035cb0b0e007d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Apply the AST transformation to all given reactors.  <br /></td></tr>
+<tr class="memitem:ab777adeb6b5cbd289e7b671b44d8161c" id="r_ab777adeb6b5cbd289e7b671b44d8161c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ab777adeb6b5cbd289e7b671b44d8161c">applyTransformation</a> (List&lt; Reactor &gt; reactors)</td></tr>
+<tr class="memdesc:ab777adeb6b5cbd289e7b671b44d8161c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Part of the <a class="el" href="interfaceorg_1_1lflang_1_1ast_1_1AstTransformation.html" title="Interface for AST Transfomations.">AstTransformation</a> interface.  <br /></td></tr>
 <tr class="memitem:a8e161eeae52db318f8f0c2a8c341c864" id="r_a8e161eeae52db318f8f0c2a8c341c864"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#a8e161eeae52db318f8f0c2a8c341c864">CEnclavedReactorTransformation</a> (Resource mainResource, <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html">CTypes</a> <a class="el" href="#a05e8c91407e8e14303d7a27c545648c6">types</a>)</td></tr>
 <tr class="memitem:ae7effaa1c9228a0afbf7d019106da613" id="r_ae7effaa1c9228a0afbf7d019106da613"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="#ae7effaa1c9228a0afbf7d019106da613">setEnvParams</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> conn, <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> source, <a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> dest)</td></tr>
 <tr class="memdesc:ae7effaa1c9228a0afbf7d019106da613"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the environment pointers which are parameters to the enclave connection reactor.  <br /></td></tr>
@@ -164,32 +164,31 @@ Package Attributes</h2></td></tr>
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
-<a id="a1364195c302212fb923035cb0b0e007d" name="a1364195c302212fb923035cb0b0e007d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1364195c302212fb923035cb0b0e007d">&#9670;&#160;</a></span>applyTransformation()</h2>
+<a id="ab777adeb6b5cbd289e7b671b44d8161c" name="ab777adeb6b5cbd289e7b671b44d8161c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab777adeb6b5cbd289e7b671b44d8161c">&#9670;&#160;</a></span>applyTransformation()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void org.lflang.ast.AstTransformation.applyTransformation </td>
+          <td class="memname">void org.lflang.generator.c.CEnclavedReactorTransformation.applyTransformation </td>
           <td>(</td>
           <td class="paramtype">List&lt; Reactor &gt;</td>          <td class="paramname"><span class="paramname"><em>reactors</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
-<p>Apply the AST transformation to all given reactors. </p>
+<p>Part of the <a class="el" href="interfaceorg_1_1lflang_1_1ast_1_1AstTransformation.html" title="Interface for AST Transfomations.">AstTransformation</a> interface. </p>
+<p>Performs the transformation.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">reactors</td><td>A list of Reactor instances to perform the AST transformation on. </td></tr>
+  </table>
+  </dd>
+</dl>
 
-<p>Implemented in <a class="el" href="classorg_1_1lflang_1_1ast_1_1DelayedConnectionTransformation.html#af9e158401bf08ce4de675d3fd2b8ff49">org.lflang.ast.DelayedConnectionTransformation</a>.</p>
+<p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1ast_1_1AstTransformation.html#a1364195c302212fb923035cb0b0e007d">org.lflang.ast.AstTransformation</a>.</p>
 
 </div>
 </div>

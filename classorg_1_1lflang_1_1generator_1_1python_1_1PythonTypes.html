@@ -938,6 +938,7 @@ initializer")</span>).</p>
 variable_name</span> depending on whether the given type is an array type, unless the array type has no size (it is given as <span class="tt">[]</span>. In that case, the returned form depends on the third argument, initializer. If true, the then the returned declaration will have the form <span class="tt">type variable_name[]</span>, and otherwise it will have the form <span class="tt">type* variable_name</span>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">tpr</td><td>The type-parameterized reactor. </td></tr>
     <tr><td class="paramname">type</td><td>The type. </td></tr>
     <tr><td class="paramname">variableName</td><td>The name of the variable. </td></tr>
     <tr><td class="paramname">initializer</td><td>True to return a form usable in a static initializer. </td></tr>

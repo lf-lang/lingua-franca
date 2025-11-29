@@ -245,7 +245,9 @@ Static Public Attributes</h2></td></tr>
 <p>Generate into the specified string builder the code to send local variables for input ports to a Python reaction function from the "self" struct. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">pyObjects</td><td>The list of Python object references. </td></tr>
     <tr><td class="paramname">input</td><td>The input port. </td></tr>
+    <tr><td class="paramname">decl</td><td>The reactor declaration. </td></tr>
   </table>
   </dd>
 </dl>
@@ -282,6 +284,7 @@ Static Public Attributes</h2></td></tr>
 <p>Generate into the specified string builder the code to send local variables for output ports to a Python reaction function from the "self" struct. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">pyObjects</td><td>The list of Python object references. </td></tr>
     <tr><td class="paramname">output</td><td>The output port. </td></tr>
   </table>
   </dd>
@@ -450,6 +453,7 @@ Static Public Attributes</h2></td></tr>
 <p>for a deadline violation).</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
+    <tr><td class="paramname">pyObjects</td><td>The list of Python object references. </td></tr>
     <tr><td class="paramname">definition</td><td>AST node defining the reactor within which this occurs </td></tr>
     <tr><td class="paramname">port</td><td>Input of the contained reactor. </td></tr>
   </table>

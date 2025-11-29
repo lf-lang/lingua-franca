@@ -225,6 +225,7 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">connection</td><td>The federated connection being lowered. </td></tr>
     <tr><td class="paramname">type</td><td>The type of the data being sent over the connection. </td></tr>
     <tr><td class="paramname">coordinationMode</td><td>The coordination type </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
   </table>
   </dd>
 </dl>
@@ -280,6 +281,7 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">connection</td><td>The federated connection being lowered. </td></tr>
     <tr><td class="paramname">type</td><td>The type of the data being sent over the connection. </td></tr>
     <tr><td class="paramname">coordinationMode</td><td>Whether the federated program is centralized or decentralized. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
   </table>
   </dd>
 </dl>
@@ -353,7 +355,9 @@ Public Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">federate</td><td>The federate to which the generated setup code will correspond. </td></tr>
+    <tr><td class="paramname">fileConfig</td><td>The federation file configuration. </td></tr>
     <tr><td class="paramname">rtiConfig</td><td>The settings of the RTI. </td></tr>
+    <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
   </table>
   </dd>
 </dl>
@@ -431,6 +435,7 @@ Public Member Functions</h2></td></tr>
     <tr><td class="paramname">federate</td><td>The federate instance. </td></tr>
     <tr><td class="paramname">fileConfig</td><td>An instance of <span class="tt">FedFileConfig</span>. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Used to report errors. </td></tr>
+    <tr><td class="paramname">rtiConfig</td><td>The RTI configuration settings. </td></tr>
   </table>
   </dd>
 </dl>

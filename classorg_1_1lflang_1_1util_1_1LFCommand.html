@@ -252,7 +252,7 @@ Protected Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Create a <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> instance from a given command and argument list in the current working directory. </p>
-<dl class="section see"><dt>See also</dt><dd>#get(String, List, boolean, Path) </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="#a37399e869f4598852c3281b4c015db0a" title="Create a LFCommand instance from a given command and argument list in the current working directory.">get</a> </dd></dl>
 
 </div>
 </div>
@@ -289,7 +289,7 @@ Protected Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Create a <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> instance from a given command and argument list in the current working directory. </p>
-<dl class="section see"><dt>See also</dt><dd>#get(String, List, boolean, Path) </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="#a37399e869f4598852c3281b4c015db0a" title="Create a LFCommand instance from a given command and argument list in the current working directory.">get</a> </dd></dl>
 
 </div>
 </div>
@@ -332,7 +332,7 @@ Protected Attributes</h2></td></tr>
 
 <p>Create a <a class="el" href="classorg_1_1lflang_1_1util_1_1LFCommand.html" title="An abstraction for an external command.">LFCommand</a> instance from a given command, an argument list and a directory. </p>
 <p>This will check first if the command can actually be found and executed. If the command is not found, null is returned. In order to find the command, different methods are applied in the following order:</p>
-<p>1. Check if the given command <span class="tt">cmd</span> is an executable file within <span class="tt">dir</span>. 2. If the above fails 'which &lt;cmd&gt;' (or 'where &lt;cmd&gt;' on Windows) is executed to see if the command is available on the PATH. 3. If both points above fail, a third attempt is started using bash to indirectly execute the command (see below for an explanation).</p>
+<p>1. Check if the given command <code class="JavaDocCode">cmd</code> is an executable file within <code class="JavaDocCode">dir</code>. 2. If the above fails 'which <code class="JavaDocCode">cmd</code>' (or 'where <code class="JavaDocCode">cmd</code>' on Windows) is executed to see if the command is available on the PATH. 3. If both points above fail, a third attempt is started using bash to indirectly execute the command (see below for an explanation).</p>
 <p>A bit more context: If the command cannot be found directly, then a second attempt is made using a Bash shell with the &ndash;login option, which sources the user's ~/.bash_profile, ~/.bash_login, or ~/.bashrc (whichever is first found) before running the command. This helps to ensure that the user's PATH variable is set according to their usual environment, assuming that they use a bash shell.</p>
 <p>More information: Unfortunately, at least on a Mac if you are running within Eclipse, the PATH variable is extremely limited; supposedly, it is given by the default provided in /etc/paths, but at least on my machine, it does not even include directories in that file for some reason. One way to add a directory like /usr/local/bin to the path once-and-for-all is this:</p>
 <p>sudo launchctl config user path /usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin</p>

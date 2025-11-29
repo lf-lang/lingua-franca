@@ -160,7 +160,7 @@ Public Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Build the enclave graph. </p>
-<p>This function takes the main reactor instance and the set of enclave instances and does a breadth-first search. When a reactor instance which is annotated with @enclave is found, we check the AST transformation for what instantiations are connected to this reactor. We then look through the other reactor instances at the same level and find the corresponding reactor instance. Understanding this requires that you understand the difference between the Reactor Instances and Reactor Instantiations. The AST transformation knows how the Reactor Instantiations are connected, but we must translate it to how Reactor Instances are connected. </p><dl class="params"><dt>Parameters</dt><dd>
+<p>This function takes the main reactor instance and the set of enclave instances and does a breadth-first search. When a reactor instance which is annotated with <code class="JavaDocCode">@enclave</code> is found, we check the AST transformation for what instantiations are connected to this reactor. We then look through the other reactor instances at the same level and find the corresponding reactor instance. Understanding this requires that you understand the difference between the Reactor Instances and Reactor Instantiations. The AST transformation knows how the Reactor Instantiations are connected, but we must translate it to how Reactor Instances are connected. </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">main</td><td>The main reactor, top-level enclave. </td></tr>
     <tr><td class="paramname">enclaves</td><td>The set of enclaves to build the graph for. </td></tr>

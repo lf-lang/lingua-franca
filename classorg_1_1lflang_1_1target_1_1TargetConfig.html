@@ -674,7 +674,6 @@ Package Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">resource</td><td>A resource to load from. </td></tr>
-    <tr><td class="paramname">reporter</td><td>A reporter for reporting issues. </td></tr>
     <tr><td class="paramname">reporter</td><td>A message reporter for reporting errors and warnings. </td></tr>
   </table>
   </dd>
@@ -951,6 +950,8 @@ Package Functions</h2></td></tr>
     <tr><td class="paramname">config</td><td>The configuration object to update. </td></tr>
     <tr><td class="paramname">pairs</td><td>AST node that holds all the target properties. </td></tr>
     <tr><td class="paramname">relativePath</td><td>The path from the main resource to the resource from which the new properties originate. </td></tr>
+    <tr><td class="paramname">loadOrNot</td><td>Predicate to determine whether a property should be loaded. </td></tr>
+    <tr><td class="paramname">err</td><td>Message reporter for errors. </td></tr>
   </table>
   </dd>
 </dl>
