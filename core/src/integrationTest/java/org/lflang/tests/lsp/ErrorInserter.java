@@ -170,6 +170,7 @@ class ErrorInserter {
      * Attempt to replace a line of this test with a different line of target language code.
      *
      * @param replacer A function that replaces lines of code with possibly different lines.
+     * @param random Random number generator.
      */
     public void replace(Function<String, String> replacer, Random random) {
       OnceTrue onceTrue = new OnceTrue(random);
@@ -187,6 +188,7 @@ class ErrorInserter {
      * Attempt to insert a new line of target language code into this test.
      *
      * @param line The line to be inserted.
+     * @param random Random number generator.
      */
     public void insert(String line, Random random) {
       OnceTrue onceTrue = new OnceTrue(random);

@@ -17,8 +17,7 @@ import org.lflang.util.LFCommand;
  *
  * <p>In addition to the basic functionality of LFCommand, this class additionally ensures that
  * error messages (or optionally warnings) are shown when a command is not found and that certain
- * environment variables are set (see {@link #createCommand(String, List, Path, boolean)
- * createCommand}).
+ * environment variables are set (see {@link #createCommand}).
  *
  * @ingroup Generator
  */
@@ -52,7 +51,7 @@ public class GeneratorCommandFactory {
    * @param cmd the command to look up
    * @param args a list of arguments
    * @return an LFCommand object or null if the command could not be found
-   * @see #createCommand(String, List, Path, boolean)
+   * @see #createCommand
    */
   public LFCommand createCommand(String cmd, List<String> args) {
     return createCommand(cmd, args, null, true);
@@ -66,7 +65,7 @@ public class GeneratorCommandFactory {
    * @param failOnError If true, an error is shown if the command cannot be found. Otherwise, only a
    *     warning is displayed.
    * @return an LFCommand object or null if the command could not be found
-   * @see #createCommand(String, List, Path, boolean)
+   * @see #createCommand
    */
   public LFCommand createCommand(String cmd, List<String> args, boolean failOnError) {
     return createCommand(cmd, args, null, failOnError);
@@ -82,7 +81,7 @@ public class GeneratorCommandFactory {
    * @param args a list of arguments
    * @param dir the directory to execute the command in. If null, this will default to the CWD
    * @return an LFCommand object or null if the command could not be found
-   * @see #createCommand(String, List, Path, boolean)
+   * @see #createCommand
    */
   public LFCommand createCommand(String cmd, List<String> args, Path dir) {
     return createCommand(cmd, args, dir, true);
@@ -101,7 +100,7 @@ public class GeneratorCommandFactory {
    * @param failOnError If true, an error is shown if the command cannot be found. Otherwise, only a
    *     warning is displayed.
    * @return an LFCommand object or null if the command could not be found
-   * @see LFCommand#get(String, List, boolean, Path)
+   * @see LFCommand#get
    */
   public LFCommand createCommand(String cmd, List<String> args, Path dir, boolean failOnError) {
     assert cmd != null && args != null;

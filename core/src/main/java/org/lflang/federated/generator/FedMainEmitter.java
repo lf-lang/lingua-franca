@@ -20,6 +20,7 @@ public class FedMainEmitter {
   /**
    * Generate a main reactor for `federate`.
    *
+   * @param federate The federate instance.
    * @param originalMainReactor The original main reactor.
    * @param messageReporter Used to report errors.
    * @return The main reactor.

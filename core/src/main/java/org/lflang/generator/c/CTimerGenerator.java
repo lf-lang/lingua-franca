@@ -15,6 +15,7 @@ public class CTimerGenerator {
    * Generate code to initialize the given timer.
    *
    * @param timer The timer to initialize for.
+   * @param enc The enclave instance.
    */
   public static String generateInitializer(TimerInstance timer, CEnclaveInstance enc) {
     var triggerStructName = CUtil.reactorRef(timer.getParent()) + "->_lf__" + timer.getName();

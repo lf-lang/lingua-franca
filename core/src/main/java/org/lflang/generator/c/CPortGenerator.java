@@ -150,6 +150,7 @@ public class CPortGenerator {
    *
    * @param output The output port
    * @param reactorSelfStruct The name of the self struct
+   * @param types The C-specific type conversion functions.
    */
   public static String initializeOutputMultiport(
       PortInstance output, String reactorSelfStruct, CTypes types) {

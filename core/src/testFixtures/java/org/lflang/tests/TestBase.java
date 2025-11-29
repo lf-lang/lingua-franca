@@ -170,6 +170,8 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param target The target to run tests for.
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
+   * @param level The test level.
+   * @param transformer The transformer to apply to tests.
    * @param configurator A procedure for configuring the tests.
    * @param copy Whether to work on copies of tests in the test. registry.
    */
@@ -200,7 +202,9 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param description A string that describes the collection of tests.
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
+   * @param transformer The transformer to apply to tests.
    * @param configurator A procedure for configuring the tests.
+   * @param level The test level.
    * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsForTargets(
@@ -222,7 +226,9 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param description A string that describes the collection of tests.
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
+   * @param transformer The transformer to apply to tests.
    * @param configurator A procedure for configuring the tests.
+   * @param level The test level.
    * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsFor(

@@ -89,6 +89,7 @@ public class CTypes implements TargetTypes {
    * argument, initializer. If true, the then the returned declaration will have the form
    * `type variable_name[]`, and otherwise it will have the form `type* variable_name`.
    *
+   * @param tpr The type-parameterized reactor.
    * @param type The type.
    * @param variableName The name of the variable.
    * @param initializer True to return a form usable in a static initializer.

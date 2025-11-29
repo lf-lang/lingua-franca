@@ -48,6 +48,8 @@ public class MainContext implements LFGeneratorContext {
    * Initialize the context of a build process whose cancellation is indicated by `cancelIndicator`
    *
    * @param mode The mode of this build process.
+   * @param resource The resource being processed.
+   * @param fsa The file system access.
    * @param cancelIndicator The cancel indicator of the code generation process to which this
    *     corresponds.
    */
