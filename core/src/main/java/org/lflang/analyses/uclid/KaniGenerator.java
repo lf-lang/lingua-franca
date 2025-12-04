@@ -17,6 +17,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
+import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
@@ -86,6 +87,7 @@ public class KaniGenerator {
   protected void generateKaniCodeForReaction(
       Reactor reactor, Reaction reaction, String reactionName) {
     this.reactionDataMap.put(reactionName, new ReactionData(reactionName));
+    generatePreamble(reactor);
     generatePolymorphicTypesAndContext();
     code.pr("// Type aliases for specific port and action types.");
     // Define and instantiate input ports and input logical actions.
@@ -102,6 +104,20 @@ public class KaniGenerator {
     generateSelfStruct(reactor, reactionName);
     generateReactionFunction(reactor, reaction, reactionName);
     generateMainFunction(reactor, reaction, reactionName);
+  }
+
+  // FIXME: Code duplication with generateUserPreamblesForReactor() from CGenerator.java.
+  protected void generatePreamble(Reactor reactor) {
+    for (Preamble p : ASTUtils.allFileLevelPreambles(reactor)) {
+      code.pr("// *********** From the global preamble, verbatim:");
+      code.pr(ASTUtils.toText(p.getCode()));
+      code.pr("\n// *********** End of preamble.");
+    }
+    for (Preamble p : ASTUtils.allPreambles(reactor)) {
+      code.pr("// *********** From the reactor preamble, verbatim:");
+      code.pr(ASTUtils.toText(p.getCode()));
+      code.pr("\n// *********** End of preamble.");
+    }
   }
 
   protected void generatePolymorphicTypesAndContext() {
