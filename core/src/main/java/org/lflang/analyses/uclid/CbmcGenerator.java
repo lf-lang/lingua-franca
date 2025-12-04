@@ -115,7 +115,7 @@ public class CbmcGenerator {
 
   protected void generateIncludes() {
     code.pr(
-        String.join("\n", "#include <stdlib.h>", "#include <stdbool.h>", "#include <assert.h>"));
+        String.join("\n", "#include <stdlib.h>", "#include <stdbool.h>", "#include <stdint.h>", "#include <assert.h>"));
   }
 
   // FIXME: Code duplication with generateUserPreamblesForReactor() from CGenerator.java.
