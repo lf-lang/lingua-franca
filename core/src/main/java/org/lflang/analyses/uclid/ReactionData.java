@@ -20,7 +20,14 @@ public class ReactionData {
   public List<Argument> inputs = new ArrayList<>();
   public List<Argument> outputs = new ArrayList<>();
   public Map<String, Map<String, Argument>> types = new HashMap<>();
-  public List<UclCall> uclCalls = new ArrayList<>();
+  public List<UclCall> uclCalls_ltb = new ArrayList<>(); // logical-time-based
+  public List<UclCall> uclCalls_eb = new ArrayList<>(); // event-based
+
+  // Enum with two values: LTB and EB
+  public enum Semantics {
+    LTB,
+    EB
+  }
 
   public ReactionData(String name) {
     this.name = name;
@@ -38,7 +45,12 @@ public class ReactionData {
     this.types.put(name, new HashMap<>());
   }
 
-  public String getName() {
+  public String getName(Semantics semantics) {
+    if (semantics == Semantics.LTB) {
+      return this.name + "_ltb";
+    } else if (semantics == Semantics.EB) {
+      return this.name + "_eb";
+    }
     return this.name;
   }
 
@@ -46,7 +58,7 @@ public class ReactionData {
     return this.types.get(name);
   }
 
-  public String toJSON() {
+  public String toJSON(Semantics semantics) {
     JSONObject json = new JSONObject();
     JSONObject types_json = new JSONObject();
     JSONArray inputs_json = new JSONArray();
@@ -85,7 +97,8 @@ public class ReactionData {
       outputs_json.put(output);
     }
     json.put("outputs", outputs_json);
-    for (UclCall call : this.uclCalls) {
+    List<UclCall> uclCalls = this.getUclCalls(semantics);
+    for (UclCall call : uclCalls) {
       JSONObject uclCall = new JSONObject();
       JSONArray inputs = new JSONArray();
       JSONArray outputs = new JSONArray();
@@ -102,6 +115,16 @@ public class ReactionData {
     }
     json.put("uclcalls", uclCalls_json);
     return json.toString(4);
+  }
+
+  // Function that takes an enum Semantics as argument
+  // and returns the corresponding uclCalls list
+  private List<UclCall> getUclCalls(Semantics semantics) {
+    if (semantics == Semantics.LTB) {
+      return this.uclCalls_ltb;
+    } else {
+      return this.uclCalls_eb;
+    }
   }
 
   /**
