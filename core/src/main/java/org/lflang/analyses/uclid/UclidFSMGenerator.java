@@ -225,7 +225,7 @@ public class UclidFSMGenerator {
   }
 
   private void generateUclidMainModule() {
-    code.pr("class MainModule(ModuleWithExternalProcedures):");
+    code.pr("class MainModule(Module):");
     code.indent();
     generateInitFunction();
     generateUclidModule();
@@ -238,7 +238,7 @@ public class UclidFSMGenerator {
     code.pr("super().__init__(\"main\", delete, verbose)");
 
     /**
-     * Example: pedestrian_reaction_1 = ExternalProcedure( name="pedestrian_reaction_1",
+     * Example: pedestrian_reaction_1 = Procedure( name="pedestrian_reaction_1",
      * lang=Lang.C, filepath="test/c/traffic_light/pedestrian_reaction_1.c",
      * jsonpath="test/json/traffic_light/pedestrian_reaction_1.json", )
      */
@@ -248,7 +248,7 @@ public class UclidFSMGenerator {
       for (int index = 0; index < reactionDefs.size(); index++) {
         String reactionName = getReactionName(reactorDef, index);
         String extLang = getTargetLanguageExtension(lang);
-        code.pr(reactionName + " = ExternalProcedure(");
+        code.pr(reactionName + " = Procedure(");
         code.indent();
         code.pr("name=\"" + reactionName + "\",");
         code.pr("lang=Lang." + lang.toUpperCase() + ",");
@@ -269,11 +269,11 @@ public class UclidFSMGenerator {
     }
 
     /**
-     * Example: self.ext_procs = { pedestrian_reaction_1.name: pedestrian_reaction_1,
+     * Example: self.procs = { pedestrian_reaction_1.name: pedestrian_reaction_1,
      * traffic_light_reaction_1.name: traffic_light_reaction_1, traffic_light_reaction_2.name:
      * traffic_light_reaction_2, traffic_light_reaction_3.name: traffic_light_reaction_3, }
      */
-    code.pr("self.ext_procs = {");
+    code.pr("self.procs = {");
     code.indent();
     for (Reactor reactorDef : this.reactors) {
       List<Reaction> reactionDefs = reactorDef.getReactions();
@@ -516,14 +516,14 @@ public class UclidFSMGenerator {
         ReactionData reactionData = this.reactionDataMap.get(reactionName);
         /** Creates requires expression */
         code.pr(
-            "requires_str = self.ext_procs[\""
+            "requires_str = self.procs[\""
                 + reactionName
                 + "\"].getLatestUclidRequiresString()");
         code.pr(requires + " = UclidRaw(requires_str)");
         /** Creates ensures expression */
         code.pr(ensures + " = UclidRaw(");
         code.indent();
-        code.pr("self.ext_procs[\"" + reactionName + "\"].getLatestUclidEnsuresString()");
+        code.pr("self.procs[\"" + reactionName + "\"].getLatestUclidEnsuresString()");
         code.unindent();
         code.pr(")");
         /** Creates function signature */
@@ -1053,7 +1053,8 @@ public class UclidFSMGenerator {
     code.pr("UclidBMCCommand(\"v\", " + this.CT + "),");
     code.pr("UclidCheckCommand(),");
     code.pr("UclidPrintResultsCommand(),");
-    code.pr("UclidPrintCexJSONCommand(\"v\", sum(");
+    // code.pr("UclidPrintCexJSONCommand(\"v\", sum(");
+    code.pr("UclidPrintCexCommand(\"v\", sum(");
     code.indent(); // sum
     code.pr("[");
     code.indent(); //
@@ -1453,6 +1454,10 @@ public class UclidFSMGenerator {
   private String getUclidTypeFromTargetType(String type, Boolean api) {
     return switch (type) {
       case "bool" -> api ? "UBool" : "boolean";
+      case "int8_t", "uint8_t", "i8", "u8" ->
+          api ? "UclidBVType(8)" : "bv8";
+      case "int16_t", "uint16_t", "i16", "u16" ->
+          api ? "UclidBVType(16)" : "bv16";
       case "int", "int32_t", "unsigned", "unsigned int", "uint32_t", "i32", "u32" ->
           api ? "UclidBVType(32)" : "bv32";
       case "int64_t", "uint64_t", "i64", "u64" -> api ? "UclidBVType(64)" : "bv64";
@@ -1464,6 +1469,8 @@ public class UclidFSMGenerator {
   private String getUclidValueFromTargetValue(String value, String type) {
     return switch (type) {
       case "bool" -> value.equals("true") ? "UBoolTrue" : "UBoolFalse";
+      case "int8_t", "uint8_t", "i8", "u8" -> "UclidBVLiteral(" + value + ", 8)";
+      case "int16_t", "uint16_t", "i16", "u16" -> "UclidBVLiteral(" + value + ", 16)";
       case "int", "int32_t", "unsigned", "unsigned int", "uint32_t", "i32", "u32" ->
           "UclidBVLiteral(" + value + ", 32)";
       case "int64_t", "uint64_t", "i64", "u64" -> "UclidBVLiteral(" + value + ", 64)";
@@ -1487,8 +1494,8 @@ public class UclidFSMGenerator {
             "\n",
             "from uclid.builder import *",
             "from uclid.builder_sugar import *",
-            "from polyver.ext_module import ModuleWithExternalProcedures",
-            "from polyver.ext_procedure import ExternalProcedure",
+            "from polyver.module import Module",
+            "from polyver.procedure import Procedure",
             "from polyver.utils import Lang",
             "from polyver.main import getModelChecker"));
   }
