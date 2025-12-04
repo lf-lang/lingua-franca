@@ -262,7 +262,8 @@ public class UclidFSMGenerator {
                 + "."
                 + extLang
                 + "\",");
-        code.pr("jsonpath=\"" + this.modGenDir + "/json/" + reactionName + ".json\"");
+        ReactionData reactionData = this.reactionDataMap.get(reactionName);
+        code.pr("jsonpath=\"" + this.modGenDir + "/json/" + reactionData.getName(ReactionData.Semantics.LTB) + ".json\"");
         code.unindent();
         code.pr(")");
       }
@@ -1368,7 +1369,7 @@ public class UclidFSMGenerator {
               + ", "
               + reactorInstOrigName
               + "),");
-      reactionData.uclCalls.add(uclCall);
+      reactionData.uclCalls_ltb.add(uclCall);
     }
     code.unindent(); // Block statement
     code.pr("])");
