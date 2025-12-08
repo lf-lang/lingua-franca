@@ -53,6 +53,7 @@ import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
+import org.lflang.diagram.synthesis.action.ShowCaLFeedbackAction;
 import org.lflang.diagram.synthesis.util.UtilityExtensions;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
@@ -70,7 +71,7 @@ import org.lflang.lf.StateVar;
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
   public static final Colors ENCLAVE_BORDER_COLOR = Colors.CORAL_3;
-  public static final Colors DEADLINE_COLOR = Colors.WHITE; // Formerly Colors.BROWN
+  public static final Colors DEADLINE_COLOR = Colors.BROWN; // Formerly Colors.BROWN
   public static final Colors CODE_COLOR = Colors.BLACK;
 
   public static final float REACTION_POINTINESS = 6; // arrow point length
@@ -498,6 +499,9 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       KRectangle stopWatchFigure = addStopwatchFigure(labelContainer);
       _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchFigure, 0, 0, 0, 0);
 
+      // Add double-click action to stopwatch figure for CAL feedback
+      _kRenderingExtensions.addDoubleClickAction(stopWatchFigure, ShowCaLFeedbackAction.ID);
+
       KText stopWatchText =
           _kContainerRenderingExtensions.addText(
               labelContainer, reaction.declaredDeadline.maxDelay.toString());
@@ -507,6 +511,9 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       _kRenderingExtensions.setFontSize(stopWatchText, 7);
       _linguaFrancaStyleExtensions.underlineSelectionStyle(stopWatchText);
       _kRenderingExtensions.setLeftTopAlignedPointPlacementData(stopWatchText, 15, 0, 0, 0);
+
+      // Add double-click action to stopwatch text for CAL feedback
+      _kRenderingExtensions.addDoubleClickAction(stopWatchText, ShowCaLFeedbackAction.ID);
 
       // optional code content
       if (hasDeadlineCode) {

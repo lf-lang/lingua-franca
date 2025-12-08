@@ -103,6 +103,16 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     }
   }
 
+  public void infoStyle(KRendering r) {
+    _kRenderingExtensions.setForeground(r, Colors.BLUE);
+    _kRenderingExtensions.setLineWidth(r, 1);
+    _kRenderingExtensions.setSelectionLineWidth(r, 2);
+
+    if (r.eContainer() instanceof KEdge && r instanceof KPolyline) {
+      ((KPolyline) r).getChildren().stream().forEach(c -> infoStyle(c));
+    }
+  }
+
   public void commentStyle(KRendering r) {
     _kRenderingExtensions.setForeground(r, Colors.GOLDENROD); // Formerly LIGHT_GOLDENROD
     _kRenderingExtensions.setBackground(r, Colors.WHITE); // Formerly PALE_GOLDENROD

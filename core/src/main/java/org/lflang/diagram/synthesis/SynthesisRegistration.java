@@ -7,6 +7,7 @@ import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
 import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.action.ShowCycleAction;
+import org.lflang.diagram.synthesis.action.ShowCaLFeedbackAction;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
 import org.lflang.diagram.synthesis.postprocessor.ReactorPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
@@ -34,6 +35,7 @@ public class SynthesisRegistration implements IKlighdStartupHook {
     reg.registerAction(CollapseAllReactorsAction.ID, new CollapseAllReactorsAction());
     reg.registerAction(ShowCycleAction.ID, new ShowCycleAction());
     reg.registerAction(FilterCycleAction.ID, new FilterCycleAction());
+    reg.registerAction(ShowCaLFeedbackAction.ID, new ShowCaLFeedbackAction());
 
     // Style Mod
     reg.registerStyleModifier(ReactionPortAdjustment.ID, new ReactionPortAdjustment());

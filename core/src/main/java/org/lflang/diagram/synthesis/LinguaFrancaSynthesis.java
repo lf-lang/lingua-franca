@@ -83,6 +83,7 @@ import org.lflang.diagram.synthesis.action.ExpandAllReactorsAction;
 import org.lflang.diagram.synthesis.action.FilterCycleAction;
 import org.lflang.diagram.synthesis.action.MemorizingExpandCollapseAction;
 import org.lflang.diagram.synthesis.action.ShowCycleAction;
+import org.lflang.diagram.synthesis.action.ShowCaLFeedbackAction;
 import org.lflang.diagram.synthesis.postprocessor.ReactionPortAdjustment;
 import org.lflang.diagram.synthesis.postprocessor.ReactorPortAdjustment;
 import org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions;
@@ -1061,6 +1062,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       // startup)
 
       var figure = _linguaFrancaShapeExtensions.addReactionFigure(node, reaction);
+
+      // Store deadline info for the action to create a comment on click
+      if (reaction.declaredDeadline != null) {
+        String message = "Deadline: " + reaction.declaredDeadline.maxDelay.toString();
+        message += "\nTo meet this deadline, ...";
+        node.setProperty(ShowCaLFeedbackAction.CAL_FEEDBACK_MESSAGE, message);
+      }
 
       int inputSize =
           Stream.concat(reaction.triggers.stream(), reaction.sources.stream())
