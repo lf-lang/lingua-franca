@@ -1741,13 +1741,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         String commentText = "maxwait: " + maxWait.toString();
         KRoundedRectangle commentFigure =
             _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
-        _linguaFrancaStyleExtensions.commentStyle(commentFigure);
+        _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
 
         // connect
         KEdge edge = _kEdgeExtensions.createEdge();
         edge.setSource(comment);
         edge.setTarget(targetNode);
-        _linguaFrancaStyleExtensions.commentStyle(
+        _linguaFrancaStyleExtensions.maxWaitCommentStyle(
             _linguaFrancaShapeExtensions.addCommentPolyline(edge));
 
         return List.of(comment);

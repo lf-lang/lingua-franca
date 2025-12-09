@@ -117,6 +117,20 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     }
   }
 
+  public void maxWaitCommentStyle(KRendering r) {
+    _kRenderingExtensions.setForeground(r, Colors.BLUE);
+    _kRenderingExtensions.setBackground(r, Colors.WHITE);
+    _kRenderingExtensions.setLineWidth(r, 1);
+    _kRenderingExtensions.setSelectionLineWidth(r, 2);
+
+    if (r.eContainer() instanceof KEdge) { // also color potential arrow heads
+      _kRenderingExtensions.setBackground(r, Colors.LIGHT_BLUE);
+      _kRenderingExtensions.getBackground(r).setPropagateToChildren(true);
+      _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
+      _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
+    }
+  }
+
   private static final int CLOUD_WIDTH = 20;
 
   public KContainerRendering addCloudIcon(final KContainerRendering parent) {
