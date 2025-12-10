@@ -1326,6 +1326,25 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                   physicalConnectionLabel,
                   reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
             }
+            // Add label annotation if present
+            if (getBooleanValue(SHOW_USER_LABELS)) {
+              String labelText = AttributeUtils.getLabel(connection);
+              if (!StringExtensions.isNullOrEmpty(labelText)) {
+                KLabel connectionLabel =
+                    _kLabelExtensions.addCenterEdgeLabel(edge, labelText);
+                associateWith(connectionLabel, connection);
+                _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
+              }
+              // Add absent_after annotation if present
+              TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
+              if (!absentAfter.equals(TimeValue.ZERO)) {
+                KLabel absentAfterLabel =
+                    _kLabelExtensions.addCenterEdgeLabel(
+                        edge, "absent_after: " + absentAfter.toString());
+                associateWith(absentAfterLabel, connection);
+                _linguaFrancaStyleExtensions.applyOnEdgeAbsentAfterStyle(absentAfterLabel);
+              }
+            }
             if (source != null && target != null) {
               // check for inside loop (direct in -> out connection with delay)
               if (parentInputPorts.values().contains(source)
