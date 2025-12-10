@@ -126,7 +126,6 @@ public class TargetConfig {
    * Load configuration from the given resource.
    *
    * @param resource A resource to load from.
-   * @param reporter A reporter for reporting issues.
    * @param reporter A message reporter for reporting errors and warnings.
    */
   protected void load(Resource resource, MessageReporter reporter) {
@@ -211,6 +210,8 @@ public class TargetConfig {
    * @param pairs AST node that holds all the target properties.
    * @param relativePath The path from the main resource to the resource from which the new
    *     properties originate.
+   * @param loadOrNot Predicate to determine whether a property should be loaded.
+   * @param err Message reporter for errors.
    */
   public void update(
       TargetConfig config,

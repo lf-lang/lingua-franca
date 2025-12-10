@@ -102,6 +102,7 @@ public class CActionGenerator {
   /**
    * Generate the declarations of actions in the self struct
    *
+   * @param tpr The type-parameterized reactor.
    * @param body The content of the self struct
    * @param constructorCode The constructor code of the reactor
    */
@@ -121,10 +122,12 @@ public class CActionGenerator {
   /**
    * Generate the struct type definitions for the action of the reactor
    *
+   * @param tpr The type-parameterized reactor.
    * @param action The action to generate the struct for
    * @param target The target of the code generation (C, CCpp or Python)
    * @param types The helper object for types related stuff
    * @param federatedExtension The code needed to support federated execution
+   * @param userFacing Whether this is user-facing code.
    * @return The auxiliary struct for the port as a string
    */
   public static String generateAuxiliaryStruct(

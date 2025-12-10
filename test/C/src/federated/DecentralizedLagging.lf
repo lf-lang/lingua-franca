@@ -5,6 +5,7 @@
  * even if the the program is lagging behind physical time.
  *
  * @author Edward A. Lee
+ * @deprecated Use DecentralizedLaggingMW.lf instead.
  */
 target C {
   coordination: decentralized,

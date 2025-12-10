@@ -3,6 +3,7 @@
  * is flaky. It fails occasionally in CI.
  *
  * @author Edward A. Lee
+ * @deprecated Use LoopDistributedDecentralizedMW.lf instead.
  */
 target C {
   coordination: decentralized,

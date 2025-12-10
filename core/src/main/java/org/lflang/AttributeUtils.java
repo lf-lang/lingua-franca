@@ -241,12 +241,21 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the `@layout` annotations for the given element or null if there is no such annotation.
-   * Layout annotations have the form: ```
+   * Return the layout annotations for the given element or null if there is no such annotation.
+   * Layout annotations have the form:
    *
-   * @layout(option="string", value="any") ``` For example, ```
-   * @layout(option="port.side", value="WEST") ``` This will return all such annotations for the
-   *     specified node in the form of a map from the option name to the value.
+   * <pre>{@code
+   * @layout(option="string", value="any")
+   * }</pre>
+   *
+   * For example:
+   *
+   * <pre>{@code
+   * @layout(option="port.side", value="WEST")
+   * }</pre>
+   *
+   * This will return all such annotations for the specified node in the form of a map from the option
+   * name to the value.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
     final List<Attribute> attrs = findAttributesByName(node, "layout");
@@ -319,7 +328,7 @@ public class AttributeUtils {
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
    * have one.
    *
-   * @param The AST node (Instantiation or Connection).
+   * @param node The AST node (Instantiation or Connection).
    */
   public static TimeValue getMaxWait(EObject node) {
     final var attr = findAttributeByName(node, "maxwait");
@@ -338,7 +347,7 @@ public class AttributeUtils {
    * Return the value of the `@absent_after` attribute of the given node or TimeValue.ZERO if does not
    * have one.
    *
-   * @param The AST node (a Connection).
+   * @param node The AST node (a Connection).
    */
   public static TimeValue getAbsentAfter(EObject node) {
     final var attr = findAttributeByName(node, "absent_after");

@@ -137,6 +137,7 @@ public class CModesGenerator {
   /**
    * Generate code registering a state variable for automatic reset.
    *
+   * @param instance The reactor instance.
    * @param modeRef The code to refer to the mode
    * @param selfRef The code to refer to the self struct
    * @param varName The variable name in the self struct

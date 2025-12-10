@@ -181,6 +181,11 @@ public class PythonValidator extends org.lflang.generator.Validator {
     this.protoNames = ImmutableSet.copyOf(protoNames);
   }
 
+  /**
+   * List all validation strategies that exist for the Python validator.
+   *
+   * @return A collection of validation strategies.
+   */
   @Override
   protected Collection<ValidationStrategy> getPossibleStrategies() {
     return List.of(

@@ -106,7 +106,7 @@ public class CEnclavedReactorTransformation implements AstTransformation {
   /**
    * Part of the AstTransformation interface. Performs the transformation.
    *
-   * @param reactors A list of Reactor`s to perform the AST transformation on.
+   * @param reactors A list of Reactor instances to perform the AST transformation on.
    */
   public void applyTransformation(List<Reactor> reactors) {
     insertEnclavedConnections(reactors);

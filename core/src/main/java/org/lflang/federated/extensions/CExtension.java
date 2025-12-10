@@ -94,6 +94,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the port.
    * @param coordinationMode The coordination type
+   * @param messageReporter Used to report errors and warnings.
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -253,6 +254,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the connection.
    * @param coordinationMode Centralized or decentralized.
+   * @param messageReporter Used to report errors and warnings.
    */
   public String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -356,6 +358,7 @@ public class CExtension implements FedTargetExtension {
    * @param sendingFunction The name of the function that sends the serialized data.
    * @param commonArgs Arguments passed to `sendingFunction` regardless of serialization
    *     method.
+   * @param messageReporter Used to report errors and warnings.
    */
   protected void serializeAndSend(
       FedConnectionInstance connection,
@@ -501,7 +504,7 @@ public class CExtension implements FedTargetExtension {
 
   /**
    * Add preamble to a separate file to set up federated execution. Return an a string containing
-   * the #includes that are needed by the federate.
+   * the `#include` directives that are needed by the federate.
    */
   @Override
   public String generatePreamble(

@@ -19,13 +19,12 @@ reactor Client(STP_offset: time = 1 day) {
       lf_request_stop();
     }
     lf_set(client_message, val);
-  =} STAA(0) {=
-    // Zero STAA because STA is large and gets added.
+  =} tardy {=
     lf_print_error_and_exit("Client STP Violated!");
   =}
 }
 
-reactor Server(STP_offset: time = 1 day) {
+reactor Server {
   output server_message: int
   input client_message1: int
   input client_message2: int
@@ -47,8 +46,8 @@ reactor Server(STP_offset: time = 1 day) {
       lf_request_stop();
     }
     lf_set(server_message, val);
-  =} STAA(0) {=
-    // Zero STAA because STA is large and gets added.
+  =} tardy {=
+    // This should not occur.
     lf_print_error_and_exit("Server STP Violated!");
   =}
 }
@@ -56,6 +55,7 @@ reactor Server(STP_offset: time = 1 day) {
 federated reactor {
   client1 = new Client()
   client2 = new Client()
+  @maxwait(forever)
   server = new Server()
   server.server_message -> client1.server_message
   client1.client_message -> server.client_message1 after 0

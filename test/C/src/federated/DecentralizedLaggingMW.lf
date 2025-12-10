@@ -1,8 +1,9 @@
 /**
- * @brief A federated system with a decentralized coordinator that has large STA and STAA offsets.
+ * @brief A federated system with a decentralized coordinator that has large `maxwait` and
+ * `absent_after` offsets.
  *
- * This test verifies that a large STA and STAA offset can be used when the data flow is predictable
- * even if the the program is lagging behind physical time.
+ * This test verifies that a large `maxwait` and `absent_after` offset can be used when the data
+ * flow is predictable even if the the program is lagging behind physical time.
  *
  * @author Edward A. Lee
  */

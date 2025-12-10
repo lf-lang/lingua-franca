@@ -40,8 +40,10 @@ public class CStateGenerator {
    * is no way to tell whether the type of the array is a struct.
    *
    * @param instance {@link ReactorInstance}
-   * @param stateVar {@link StateVar}
+   * @param selfRef Reference to the self struct.
+   * @param stateVar The state variable ({@code StateVar})
    * @param mode {@link ModeInstance}
+   * @param types The C-specific type conversion functions.
    * @return String
    */
   public static String generateInitializer(

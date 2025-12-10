@@ -21,6 +21,8 @@ public class PythonReactorGenerator {
    * reactors to avoid duplicate generation
    *
    * @param instance The reactor instance to be generated
+   * @param main The main reactor instance.
+   * @param types The Python type helper.
    */
   public static String generatePythonClass(
       ReactorInstance instance, ReactorInstance main, PythonTypes types) {
@@ -33,6 +35,8 @@ public class PythonReactorGenerator {
    *
    * @param instance The reactor instance to be generated
    * @param instantiatedClasses A list of visited instances to avoid generating duplicates
+   * @param main The main reactor instance.
+   * @param types The Python type helper.
    */
   public static String generatePythonClass(
       ReactorInstance instance,

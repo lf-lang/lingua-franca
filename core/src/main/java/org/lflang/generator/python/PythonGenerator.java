@@ -222,8 +222,8 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   }
 
   /**
-   * Generate code that needs to appear at the top of the generated C file, such as #define and
-   * #include statements.
+   * Generate code that needs to appear at the top of the generated C file, such as `#define` and
+   * `#include` statements.
    */
   @Override
   public String generateDirectives() {
@@ -310,7 +310,9 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    * Generate the aliases for inputs, outputs, and struct type definitions for actions of the
    * specified reactor in the specified federate.
    *
+   * @param builder The code builder.
    * @param tpr The concrete reactor class.
+   * @param userFacing Whether this is user-facing code.
    */
   @Override
   public void generateAuxiliaryStructs(
@@ -413,6 +415,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    * is a void* pointing to a struct that contains parameters, state variables, inputs (triggering
    * or not), actions (triggering or produced), and outputs.
    *
+   * @param src The code builder.
    * @param reaction The reaction.
    * @param tpr The reactor.
    * @param reactionIndex The position of the reaction within the reactor.
@@ -468,6 +471,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    * preambles written in C, this function is overridden and does nothing.
    *
    * @param reactor The given reactor
+   * @param src The code builder.
    */
   @Override
   protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {

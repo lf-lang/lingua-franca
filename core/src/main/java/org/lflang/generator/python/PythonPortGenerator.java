@@ -65,6 +65,7 @@ public class PythonPortGenerator {
    * Generate into the specified string builder the code to send local variables for output ports to
    * a Python reaction function from the "self" struct.
    *
+   * @param pyObjects The list of Python object references.
    * @param output The output port.
    */
   public static void generateOutputVariablesToSendToPythonReaction(
@@ -88,7 +89,9 @@ public class PythonPortGenerator {
    * Generate into the specified string builder the code to send local variables for input ports to
    * a Python reaction function from the "self" struct.
    *
+   * @param pyObjects The list of Python object references.
    * @param input The input port.
+   * @param decl The reactor declaration.
    */
   public static void generateInputVariablesToSendToPythonReaction(
       List<String> pyObjects, Input input, ReactorDecl decl) {
@@ -121,6 +124,7 @@ public class PythonPortGenerator {
    * Generate into the specified string builder the code to pass local variables for sending data to
    * an input of a contained reaction (e.g. for a deadline violation).
    *
+   * @param pyObjects The list of Python object references.
    * @param definition AST node defining the reactor within which this occurs
    * @param port Input of the contained reactor.
    */

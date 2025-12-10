@@ -43,7 +43,7 @@ public class CEnclaveGraph {
   /**
    * @brief Build the enclave graph.
    *     <p>This function takes the main reactor instance and the set of enclave instances and does
-   *     a breadth-first search. When a reactor instance which is annotated with @enclave is found,
+   *     a breadth-first search. When a reactor instance which is annotated with {@code @enclave} is found,
    *     we check the AST transformation for what instantiations are connected to this reactor. We
    *     then look through the other reactor instances at the same level and find the corresponding
    *     reactor instance. Understanding this requires that you understand the difference between

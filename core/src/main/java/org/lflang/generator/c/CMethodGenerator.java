@@ -123,6 +123,7 @@ public class CMethodGenerator {
    * themselves) regardless of the order of definition.
    *
    * @param tpr The reactor declaration.
+   * @param body The code builder for the body.
    * @param types The C-specific type conversion functions.
    */
   public static void signatures(TypeParameterizedReactor tpr, CodeBuilder body, CTypes types) {

@@ -137,7 +137,7 @@ public class TypeParameterizedReactor {
   }
 
   /**
-   * #define type names as concrete types and define a flag indicating whether the type is token
+   * `#define` type names as concrete types and define a flag indicating whether the type is token
    * type.
    */
   public void doDefines(CodeBuilder b) {

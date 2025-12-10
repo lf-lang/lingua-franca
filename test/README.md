@@ -40,7 +40,7 @@ To invoke only the C tests in the `concurrent` category, for example, do this:
 
 Test categories are declared in the [TestCategory enum in TestRegistry.java](https://github.com/lf-lang/lingua-franca/blob/2611f38cb1e331afbf2fc18f0c9e9ec2758de348/org.lflang.tests/src/org/lflang/tests/TestRegistry.java#L130). Each `.lf` file is identified by the matching containing directory closest to it, or, if there is no such directory, it will be identified as `generic`. E.g., `test/C/src/multiport/Foo.lf` falls in the `multiport` category.
 
-Tests are normally expected to compile without errors and return exit code `0` when executed. Some test categories (e.g., `arduino`) are not attempted to run and are only expected to compile as they might require the presence of particular hardware or exotic software configurations that are not manageable in GitHub Actions, our current platform for Continuous Integration (CI). Only pushes to [feature branches](#feature-branches) associated with an active [pull request](#pull-requests) trigger CI.
+Tests are normally expected to compile without errors and return exit code `0` when executed. Some test categories (e.g., `arduino`) are not attempted to run and are only expected to compile as they might require the presence of particular hardware or exotic software configurations that are not manageable in GitHub Actions, our current platform for Continuous Integration (CI). Only pushes to feature branches associated with an active pull request trigger CI.
 
 ### LSP tests
 
