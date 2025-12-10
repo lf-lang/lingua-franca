@@ -1330,8 +1330,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             if (getBooleanValue(SHOW_USER_LABELS)) {
               String labelText = AttributeUtils.getLabel(connection);
               if (!StringExtensions.isNullOrEmpty(labelText)) {
-                KLabel connectionLabel =
-                    _kLabelExtensions.addCenterEdgeLabel(edge, labelText);
+                KLabel connectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, labelText);
                 associateWith(connectionLabel, connection);
                 _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
               }
