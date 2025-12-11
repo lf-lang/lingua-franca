@@ -6760,6 +6760,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>applyOnEdgeAbsentAfterStyle</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
+    <Anchor>a61f2fc78301ec7b425a69f99467949c3</Anchor>
+    <DeclaredIn>LinguaFrancaStyleExtensions.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>applyOnEdgeDelayStyle</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -6767,6 +6778,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
     <Anchor>a2675445261edf13b6728fcaac1bc37b6</Anchor>
+    <DeclaredIn>LinguaFrancaStyleExtensions.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>applyOnEdgeLabelStyle</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
+    <Anchor>a0058591976e037cc881a3ab17c028e7e</Anchor>
     <DeclaredIn>LinguaFrancaStyleExtensions.java</DeclaredIn>
   </Token>
   <Token>
@@ -33013,6 +33035,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1DeadlineInstance.html</Path>
     <Anchor>a34626a01d92b916116eb724b08d95479</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>maxWaitCommentStyle</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
+    <Anchor>abc6e80d850e7a6601952c17235a2e495</Anchor>
+    <DeclaredIn>LinguaFrancaStyleExtensions.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

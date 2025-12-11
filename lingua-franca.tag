@@ -10022,9 +10022,23 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>applyOnEdgeAbsentAfterStyle</name>
+      <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</anchorfile>
+      <anchor>a61f2fc78301ec7b425a69f99467949c3</anchor>
+      <arglist>(KLabel label)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>applyOnEdgeDelayStyle</name>
       <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</anchorfile>
       <anchor>a2675445261edf13b6728fcaac1bc37b6</anchor>
+      <arglist>(KLabel label)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>applyOnEdgeLabelStyle</name>
+      <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</anchorfile>
+      <anchor>a0058591976e037cc881a3ab17c028e7e</anchor>
       <arglist>(KLabel label)</arglist>
     </member>
     <member kind="function">
@@ -10096,6 +10110,13 @@
       <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1AbstractSynthesisExtensions.html</anchorfile>
       <anchor>ab2f969539122fa5e31062950d251a9d5</anchor>
       <arglist>(final SynthesisOption option)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>maxWaitCommentStyle</name>
+      <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</anchorfile>
+      <anchor>abc6e80d850e7a6601952c17235a2e495</anchor>
+      <arglist>(KRendering r)</arglist>
     </member>
     <member kind="function">
       <type>KRendering</type>
