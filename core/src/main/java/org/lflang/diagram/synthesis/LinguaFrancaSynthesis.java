@@ -76,6 +76,7 @@ import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.ToLf;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
@@ -478,6 +479,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     reactorInstance, new HashMap<>(), new HashMap<>(), allReactorNodes));
       }
       Iterables.addAll(nodes, createUserComments(reactor, node));
+      Iterables.addAll(nodes, createMaxWaitComment(reactorInstance.getDefinition(), node));
       configureReactorNodeLayout(node, true);
       _layoutPostProcessing.configureMainReactor(node);
       setAnnotatedLayoutOptions(reactor, node);
@@ -718,10 +720,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         }
         // Also add any labels put on the instantiation.
         Iterables.addAll(nodes, createUserComments(reactorInstance.getDefinition(), node));
+        // Also add any maxwait annotations put on the instantiation.
+        Iterables.addAll(nodes, createMaxWaitComment(reactorInstance.getDefinition(), node));
       } else {
         Iterables.addAll(nodes, createUserComments(reactor, node));
         // Also add any labels put on the instantiation.
         Iterables.addAll(nodes, createUserComments(reactorInstance.getDefinition(), node));
+        // Also add any maxwait annotations put on the instantiation.
+        Iterables.addAll(nodes, createMaxWaitComment(reactorInstance.getDefinition(), node));
       }
       configureReactorNodeLayout(node, false);
       _layoutPostProcessing.configureReactor(node);
@@ -1320,6 +1326,24 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                   physicalConnectionLabel,
                   reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
             }
+            // Add label annotation if present
+            if (getBooleanValue(SHOW_USER_LABELS)) {
+              String labelText = AttributeUtils.getLabel(connection);
+              if (!StringExtensions.isNullOrEmpty(labelText)) {
+                KLabel connectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, labelText);
+                associateWith(connectionLabel, connection);
+                _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
+              }
+              // Add absent_after annotation if present
+              TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
+              if (!absentAfter.equals(TimeValue.ZERO)) {
+                KLabel absentAfterLabel =
+                    _kLabelExtensions.addCenterEdgeLabel(
+                        edge, "absent_after: " + absentAfter.toString());
+                associateWith(absentAfterLabel, connection);
+                _linguaFrancaStyleExtensions.applyOnEdgeAbsentAfterStyle(absentAfterLabel);
+              }
+            }
             if (source != null && target != null) {
               // check for inside loop (direct in -> out connection with delay)
               if (parentInputPorts.values().contains(source)
@@ -1717,6 +1741,31 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         edge.setSource(comment);
         edge.setTarget(targetNode);
         _linguaFrancaStyleExtensions.commentStyle(
+            _linguaFrancaShapeExtensions.addCommentPolyline(edge));
+
+        return List.of(comment);
+      }
+    }
+    return List.of();
+  }
+
+  private Iterable<KNode> createMaxWaitComment(EObject element, KNode targetNode) {
+    if (getBooleanValue(SHOW_USER_LABELS)) {
+      TimeValue maxWait = AttributeUtils.getMaxWait(element);
+
+      if (!maxWait.equals(TimeValue.ZERO)) {
+        KNode comment = _kNodeExtensions.createNode();
+        setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+        String commentText = "maxwait: " + maxWait.toString();
+        KRoundedRectangle commentFigure =
+            _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
+        _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
+
+        // connect
+        KEdge edge = _kEdgeExtensions.createEdge();
+        edge.setSource(comment);
+        edge.setTarget(targetNode);
+        _linguaFrancaStyleExtensions.maxWaitCommentStyle(
             _linguaFrancaShapeExtensions.addCommentPolyline(edge));
 
         return List.of(comment);
