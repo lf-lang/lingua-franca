@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../include/CountHierarchy/CountHierarchy.h"
+#include "CountHierarchy/CountHierarchy.h"
 
 void increment(counthierarchy_self_t* self, timer_out_t* out) {
     printf("in increment, count=%d\n", self->count);
