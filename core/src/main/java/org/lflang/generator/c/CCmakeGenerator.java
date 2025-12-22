@@ -13,6 +13,7 @@ import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CmakeInitIncludeProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -403,6 +404,10 @@ public class CCmakeGenerator {
       cMakeCode.pr("# Find OpenSSL and link to it");
       cMakeCode.pr("find_package(OpenSSL REQUIRED)");
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+      cMakeCode.newLine();
+    }
+    if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
+      cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
       cMakeCode.newLine();
     }
 
