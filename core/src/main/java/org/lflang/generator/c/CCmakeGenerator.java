@@ -307,9 +307,8 @@ public class CCmakeGenerator {
             });
     // Add trace-plugin data
     var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
-    System.out.println(tracePlugin);
-    if (tracePlugin != null) {
-      cMakeCode.pr("set(LF_TRACE_PLUGIN " + tracePlugin + " CACHE STRING \"\")\n");
+    if (tracePlugin != null && tracePlugin) {
+      cMakeCode.pr("set(LF_TRACE_PLUGIN TRUE CACHE BOOL \"\")\n");
     }
 
     // Setup main target for different platforms
