@@ -458,7 +458,9 @@ public class LFValidator extends BaseLFValidator {
     if (isCBasedTarget() && isEnclave(inst)) {
       // 1. Disallow banks of enclaves
       if (inst.getWidthSpec() != null) {
-        error("Banks of enclaves are not supported in the C target", Literals.INSTANTIATION__WIDTH_SPEC);
+        error(
+            "Banks of enclaves are not supported in the C target",
+            Literals.INSTANTIATION__WIDTH_SPEC);
       }
 
       // 2. Disallow multiports and array ports   on enclaves
@@ -466,7 +468,8 @@ public class LFValidator extends BaseLFValidator {
       for (Input input : encDef.getInputs()) {
         if (input.getWidthSpec() != null) {
           error(
-              "Enclaves with multiports not supported in the C target", Literals.INSTANTIATION__REACTOR_CLASS);
+              "Enclaves with multiports not supported in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
         }
         if (input.getType().getCStyleArraySpec() != null) {
           error(
@@ -477,7 +480,8 @@ public class LFValidator extends BaseLFValidator {
       for (Output output : encDef.getOutputs()) {
         if (output.getWidthSpec() != null) {
           error(
-              "Enclaves with multiports not supported in the C target", Literals.INSTANTIATION__REACTOR_CLASS);
+              "Enclaves with multiports not supported in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
         }
         if (output.getType().getCStyleArraySpec() != null) {
           error(
@@ -491,7 +495,9 @@ public class LFValidator extends BaseLFValidator {
       for (Reaction r : parent.getReactions()) {
         for (VarRef effect : r.getEffects()) {
           if (effect.getContainer().equals(inst)) {
-            error("Enclave input ports can not be driven by reactions", Literals.INSTANTIATION__REACTOR_CLASS);
+            error(
+                "Enclave input ports can not be driven by reactions",
+                Literals.INSTANTIATION__REACTOR_CLASS);
           }
         }
         for (VarRef source : r.getSources()) {
