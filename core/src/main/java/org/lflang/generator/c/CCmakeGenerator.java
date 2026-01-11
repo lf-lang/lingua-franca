@@ -306,10 +306,17 @@ public class CCmakeGenerator {
               cMakeCode.pr("set(" + key + " " + v + " CACHE STRING \"\")\n");
             });
     // Add trace-plugin data
-    var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
-    System.out.println(tracePlugin);
-    if (tracePlugin != null) {
-      cMakeCode.pr("set(LF_TRACE_PLUGIN " + tracePlugin + " CACHE STRING \"\")\n");
+    if (targetConfig.isSet(TracePluginProperty.INSTANCE)) {
+      var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
+      if (tracePlugin != null) {
+        cMakeCode.pr("set(LF_TRACE_PLUGIN " + tracePlugin.pkg + " CACHE STRING \"\")\n");
+        cMakeCode.pr(
+            "set(LF_TRACE_PLUGIN_LIBRARY " + tracePlugin.library + " CACHE STRING \"\")\n");
+        if (tracePlugin.paths != null && !tracePlugin.paths.isBlank()) {
+          cMakeCode.pr(
+              "set(LF_TRACE_PLUGIN_PATHS " + tracePlugin.paths + " CACHE STRING \"\")\n");
+        }
+      }
     }
 
     // Setup main target for different platforms
