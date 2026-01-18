@@ -314,8 +314,7 @@ public class CCmakeGenerator {
             "set(LF_TRACE_PLUGIN_LIBRARY " + tracePlugin.library + " CACHE STRING \"\")\n");
         if (tracePlugin.paths != null && !tracePlugin.paths.isBlank()) {
           var absPaths = absolutizeCmakePathList(tracePlugin.paths);
-          cMakeCode.pr(
-              "set(LF_TRACE_PLUGIN_PATHS \"" + absPaths + "\" CACHE STRING \"\")\n");
+          cMakeCode.pr("set(LF_TRACE_PLUGIN_PATHS \"" + absPaths + "\" CACHE STRING \"\")\n");
         }
       }
     }

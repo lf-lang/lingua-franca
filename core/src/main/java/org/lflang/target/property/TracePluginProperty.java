@@ -29,8 +29,10 @@ public final class TracePluginProperty
   public static final class TracePluginSpec {
     /** CMake package name used for find_package(); becomes LF_TRACE_PLUGIN. */
     public String pkg;
+
     /** CMake target to link; becomes LF_TRACE_PLUGIN_LIBRARY. */
     public String library;
+
     /**
      * Optional CMake search paths passed as LF_TRACE_PLUGIN_PATHS.
      *
@@ -63,7 +65,8 @@ public final class TracePluginProperty
   @Override
   protected TracePluginSpec fromString(String string, MessageReporter reporter) {
     throw new UnsupportedOperationException(
-        "trace-plugin no longer accepts a string; use a dictionary with keys 'package' and 'library'.");
+        "trace-plugin no longer accepts a string; use a dictionary with keys 'package' and"
+            + " 'library'.");
   }
 
   @Override

@@ -14,7 +14,8 @@ import org.lflang.target.property.type.StringDictionaryType;
  * <p>Each key-value pair is converted to a CMake configure definition of the form {@code -Dkey=value}.
  * This is applied when invoking CMake (not when generating CMakeLists.txt).
  */
-public final class CmakeArgsProperty extends TargetProperty<Map<String, String>, StringDictionaryType> {
+public final class CmakeArgsProperty
+    extends TargetProperty<Map<String, String>, StringDictionaryType> {
 
   /** Singleton target property instance. */
   public static final CmakeArgsProperty INSTANCE = new CmakeArgsProperty();
@@ -64,5 +65,3 @@ public final class CmakeArgsProperty extends TargetProperty<Map<String, String>,
     return "cmake-args";
   }
 }
-
-
