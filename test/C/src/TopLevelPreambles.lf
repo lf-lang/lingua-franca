@@ -10,6 +10,7 @@ reactor CustomTypeEEE extends CustomTypeEE {
 
 main reactor TopLevelPreambles {
   custom_type = new CustomTypeEEE()
+
   reaction(custom_type.out) {=
     custom_type_t value = custom_type.out->value;
     printf("Received: %d, %d\n", value.value1, value.value2);
