@@ -6,7 +6,6 @@ import org.lflang.target.property.BuildTypeProperty
 import org.lflang.target.property.CmakeIncludeProperty
 import org.lflang.target.property.CmakeInitIncludeProperty
 import org.lflang.target.property.Ros2DependenciesProperty
-import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.toUnixString
 import java.nio.file.Path
 
@@ -14,10 +13,8 @@ import java.nio.file.Path
 class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: String) {
     private val fileConfig = generator.fileConfig
     private val targetConfig = generator.targetConfig
-    val reactorCppSuffix: String = if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) targetConfig.get(RuntimeVersionProperty.INSTANCE) else "default"
-    val reactorCppName = "reactor-cpp-$reactorCppSuffix"
     private val dependencies =
-        listOf("rclcpp", "rclcpp_components", reactorCppName) + (
+        listOf("rclcpp", "rclcpp_components", "reactor-cpp") + (
                 if (targetConfig.isSet(Ros2DependenciesProperty.INSTANCE)) targetConfig.get(Ros2DependenciesProperty.INSTANCE) else listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
@@ -87,7 +84,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |    "$S{PROJECT_SOURCE_DIR}/src/"
                 |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} $reactorCppName)
+                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
                 |
                 |rclcpp_components_register_node($S{LF_MAIN_TARGET}
                 |  PLUGIN "$nodeName"
