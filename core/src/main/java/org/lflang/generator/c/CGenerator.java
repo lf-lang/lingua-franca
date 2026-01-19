@@ -2114,19 +2114,46 @@ public class CGenerator extends GeneratorBase {
   }
 
   private String generateTopLevelPreambles(Reactor reactor, Set<EObject> visited) {
-    if (visited.contains(reactor.eContainer())) {
-      // If we have already visited the container of this reactor, then we do not need to
-      // generate the preamble again.
-      return "";
-    }
-
     CodeBuilder builder = new CodeBuilder();
 
     // First, generate the preambles for the base classes of the specified reactor.
-    var superClasses = reactor.getSuperClasses();
-    if (superClasses != null) {
-      for (var superClass : superClasses) {
-        builder.pr(generateTopLevelPreambles(toDefinition(superClass), visited));
+    // Use ASTUtils.superClasses to get the full resolved superclass chain, which handles
+    // imported reactors correctly. This returns classes in deepest-first order.
+    var allSuperClasses = ASTUtils.superClasses(reactor);
+    if (allSuperClasses != null) {
+      for (var superClass : allSuperClasses) {
+        // Generate preamble for each superclass's file if not already visited
+        if (!visited.contains(superClass.eContainer())) {
+          visited.add(superClass.eContainer());
+          var preambles = ((Model) superClass.eContainer()).getPreambles();
+          var hasPreamble =
+              !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
+          if (hasPreamble) {
+            var guard = "TOP_LEVEL_PREAMBLE_" + superClass.eContainer().hashCode() + "_H";
+            builder.pr("#ifndef " + guard);
+            builder.pr("#define " + guard);
+
+            for (var preamble : preambles) {
+              var code = preamble.getCode();
+              if (code != null) {
+                var text = toText(code);
+                builder.pr(text);
+              }
+            }
+
+            // Also generate the preambles for all the .proto files that are used.
+            for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
+              var dotIndex = file.lastIndexOf(".");
+              var rootFilename = file;
+              if (dotIndex > 0) {
+                rootFilename = file.substring(0, dotIndex);
+              }
+              builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+            }
+
+            builder.pr("#endif // " + guard);
+          }
+        }
       }
     }
     // These could have been in the same file, in which case we avoid generating again.
@@ -2160,7 +2187,6 @@ public class CGenerator extends GeneratorBase {
           if (dotIndex > 0) {
             rootFilename = file.substring(0, dotIndex);
           }
-          code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
           builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
         }
 
@@ -2168,9 +2194,12 @@ public class CGenerator extends GeneratorBase {
       }
     }
     // Finally, generate the preambles for all the reactors that are instantiated.
+    // This recursively collects preambles from instantiated reactors and their superclasses.
     for (var instantiation : ASTUtils.allInstantiations(reactor)) {
       var instantiated = toDefinition(instantiation.getReactorClass());
-      builder.pr(generateTopLevelPreambles(toDefinition(instantiated), visited));
+      if (instantiated != null) {
+        builder.pr(generateTopLevelPreambles(instantiated, visited));
+      }
     }
     return builder.toString();
   }

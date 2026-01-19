@@ -1,0 +1,9 @@
+target C
+
+import CustomTypeE from "CustomTypeE.lf"
+
+reactor CustomTypeEE extends CustomTypeE {
+  reaction(startup) {=
+    lf_print("CustomTypeEE startup");
+  =}
+}
