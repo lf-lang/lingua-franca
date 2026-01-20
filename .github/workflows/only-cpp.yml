@@ -28,3 +28,5 @@ jobs:
   # Run the C++ integration tests on ROS2.
   cpp-ros2-tests:
     uses: ./.github/workflows/cpp-ros2-tests.yml
+    if: false  # Disabled because ROS2 is no longer supported
+  
