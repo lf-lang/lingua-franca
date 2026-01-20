@@ -1,7 +1,6 @@
 package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfFactory;
@@ -25,7 +24,6 @@ public class CppRos2Test extends TestBase {
   }
 
   /** Run C++ tests with the ros2 target property set */
-  @Disabled("Disabled because ROS2 is no longer supported")
   @Test
   public void runWithRos2() {
     Assumptions.assumeTrue(isLinux(), "Only supported on Linux");

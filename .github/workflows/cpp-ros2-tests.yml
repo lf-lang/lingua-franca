@@ -12,6 +12,7 @@ on:
 
 jobs:
   cpp-ros2-tests:
+    if: false  # Disabled because ROS2 is no longer supported
     runs-on: ubuntu-24.04
     steps:
       - name: Check out lingua-franca repository
