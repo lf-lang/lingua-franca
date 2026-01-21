@@ -103,7 +103,9 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |file(GLOB subdirs RELATIVE "$S{PROJECT_SOURCE_DIR}" "$S{PROJECT_SOURCE_DIR}/*")
             |foreach(subdir $S{subdirs})
             |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
-            |    if($S{subdir} MATCHES "reactor-cpp-.*")
+            |    if($S{subdir} STREQUAL "reactor-cpp")
+            |      add_subdirectory("$S{subdir}")
+            |    elseif($S{subdir} MATCHES "reactor-cpp-.*")
             |      string(SUBSTRING $S{subdir} 12 -1 LF_REACTOR_CPP_SUFFIX)
             |      add_subdirectory("$S{subdir}")
             |    endif()
@@ -112,7 +114,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
             |foreach(subdir $S{subdirs})
             |  if(IS_DIRECTORY "$S{PROJECT_SOURCE_DIR}/$S{subdir}")
             |    if(EXISTS "$S{PROJECT_SOURCE_DIR}/$S{subdir}/.lf-cpp-marker")
-            |      if(NOT $S{subdir} MATCHES "reactor-cpp-.*")
+            |      if(NOT $S{subdir} STREQUAL "reactor-cpp" AND NOT $S{subdir} MATCHES "reactor-cpp-.*")
             |        add_subdirectory("$S{subdir}")
             |      endif()
             |    endif()
@@ -142,7 +144,7 @@ class CppStandaloneCmakeGenerator(private val targetConfig: TargetConfig, privat
         val reactorCppTarget = when {
             targetConfig.isSet(ExternalRuntimePathProperty.INSTANCE) -> "reactor-cpp"
             targetConfig.isSet(RuntimeVersionProperty.INSTANCE)      -> "reactor-cpp-${targetConfig.get(RuntimeVersionProperty.INSTANCE)}"
-            else                                   -> "reactor-cpp-default"
+            else                                   -> "reactor-cpp"
         }
 
         return with(PrependOperator) {
