@@ -71,6 +71,8 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |# Invoke find_package() for all build and buildtool dependencies.
                 |find_package(ament_cmake_auto REQUIRED)
                 |ament_auto_find_build_dependencies()
+                |# Find reactor-cpp from the colcon workspace install directory
+                |find_package(reactor-cpp REQUIRED HINTS $S{CMAKE_INSTALL_PREFIX}/../reactor-cpp/share/reactor-cpp/cmake)
                 |
                 |set(LF_MAIN_TARGET ${fileConfig.name})
                 |
@@ -84,7 +86,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
                 |    "$S{PROJECT_SOURCE_DIR}/src/"
                 |    "$S{PROJECT_SOURCE_DIR}/src/__include__"
                 |)
-                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp)
+                |target_link_libraries($S{LF_MAIN_TARGET} reactor-cpp::reactor-cpp)
                 |
                 |rclcpp_components_register_node($S{LF_MAIN_TARGET}
                 |  PLUGIN "$nodeName"

@@ -58,7 +58,7 @@ jobs:
       - name: Collect reactor-cpp coverage data
         run: |
           lcov --capture --directory test/Cpp --output-file coverage.info
-          lcov --extract coverage.info ${GITHUB_WORKSPACE}/test/Cpp/src-gen/reactor-cpp-default/\* --output-file reactor-cpp.info
+          lcov --extract coverage.info ${GITHUB_WORKSPACE}/test/Cpp/src-gen/reactor-cpp/\* --output-file reactor-cpp.info
           genhtml reactor-cpp.info --output-directory reactor-cpp.coverage
         if: matrix.platform == 'ubuntu-24.04'
       - name: Upload coverage report
