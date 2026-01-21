@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-<tagfile doxygen_version="1.15.0">
+<tagfile doxygen_version="1.16.1">
   <compound kind="class">
     <name>org::lflang::analyses::c::AbstractAstVisitor</name>
     <filename>classorg_1_1lflang_1_1analyses_1_1c_1_1AbstractAstVisitor.html</filename>
