@@ -183,6 +183,11 @@ class CppGenerator(
                     true,
                     true
                 )
+                val packageXml = fileConfig.srcGenBasePath.resolve("reactor-cpp-default").resolve("package.xml") 
+                val lines = Files.readAllLines(packageXml).map { line ->
+                    if (line.contains("<name>")) "  <name>reactor-cpp-default</name>" else line
+                }
+                FileUtil.writeToFile(lines.joinToString("\n"), packageXml, true)
             }
         }
 
