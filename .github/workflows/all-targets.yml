@@ -28,4 +28,3 @@ jobs:
   cpp:
     uses: ./.github/workflows/only-cpp.yml
     needs: check-diff
-    if: ${{ needs.check-diff.outputs.run_cpp == 'true' }}
