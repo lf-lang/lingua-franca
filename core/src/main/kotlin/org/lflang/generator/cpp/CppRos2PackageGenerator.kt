@@ -17,7 +17,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     val reactorCppSuffix: String = if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) targetConfig.get(RuntimeVersionProperty.INSTANCE) else "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
     private val dependencies =
-        listOf("rclcpp", "rclcpp_components", reactorCppName) + (
+        listOf("rclcpp", "rclcpp_components") + (
                 if (targetConfig.isSet(Ros2DependenciesProperty.INSTANCE)) targetConfig.get(Ros2DependenciesProperty.INSTANCE) else listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
@@ -36,7 +36,8 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |
             |  <buildtool_depend>ament_cmake</buildtool_depend>
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
-            |  
+            |
+            |  <depend>$reactorCppName</depend>
         ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" }}
             |
             |  <test_depend>ament_lint_auto</test_depend>
