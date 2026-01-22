@@ -17,14 +17,15 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
     val reactorCppSuffix: String = if (targetConfig.isSet(RuntimeVersionProperty.INSTANCE)) targetConfig.get(RuntimeVersionProperty.INSTANCE) else "default"
     val reactorCppName = "reactor-cpp-$reactorCppSuffix"
     private val dependencies =
-        listOf("rclcpp", "rclcpp_components") + (
+        listOf("rclcpp", "rclcpp_components", reactorCppName) + (
                 if (targetConfig.isSet(Ros2DependenciesProperty.INSTANCE)) targetConfig.get(Ros2DependenciesProperty.INSTANCE) else listOf<String>())
 
     @Suppress("PrivatePropertyName") // allows us to use capital S as variable name below
     private val S = '$' // a little trick to escape the dollar sign with $S
 
     fun generatePackageXml(): String {
-        return """
+        return with(PrependOperator) {
+            """
             |<?xml version="1.0"?>
             |<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
             |<package format="3">
@@ -37,7 +38,6 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  <buildtool_depend>ament_cmake</buildtool_depend>
             |  <buildtool_depend>ament_cmake_auto</buildtool_depend>
             |
-            |  <depend>$reactorCppName</depend>
         ${" |"..dependencies.joinWithLn { "<depend>$it</depend>" }}
             |
             |  <test_depend>ament_lint_auto</test_depend>
@@ -50,6 +50,7 @@ class CppRos2PackageGenerator(generator: CppGenerator, private val nodeName: Str
             |  </export>
             |</package>
         """.trimMargin()
+        }
     }
 
     fun generatePackageCmake(sources: List<Path>): String {
