@@ -35,7 +35,7 @@ jobs:
       - name: Run C++ tests;
         run: |
           source /opt/ros/*/setup.bash
-          ./gradlew targetTest -Ptarget=CppRos2
+          COLCON_LOG_LEVEL=debug ./gradlew targetTest -Ptarget=CppRos2
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
