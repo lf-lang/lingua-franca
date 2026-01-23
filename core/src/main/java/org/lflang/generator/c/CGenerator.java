@@ -2122,77 +2122,13 @@ public class CGenerator extends GeneratorBase {
     var allSuperClasses = ASTUtils.superClasses(reactor);
     if (allSuperClasses != null) {
       for (var superClass : allSuperClasses) {
-        // Generate preamble for each superclass's file if not already visited
-        if (!visited.contains(superClass.eContainer())) {
-          visited.add(superClass.eContainer());
-          var preambles = ((Model) superClass.eContainer()).getPreambles();
-          var hasPreamble =
-              !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
-          if (hasPreamble) {
-            var guard = "TOP_LEVEL_PREAMBLE_" + superClass.eContainer().hashCode() + "_H";
-            builder.pr("#ifndef " + guard);
-            builder.pr("#define " + guard);
-
-            for (var preamble : preambles) {
-              var code = preamble.getCode();
-              if (code != null) {
-                var text = toText(code);
-                builder.pr(text);
-              }
-            }
-
-            // Also generate the preambles for all the .proto files that are used.
-            for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-              var dotIndex = file.lastIndexOf(".");
-              var rootFilename = file;
-              if (dotIndex > 0) {
-                rootFilename = file.substring(0, dotIndex);
-              }
-              builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-            }
-
-            builder.pr("#endif // " + guard);
-          }
-        }
+        generatePreambleForFile(superClass.eContainer(), visited, builder);
       }
     }
-    // These could have been in the same file, in which case we avoid generating again.
-    if (!visited.contains(reactor.eContainer())) {
-      visited.add(reactor.eContainer());
-      // Generate the preambles for the specified reactor.
-      // We need to guard it with a #ifndef.
-      // The eContainer() of the reactor is the file in which it is defined, which
-      // is where top-level preambles reside. Hence, guard the preamble with an
-      // identifier unique to the file.
-      var preambles = ((Model) reactor.eContainer()).getPreambles();
-      var hasPreamble =
-          !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
-      if (hasPreamble) {
-        var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
-        builder.pr("#ifndef " + guard);
-        builder.pr("#define " + guard);
 
-        for (var preamble : preambles) {
-          var code = preamble.getCode();
-          if (code != null) {
-            var text = toText(code);
-            builder.pr(text);
-          }
-        }
+    // Generate preamble for the current reactor's file (may have been visited via superclasses).
+    generatePreambleForFile(reactor.eContainer(), visited, builder);
 
-        // Also generate the preambles for all the .proto files that are used.
-        for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-          var dotIndex = file.lastIndexOf(".");
-          var rootFilename = file;
-          if (dotIndex > 0) {
-            rootFilename = file.substring(0, dotIndex);
-          }
-          builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-        }
-
-        builder.pr("#endif // " + guard);
-      }
-    }
     // Finally, generate the preambles for all the reactors that are instantiated.
     // This recursively collects preambles from instantiated reactors and their superclasses.
     for (var instantiation : ASTUtils.allInstantiations(reactor)) {
@@ -2202,6 +2138,51 @@ public class CGenerator extends GeneratorBase {
       }
     }
     return builder.toString();
+  }
+
+  /**
+   * Generate guarded preamble code for the given file (Model container) if not already visited.
+   *
+   * @param fileContainer The eContainer of a reactor (the Model/file containing it).
+   * @param visited Set of already-visited containers to avoid duplicates.
+   * @param builder The CodeBuilder to append the preamble to.
+   */
+  private void generatePreambleForFile(
+      EObject fileContainer, Set<EObject> visited, CodeBuilder builder) {
+    if (visited.contains(fileContainer)) {
+      return;
+    }
+    visited.add(fileContainer);
+
+    var preambles = ((Model) fileContainer).getPreambles();
+    var hasPreamble =
+        !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
+    if (!hasPreamble) {
+      return;
+    }
+
+    var guard = "TOP_LEVEL_PREAMBLE_" + fileContainer.hashCode() + "_H";
+    builder.pr("#ifndef " + guard);
+    builder.pr("#define " + guard);
+
+    for (var preamble : preambles) {
+      var code = preamble.getCode();
+      if (code != null) {
+        builder.pr(toText(code));
+      }
+    }
+
+    // Also generate includes for all the .proto files that are used.
+    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
+      var dotIndex = file.lastIndexOf(".");
+      var rootFilename = file;
+      if (dotIndex > 0) {
+        rootFilename = file.substring(0, dotIndex);
+      }
+      builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+    }
+
+    builder.pr("#endif // " + guard);
   }
 
   protected boolean targetLanguageIsCpp() {
