@@ -14,6 +14,7 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CmakeArgsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Option;
@@ -225,6 +226,13 @@ public class CCompiler {
       arguments.add("-DLF_PACKAGE_DIRECTORY=" + rootPath);
       arguments.add("-DLF_SOURCE_GEN_DIRECTORY=" + srcGenPath);
     }
+
+    // Append user-provided CMake configure definitions. These come after built-ins so they can
+    // override defaults (e.g., CMAKE_BUILD_TYPE).
+    targetConfig
+        .getOrDefault(CmakeArgsProperty.INSTANCE)
+        .forEach((key, value) -> arguments.add("-D" + key + "=" + (value == null ? "" : value)));
+
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
     if (GeneratorUtils.isHostWindows()) {
