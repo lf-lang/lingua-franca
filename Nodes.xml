@@ -12566,6 +12566,16 @@
               <Anchor>aa064c2399382a62c09157fd41c23d6de</Anchor>
              </Node>
              <Node>
+              <Name>tracePluginRequiresPackageAndLibraryMissingLibrary</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>af9dba0fe87f61fd4fad22392a5369cde</Anchor>
+             </Node>
+             <Node>
+              <Name>tracePluginRequiresPackageAndLibraryMissingPackage</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a60d4634f2cee82e650935b4b512c6ed1</Anchor>
+             </Node>
+             <Node>
               <Name>tracingOptionsCpp</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
               <Anchor>a13f50f86f9597cf0f1d3d43920320135</Anchor>
@@ -39118,6 +39128,11 @@
                         <Anchor>ada29ca1e43a3c46fd558172b0d98549f</Anchor>
                        </Node>
                        <Node>
+                        <Name>TRACE_PLUGIN_DICT</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</Path>
+                        <Anchor>a57cdc3f349ec311f915d381c8847644e</Anchor>
+                       </Node>
+                       <Node>
                         <Name>TRACING_DICT</Name>
                         <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</Path>
                         <Anchor>a6b86c017c40e8f0e44d1599c18d8c3bb</Anchor>
@@ -40588,6 +40603,117 @@
                      <Node>
                       <Name>type</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty.html</Path>
+                      <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
+                    <Name>CmakeArgsProperty</Name>
+                    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>astElementFromConfig</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>checkType</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>equals</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromAst</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a0e9bb1f37ab5c1885b73f94f7594c273</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromJSON</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a603f20ef3325c587d464d14574d4dd4d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>hashCode</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>initialValue</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a0d08864e62d0502ef5b63a92a6178f7a</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederation</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromImport</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>name</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a08a507af27869a9b15fb2cdd6c5a5c55</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>override</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a617277f426ba174ddde37eb38abef8c4</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>update</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a6275a5bfb3d62b856d641b3fe68e63a1</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>update</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>validate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>INSTANCE</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+                      <Anchor>aaeb3927220dc35d2bb192fe804f5410c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>type</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
                       <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
                      </Node>
                     </Subnodes>
@@ -44430,6 +44556,63 @@
                     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
                   <Subnodes>
                      <Node>
+                      <Name>TracePluginOption</Name>
+                      <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                    <Subnodes>
+                       <Node>
+                        <Name>TracePluginOption</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>a76fedf288101ebb0a12168ba4b192c2c</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>getType</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>ad913b671c71a533a7d41fd2647d20466</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>toString</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>acf0d6ed895539f0cc74ef9e598a1c826</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>LIBRARY</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>a32611302fb900b78b2d24322f8864378</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>PACKAGE</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>ad607a71e467c47de607042fc42fb3900</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>PATH</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>a06baea7e5266747073f5113e6b25ad43</Anchor>
+                       </Node>
+                      </Subnodes>
+                     </Node>
+                     <Node>
+                      <Name>TracePluginSpec</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+                    <Subnodes>
+                       <Node>
+                        <Name>library</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+                        <Anchor>aabc92a32b62876e42b53361ed45ef394</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>paths</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+                        <Anchor>a0d943b156e445bee7cc59dc2a24e9f82</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>pkg</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+                        <Anchor>a1f10ce20f3a83d51f594c28a586a896a</Anchor>
+                       </Node>
+                      </Subnodes>
+                     </Node>
+                     <Node>
                       <Name>astElementFromConfig</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
                       <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
@@ -44447,7 +44630,7 @@
                      <Node>
                       <Name>fromAst</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-                      <Anchor>a1399e7174c14f2293e7dbc8e9e7886cc</Anchor>
+                      <Anchor>a36cb18b9905bcb4c4809a4d953fbbfb6</Anchor>
                      </Node>
                      <Node>
                       <Name>fromJSON</Name>
@@ -44457,7 +44640,7 @@
                      <Node>
                       <Name>fromString</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-                      <Anchor>a3abf3f3328d85906dd4e3d4e7ee8336e</Anchor>
+                      <Anchor>ab1cbefbcf863bb9be73072a20a0cc461</Anchor>
                      </Node>
                      <Node>
                       <Name>hashCode</Name>
@@ -44467,7 +44650,7 @@
                      <Node>
                       <Name>initialValue</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-                      <Anchor>a30a818f243a7242000bac28eb3995686</Anchor>
+                      <Anchor>a5a266f91718a3ced88d087bcd2a3bba2</Anchor>
                      </Node>
                      <Node>
                       <Name>loadFromFederate</Name>
@@ -44497,12 +44680,12 @@
                      <Node>
                       <Name>toAstElement</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-                      <Anchor>aa1872cfeb3dcc048cce280b8476ad978</Anchor>
+                      <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
                      </Node>
                      <Node>
                       <Name>toAstElement</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-                      <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+                      <Anchor>a3b53bad0040cd409515f629d17547835</Anchor>
                      </Node>
                      <Node>
                       <Name>toString</Name>
@@ -44517,7 +44700,7 @@
                      <Node>
                       <Name>validate</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-                      <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+                      <Anchor>aaabdd190409cc04bfb49932b37268e24</Anchor>
                      </Node>
                      <Node>
                       <Name>INSTANCE</Name>
@@ -45854,6 +46037,16 @@
                       <Name>testWrongStructureForLabelAttribute</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
                       <Anchor>aa064c2399382a62c09157fd41c23d6de</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>tracePluginRequiresPackageAndLibraryMissingLibrary</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>af9dba0fe87f61fd4fad22392a5369cde</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>tracePluginRequiresPackageAndLibraryMissingPackage</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a60d4634f2cee82e650935b4b512c6ed1</Anchor>
                      </Node>
                      <Node>
                       <Name>tracingOptionsCpp</Name>
@@ -53525,6 +53718,10 @@
             <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
           <Subnodes>
              <Node>
+              <Name>org.lflang.target.property.CmakeArgsProperty</Name>
+              <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+             </Node>
+             <Node>
               <Name>org.lflang.target.property.CompileDefinitionsProperty</Name>
               <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
              </Node>
@@ -53578,10 +53775,6 @@
                 <Name>org.lflang.target.property.RuntimeVersionProperty</Name>
                 <Path>classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html</Path>
                </Node>
-               <Node>
-                <Name>org.lflang.target.property.TracePluginProperty</Name>
-                <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
-               </Node>
               </Subnodes>
              </Node>
             </Subnodes>
@@ -53597,6 +53790,16 @@
             </Subnodes>
            </Node>
            <Node>
+            <Name>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Name>
+            <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+          <Subnodes>
+             <Node>
+              <Name>org.lflang.target.property.TracePluginProperty</Name>
+              <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
             <Name>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Name>
             <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
           <Subnodes>
@@ -53605,6 +53808,10 @@
               <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty.html</Path>
              </Node>
             </Subnodes>
+           </Node>
+           <Node>
+            <Name>org.lflang.target.property.TracePluginProperty.TracePluginSpec</Name>
+            <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
            </Node>
            <Node>
             <Name>org.lflang.target.property.TracingProperty.TracingOptions</Name>
@@ -53641,6 +53848,10 @@
              <Node>
               <Name>org.lflang.target.property.PlatformProperty.PlatformOption</Name>
               <Path>enumorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty_1_1PlatformOption.html</Path>
+             </Node>
+             <Node>
+              <Name>org.lflang.target.property.TracePluginProperty.TracePluginOption</Name>
+              <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
              </Node>
              <Node>
               <Name>org.lflang.target.property.TracingProperty.TracingOption</Name>

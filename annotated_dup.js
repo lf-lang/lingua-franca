@@ -306,6 +306,7 @@ var annotated_dup =
             [ "CargoFeaturesProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CargoFeaturesProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1CargoFeaturesProperty" ],
             [ "ClockSyncModeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncModeProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncModeProperty" ],
             [ "ClockSyncOptionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty" ],
+            [ "CmakeArgsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty" ],
             [ "CmakeIncludeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty" ],
             [ "CmakeInitIncludeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeInitIncludeProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeInitIncludeProperty" ],
             [ "CompileDefinitionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty" ],

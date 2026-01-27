@@ -12,5 +12,6 @@ var enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType =
     [ "DOCKER_DICT", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html#a812fead51f1a38424d1c939445030e84", null ],
     [ "options", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html#a13d5fdff325568789296970f9b58d29a", null ],
     [ "PLATFORM_DICT", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html#ada29ca1e43a3c46fd558172b0d98549f", null ],
+    [ "TRACE_PLUGIN_DICT", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html#a57cdc3f349ec311f915d381c8847644e", null ],
     [ "TRACING_DICT", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html#a6b86c017c40e8f0e44d1599c18d8c3bb", null ]
 ];

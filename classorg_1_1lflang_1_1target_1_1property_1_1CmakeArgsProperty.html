@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.16.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>lingua-franca: org.lflang.target.property.StringProperty Class Reference</title>
+<title>lingua-franca: org.lflang.target.property.CmakeArgsProperty Class Reference</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon" />
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
@@ -68,7 +68,7 @@ $(function() {
   </div>
 </div>
 <script type="text/javascript">
-$(function(){initNavTree('classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html','','classorg_1_1lflang_1_1target_1_1property_1_1StringProperty-members'); });
+$(function(){initNavTree('classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html','','classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty-members'); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -94,13 +94,14 @@ $(function(){initNavTree('classorg_1_1lflang_1_1target_1_1property_1_1StringProp
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.target.property.StringProperty Class Reference<span class="mlabels"><span class="mlabel abstract">abstract</span></span></div></div>
+  <div class="headertitle"><div class="title">org.lflang.target.property.CmakeArgsProperty Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>Inherits <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty&lt; String, PrimitiveType &gt;</a>.</p>
+<p>Directive to specify additional CMake configure arguments.  
+ <a href="#details">More...</a></p>
 
-<p>Inherited by <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1CompilerProperty.html">org.lflang.target.property.CompilerProperty</a>, <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1ExternalRuntimePathProperty.html">org.lflang.target.property.ExternalRuntimePathProperty</a>, <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1PythonVersionProperty.html">org.lflang.target.property.PythonVersionProperty</a>, and <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html">org.lflang.target.property.RuntimeVersionProperty</a>.</p>
+<p>Inherits <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</a>.</p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -109,24 +110,22 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ad2943097a2b239aecb9c0bf4eb2968f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the given key-value pair does not match the type required by this target property, report an error through the given reporter.  <br /></td></tr>
 <tr class="memitem:a204b717061ca87ddd71cbc866440af5c" id="r_a204b717061ca87ddd71cbc866440af5c"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a204b717061ca87ddd71cbc866440af5c">equals</a> (Object obj)</td></tr>
 <tr class="memdesc:a204b717061ca87ddd71cbc866440af5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the given object is an instance of a class with the same name.  <br /></td></tr>
-<tr class="memitem:a1399e7174c14f2293e7dbc8e9e7886cc" id="r_a1399e7174c14f2293e7dbc8e9e7886cc"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a1399e7174c14f2293e7dbc8e9e7886cc">fromAst</a> (Element node, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memitem:a29acc44b1e353f4638f22bb3289d7338" id="r_a29acc44b1e353f4638f22bb3289d7338"><td class="memItemLeft">int&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a29acc44b1e353f4638f22bb3289d7338">hashCode</a> ()</td></tr>
-<tr class="memitem:a30a818f243a7242000bac28eb3995686" id="r_a30a818f243a7242000bac28eb3995686"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a30a818f243a7242000bac28eb3995686">initialValue</a> ()</td></tr>
+<tr class="memitem:a0d08864e62d0502ef5b63a92a6178f7a" id="r_a0d08864e62d0502ef5b63a92a6178f7a"><td class="memItemLeft">Map&lt; String, String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a0d08864e62d0502ef5b63a92a6178f7a">initialValue</a> ()</td></tr>
 <tr class="memitem:a887afc08ede48190976f784b8769b7ea" id="r_a887afc08ede48190976f784b8769b7ea"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a887afc08ede48190976f784b8769b7ea">loadFromFederate</a> ()</td></tr>
 <tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a033370849eef3120afd46c4845863e2d" id="r_a033370849eef3120afd46c4845863e2d"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a033370849eef3120afd46c4845863e2d">loadFromFederation</a> ()</td></tr>
 <tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:ab53684f78f96af96841c92187f131488" id="r_ab53684f78f96af96841c92187f131488"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ab53684f78f96af96841c92187f131488">loadFromImport</a> ()</td></tr>
 <tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise.  <br /></td></tr>
-<tr class="memitem:a377e5e754300aea66587e195a3f3fc39" id="r_a377e5e754300aea66587e195a3f3fc39"><td class="memItemLeft">abstract String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a377e5e754300aea66587e195a3f3fc39">name</a> ()</td></tr>
-<tr class="memdesc:a377e5e754300aea66587e195a3f3fc39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the name of this target property (in kebab case).  <br /></td></tr>
+<tr class="memitem:a08a507af27869a9b15fb2cdd6c5a5c55" id="r_a08a507af27869a9b15fb2cdd6c5a5c55"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a08a507af27869a9b15fb2cdd6c5a5c55">name</a> ()</td></tr>
 <tr class="memitem:a2a3ae8487cf2df37b7e3c98a9d594685" id="r_a2a3ae8487cf2df37b7e3c98a9d594685"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a2a3ae8487cf2df37b7e3c98a9d594685">override</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a2a3ae8487cf2df37b7e3c98a9d594685"><td class="mdescLeft">&#160;</td><td class="mdescRight">Replace the value assigned to this target property in the given config with the given value.  <br /></td></tr>
-<tr class="memitem:acab55d30c4029e972414e9e5c969341d" id="r_acab55d30c4029e972414e9e5c969341d"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#acab55d30c4029e972414e9e5c969341d">StringProperty</a> ()</td></tr>
-<tr class="memitem:aa1872cfeb3dcc048cce280b8476ad978" id="r_aa1872cfeb3dcc048cce280b8476ad978"><td class="memItemLeft">Element&#160;</td><td class="memItemRight"><a class="el" href="#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> (String value)</td></tr>
+<tr class="memitem:a617277f426ba174ddde37eb38abef8c4" id="r_a617277f426ba174ddde37eb38abef8c4"><td class="memItemLeft">Element&#160;</td><td class="memItemRight"><a class="el" href="#a617277f426ba174ddde37eb38abef8c4">toAstElement</a> (Map&lt; String, String &gt; value)</td></tr>
 <tr class="memitem:a7f6fdee8910285230340bcd7a52f3ade" id="r_a7f6fdee8910285230340bcd7a52f3ade"><td class="memItemLeft">abstract Element&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a7f6fdee8910285230340bcd7a52f3ade">toAstElement</a> (T value)</td></tr>
 <tr class="memdesc:a7f6fdee8910285230340bcd7a52f3ade"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an AST node that represents this target property and the value currently assigned to it.  <br /></td></tr>
 <tr class="memitem:a80cded89b1d2808e307cd4b9991f887b" id="r_a80cded89b1d2808e307cd4b9991f887b"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a80cded89b1d2808e307cd4b9991f887b">toString</a> ()</td></tr>
+<tr class="memitem:a6275a5bfb3d62b856d641b3fe68e63a1" id="r_a6275a5bfb3d62b856d641b3fe68e63a1"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a6275a5bfb3d62b856d641b3fe68e63a1">update</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, Map&lt; String, String &gt; value)</td></tr>
 <tr class="memitem:a74548a3778514c9c3757ee031dae825c" id="r_a74548a3778514c9c3757ee031dae825c"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a74548a3778514c9c3757ee031dae825c">update</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a74548a3778514c9c3757ee031dae825c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the given configuration using the given value.  <br /></td></tr>
 <tr class="memitem:a05712b0e4f6256710f969dfd27a097f3" id="r_a05712b0e4f6256710f969dfd27a097f3"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a05712b0e4f6256710f969dfd27a097f3">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
@@ -137,31 +136,22 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:ae91c05dae9df2fc924ba84e4072e2087" id="r_ae91c05dae9df2fc924ba84e4072e2087"><td class="memItemLeft">final S&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ae91c05dae9df2fc924ba84e4072e2087">type</a></td></tr>
 <tr class="memdesc:ae91c05dae9df2fc924ba84e4072e2087"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of values assignable to this target property.  <br /></td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-static-attribs" class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:aaeb3927220dc35d2bb192fe804f5410c" id="r_aaeb3927220dc35d2bb192fe804f5410c"><td class="memItemLeft">static final CmakeArgsProperty&#160;</td><td class="memItemRight"><a class="el" href="#aaeb3927220dc35d2bb192fe804f5410c">INSTANCE</a> = new CmakeArgsProperty()</td></tr>
+<tr class="memdesc:aaeb3927220dc35d2bb192fe804f5410c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Singleton target property instance.  <br /></td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
+<tr class="memitem:a0e9bb1f37ab5c1885b73f94f7594c273" id="r_a0e9bb1f37ab5c1885b73f94f7594c273"><td class="memItemLeft">Map&lt; String, String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a0e9bb1f37ab5c1885b73f94f7594c273">fromAst</a> (Element node, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memitem:ac340310011200e10f311d2fe985be828" id="r_ac340310011200e10f311d2fe985be828"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ac340310011200e10f311d2fe985be828">fromJSON</a> (JsonElement element, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memdesc:ac340310011200e10f311d2fe985be828"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a value based on the given JSON element.  <br /></td></tr>
-<tr class="memitem:a3abf3f3328d85906dd4e3d4e7ee8336e" id="r_a3abf3f3328d85906dd4e3d4e7ee8336e"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a3abf3f3328d85906dd4e3d4e7ee8336e">fromString</a> (String string, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
+<tr class="memitem:a603f20ef3325c587d464d14574d4dd4d" id="r_a603f20ef3325c587d464d14574d4dd4d"><td class="memItemLeft">Map&lt; String, String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a603f20ef3325c587d464d14574d4dd4d">fromString</a> (String string, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 </table>
-<a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="acab55d30c4029e972414e9e5c969341d" name="acab55d30c4029e972414e9e5c969341d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acab55d30c4029e972414e9e5c969341d">&#9670;&#160;</a></span>StringProperty()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">org.lflang.target.property.StringProperty.StringProperty </td>
-          <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Directive to specify additional CMake configure arguments. </p>
+<p>Each key-value pair is converted to a CMake configure definition of the form <code class="JavaDocCode">-Dkey=value</code>. This is applied when invoking CMake (not when generating CMakeLists.txt). </p>
+</div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a6a5c01889646675b2403aba03a9561b1" name="a6a5c01889646675b2403aba03a9561b1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6a5c01889646675b2403aba03a9561b1">&#9670;&#160;</a></span>astElementFromConfig()</h2>
 
@@ -258,14 +248,17 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a1399e7174c14f2293e7dbc8e9e7886cc" name="a1399e7174c14f2293e7dbc8e9e7886cc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1399e7174c14f2293e7dbc8e9e7886cc">&#9670;&#160;</a></span>fromAst()</h2>
+<a id="a0e9bb1f37ab5c1885b73f94f7594c273" name="a0e9bb1f37ab5c1885b73f94f7594c273"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0e9bb1f37ab5c1885b73f94f7594c273">&#9670;&#160;</a></span>fromAst()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.target.property.StringProperty.fromAst </td>
+          <td class="memname">Map&lt; String, String &gt; org.lflang.target.property.CmakeArgsProperty.fromAst </td>
           <td>(</td>
           <td class="paramtype">Element</td>          <td class="paramname"><span class="paramname"><em>node</em></span>, </td>
         </tr>
@@ -275,6 +268,11 @@ Protected Member Functions</h2></td></tr>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>reporter</em></span>&#160;)</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
@@ -317,8 +315,8 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a3abf3f3328d85906dd4e3d4e7ee8336e" name="a3abf3f3328d85906dd4e3d4e7ee8336e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3abf3f3328d85906dd4e3d4e7ee8336e">&#9670;&#160;</a></span>fromString()</h2>
+<a id="a603f20ef3325c587d464d14574d4dd4d" name="a603f20ef3325c587d464d14574d4dd4d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a603f20ef3325c587d464d14574d4dd4d">&#9670;&#160;</a></span>fromString()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -327,7 +325,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.target.property.StringProperty.fromString </td>
+          <td class="memname">Map&lt; String, String &gt; org.lflang.target.property.CmakeArgsProperty.fromString </td>
           <td>(</td>
           <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>string</em></span>, </td>
         </tr>
@@ -371,14 +369,14 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a30a818f243a7242000bac28eb3995686" name="a30a818f243a7242000bac28eb3995686"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30a818f243a7242000bac28eb3995686">&#9670;&#160;</a></span>initialValue()</h2>
+<a id="a0d08864e62d0502ef5b63a92a6178f7a" name="a0d08864e62d0502ef5b63a92a6178f7a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0d08864e62d0502ef5b63a92a6178f7a">&#9670;&#160;</a></span>initialValue()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.target.property.StringProperty.initialValue </td>
+          <td class="memname">Map&lt; String, String &gt; org.lflang.target.property.CmakeArgsProperty.initialValue </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
@@ -469,30 +467,20 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a377e5e754300aea66587e195a3f3fc39" name="a377e5e754300aea66587e195a3f3fc39"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a377e5e754300aea66587e195a3f3fc39">&#9670;&#160;</a></span>name()</h2>
+<a id="a08a507af27869a9b15fb2cdd6c5a5c55" name="a08a507af27869a9b15fb2cdd6c5a5c55"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a08a507af27869a9b15fb2cdd6c5a5c55">&#9670;&#160;</a></span>name()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract String <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.name </td>
+          <td class="memname">String org.lflang.target.property.CmakeArgsProperty.name </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel abstract">abstract</span><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
-
-<p>Return the name of this target property (in kebab case). </p>
 
 </div>
 </div>
@@ -534,16 +522,16 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="aa1872cfeb3dcc048cce280b8476ad978" name="aa1872cfeb3dcc048cce280b8476ad978"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa1872cfeb3dcc048cce280b8476ad978">&#9670;&#160;</a></span>toAstElement() <span class="overload">[1/2]</span></h2>
+<a id="a617277f426ba174ddde37eb38abef8c4" name="a617277f426ba174ddde37eb38abef8c4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a617277f426ba174ddde37eb38abef8c4">&#9670;&#160;</a></span>toAstElement() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">Element org.lflang.target.property.StringProperty.toAstElement </td>
+          <td class="memname">Element org.lflang.target.property.CmakeArgsProperty.toAstElement </td>
           <td>(</td>
-          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
+          <td class="paramtype">Map&lt; String, String &gt;</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -561,7 +549,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract Element <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> </td>
+          <td class="memname">abstract Element <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="#a617277f426ba174ddde37eb38abef8c4">toAstElement</a> </td>
           <td>(</td>
           <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
           <td></td>
@@ -603,8 +591,29 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a6275a5bfb3d62b856d641b3fe68e63a1" name="a6275a5bfb3d62b856d641b3fe68e63a1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6275a5bfb3d62b856d641b3fe68e63a1">&#9670;&#160;</a></span>update() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.target.property.CmakeArgsProperty.update </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>config</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Map&lt; String, String &gt;</td>          <td class="paramname"><span class="paramname"><em>value</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a74548a3778514c9c3757ee031dae825c" name="a74548a3778514c9c3757ee031dae825c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a74548a3778514c9c3757ee031dae825c">&#9670;&#160;</a></span>update()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a74548a3778514c9c3757ee031dae825c">&#9670;&#160;</a></span>update() <span class="overload">[2/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -613,7 +622,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.update </td>
+          <td class="memname">void <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="#a6275a5bfb3d62b856d641b3fe68e63a1">update</a> </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>config</em></span>, </td>
         </tr>
@@ -683,6 +692,30 @@ Protected Member Functions</h2></td></tr>
 </div>
 </div>
 <a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
+<a id="aaeb3927220dc35d2bb192fe804f5410c" name="aaeb3927220dc35d2bb192fe804f5410c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaeb3927220dc35d2bb192fe804f5410c">&#9670;&#160;</a></span>INSTANCE</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">final CmakeArgsProperty org.lflang.target.property.CmakeArgsProperty.INSTANCE = new CmakeArgsProperty()</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Singleton target property instance. </p>
+
+</div>
+</div>
 <a id="ae91c05dae9df2fc924ba84e4072e2087" name="ae91c05dae9df2fc924ba84e4072e2087"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae91c05dae9df2fc924ba84e4072e2087">&#9670;&#160;</a></span>type</h2>
 
@@ -708,7 +741,7 @@ Protected Member Functions</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/<b>StringProperty.java</b></li>
+<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/<b>CmakeArgsProperty.java</b></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
@@ -723,7 +756,7 @@ Protected Member Functions</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target.html">target</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target_1_1property.html">property</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html">StringProperty</a></li>
+    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target.html">target</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target_1_1property.html">property</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html">CmakeArgsProperty</a></li>
     <li class="footer">Generated on <span class="timestamp"></span> for lingua-franca by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.16.1 </li>
   </ul>
 </div>

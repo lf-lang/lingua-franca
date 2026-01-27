@@ -80,6 +80,8 @@ var classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest =
     [ "testUnusedImport", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a8adea64b2c1e5059f901f4c9e7a795d2", null ],
     [ "testWrongParamType", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a690beeaafa8b070cab1d8052d33046d3", null ],
     [ "testWrongStructureForLabelAttribute", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#aa064c2399382a62c09157fd41c23d6de", null ],
+    [ "tracePluginRequiresPackageAndLibraryMissingLibrary", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#af9dba0fe87f61fd4fad22392a5369cde", null ],
+    [ "tracePluginRequiresPackageAndLibraryMissingPackage", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a60d4634f2cee82e650935b4b512c6ed1", null ],
     [ "tracingOptionsCpp", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a13f50f86f9597cf0f1d3d43920320135", null ],
     [ "warnAgainstMultipleTypes", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a6ab57017438369e0187e749d721f1706", null ],
     [ "compositeTypeToKnownBad", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a0abf84b35439f21f78f92d841e7eb110", null ],

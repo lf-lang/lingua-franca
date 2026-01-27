@@ -541,6 +541,7 @@ var hierarchy =
       [ "org.lflang.target.property.CargoDependenciesProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CargoDependenciesProperty.html", null ]
     ] ],
     [ "org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+      [ "org.lflang.target.property.CmakeArgsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html", null ],
       [ "org.lflang.target.property.CompileDefinitionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html", null ]
     ] ],
     [ "org.lflang.target.property.TargetProperty&lt; PlatformOptions, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
@@ -555,16 +556,19 @@ var hierarchy =
         [ "org.lflang.target.property.CompilerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CompilerProperty.html", null ],
         [ "org.lflang.target.property.ExternalRuntimePathProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ExternalRuntimePathProperty.html", null ],
         [ "org.lflang.target.property.PythonVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1PythonVersionProperty.html", null ],
-        [ "org.lflang.target.property.RuntimeVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html", null ],
-        [ "org.lflang.target.property.TracePluginProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html", null ]
+        [ "org.lflang.target.property.RuntimeVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html", null ]
       ] ]
     ] ],
     [ "org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.TimeOutProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TimeOutProperty.html", null ]
     ] ],
+    [ "org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+      [ "org.lflang.target.property.TracePluginProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html", null ]
+    ] ],
     [ "org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.TracingProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty.html", null ]
     ] ],
+    [ "org.lflang.target.property.TracePluginProperty.TracePluginSpec", "classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html", null ],
     [ "org.lflang.target.property.TracingProperty.TracingOptions", "classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOptions.html", null ],
     [ "org.lflang.target.property.type.BuildTypeType.BuildType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType_1_1BuildType.html", null ],
     [ "org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType_1_1ClockSyncMode.html", null ],
@@ -574,6 +578,7 @@ var hierarchy =
       [ "org.lflang.target.property.CoordinationOptionsProperty.CoordinationOption", "enumorg_1_1lflang_1_1target_1_1property_1_1CoordinationOptionsProperty_1_1CoordinationOption.html", null ],
       [ "org.lflang.target.property.DockerProperty.DockerOption", "enumorg_1_1lflang_1_1target_1_1property_1_1DockerProperty_1_1DockerOption.html", null ],
       [ "org.lflang.target.property.PlatformProperty.PlatformOption", "enumorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty_1_1PlatformOption.html", null ],
+      [ "org.lflang.target.property.TracePluginProperty.TracePluginOption", "enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html", null ],
       [ "org.lflang.target.property.TracingProperty.TracingOption", "enumorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOption.html", null ]
     ] ],
     [ "org.lflang.target.property.type.LoggingType.LogLevel", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1LoggingType_1_1LogLevel.html", null ],

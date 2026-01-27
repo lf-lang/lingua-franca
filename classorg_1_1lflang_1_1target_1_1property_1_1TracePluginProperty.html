@@ -98,11 +98,17 @@ $(function(){initNavTree('classorg_1_1lflang_1_1target_1_1property_1_1TracePlugi
 </div><!--header-->
 <div class="contents">
 
-<p>Property that provides an alternative tracing implementation.  
+<p>Property that provides an alternative tracing implementation via a CMake package + target.  
  <a href="#details">More...</a></p>
 
-<p>Inherits <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html">org.lflang.target.property.StringProperty</a>.</p>
+<p>Inherits <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</a>.</p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-nested-classes" class="groupheader"><a id="nested-classes" name="nested-classes"></a>
+Classes</h2></td></tr>
+<tr class="memitem:TracePluginOption" id="r_TracePluginOption"><td class="memItemLeft">enum &#160;</td><td class="memItemRight"><a class="el" href="enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html">TracePluginOption</a></td></tr>
+<tr class="memitem:TracePluginSpec" id="r_TracePluginSpec"><td class="memItemLeft">class &#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parsed value of the trace-plugin target property.  <a href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html#details">More...</a><br /></td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a6a5c01889646675b2403aba03a9561b1" id="r_a6a5c01889646675b2403aba03a9561b1"><td class="memItemLeft">Optional&lt; Element &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a6a5c01889646675b2403aba03a9561b1">astElementFromConfig</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config)</td></tr>
@@ -110,9 +116,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ad2943097a2b239aecb9c0bf4eb2968f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the given key-value pair does not match the type required by this target property, report an error through the given reporter.  <br /></td></tr>
 <tr class="memitem:a204b717061ca87ddd71cbc866440af5c" id="r_a204b717061ca87ddd71cbc866440af5c"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a204b717061ca87ddd71cbc866440af5c">equals</a> (Object obj)</td></tr>
 <tr class="memdesc:a204b717061ca87ddd71cbc866440af5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the given object is an instance of a class with the same name.  <br /></td></tr>
-<tr class="memitem:a1399e7174c14f2293e7dbc8e9e7886cc" id="r_a1399e7174c14f2293e7dbc8e9e7886cc"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#a1399e7174c14f2293e7dbc8e9e7886cc">fromAst</a> (Element node, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memitem:a29acc44b1e353f4638f22bb3289d7338" id="r_a29acc44b1e353f4638f22bb3289d7338"><td class="memItemLeft">int&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a29acc44b1e353f4638f22bb3289d7338">hashCode</a> ()</td></tr>
-<tr class="memitem:a30a818f243a7242000bac28eb3995686" id="r_a30a818f243a7242000bac28eb3995686"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#a30a818f243a7242000bac28eb3995686">initialValue</a> ()</td></tr>
+<tr class="memitem:a5a266f91718a3ced88d087bcd2a3bba2" id="r_a5a266f91718a3ced88d087bcd2a3bba2"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a>&#160;</td><td class="memItemRight"><a class="el" href="#a5a266f91718a3ced88d087bcd2a3bba2">initialValue</a> ()</td></tr>
 <tr class="memitem:a887afc08ede48190976f784b8769b7ea" id="r_a887afc08ede48190976f784b8769b7ea"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a887afc08ede48190976f784b8769b7ea">loadFromFederate</a> ()</td></tr>
 <tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a033370849eef3120afd46c4845863e2d" id="r_a033370849eef3120afd46c4845863e2d"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a033370849eef3120afd46c4845863e2d">loadFromFederation</a> ()</td></tr>
@@ -122,14 +127,13 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a4ce44a006abe6f42eb3c9be762a486ad" id="r_a4ce44a006abe6f42eb3c9be762a486ad"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a4ce44a006abe6f42eb3c9be762a486ad">name</a> ()</td></tr>
 <tr class="memitem:a2a3ae8487cf2df37b7e3c98a9d594685" id="r_a2a3ae8487cf2df37b7e3c98a9d594685"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a2a3ae8487cf2df37b7e3c98a9d594685">override</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a2a3ae8487cf2df37b7e3c98a9d594685"><td class="mdescLeft">&#160;</td><td class="mdescRight">Replace the value assigned to this target property in the given config with the given value.  <br /></td></tr>
-<tr class="memitem:aa1872cfeb3dcc048cce280b8476ad978" id="r_aa1872cfeb3dcc048cce280b8476ad978"><td class="memItemLeft">Element&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> (String value)</td></tr>
 <tr class="memitem:a7f6fdee8910285230340bcd7a52f3ade" id="r_a7f6fdee8910285230340bcd7a52f3ade"><td class="memItemLeft">abstract Element&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a7f6fdee8910285230340bcd7a52f3ade">toAstElement</a> (T value)</td></tr>
 <tr class="memdesc:a7f6fdee8910285230340bcd7a52f3ade"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an AST node that represents this target property and the value currently assigned to it.  <br /></td></tr>
+<tr class="memitem:a3b53bad0040cd409515f629d17547835" id="r_a3b53bad0040cd409515f629d17547835"><td class="memItemLeft">Element&#160;</td><td class="memItemRight"><a class="el" href="#a3b53bad0040cd409515f629d17547835">toAstElement</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a> value)</td></tr>
 <tr class="memitem:a80cded89b1d2808e307cd4b9991f887b" id="r_a80cded89b1d2808e307cd4b9991f887b"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a80cded89b1d2808e307cd4b9991f887b">toString</a> ()</td></tr>
 <tr class="memitem:a74548a3778514c9c3757ee031dae825c" id="r_a74548a3778514c9c3757ee031dae825c"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a74548a3778514c9c3757ee031dae825c">update</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a74548a3778514c9c3757ee031dae825c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the given configuration using the given value.  <br /></td></tr>
-<tr class="memitem:a05712b0e4f6256710f969dfd27a097f3" id="r_a05712b0e4f6256710f969dfd27a097f3"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a05712b0e4f6256710f969dfd27a097f3">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
-<tr class="memdesc:a05712b0e4f6256710f969dfd27a097f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override this method to implement additional checks.  <br /></td></tr>
+<tr class="memitem:aaabdd190409cc04bfb49932b37268e24" id="r_aaabdd190409cc04bfb49932b37268e24"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aaabdd190409cc04bfb49932b37268e24">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -143,13 +147,13 @@ Static Public Attributes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
+<tr class="memitem:a36cb18b9905bcb4c4809a4d953fbbfb6" id="r_a36cb18b9905bcb4c4809a4d953fbbfb6"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a>&#160;</td><td class="memItemRight"><a class="el" href="#a36cb18b9905bcb4c4809a4d953fbbfb6">fromAst</a> (Element node, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memitem:ac340310011200e10f311d2fe985be828" id="r_ac340310011200e10f311d2fe985be828"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ac340310011200e10f311d2fe985be828">fromJSON</a> (JsonElement element, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memdesc:ac340310011200e10f311d2fe985be828"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a value based on the given JSON element.  <br /></td></tr>
-<tr class="memitem:a3abf3f3328d85906dd4e3d4e7ee8336e" id="r_a3abf3f3328d85906dd4e3d4e7ee8336e"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#a3abf3f3328d85906dd4e3d4e7ee8336e">fromString</a> (String string, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
+<tr class="memitem:ab1cbefbcf863bb9be73072a20a0cc461" id="r_ab1cbefbcf863bb9be73072a20a0cc461"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a>&#160;</td><td class="memItemRight"><a class="el" href="#ab1cbefbcf863bb9be73072a20a0cc461">fromString</a> (String string, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Property that provides an alternative tracing implementation. </p>
-<p>The compiler to invoke, unless a build command has been specified. </p>
+<div class="textblock"><p>Property that provides an alternative tracing implementation via a CMake package + target. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a6a5c01889646675b2403aba03a9561b1" name="a6a5c01889646675b2403aba03a9561b1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6a5c01889646675b2403aba03a9561b1">&#9670;&#160;</a></span>astElementFromConfig()</h2>
@@ -247,8 +251,8 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a1399e7174c14f2293e7dbc8e9e7886cc" name="a1399e7174c14f2293e7dbc8e9e7886cc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1399e7174c14f2293e7dbc8e9e7886cc">&#9670;&#160;</a></span>fromAst()</h2>
+<a id="a36cb18b9905bcb4c4809a4d953fbbfb6" name="a36cb18b9905bcb4c4809a4d953fbbfb6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a36cb18b9905bcb4c4809a4d953fbbfb6">&#9670;&#160;</a></span>fromAst()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -257,7 +261,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.target.property.StringProperty.fromAst </td>
+          <td class="memname"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a> org.lflang.target.property.TracePluginProperty.fromAst </td>
           <td>(</td>
           <td class="paramtype">Element</td>          <td class="paramname"><span class="paramname"><em>node</em></span>, </td>
         </tr>
@@ -269,7 +273,7 @@ Protected Member Functions</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -314,8 +318,8 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a3abf3f3328d85906dd4e3d4e7ee8336e" name="a3abf3f3328d85906dd4e3d4e7ee8336e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3abf3f3328d85906dd4e3d4e7ee8336e">&#9670;&#160;</a></span>fromString()</h2>
+<a id="ab1cbefbcf863bb9be73072a20a0cc461" name="ab1cbefbcf863bb9be73072a20a0cc461"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1cbefbcf863bb9be73072a20a0cc461">&#9670;&#160;</a></span>fromString()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -324,7 +328,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.target.property.StringProperty.fromString </td>
+          <td class="memname"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a> org.lflang.target.property.TracePluginProperty.fromString </td>
           <td>(</td>
           <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>string</em></span>, </td>
         </tr>
@@ -336,7 +340,7 @@ Protected Member Functions</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -368,27 +372,19 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a30a818f243a7242000bac28eb3995686" name="a30a818f243a7242000bac28eb3995686"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a30a818f243a7242000bac28eb3995686">&#9670;&#160;</a></span>initialValue()</h2>
+<a id="a5a266f91718a3ced88d087bcd2a3bba2" name="a5a266f91718a3ced88d087bcd2a3bba2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5a266f91718a3ced88d087bcd2a3bba2">&#9670;&#160;</a></span>initialValue()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">String org.lflang.target.property.StringProperty.initialValue </td>
+          <td class="memname"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a> org.lflang.target.property.TracePluginProperty.initialValue </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 </div>
@@ -529,33 +525,8 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="aa1872cfeb3dcc048cce280b8476ad978" name="aa1872cfeb3dcc048cce280b8476ad978"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa1872cfeb3dcc048cce280b8476ad978">&#9670;&#160;</a></span>toAstElement() <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">Element org.lflang.target.property.StringProperty.toAstElement </td>
-          <td>(</td>
-          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-</div>
-</div>
 <a id="a7f6fdee8910285230340bcd7a52f3ade" name="a7f6fdee8910285230340bcd7a52f3ade"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7f6fdee8910285230340bcd7a52f3ade">&#9670;&#160;</a></span>toAstElement() <span class="overload">[2/2]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a7f6fdee8910285230340bcd7a52f3ade">&#9670;&#160;</a></span>toAstElement() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -564,7 +535,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract Element <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> </td>
+          <td class="memname">abstract Element <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="#a3b53bad0040cd409515f629d17547835">toAstElement</a> </td>
           <td>(</td>
           <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
           <td></td>
@@ -578,6 +549,23 @@ Protected Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Return an AST node that represents this target property and the value currently assigned to it. </p>
+
+</div>
+</div>
+<a id="a3b53bad0040cd409515f629d17547835" name="a3b53bad0040cd409515f629d17547835"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3b53bad0040cd409515f629d17547835">&#9670;&#160;</a></span>toAstElement() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">Element org.lflang.target.property.TracePluginProperty.toAstElement </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html">TracePluginSpec</a></td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -645,17 +633,14 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a05712b0e4f6256710f969dfd27a097f3" name="a05712b0e4f6256710f969dfd27a097f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a05712b0e4f6256710f969dfd27a097f3">&#9670;&#160;</a></span>validate()</h2>
+<a id="aaabdd190409cc04bfb49932b37268e24" name="aaabdd190409cc04bfb49932b37268e24"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaabdd190409cc04bfb49932b37268e24">&#9670;&#160;</a></span>validate()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.validate </td>
+          <td class="memname">void org.lflang.target.property.TracePluginProperty.validate </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>config</em></span>, </td>
         </tr>
@@ -665,23 +650,7 @@ Protected Member Functions</h2></td></tr>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>reporter</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
-
-<p>Override this method to implement additional checks. </p>
-<p>The base implementation does nothing.</p>
-<p>This method is meant to perform additional validation above and beyond checking target support and type checking which are done automatically.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">config</td><td>The target configuration to check against. </td></tr>
-    <tr><td class="paramname">reporter</td><td>A reporter for reporting errors. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -720,7 +689,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">final S <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="namespaceorg_1_1lflang_1_1target_1_1property_1_1type.html">type</a></td>
+          <td class="memname">final S <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.type</td>
         </tr>
       </table>
   </td>

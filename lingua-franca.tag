@@ -27397,6 +27397,158 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::target::property::CmakeArgsProperty</name>
+    <filename>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</filename>
+    <base>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</base>
+    <member kind="function">
+      <type>Optional&lt; Element &gt;</type>
+      <name>astElementFromConfig</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a6a5c01889646675b2403aba03a9561b1</anchor>
+      <arglist>(TargetConfig config)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>checkType</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ad2943097a2b239aecb9c0bf4eb2968f6</anchor>
+      <arglist>(KeyValuePair pair, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>equals</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a204b717061ca87ddd71cbc866440af5c</anchor>
+      <arglist>(Object obj)</arglist>
+    </member>
+    <member kind="function">
+      <type>int</type>
+      <name>hashCode</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a29acc44b1e353f4638f22bb3289d7338</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>Map&lt; String, String &gt;</type>
+      <name>initialValue</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>a0d08864e62d0502ef5b63a92a6178f7a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromFederate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a887afc08ede48190976f784b8769b7ea</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromFederation</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a033370849eef3120afd46c4845863e2d</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromImport</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ab53684f78f96af96841c92187f131488</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>name</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>a08a507af27869a9b15fb2cdd6c5a5c55</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>final void</type>
+      <name>override</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a2a3ae8487cf2df37b7e3c98a9d594685</anchor>
+      <arglist>(TargetConfig config, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>a617277f426ba174ddde37eb38abef8c4</anchor>
+      <arglist>(Map&lt; String, String &gt; value)</arglist>
+    </member>
+    <member kind="function">
+      <type>abstract Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a7f6fdee8910285230340bcd7a52f3ade</anchor>
+      <arglist>(T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a80cded89b1d2808e307cd4b9991f887b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>update</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>a6275a5bfb3d62b856d641b3fe68e63a1</anchor>
+      <arglist>(TargetConfig config, Map&lt; String, String &gt; value)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>update</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a74548a3778514c9c3757ee031dae825c</anchor>
+      <arglist>(TargetConfig config, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a05712b0e4f6256710f969dfd27a097f3</anchor>
+      <arglist>(TargetConfig config, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="variable">
+      <type>final S</type>
+      <name>type</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ae91c05dae9df2fc924ba84e4072e2087</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final CmakeArgsProperty</type>
+      <name>INSTANCE</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>aaeb3927220dc35d2bb192fe804f5410c</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>Map&lt; String, String &gt;</type>
+      <name>fromAst</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>a0e9bb1f37ab5c1885b73f94f7594c273</anchor>
+      <arglist>(Element node, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>T</type>
+      <name>fromJSON</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ac340310011200e10f311d2fe985be828</anchor>
+      <arglist>(JsonElement element, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>Map&lt; String, String &gt;</type>
+      <name>fromString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>a603f20ef3325c587d464d14574d4dd4d</anchor>
+      <arglist>(String string, MessageReporter reporter)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::target::property::CmakeIncludeProperty</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty.html</filename>
     <base>org.lflang.target.property.FileListProperty</base>
@@ -32640,7 +32792,9 @@
   <compound kind="class">
     <name>org::lflang::target::property::TracePluginProperty</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</filename>
-    <base>org.lflang.target.property.StringProperty</base>
+    <base>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</base>
+    <class kind="enum">org::lflang::target::property::TracePluginProperty::TracePluginOption</class>
+    <class kind="class">org::lflang::target::property::TracePluginProperty::TracePluginSpec</class>
     <member kind="function">
       <type>Optional&lt; Element &gt;</type>
       <name>astElementFromConfig</name>
@@ -32663,13 +32817,6 @@
       <arglist>(Object obj)</arglist>
     </member>
     <member kind="function">
-      <type>String</type>
-      <name>fromAst</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html</anchorfile>
-      <anchor>a1399e7174c14f2293e7dbc8e9e7886cc</anchor>
-      <arglist>(Element node, MessageReporter reporter)</arglist>
-    </member>
-    <member kind="function">
       <type>int</type>
       <name>hashCode</name>
       <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
@@ -32677,10 +32824,10 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
-      <type>String</type>
+      <type>TracePluginSpec</type>
       <name>initialValue</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html</anchorfile>
-      <anchor>a30a818f243a7242000bac28eb3995686</anchor>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</anchorfile>
+      <anchor>a5a266f91718a3ced88d087bcd2a3bba2</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -32719,18 +32866,18 @@
       <arglist>(TargetConfig config, T value)</arglist>
     </member>
     <member kind="function">
-      <type>Element</type>
-      <name>toAstElement</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html</anchorfile>
-      <anchor>aa1872cfeb3dcc048cce280b8476ad978</anchor>
-      <arglist>(String value)</arglist>
-    </member>
-    <member kind="function">
       <type>abstract Element</type>
       <name>toAstElement</name>
       <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
       <anchor>a7f6fdee8910285230340bcd7a52f3ade</anchor>
       <arglist>(T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</anchorfile>
+      <anchor>a3b53bad0040cd409515f629d17547835</anchor>
+      <arglist>(TracePluginSpec value)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -32749,8 +32896,8 @@
     <member kind="function">
       <type>void</type>
       <name>validate</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
-      <anchor>a05712b0e4f6256710f969dfd27a097f3</anchor>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</anchorfile>
+      <anchor>aaabdd190409cc04bfb49932b37268e24</anchor>
       <arglist>(TargetConfig config, MessageReporter reporter)</arglist>
     </member>
     <member kind="variable">
@@ -32768,6 +32915,13 @@
       <arglist></arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>TracePluginSpec</type>
+      <name>fromAst</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</anchorfile>
+      <anchor>a36cb18b9905bcb4c4809a4d953fbbfb6</anchor>
+      <arglist>(Element node, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>T</type>
       <name>fromJSON</name>
       <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
@@ -32775,11 +32929,83 @@
       <arglist>(JsonElement element, MessageReporter reporter)</arglist>
     </member>
     <member kind="function" protection="protected">
-      <type>String</type>
+      <type>TracePluginSpec</type>
       <name>fromString</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html</anchorfile>
-      <anchor>a3abf3f3328d85906dd4e3d4e7ee8336e</anchor>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</anchorfile>
+      <anchor>ab1cbefbcf863bb9be73072a20a0cc461</anchor>
       <arglist>(String string, MessageReporter reporter)</arglist>
+    </member>
+  </compound>
+  <compound kind="enum">
+    <name>org::lflang::target::property::TracePluginProperty::TracePluginOption</name>
+    <filename>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</filename>
+    <base>org.lflang.target.property.type.DictionaryType.DictionaryElement</base>
+    <member kind="function">
+      <type>TargetPropertyType</type>
+      <name>getType</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>ad913b671c71a533a7d41fd2647d20466</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>acf0d6ed895539f0cc74ef9e598a1c826</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>TracePluginOption</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>a76fedf288101ebb0a12168ba4b192c2c</anchor>
+      <arglist>(String description, PrimitiveType type)</arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>LIBRARY</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>a32611302fb900b78b2d24322f8864378</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>PACKAGE</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>ad607a71e467c47de607042fc42fb3900</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>PATH</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>a06baea7e5266747073f5113e6b25ad43</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>org::lflang::target::property::TracePluginProperty::TracePluginSpec</name>
+    <filename>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</filename>
+    <member kind="variable">
+      <type>String</type>
+      <name>library</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</anchorfile>
+      <anchor>aabc92a32b62876e42b53361ed45ef394</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>String</type>
+      <name>paths</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</anchorfile>
+      <anchor>a0d943b156e445bee7cc59dc2a24e9f82</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>String</type>
+      <name>pkg</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</anchorfile>
+      <anchor>a1f10ce20f3a83d51f594c28a586a896a</anchor>
+      <arglist></arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -33459,6 +33685,13 @@
       <name>PLATFORM_DICT</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</anchorfile>
       <anchor>ada29ca1e43a3c46fd558172b0d98549f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>TRACE_PLUGIN_DICT</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</anchorfile>
+      <anchor>a57cdc3f349ec311f915d381c8847644e</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable">
@@ -35713,6 +35946,20 @@
       <name>testWrongStructureForLabelAttribute</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
       <anchor>aa064c2399382a62c09157fd41c23d6de</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>tracePluginRequiresPackageAndLibraryMissingLibrary</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>af9dba0fe87f61fd4fad22392a5369cde</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>tracePluginRequiresPackageAndLibraryMissingPackage</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a60d4634f2cee82e650935b4b512c6ed1</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -42672,6 +42919,7 @@
     <class kind="class">org::lflang::target::property::CargoFeaturesProperty</class>
     <class kind="class">org::lflang::target::property::ClockSyncModeProperty</class>
     <class kind="class">org::lflang::target::property::ClockSyncOptionsProperty</class>
+    <class kind="class">org::lflang::target::property::CmakeArgsProperty</class>
     <class kind="class">org::lflang::target::property::CmakeIncludeProperty</class>
     <class kind="class">org::lflang::target::property::CmakeInitIncludeProperty</class>
     <class kind="class">org::lflang::target::property::CompileDefinitionsProperty</class>
@@ -43894,6 +44142,7 @@
     <file>CargoFeaturesProperty.java</file>
     <file>ClockSyncModeProperty.java</file>
     <file>ClockSyncOptionsProperty.java</file>
+    <file>CmakeArgsProperty.java</file>
     <file>CmakeIncludeProperty.java</file>
     <file>CmakeInitIncludeProperty.java</file>
     <file>CompileDefinitionsProperty.java</file>

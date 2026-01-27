@@ -2810,6 +2810,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::target::property::CmakeArgsProperty</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::target::property::CmakeIncludeProperty</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -3158,6 +3167,24 @@
       <Scope>org.lflang.target.property.TracePluginProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::target::property::TracePluginProperty::TracePluginOption</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::target::property::TracePluginProperty::TracePluginSpec</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginSpec</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -7207,6 +7234,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>astElementFromConfig</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
@@ -11474,6 +11511,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>checkType</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
@@ -16338,6 +16385,16 @@
       <Name>equals</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>equals</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -17645,6 +17702,17 @@
       <Name>fromAst</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>a0e9bb1f37ab5c1885b73f94f7594c273</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CmakeIncludeProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty.html</Path>
@@ -17826,6 +17894,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TimeOutProperty.html</Path>
     <Anchor>a1d8c1e90f08d03b7062ae2f8e2e46adf</Anchor>
     <DeclaredIn>TimeOutProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+    <Anchor>a36cb18b9905bcb4c4809a4d953fbbfb6</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -18015,6 +18094,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a933963905148cf092a184ae81ef47311</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a933963905148cf092a184ae81ef47311</Anchor>
@@ -18258,6 +18347,16 @@
       <Name>fromJSON</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromJSON</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -18426,6 +18525,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty.html</Path>
     <Anchor>ad9f2a30232ebf98d2d08cb14a6fb0771</Anchor>
     <DeclaredIn>ClockSyncOptionsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>a603f20ef3325c587d464d14574d4dd4d</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -18619,6 +18729,17 @@
       <Name>fromString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+    <Anchor>ab1cbefbcf863bb9be73072a20a0cc461</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TracingProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty.html</Path>
@@ -18802,6 +18923,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a24adaa91451dc8f91a17a08242c56f81</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a24adaa91451dc8f91a17a08242c56f81</Anchor>
@@ -26857,6 +26988,17 @@
       <Name>getType</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>ad913b671c71a533a7d41fd2647d20466</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TracingProperty.TracingOption</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOption.html</Path>
@@ -27752,6 +27894,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>hashCode</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
@@ -28885,6 +29037,17 @@
       <Name>initialValue</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>a0d08864e62d0502ef5b63a92a6178f7a</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
@@ -29055,6 +29218,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TimeOutProperty.html</Path>
     <Anchor>ac60c2dcff9ce0ac131ccb2854a39fa70</Anchor>
     <DeclaredIn>TimeOutProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+    <Anchor>a5a266f91718a3ced88d087bcd2a3bba2</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -29255,6 +29429,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ad2c7f85f75eb09fc6c90f25daadc180e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ad2c7f85f75eb09fc6c90f25daadc180e</Anchor>
@@ -29475,6 +29659,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty.html</Path>
     <Anchor>a1e646706869178f9a7239c098fb2602e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>INSTANCE</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>aaeb3927220dc35d2bb192fe804f5410c</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -31493,6 +31687,26 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>LIBRARY</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>a32611302fb900b78b2d24322f8864378</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>library</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginSpec</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+    <Anchor>aabc92a32b62876e42b53361ed45ef394</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>LibraryFile</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -31893,6 +32107,16 @@
       <Name>loadFromFederate</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromFederate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -32085,6 +32309,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromFederation</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
@@ -32297,6 +32531,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromImport</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
@@ -33781,6 +34025,17 @@
       <Name>name</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>a08a507af27869a9b15fb2cdd6c5a5c55</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CmakeIncludeProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty.html</Path>
@@ -34327,6 +34582,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a377e5e754300aea66587e195a3f3fc39</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a377e5e754300aea66587e195a3f3fc39</Anchor>
@@ -35992,6 +36257,16 @@
       <Name>override</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>override</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -36017,6 +36292,16 @@
     <Path>classorg_1_1lflang_1_1ast_1_1ASTUtils.html</Path>
     <Anchor>aa16b34eaa2b65c0a12e0acd806dbe845</Anchor>
     <DeclaredIn>ASTUtils.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>PACKAGE</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>ad607a71e467c47de607042fc42fb3900</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -36575,6 +36860,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>PATH</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>a06baea7e5266747073f5113e6b25ad43</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>path</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -36582,6 +36877,16 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
     <Anchor>a920fd599b310738053c6ecf89bcf79bc</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>paths</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginSpec</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+    <Anchor>a0d943b156e445bee7cc59dc2a24e9f82</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -36694,6 +36999,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1RuntimeRange.html</Path>
     <Anchor>a9828bb63e9e6257a8567193769edf09a</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>pkg</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginSpec</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+    <Anchor>a1f10ce20f3a83d51f594c28a586a896a</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -43373,6 +43688,16 @@
       <Name>TargetProperty</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>abfdae3bad81323c6cc18146a7be72380</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TargetProperty</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -44902,6 +45227,17 @@
       <Name>toAstElement</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>a617277f426ba174ddde37eb38abef8c4</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CmakeIncludeProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeIncludeProperty.html</Path>
@@ -45083,6 +45419,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TimeOutProperty.html</Path>
     <Anchor>a6488efd99affb974a48b31ec46194943</Anchor>
     <DeclaredIn>TimeOutProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+    <Anchor>a3b53bad0040cd409515f629d17547835</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -45272,6 +45619,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
@@ -45955,6 +46312,17 @@
       <Name>toString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>acf0d6ed895539f0cc74ef9e598a1c826</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TracingProperty.TracingOptions</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOptions.html</Path>
@@ -46364,6 +46732,16 @@
       <Name>toString</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -46546,6 +46924,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>TRACE_PLUGIN_DICT</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.type.DictionaryType</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</Path>
+    <Anchor>a57cdc3f349ec311f915d381c8847644e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>traceFileName</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -46563,6 +46951,39 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOptions.html</Path>
     <Anchor>a4741f191da8818968330ec88c051cd34</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TracePluginOption</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>a76fedf288101ebb0a12168ba4b192c2c</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>tracePluginRequiresPackageAndLibraryMissingLibrary</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>af9dba0fe87f61fd4fad22392a5369cde</Anchor>
+    <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>tracePluginRequiresPackageAndLibraryMissingPackage</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>a60d4634f2cee82e650935b4b512c6ed1</Anchor>
+    <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -47246,6 +47667,16 @@
       <Name>type</Name>
       <APILanguage>unknown</APILanguage>
       <Type>data</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>type</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -47871,6 +48302,17 @@
       <Name>update</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>a6275a5bfb3d62b856d641b3fe68e63a1</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>update</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
@@ -48129,6 +48571,16 @@
       <Name>update</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>update</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TracingOptions, UnionType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -48312,6 +48764,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
     <DeclaredIn>TargetProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty.html</Path>
+    <Anchor>aaabdd190409cc04bfb49932b37268e24</Anchor>
+    <DeclaredIn>TracePluginProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -48589,6 +49052,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; TracePluginProperty.TracePluginSpec, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
