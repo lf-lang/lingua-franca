@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.eclipse.core.resources.IResource;
@@ -87,25 +88,34 @@ public class GeneratorUtils {
    * @return the resources that provide the given reactors.
    */
   public static Set<Resource> getResources(Iterable<Reactor> reactors) {
-    Set<Resource> visited = new LinkedHashSet<>();
+    Set<Resource> resources = new LinkedHashSet<>();
+    Set<Reactor> visitedReactors = new HashSet<>();
     for (Reactor r : reactors) {
-      if (!visited.contains(r.eResource())) {
-        addInheritedResources(r, visited);
-      }
+      addInheritedResources(r, resources, visitedReactors);
     }
-    return visited;
+    return resources;
   }
 
   /** Collect all resources associated with reactor through class inheritance. */
-  private static void addInheritedResources(Reactor reactor, Set<Resource> resources) {
+  private static void addInheritedResources(
+      Reactor reactor, Set<Resource> resources, Set<Reactor> visitedReactors) {
+    // Skip if we've already processed this reactor
+    if (reactor == null || visitedReactors.contains(reactor)) {
+      return;
+    }
+    visitedReactors.add(reactor);
     resources.add(reactor.eResource());
+
+    // Process superclasses - each reactor may have different superclasses even if in the same file
     for (var s : reactor.getSuperClasses()) {
-      if (!resources.contains(s)) {
-        if (s instanceof ImportedReactor i) {
-          addInheritedResources(i.getReactorClass(), resources);
-        } else if (s instanceof Reactor r) {
-          addInheritedResources(r, resources);
-        }
+      Reactor superReactor = null;
+      if (s instanceof ImportedReactor i) {
+        superReactor = i.getReactorClass();
+      } else if (s instanceof Reactor r) {
+        superReactor = r;
+      }
+      if (superReactor != null) {
+        addInheritedResources(superReactor, resources, visitedReactors);
       }
     }
   }
