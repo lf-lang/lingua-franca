@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: trace-plugin-${{ github.ref }}-${{ github.event_path }}
+  group: trace-plugin-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
 
 jobs:
