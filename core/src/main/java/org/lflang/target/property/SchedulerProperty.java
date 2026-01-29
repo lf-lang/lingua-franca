@@ -74,7 +74,8 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
 
   @Override
   public Element toAstElement(SchedulerOptions value) {
-    return ASTUtils.toElement(value.type != null ? value.type.name() : Scheduler.getDefault().name());
+    return ASTUtils.toElement(
+        value.type != null ? value.type.name() : Scheduler.getDefault().name());
   }
 
   @Override

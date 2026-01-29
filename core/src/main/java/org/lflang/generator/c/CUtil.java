@@ -495,8 +495,8 @@ public class CUtil {
 
   /**
    * Construct a unique type for the struct of the specified typed variable (port or action) of the
-   * specified reactor class. This is required to be the same as the type name returned by {@link
-   * #variableStructType(TriggerInstance)}.
+   * specified reactor class. This is required to be the same as the type name returned by
+   * variableStructType(TriggerInstance).
    */
   public static String variableStructType(
       Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {

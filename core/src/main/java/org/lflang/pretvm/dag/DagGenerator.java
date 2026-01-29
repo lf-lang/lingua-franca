@@ -86,9 +86,9 @@ public class DagGenerator {
   public final CFileConfig fileConfig;
 
   /**
-   * Constructor. Sets the main reactor and initializes the dag
+   * Constructor.
    *
-   * @param main main reactor instance
+   * @param fileConfig the file configuration
    */
   public DagGenerator(CFileConfig fileConfig) {
     this.fileConfig = fileConfig;

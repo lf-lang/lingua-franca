@@ -22,7 +22,7 @@ public class IntervalNode extends DagNode {
   /**
    * Constructor
    *
-   * @param time the logical release time represented by the node
+   * @param interval the logical release interval represented by the node
    */
   public IntervalNode(TimeValue interval) {
     this.interval = interval;

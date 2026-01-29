@@ -115,9 +115,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
         updatedInstructions.get(w).addAll(procedureCode);
 
         // Jump back to the call site.
-        updatedInstructions
-            .get(w)
-            .add(new JALR(registers.zero, registers.returnAddrs.get(w), 0L));
+        updatedInstructions.get(w).add(new JALR(registers.zero, registers.returnAddrs.get(w), 0L));
       }
     }
 
@@ -149,10 +147,7 @@ public class DagBasedOptimizer extends PretVMOptimizer {
 
     // Add phase label to the first non-procedure instruction per worker.
     for (int w = 0; w < workers; w++) {
-      updatedInstructions
-          .get(w)
-          .get(phaseLabelLoc[w])
-          .addLabel(new Label(phase.toString()));
+      updatedInstructions.get(w).get(phaseLabelLoc[w]).addLabel(new Label(phase.toString()));
     }
 
     schedule.setInstructions(updatedInstructions);

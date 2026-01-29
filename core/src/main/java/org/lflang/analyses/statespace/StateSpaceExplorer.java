@@ -275,6 +275,7 @@ public class StateSpaceExplorer {
    *
    * @param reactor The reactor wrt which initial events are inferred
    * @param phase The phase for which initial events are inferred
+   * @param targetConfig The target configuration
    * @return A list of initial events
    */
   public static List<Event> addInitialEvents(

@@ -1627,7 +1627,8 @@ public class InstructionGenerator {
 
     // By this point, line macros have been generated. Get them from
     // a map that maps an input port to a list of TEST_TRIGGER macros.
-    List<Instruction> triggerTimeTests = triggerPresenceTestMap.getOrDefault(input, new ArrayList<>());
+    List<Instruction> triggerTimeTests =
+        triggerPresenceTestMap.getOrDefault(input, new ArrayList<>());
 
     // Peek and update the head.
     code.pr(

@@ -180,8 +180,7 @@ public class StateSpaceUtils {
         asyncTag =
             new TimeTag(
                 TimeValue.fromNanoSeconds(
-                    asyncTag.time.toNanoSeconds()
-                        + asyncDiagram.getMinSpacing().toNanoSeconds()),
+                    asyncTag.time.toNanoSeconds() + asyncDiagram.getMinSpacing().toNanoSeconds()),
                 0L);
       } else {
 

@@ -61,9 +61,7 @@ public class DeadlineValidator {
               // a FlexPRET profile is available in this package.
               break;
             default:
-              messageReporter
-                  .nowhere()
-                  .error("DeadlineValidator: Unknown platform " + platform);
+              messageReporter.nowhere().error("DeadlineValidator: Unknown platform " + platform);
           }
         }
         makespan.put(node, makespanUntilNode);
