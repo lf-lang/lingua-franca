@@ -1534,6 +1534,20 @@ public class InstructionGenerator {
                       " // lf_print(\"Inserted an event @ %lld.\", event.time);",
                       "}"));
 
+              // Declare input_parent so that updateTimeFieldsToCurrentQueueHead
+              // can pre-set the input port value from the buffer head.
+              ReactorInstance inputParentForFrom = input.getParent();
+              code.pr(
+                  CUtil.selfType(inputParentForFrom)
+                      + "*"
+                      + " input_parent = "
+                      + "("
+                      + CUtil.selfType(inputParentForFrom)
+                      + "*"
+                      + ")"
+                      + getFromEnvReactorPointer(main, inputParentForFrom)
+                      + ";");
+
               code.pr(updateTimeFieldsToCurrentQueueHead(input));
 
               code.unindent();
@@ -1593,8 +1607,9 @@ public class InstructionGenerator {
               code.pr("circular_buffer *pq = &connection_buffer_" + pqueueIndex + ";");
               code.pr("instant_t current_time = input_parent->base.tag.time;");
 
-              // If the current head matches the current reactor's time,
-              // pop the head.
+              // Pop the head and update pqueue heads. Value extraction is
+              // handled by updateTimeFieldsToCurrentQueueHead, which pre-sets
+              // the input port value from the new buffer head.
               code.pr(
                   String.join(
                       "\n",
@@ -1602,15 +1617,6 @@ public class InstructionGenerator {
                       "event_t* head = (event_t*) cb_peek(pq);",
                       "if (head != NULL && head->base.tag.time <= current_time) {",
                       "    cb_remove_front(pq);",
-                      "    // Extract the token value and write it to the input port.",
-                      "    input_parent->_lf_" + input.getName() + "->token = head->token;",
-                      "    input_parent->_lf_"
-                          + input.getName()
-                          + "->value = (int)(uintptr_t)head->token; // FIXME: Only works for"
-                          + " int-like types.",
-                      "    input_parent->_lf_" + input.getName() + "->is_present = true;",
-                      "    // _lf_done_using(head->token); // Done using the token and let it be"
-                          + " recycled.",
                       updateTimeFieldsToCurrentQueueHead(input),
                       "}"));
             }
@@ -1701,6 +1707,21 @@ public class InstructionGenerator {
               + getFromEnvPqueueHeadTimePointer(main, input)
               + ";");
     }
+    // Pre-set the input port value from the buffer head so that
+    // downstream reactions can read the correct value when they fire.
+    code.pr(
+        "input_parent->_lf_"
+            + input.getName()
+            + "->token = peeked->token;");
+    code.pr(
+        "input_parent->_lf_"
+            + input.getName()
+            + "->value = (int)(uintptr_t)peeked->token;"
+            + " // FIXME: Only works for int-like types.");
+    code.pr(
+        "input_parent->_lf_"
+            + input.getName()
+            + "->is_present = true;");
     code.unindent();
     code.pr("}");
     // If the head of the pqueue is NULL, then set the op1s to a NULL pointer,
@@ -1720,6 +1741,10 @@ public class InstructionGenerator {
               + "(reg_t*)"
               + "NULL;");
     }
+    code.pr(
+        "input_parent->_lf_"
+            + input.getName()
+            + "->is_present = false;");
     code.unindent();
     code.pr("}");
 
