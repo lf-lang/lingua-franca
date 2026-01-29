@@ -135,13 +135,14 @@ public class CScheduleGenerator {
     if (this.workers == 0) {
       // Update the previous value of 0.
       this.workers = scheduler.setNumberOfWorkers();
-      WorkersProperty.INSTANCE.update(targetConfig, this.workers);
-
-      // Update CMAKE compile definitions.
-      final var defs = new HashMap<String, String>();
-      defs.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
-      CompileDefinitionsProperty.INSTANCE.update(targetConfig, defs);
     }
+
+    // Always update the target config and CMAKE compile definitions
+    // to match the actual number of workers used in the static schedule.
+    WorkersProperty.INSTANCE.update(targetConfig, this.workers);
+    final var defs = new HashMap<String, String>();
+    defs.put("NUMBER_OF_WORKERS", String.valueOf(this.workers));
+    CompileDefinitionsProperty.INSTANCE.update(targetConfig, defs);
 
     // Create InstructionGenerator, which acts as a compiler and a linker.
     InstructionGenerator instGen =

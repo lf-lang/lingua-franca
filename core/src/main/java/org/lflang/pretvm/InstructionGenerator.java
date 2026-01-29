@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import org.lflang.FileConfig;
 import org.lflang.TimeValue;
@@ -808,7 +809,8 @@ public class InstructionGenerator {
             "#include <limits.h> // ULLONG_MAX",
             "#include \"core/environment.h\"",
             "#include \"core/threaded/scheduler_instance.h\"",
-            "#include \"core/threaded/scheduler_static_functions.h\""));
+            "#include \"core/threaded/scheduler_static_functions.h\"",
+            "#include \"core/utils/circular_buffer.h\""));
 
     // Include reactor header files.
     List<TypeParameterizedReactor> tprs = this.reactors.stream().map(it -> it.tpr).toList();
@@ -895,6 +897,12 @@ public class InstructionGenerator {
         "volatile reg_t " + getVarName(registers.binarySemas) + "[" + workers + "]" + " = {0ULL};");
     code.pr("volatile reg_t " + getVarName(registers.temp0) + "[" + workers + "]" + " = {0ULL};");
     code.pr("volatile reg_t " + getVarName(registers.temp1) + "[" + workers + "]" + " = {0ULL};");
+
+    // Generate circular buffer declarations for delayed connections.
+    var delayedConnectionIndices = collectDelayedConnectionIndices();
+    for (int pqIdx : delayedConnectionIndices) {
+      code.pr("circular_buffer connection_buffer_" + pqIdx + ";");
+    }
 
     // Generate function prototypes.
     generateFunctionPrototypesForConnections(code);
@@ -1342,6 +1350,24 @@ public class InstructionGenerator {
     code.pr("// Fill in placeholders in the schedule.");
     code.pr("void initialize_static_schedule() {");
     code.indent();
+
+    // Initialize circular buffers for delayed connections FIRST,
+    // before the delayed instantiation code that may reference pqueue_heads.
+    if (!delayedConnectionIndices.isEmpty()) {
+      code.pr("// Initialize circular buffers for delayed connections.");
+      for (int pqIdx : delayedConnectionIndices) {
+        code.pr("cb_init(&connection_buffer_" + pqIdx + ", 16, sizeof(event_t));");
+      }
+      // Initialize pqueue_heads on the environment.
+      var envStruct = CUtil.getEnvironmentStruct(main);
+      code.pr(envStruct + ".num_pqueue_heads = " + this.ports.size() + ";");
+      code.pr(
+          envStruct
+              + ".pqueue_heads = (event_t**)calloc("
+              + this.ports.size()
+              + ", sizeof(event_t*));");
+    }
+
     for (int w = 0; w < this.workers; w++) {
       var workerInstructions = instructions.get(w);
       // Iterate over each instruction operand and generate a delay
@@ -1374,6 +1400,11 @@ public class InstructionGenerator {
           // casting unconditionally to (reg_t*) should be okay because these
           // structs are pointers. We also don't need to prepend & because
           // this is taken care of when generating the operand string above.
+          //
+          // For pqueue_heads operands, set to NULL initially because the queue
+          // is empty at startup. The connection helper functions will update
+          // these operands when events are pushed into the buffers.
+          String valueStr = operandStr.contains("pqueue_heads") ? "NULL" : operandStr;
           code.pr(
               "schedule_"
                   + w
@@ -1383,7 +1414,7 @@ public class InstructionGenerator {
                   + ".op"
                   + (i + 1)
                   + ".reg = (reg_t*)"
-                  + operandStr
+                  + valueStr
                   + ";");
         }
       }
@@ -1478,10 +1509,7 @@ public class InstructionGenerator {
                       + "self->_lf_"
                       + output.getName()
                       + ";");
-              code.pr(
-                  "circular_buffer *pq = (circular_buffer*)port.pqueues["
-                      + pqueueLocalIndex
-                      + "];");
+              code.pr("circular_buffer *pq = &connection_buffer_" + pqueueIndex + ";");
               code.pr("instant_t current_time = self->base.tag.time;");
 
               // If the output port has a value, push it into the priority queue.
@@ -1561,10 +1589,7 @@ public class InstructionGenerator {
                       + "output_parent->_lf_"
                       + output.getName()
                       + ";");
-              code.pr(
-                  "circular_buffer *pq = (circular_buffer*)port.pqueues["
-                      + pqueueLocalIndex
-                      + "];");
+              code.pr("circular_buffer *pq = &connection_buffer_" + pqueueIndex + ";");
               code.pr("instant_t current_time = input_parent->base.tag.time;");
 
               // If the current head matches the current reactor's time,
@@ -2293,6 +2318,29 @@ public class InstructionGenerator {
    */
   private String nonUserFacingSelfType(ReactorInstance reactor) {
     return "_" + reactor.getDefinition().getReactorClass().getName().toLowerCase() + "_self_t";
+  }
+
+  /**
+   * Collect the pqueue indices of all delayed connections. Each delayed connection is identified by
+   * its destination input port, and the pqueue index is the position of that port in the ports list.
+   *
+   * @return A sorted set of pqueue indices for all delayed connections.
+   */
+  private Set<Integer> collectDelayedConnectionIndices() {
+    Set<Integer> indices = new TreeSet<>();
+    for (ReactorInstance reactor : this.reactors) {
+      for (PortInstance output : reactor.outputs) {
+        if (outputToDelayedConnection(output)) {
+          for (SendRange srcRange : output.getDependentPorts()) {
+            for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+              PortInstance input = dstRange.instance;
+              indices.add(getPqueueIndex(input));
+            }
+          }
+        }
+      }
+    }
+    return indices;
   }
 
   public static int indexOfByReference(List<?> list, Object o) {
