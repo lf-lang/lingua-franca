@@ -176,6 +176,8 @@ public class PartialSchedule {
       // If PERIODIC is present, link PERIODIC to shutdown.
       if (periodic.isPresent()) {
         linkSchedulesWithGuardedTransition(periodic.get(), timeout.get(), guardedTransition);
+        // Also link PERIODIC back to itself for looping when timeout is not yet reached.
+        linkSchedulesWithDefaultTransition(periodic.get(), periodic.get());
       }
       // If INIT is present, link INIT to shutdown.
       else if (init.isPresent()) {
