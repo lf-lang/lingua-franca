@@ -861,6 +861,15 @@ public class CUtil {
   }
 
   /**
+   * @brief Return a string representing a global C variable that is the struct of the environment
+   *     of the specified reactor instance.
+   * @param inst The reactor instance.
+   */
+  public static String getEnvironmentStruct(ReactorInstance inst) {
+    return ENVIRONMENT_VARIABLE_NAME + "[" + inst.uniqueID() + "]";
+  }
+
+  /**
    * @brief Return a string representing a pointer to the C variable that is the struct of the
    *     environment of the specified enclave.
    * @param inst The enclave instance.

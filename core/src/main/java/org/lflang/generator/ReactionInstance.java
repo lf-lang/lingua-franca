@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.TimeValue;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;

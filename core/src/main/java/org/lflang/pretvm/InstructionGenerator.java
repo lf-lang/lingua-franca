@@ -2166,13 +2166,18 @@ public class InstructionGenerator {
     return "PLACEHOLDER";
   }
 
+  /** Return the C environment struct expression for the given reactor instance. */
+  private String getEnvironmentStruct(ReactorInstance reactor) {
+    return CUtil.ENVIRONMENT_VARIABLE_NAME + "[" + reactor.uniqueID() + "]";
+  }
+
   /** Generate short UUID to guarantee uniqueness in strings */
   private String generateShortUUID() {
     return UUID.randomUUID().toString().substring(0, 8); // take first 8 characters
   }
 
   private String getFromEnvReactorPointer(ReactorInstance main, ReactorInstance reactor) {
-    return CUtil.getEnvironmentStruct(main)
+    return getEnvironmentStruct(main)
         + ".reactor_self_array"
         + "["
         + this.reactors.indexOf(reactor)
@@ -2208,7 +2213,7 @@ public class InstructionGenerator {
   }
 
   private String getFromEnvReactionStruct(ReactorInstance main, ReactionInstance reaction) {
-    return CUtil.getEnvironmentStruct(main)
+    return getEnvironmentStruct(main)
         + ".reaction_array"
         + "["
         + this.reactions.indexOf(reaction)
@@ -2226,7 +2231,7 @@ public class InstructionGenerator {
   }
 
   private String getFromEnvPqueueHead(ReactorInstance main, TriggerInstance trigger) {
-    return CUtil.getEnvironmentStruct(main) + ".pqueue_heads" + "[" + getPqueueIndex(trigger) + "]";
+    return getEnvironmentStruct(main) + ".pqueue_heads" + "[" + getPqueueIndex(trigger) + "]";
   }
 
   private String getFromEnvPqueueHeadTimePointer(ReactorInstance main, TriggerInstance trigger) {
@@ -2242,7 +2247,7 @@ public class InstructionGenerator {
         + "("
         + nonUserFacingSelfType(trigger.getParent())
         + "*)"
-        + CUtil.getEnvironmentStruct(main)
+        + getEnvironmentStruct(main)
         + ".reactor_self_array"
         + "["
         + this.reactors.indexOf(trigger.getParent())
