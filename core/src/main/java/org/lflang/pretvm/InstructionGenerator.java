@@ -877,19 +877,18 @@ public class InstructionGenerator {
               + targetConfig.get(TimeOutProperty.INSTANCE).toNanoSeconds()
               + "LL"
               + ";");
-    code.pr("const size_t num_progress_indices = " + workers + ";"); // FIXME: Seems unnecessary.
+    code.pr("const size_t num_counters = " + workers + ";");
     code.pr("volatile reg_t " + getVarName(registers.offset, false) + " = 0ULL;");
     code.pr("volatile reg_t " + getVarName(registers.offsetInc, false) + " = 0ULL;");
     code.pr("const uint64_t " + getVarName(registers.zero, false) + " = 0ULL;");
     code.pr("const uint64_t " + getVarName(registers.one, false) + " = 1ULL;");
     code.pr(
-        "volatile uint64_t "
+        "volatile uint32_t "
             + getVarName(registers.progressIndices)
             + "["
             + workers
             + "]"
-            + " = {0ULL};"); // Must be uint64_t, otherwise writing a long long to it could cause
-    // buffer overflow.
+            + " = {0};");
     code.pr(
         "volatile reg_t " + getVarName(registers.returnAddrs) + "[" + workers + "]" + " = {0ULL};");
     code.pr(
@@ -1700,7 +1699,7 @@ public class InstructionGenerator {
       case "BinarySema":
         return "binary_sema";
       case "ProgressIndex":
-        return "progress_index";
+        return "counters";
       case "Offset":
         return "time_offset";
       case "OffsetInc":
