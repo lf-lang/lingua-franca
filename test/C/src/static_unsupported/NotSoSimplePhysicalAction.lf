@@ -1,7 +1,7 @@
 target C
 
 preamble {=
-  #include "include/core/platform.h"
+  #include "platform.h"
 =}
 
 main reactor {

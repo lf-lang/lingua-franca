@@ -849,9 +849,21 @@ public class InstructionGenerator {
     }
     code.pr("#define " + getPlaceHolderMacroString() + " " + "NULL");
 
+    // Enclave ID enum (mirrors the one in the main file)
+    code.pr("// Enclave IDs");
+    code.pr("enum {");
+    code.pr("  " + main.uniqueID() + ",");
+    code.pr("  " + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME);
+    code.pr("};");
+
     // Extern variables
     code.pr("// Extern variables");
-    code.pr("extern environment_t envs[_num_enclaves];");
+    code.pr(
+        "extern environment_t "
+            + CUtil.ENVIRONMENT_VARIABLE_NAME
+            + "["
+            + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+            + "];");
     code.pr("extern instant_t " + getVarName(registers.startTime, false) + ";");
 
     // Runtime variables

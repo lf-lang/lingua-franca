@@ -127,7 +127,7 @@ public class CEnclaveGenerator {
     return String.join(
         "\n",
         "// The global array of environments associated with each enclave",
-        "static environment_t "
+        "environment_t "
             + CUtil.ENVIRONMENT_VARIABLE_NAME
             + "["
             + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
