@@ -1601,6 +1601,13 @@ public class InstructionGenerator {
                       "event_t* head = (event_t*) cb_peek(pq);",
                       "if (head != NULL && head->base.tag.time <= current_time) {",
                       "    cb_remove_front(pq);",
+                      "    // Extract the token value and write it to the input port.",
+                      "    input_parent->_lf_" + input.getName() + "->token = head->token;",
+                      "    input_parent->_lf_"
+                          + input.getName()
+                          + "->value = (int)(uintptr_t)head->token; // FIXME: Only works for"
+                          + " int-like types.",
+                      "    input_parent->_lf_" + input.getName() + "->is_present = true;",
                       "    // _lf_done_using(head->token); // Done using the token and let it be"
                           + " recycled.",
                       updateTimeFieldsToCurrentQueueHead(input),
