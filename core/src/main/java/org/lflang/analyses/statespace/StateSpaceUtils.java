@@ -109,7 +109,7 @@ public class StateSpaceUtils {
       List<StateSpaceDiagram> asyncDiagrams, StateSpaceDiagram targetDiagram) {
     StateSpaceDiagram mergedDiagram = targetDiagram;
     for (var diagram : asyncDiagrams) {
-      mergedDiagram = mergeAsyncDiagramIntoDiagram(diagram, targetDiagram);
+      mergedDiagram = mergeAsyncDiagramIntoDiagram(diagram, mergedDiagram);
     }
     return mergedDiagram;
   }

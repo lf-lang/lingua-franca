@@ -66,7 +66,7 @@ public class SchedulerType extends OptionsType<Scheduler> {
           return scheduler;
         }
       }
-      throw new IllegalArgumentException("No Scheduler with name " + name + " found");
+      return null;
     }
 
     public String getSchedulerCompileDef() {

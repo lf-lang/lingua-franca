@@ -36,7 +36,11 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
     StaticScheduler staticSchedulerType = null;
     String schedulerStr = ASTUtils.elementToSingleString(node);
     if (!schedulerStr.equals("")) {
-      schedulerType = Scheduler.fromString(schedulerStr);
+      schedulerType = new SchedulerType().forName(schedulerStr);
+      if (schedulerType == null) {
+        reporter.nowhere().error("Invalid scheduler: " + schedulerStr);
+        schedulerType = Scheduler.getDefault();
+      }
       if (schedulerType == Scheduler.STATIC) staticSchedulerType = StaticScheduler.getDefault();
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
@@ -63,12 +67,14 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
 
   @Override
   protected SchedulerOptions fromString(String string, MessageReporter reporter) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    Scheduler s = new SchedulerType().forName(string);
+    if (s == null) return initialValue();
+    return new SchedulerOptions(s);
   }
 
   @Override
   public Element toAstElement(SchedulerOptions value) {
-    return ASTUtils.toElement(value.toString());
+    return ASTUtils.toElement(value.type != null ? value.type.name() : Scheduler.getDefault().name());
   }
 
   @Override

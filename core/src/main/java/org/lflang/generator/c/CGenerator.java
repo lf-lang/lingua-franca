@@ -1008,8 +1008,9 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
-    // Used for static scheduler's connection buffer.
-    header.pr("#include \"include/core/utils/circular_buffer.h\"");
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      header.pr("#include \"include/core/utils/circular_buffer.h\"");
+    }
     src.pr("#include \"include/api/schedule.h\"");
     src.pr("#include <string.h>"); // For memcpy.
     if (CPreambleGenerator.arduinoBased(targetConfig)) {

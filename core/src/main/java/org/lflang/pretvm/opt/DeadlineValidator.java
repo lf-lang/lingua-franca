@@ -12,7 +12,6 @@ import org.lflang.pretvm.dag.DagNode;
 import org.lflang.pretvm.dag.IntervalNode;
 import org.lflang.pretvm.dag.JobNode;
 import org.lflang.pretvm.dag.TimeNode;
-import org.lflang.pretvm.instruction.Instruction;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -52,8 +51,6 @@ public class DeadlineValidator {
         TimeValue makespanUntilNode = maxUpstreamMakespan.add(jobNode.getReaction().wcet);
 
         // Add instruction overhead based on the platform.
-        List<Instruction> workerInsts = schedule.getInstructions().get(jobNode.getWorker());
-        List<Instruction> nodeInsts = node.filterInstructions(workerInsts);
         Platform platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform();
         if (platform != null) {
           switch (platform) {
