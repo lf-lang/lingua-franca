@@ -196,6 +196,19 @@ public class DagGenerator {
         }
       }
 
+      // Add edges based on data-flow dependencies across different reactors.
+      // When two reactions from different reactors are invoked at the same time
+      // step, and one produces output that feeds the other's input port, we must
+      // enforce the correct execution order.
+      for (JobNode n1 : currentJobNodes) {
+        for (JobNode n2 : currentJobNodes) {
+          if (n1.getReaction().getParent() != n2.getReaction().getParent()
+              && n1.getReaction().dependentReactions().contains(n2.getReaction())) {
+            dag.addEdge(n1, n2);
+          }
+        }
+      }
+
       // Update the unconnectedUpstreamDagNodes map.
       for (JobNode reactionNode : currentJobNodes) {
         ReactionInstance reaction = reactionNode.getReaction();
