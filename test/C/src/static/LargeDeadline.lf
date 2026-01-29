@@ -1,0 +1,39 @@
+/**
+ * This test checks if a deadline larger than the hyperperiod could lead
+ * to incorrect execution. Here, even though the deadline of 2 sec is
+ * larger than the hyperperiod, the state variable s should still
+ * increment up to 10.
+ *
+ * 
+ */
+target C {
+    scheduler: STATIC,
+    workers: 1,
+    fast: true,
+    timeout: 9 sec,
+}
+
+preamble {=
+#define EXPECTED 10
+=}
+
+reactor Deadline {
+    timer t(0, 1 sec)
+    state s:int = 0
+    @wcet("1 msec")
+    reaction(t) {=
+        self->s++;
+    =} deadline(2 sec) {==}
+    reaction(shutdown) {=
+        if (self->s != EXPECTED) {
+            fprintf(stderr, "Final value of %d does not match the expected value of %d\n", self->s, EXPECTED);
+            exit(1);
+        } else {
+            printf("Successfully received %d\n", EXPECTED);
+        }
+    =}
+}
+
+main reactor {
+    d = new Deadline()
+}

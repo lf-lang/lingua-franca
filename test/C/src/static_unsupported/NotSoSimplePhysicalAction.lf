@@ -1,0 +1,45 @@
+target C
+
+preamble {=
+  #include "include/core/platform.h"
+=}
+
+main reactor {
+  preamble {=
+    // Thread to read input characters until an EOF is received.
+    // Each time a newline is received, schedule a user_response action.
+    void* read_input(void* physical_action) {
+        int c;
+        while(1) {
+            while((c = getchar()) != '\n') {
+            if (c == EOF) break;
+            }
+            lf_schedule_copy(physical_action, 0, &c, 1);
+            if (c == EOF) break;
+        }
+        return NULL;bb
+    }
+  =}
+
+  timer t(15 sec, 5 sec)
+  logical action a(10 sec): char
+  physical action b(0, 3 sec): char
+
+  reaction(startup) -> a {=
+    lf_schedule(a, 0);
+  =}
+
+  reaction(a) -> b {=
+    // Start the thread that listens for Enter or Return.
+    lf_thread_t thread_id;
+    lf_thread_create(&thread_id, &read_input, a);
+  =}
+
+  reaction(t) {=
+    lf_print("Hello.");
+  =}
+
+  reaction(b) {=
+    lf_print("Surprise!");
+  =}
+}

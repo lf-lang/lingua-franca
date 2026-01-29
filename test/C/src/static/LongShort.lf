@@ -1,0 +1,33 @@
+target C {
+    scheduler: STATIC,
+    timeout: 5 sec,
+    workers: 2,
+    fast: true,
+}
+
+realtime reactor Long {
+    timer t(0, 300 msec)
+    @wcet("300 msec")
+    reaction(t) {=
+        instant_t start = lf_time_physical();
+        interval_t wait = MSEC(290);
+        instant_t release = start + wait;
+        while (lf_time_physical() < release);
+    =}
+}
+
+realtime reactor Short {
+    timer t(0, 100 msec)
+    @wcet("100 msec")
+    reaction(t) {=
+        instant_t start = lf_time_physical();
+        interval_t wait = MSEC(90);
+        instant_t release = start + wait;
+        while (lf_time_physical() < release);
+    =}
+}
+
+main reactor {
+    l = new Long()
+    s = new Short()
+}
