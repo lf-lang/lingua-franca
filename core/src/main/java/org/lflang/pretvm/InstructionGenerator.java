@@ -884,13 +884,14 @@ public class InstructionGenerator {
     code.pr("volatile reg_t " + getVarName(registers.offsetInc, false) + " = 0ULL;");
     code.pr("const uint64_t " + getVarName(registers.zero, false) + " = 0ULL;");
     code.pr("const uint64_t " + getVarName(registers.one, false) + " = 1ULL;");
+    // Must be uint64_t, otherwise writing a long long to it could cause buffer overflow.
     code.pr(
-        "volatile uint32_t "
+        "volatile uint64_t "
             + getVarName(registers.progressIndices)
             + "["
             + workers
             + "]"
-            + " = {0};");
+            + " = {0ULL};");
     code.pr(
         "volatile reg_t " + getVarName(registers.returnAddrs) + "[" + workers + "]" + " = {0ULL};");
     code.pr(
