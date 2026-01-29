@@ -9,4 +9,5 @@ public enum ExecutionPhase {
   INIT_AND_PERIODIC,
   SHUTDOWN_TIMEOUT,
   SHUTDOWN_STARVATION,
+  ASYNC,
 }

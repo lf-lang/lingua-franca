@@ -45,6 +45,16 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
   /** The exploration phase in which this diagram is generated */
   public ExecutionPhase phase;
 
+  /**
+   * True if this diagram is asynchronous, meaning that it is started by a physical action. We can
+   * integrate an asynchronous diagram into a synchronous diagram based on minimum spacing, under an
+   * interpretation that minimum spacing means periodic polling.
+   */
+  private boolean isAsync = false;
+
+  /** Minimum spacing for async diagrams */
+  private TimeValue minSpacing;
+
   /** A dot file that represents the diagram */
   private CodeBuilder dot;
 
@@ -252,5 +262,25 @@ public class StateSpaceDiagram extends DirectedGraph<StateSpaceNode> {
   /** Check if the diagram is empty. */
   public boolean isEmpty() {
     return (head == null);
+  }
+
+  /** Check if the diagram is asynchronous, i.e., whether it is triggered by a physical action. */
+  public boolean isAsync() {
+    return isAsync;
+  }
+
+  /** Indicate that this diagram is asynchronous. */
+  public void makeAsync() {
+    isAsync = true;
+  }
+
+  /** Get the minimum spacing of the diagram. */
+  public TimeValue getMinSpacing() {
+    return minSpacing;
+  }
+
+  /** Set the minimum spacing of the diagram. */
+  public void setMinSpacing(TimeValue minSpacing) {
+    this.minSpacing = minSpacing;
   }
 }

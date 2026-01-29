@@ -46,11 +46,22 @@ public class StateSpaceExplorer {
    *
    * <p>Note: This is experimental code. Use with caution.
    */
+  /** Convenience overload that generates initial events from targetConfig. */
   public static StateSpaceDiagram explore(
       ReactorInstance main, TimeTag horizon, ExecutionPhase phase, TargetConfig targetConfig) {
+    return explore(main, horizon, phase, addInitialEvents(main, phase, targetConfig));
+  }
+
+  /**
+   * Core exploration method that takes a pre-built list of initial events. This overload is useful
+   * for exploring individual asynchronous events (physical actions) one at a time.
+   */
+  public static StateSpaceDiagram explore(
+      ReactorInstance main, TimeTag horizon, ExecutionPhase phase, List<Event> initialEvents) {
     if (phase != ExecutionPhase.INIT_AND_PERIODIC
         && phase != ExecutionPhase.SHUTDOWN_TIMEOUT
-        && phase != ExecutionPhase.SHUTDOWN_STARVATION)
+        && phase != ExecutionPhase.SHUTDOWN_STARVATION
+        && phase != ExecutionPhase.ASYNC)
       throw new RuntimeException("Unsupported phase detected in the explorer.");
 
     // Variable initilizations
@@ -65,7 +76,18 @@ public class StateSpaceExplorer {
     boolean stop = true;
 
     // Add initial events to the event queue.
-    eventQ.addAll(addInitialEvents(main, phase, targetConfig));
+    eventQ.addAll(initialEvents);
+
+    // Set appropriate fields if the phase is ASYNC.
+    if (phase == ExecutionPhase.ASYNC) {
+      if (eventQ.size() != 1)
+        throw new RuntimeException(
+            "When exploring the ASYNC phase, there should be only ONE initial event at a time."
+                + " eventQ.size() = "
+                + eventQ.size());
+      diagram.makeAsync();
+      diagram.setMinSpacing(((ActionInstance) eventQ.peek().getTrigger()).getMinSpacing());
+    }
 
     // Check if we should stop already.
     if (eventQ.size() > 0) {
@@ -330,6 +352,14 @@ public class StateSpaceExplorer {
           // Add the shutdown trigger, if exists.
           var shutdown = reactor.getShutdownTrigger();
           if (shutdown != null) events.add(new Event(shutdown, TimeTag.ZERO));
+          break;
+        }
+      case ASYNC:
+        {
+          for (ActionInstance physicalAction :
+              reactor.actions.stream().filter(ActionInstance::isPhysical).toList()) {
+            events.add(new Event(physicalAction, TimeTag.ZERO));
+          }
           break;
         }
       default:
