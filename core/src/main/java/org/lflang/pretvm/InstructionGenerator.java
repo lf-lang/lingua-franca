@@ -808,8 +808,7 @@ public class InstructionGenerator {
             "#include <limits.h> // ULLONG_MAX",
             "#include \"core/environment.h\"",
             "#include \"core/threaded/scheduler_instance.h\"",
-            "#include \"core/threaded/scheduler_static_functions.h\"",
-            "#include " + "\"" + fileConfig.name + ".h" + "\""));
+            "#include \"core/threaded/scheduler_static_functions.h\""));
 
     // Include reactor header files.
     List<TypeParameterizedReactor> tprs = this.reactors.stream().map(it -> it.tpr).toList();
