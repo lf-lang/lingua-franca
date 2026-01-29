@@ -375,7 +375,7 @@ public enum Target {
   /**
    * Return the display name of the target, as it should be written in LF code. This is hence a
    * single identifier. Eg for {@link #CPP} returns `"Cpp"`, for {@link #Python} returns
-   * `"Python"`. Avoid using either {@link #name()} or {@link #toString()}, which have
+   * `"Python"`. Avoid using either `name()` or `toString()`, which have
    * unrelated contracts.
    */
   public String getDisplayName() {
@@ -531,7 +531,7 @@ public enum Target {
    * Return the target constant corresponding to given target declaration among. Return a non-null
    * result, will throw if invalid.
    *
-   * @throws RuntimeException If no {@link TargetDecl} is present or if it is invalid.
+   * @throws RuntimeException If no target declaration ({@code TargetDecl}) is present or if it is invalid.
    */
   public static Target fromDecl(TargetDecl targetDecl) {
     String name = targetDecl.getName();

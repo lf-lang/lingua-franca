@@ -58,6 +58,10 @@ public class CReactionGenerator {
    * @param tpr The reactor that has the reaction
    * @param reactionIndex The index of the reaction relative to other reactions in the reactor,
    *     starting from 0
+   * @param types The C-specific type conversion functions.
+   * @param messageReporter Used to report errors and warnings.
+   * @param mainDef The main reactor instantiation.
+   * @param requiresTypes Whether type information is required.
    */
   public static String generateInitializationForReaction(
       String body,
@@ -265,6 +269,7 @@ public class CReactionGenerator {
    * @param containedReactor The contained reactor instantiation.
    * @param breadcrumbs null on first call (non-recursive).
    * @param max 0 on first call.
+   * @param mainDef The main reactor instantiation.
    */
   public static int maxContainedReactorBankWidth(
       Instantiation containedReactor,
@@ -325,7 +330,9 @@ public class CReactionGenerator {
    * Generate code for the body of a reaction that takes an input and schedules an action with the
    * value of that input.
    *
+   * @param ref Reference to the input port.
    * @param actionName The action to schedule
+   * @param type The type of the data.
    */
   public static String generateDelayBody(String ref, String actionName, InferredType type) {
     // Note that the action.type set by the base class is actually
@@ -794,6 +801,8 @@ public class CReactionGenerator {
    *
    * @param effect The effect declared by the reaction. This must refer to an output.
    * @param tpr The reactor containing the reaction.
+   * @param messageReporter Used to report errors and warnings.
+   * @param requiresTypes Whether type information is required.
    */
   public static String generateOutputVariablesInReaction(
       VarRef effect,
@@ -856,6 +865,7 @@ public class CReactionGenerator {
    * @param body The place to put the code for the self struct.
    * @param tpr {@link TypeParameterizedReactor}
    * @param constructorCode The place to put the constructor code.
+   * @param types The C-specific type conversion functions.
    */
   public static void generateReactionAndTriggerStructs(
       CodeBuilder body, TypeParameterizedReactor tpr, CodeBuilder constructorCode, CTypes types) {
@@ -1160,6 +1170,11 @@ public class CReactionGenerator {
    * @param reaction The reaction.
    * @param tpr The reactor.
    * @param reactionIndex The position of the reaction within the reactor.
+   * @param mainDef The main reactor instantiation.
+   * @param messageReporter Used to report errors and warnings.
+   * @param types The C-specific type conversion functions.
+   * @param targetConfig The target configuration.
+   * @param requiresType Whether type information is required.
    */
   public static String generateReaction(
       Reaction reaction,

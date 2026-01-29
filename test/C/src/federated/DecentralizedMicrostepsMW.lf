@@ -1,9 +1,11 @@
 /**
- * @brief A federated system with a decentralized coordinator that has large STA and STAA offsets.
+ * @brief A federated system with a decentralized coordinator that has large `maxwait` and
+ * `absent_after` offsets.
  *
- * This test verifies that a large STA and STAA offset can be used when the data flow is predictable
- * even if the the program is lagging behind physical time. This version uses microsteps and never
- * advances past the start time. It also uses lf_request_stop() to stop the execution.
+ * This test verifies that a large `maxwait` and `absent_after` offset can be used when the data
+ * flow is predictable even if the the program is lagging behind physical time. This version uses
+ * microsteps and never advances past the start time. It also uses lf_request_stop() to stop the
+ * execution.
  *
  * @author Edward A. Lee
  */
@@ -46,7 +48,7 @@ reactor Gather {
     lf_print("%d: at tag " PRINTF_TAG, self->count, now.time - lf_time_start(), now.microstep);
     self->count++;
     if (self->count >= 5) {
-      lf_request_stop(); // STAA is not applied at the stop tag, so we can't count on communication completing.
+      lf_request_stop(); // `absent_after` is not applied at the stop tag, so we can't count on communication completing.
     }
     lf_schedule(a, 0);
   =} tardy {=

@@ -94,6 +94,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the port.
    * @param coordinationMode The coordination type
+   * @param messageReporter Used to report errors and warnings.
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -253,6 +254,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the connection.
    * @param coordinationMode Centralized or decentralized.
+   * @param messageReporter Used to report errors and warnings.
    */
   public String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -356,6 +358,7 @@ public class CExtension implements FedTargetExtension {
    * @param sendingFunction The name of the function that sends the serialized data.
    * @param commonArgs Arguments passed to `sendingFunction` regardless of serialization
    *     method.
+   * @param messageReporter Used to report errors and warnings.
    */
   protected void serializeAndSend(
       FedConnectionInstance connection,
@@ -501,7 +504,7 @@ public class CExtension implements FedTargetExtension {
 
   /**
    * Add preamble to a separate file to set up federated execution. Return an a string containing
-   * the #includes that are needed by the federate.
+   * the `#include` directives that are needed by the federate.
    */
   @Override
   public String generatePreamble(
@@ -684,7 +687,7 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&lf_outbound_net_abstraction_mutex);",
+            "lf_mutex_init(&lf_outbound_net_mutex);",
             "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
@@ -746,14 +749,14 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the array of network abstractions for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.net_abstractions_for_inbound_p2p_connections[i] = NULL;",
+            "    _fed.net_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
             "// Initialize the array of network abstractions for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.net_abstractions_for_outbound_p2p_connections[i] = NULL;",
+            "    _fed.net_for_outbound_p2p_connections[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
@@ -769,7 +772,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Connect to the RTI. This sets _fed.net_abstraction_to_RTI and _lf_rti_socket_UDP.",
+            "// Connect to the RTI. This sets _fed.net_to_RTI and _lf_rti_socket_UDP.",
             "lf_connect_to_rti("
                 + addDoubleQuotes(rtiConfig.getHost())
                 + ", "
@@ -779,7 +782,7 @@ public class CExtension implements FedTargetExtension {
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(_fed.net_abstraction_to_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(_fed.net_to_RTI);");
     }
 
     if (numberOfInboundConnections > 0) {

@@ -533,6 +533,7 @@ public class ASTUtils {
    * definition.
    *
    * @param definition The reactor definition.
+   * @param feature The structural feature to collect.
    * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
    * @return A list of all elements of type T found
    */
@@ -1322,7 +1323,7 @@ public class ASTUtils {
   /**
    * Given a parameter return its integer value or null if it does not have an integer value. If the
    * value of the parameter is a list of integers, return the sum of value in the list. The
-   * instantiations parameter is as in {@link #initialValue(Parameter, List)}.
+   * instantiations parameter is as in {@link #initialValue}.
    *
    * @param parameter The parameter.
    * @param instantiations The (optional) list of instantiations.
@@ -1382,10 +1383,10 @@ public class ASTUtils {
    * @brief Given the width specification of port or instantiation and an (optional) list of nested
    *     instantiations, return the width if it can be determined and -1 if not.
    *     <p>This will not be able to be determined if either the width is variable (in which case
-   *     you should use {@link #inferPortWidth(VarRef, Connection, List)} ) or the list of
+   *     you should use {@link #inferPortWidth} ) or the list of
    *     instantiations is incomplete or missing. If there are parameter references in the width,
    *     they are evaluated to the extent possible given the instantiations list.
-   *     <p>The instantiations list is as in {@link #initialValue(Parameter, List)}. If the spec
+   *     <p>The instantiations list is as in {@link #initialValue}. If the spec
    *     belongs to an instantiation (for a bank of reactors), then the first element on this list
    *     should be the instantiation that contains this instantiation. If the spec belongs to a
    *     port, then the first element on the list should be the instantiation of the reactor that
@@ -1442,7 +1443,7 @@ public class ASTUtils {
    * <p>If the width cannot be determined, this will return -1. The width cannot be determined if
    * the list of instantiations is missing or incomplete.
    *
-   * <p>The instantiations list is as in {@link #initialValue(Parameter, List)}. The first element
+   * <p>The instantiations list is as in {@link #initialValue}. The first element
    * on this list should be the instantiation that contains the specified connection.
    *
    * @param reference A port reference.
@@ -1556,7 +1557,7 @@ public class ASTUtils {
    * <p>IMPORTANT: This method should not be used you really need to determine the width! It will
    * not evaluate parameter values.
    *
-   * @see #width(WidthSpec, List)
+   * @see #width
    * @param instantiation A reactor instantiation.
    * @return The width, if it can be determined.
    * @deprecated
@@ -1694,6 +1695,7 @@ public class ASTUtils {
    * Find the main reactor and set its name if none was defined.
    *
    * @param resource The resource to find the main reactor in.
+   * @param name The name to set for the main reactor.
    */
   public static void setMainName(Resource resource, String name) {
     Reactor main =

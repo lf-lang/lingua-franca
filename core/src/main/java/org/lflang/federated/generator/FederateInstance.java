@@ -56,6 +56,8 @@ public class FederateInstance {
    * @param instantiation The AST node of the instantiation.
    * @param id An identifier.
    * @param bankIndex If `instantiation.widthSpec !== null`, this gives the bank position.
+   * @param bankWidth The width of the bank.
+   * @param targetConfig The target configuration.
    * @param messageReporter An object for reporting messages to the user.
    */
   public FederateInstance(

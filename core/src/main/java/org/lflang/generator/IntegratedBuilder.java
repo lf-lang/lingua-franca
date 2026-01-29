@@ -51,7 +51,10 @@ public class IntegratedBuilder {
    * Generates code from the Lingua Franca file `f`.
    *
    * @param uri The URI of a Lingua Franca file.
+   * @param json The JSON configuration.
    * @param mustComplete Whether the build must be taken to completion.
+   * @param reportProgress Callback for reporting build progress.
+   * @param cancelIndicator Indicator for cancellation.
    * @return The result of the build.
    */
   public GeneratorResult run(
