@@ -78,6 +78,7 @@ import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -313,9 +314,13 @@ public class CGenerator extends GeneratorBase {
 
     registerTransformation(this.enclaveAST);
 
-    registerTransformation(
-        new DelayedConnectionTransformation(
-            delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
+    // Perform the AST transformation for delayed connections if applicable.
+    // The static scheduler does not use delayed connections.
+    if (targetConfig.useDelayedConnectionTransformation()) {
+      registerTransformation(
+          new DelayedConnectionTransformation(
+              delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
+    }
   }
 
   public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -418,19 +423,19 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
-    // Generate static schedule
-    // TO REMOVE LATER - JUST FOR TESTING.
-    // CScheduleGenerator schedGen =
-    //     new CScheduleGenerator(
-    //         this.fileConfig,
-    //         this.targetConfig,
-    //         this.messageReporter,
-    //         this.main,
-    //         ASTUtils.allReactorInstances(main),
-    //         ASTUtils.allReactionInstances(main),
-    //         ASTUtils.allPortInstances(main)
-    //     );
-    // schedGen.doGenerate();
+    // Create a static schedule if the static scheduler is used.
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      System.out.println("--- Generating a static schedule");
+      CScheduleGenerator schedGen =
+          new CScheduleGenerator(
+              this.fileConfig,
+              this.targetConfig,
+              this.main,
+              ASTUtils.allReactorInstances(main),
+              ASTUtils.allReactionInstances(main),
+              ASTUtils.allPortInstances(main));
+      schedGen.doGenerate();
+    }
 
     // Inform the runtime of the number of watchdogs (needed for Zephyr support to create threads).
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
@@ -453,6 +458,10 @@ public class CGenerator extends GeneratorBase {
               .map(CUtil::getName)
               .map(it -> it + (cppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
+      // If STATIC scheduler is used, add the schedule file.
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+        sources.add("static_schedule.c");
+      }
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(sources, cppMode, mainDef != null, cMakeExtras, context);
@@ -999,6 +1008,8 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
+    // Used for static scheduler's connection buffer.
+    header.pr("#include \"include/core/utils/circular_buffer.h\"");
     src.pr("#include \"include/api/schedule.h\"");
     src.pr("#include <string.h>"); // For memcpy.
     if (CPreambleGenerator.arduinoBased(targetConfig)) {
@@ -2035,7 +2046,7 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(
-              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
+              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {

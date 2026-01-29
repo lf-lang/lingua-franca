@@ -14,6 +14,7 @@ import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOption;
 import org.lflang.target.property.CoordinationOptionsProperty.CoordinationOption;
 import org.lflang.target.property.DockerProperty.DockerOption;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
+import org.lflang.target.property.SchedulerProperty.SchedulerDictOption;
 import org.lflang.target.property.TracePluginProperty.TracePluginOption;
 import org.lflang.target.property.TracingProperty.TracingOption;
 
@@ -28,7 +29,8 @@ public enum DictionaryType implements TargetPropertyType {
   PLATFORM_DICT(Arrays.asList(PlatformOption.values())),
   COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
   TRACING_DICT(Arrays.asList(TracingOption.values())),
-  TRACE_PLUGIN_DICT(Arrays.asList(TracePluginOption.values()));
+  TRACE_PLUGIN_DICT(Arrays.asList(TracePluginOption.values())),
+  SCHEDULER_DICT(Arrays.asList(SchedulerDictOption.values()));
 
   /** The keys and assignable types that are allowed in this dictionary. */
   public List<DictionaryElement> options;
