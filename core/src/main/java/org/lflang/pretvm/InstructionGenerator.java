@@ -1709,19 +1709,13 @@ public class InstructionGenerator {
     }
     // Pre-set the input port value from the buffer head so that
     // downstream reactions can read the correct value when they fire.
-    code.pr(
-        "input_parent->_lf_"
-            + input.getName()
-            + "->token = peeked->token;");
+    code.pr("input_parent->_lf_" + input.getName() + "->token = peeked->token;");
     code.pr(
         "input_parent->_lf_"
             + input.getName()
             + "->value = (int)(uintptr_t)peeked->token;"
             + " // FIXME: Only works for int-like types.");
-    code.pr(
-        "input_parent->_lf_"
-            + input.getName()
-            + "->is_present = true;");
+    code.pr("input_parent->_lf_" + input.getName() + "->is_present = true;");
     code.unindent();
     code.pr("}");
     // If the head of the pqueue is NULL, then set the op1s to a NULL pointer,
@@ -1741,10 +1735,7 @@ public class InstructionGenerator {
               + "(reg_t*)"
               + "NULL;");
     }
-    code.pr(
-        "input_parent->_lf_"
-            + input.getName()
-            + "->is_present = false;");
+    code.pr("input_parent->_lf_" + input.getName() + "->is_present = false;");
     code.unindent();
     code.pr("}");
 
