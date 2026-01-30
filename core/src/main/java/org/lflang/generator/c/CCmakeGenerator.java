@@ -394,6 +394,7 @@ public class CCmakeGenerator {
 
     if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
+      //TODO: Do we need this?
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
       if (platformOptions.platform() != Platform.AUTO) {
@@ -412,6 +413,11 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
     if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      // If security is requested, add the auth option.
+      cMakeCode.pr("# Find OpenSSL and link to it");
+      cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+      cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+      cMakeCode.newLine();
       // If communication mode is SST, find sst package.
       cMakeCode.pr("# Find sst-c-api and link to it.");
       cMakeCode.pr("find_package(sst-lib REQUIRED)");
