@@ -257,12 +257,21 @@ public class FedGenerator {
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
 
     var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
+
+    var configureArgs = new java.util.ArrayList<String>();
+    configureArgs.add("-Bbuild");
+    configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
+
+    // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      configureArgs.add("-DCOMM_TYPE=SST");
+    }
+
+    configureArgs.add(".");
+
     var configure =
-        LFCommand.get(
-            "cmake",
-            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
-            false,
-            fileConfig.getRtiSrcGenPath());
+        LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
+
     var build =
         LFCommand.get(
             "cmake",
