@@ -72,7 +72,6 @@ public class SSTGenerator {
     processBuilder.directory(sstRepoRootPath.resolve("examples").toFile());
 
     // Clean the old credentials & generate new credentials.
-    // processBuilder.command("bash", "-c", "echo" + graphPath);
 
     processBuilder.command(
         "bash",
@@ -117,6 +116,41 @@ public class SSTGenerator {
         messageReporter.nowhere().info("Credential generation script execution succeeded.");
       } else {
         messageReporter.nowhere().error("Script execution failed with exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+
+    // Build the auth-server
+    ProcessBuilder mvnProcessBuilder = new ProcessBuilder();
+    mvnProcessBuilder.directory(sstRepoRootPath.resolve("auth").resolve("auth-server").toFile());
+    mvnProcessBuilder.command("mvn", "clean", "install");
+
+    try {
+      Process mvnProcess = mvnProcessBuilder.start();
+
+      // Create threads to capture output and error streams
+      Thread mvnOutputThread = new Thread(
+          () -> {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(mvnProcess.getInputStream()))) {
+              String line;
+              while ((line = reader.readLine()) != null) {
+                messageReporter.nowhere().info("[SST Auth Server] " + line);
+              }
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+          });
+
+      mvnOutputThread.start();
+
+      int mvnExitCode = mvnProcess.waitFor();
+      mvnOutputThread.join();
+
+      if (mvnExitCode == 0) {
+        messageReporter.nowhere().info("Auth server built successfully.");
+      } else {
+        messageReporter.nowhere().error("Auth server build failed with exit code: " + mvnExitCode);
       }
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
