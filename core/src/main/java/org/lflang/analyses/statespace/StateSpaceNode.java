@@ -1,9 +1,9 @@
 package org.lflang.analyses.statespace;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
+import org.lflang.TimeTag;
 import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.TriggerInstance;
@@ -11,27 +11,32 @@ import org.lflang.generator.TriggerInstance;
 /** A node in the state space diagram representing a step in the execution of an LF program. */
 public class StateSpaceNode {
 
-  private int index; // Set in StateSpaceDiagram.java
-  private Tag tag;
-  private TimeValue time; // Readable representation of tag.timestamp
+  private int index; // An integer ID for this node
+  private TimeTag tag;
   private Set<ReactionInstance> reactionsInvoked;
   private ArrayList<Event> eventQcopy; // A snapshot of the eventQ represented as an ArrayList
 
   public StateSpaceNode(
-      Tag tag, Set<ReactionInstance> reactionsInvoked, ArrayList<Event> eventQcopy) {
+      TimeTag tag, Set<ReactionInstance> reactionsInvoked, ArrayList<Event> eventQcopy) {
     this.tag = tag;
     this.eventQcopy = eventQcopy;
     this.reactionsInvoked = reactionsInvoked;
-    this.time = TimeValue.fromNanoSeconds(tag.timestamp);
+  }
+
+  /** Copy constructor */
+  public StateSpaceNode(StateSpaceNode that) {
+    this.tag = new TimeTag(that.tag);
+    this.eventQcopy = new ArrayList<>(that.eventQcopy);
+    this.reactionsInvoked = new HashSet<>(that.reactionsInvoked);
   }
 
   /** Two methods for pretty printing */
   public void display() {
-    System.out.println("(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + ")");
+    System.out.println("(" + this.tag.time + ", " + reactionsInvoked + ", " + eventQcopy + ")");
   }
 
   public String toString() {
-    return "(" + this.time + ", " + reactionsInvoked + ", " + eventQcopy + ")";
+    return "(" + this.tag.time + ", " + reactionsInvoked + ", " + eventQcopy + ")";
   }
 
   /**
@@ -50,23 +55,20 @@ public class StateSpaceNode {
     result = 31 * result + reactionsInvoked.hashCode();
 
     // Generate hash for the triggers in the queued events.
-    List<String> eventNames =
-        this.eventQcopy.stream()
+    int eventsHash =
+        this.getEventQcopy().stream()
             .map(Event::getTrigger)
             .map(TriggerInstance::getFullName)
-            .collect(Collectors.toList());
-    result = 31 * result + eventNames.hashCode();
+            .mapToInt(Object::hashCode)
+            .reduce(1, (a, b) -> 31 * a + b);
+    result = 31 * result + eventsHash;
 
-    // Generate hash for a list of time differences between future events' tags and
-    // the current tag.
-    List<Long> timeDiff =
-        this.eventQcopy.stream()
-            .map(
-                e -> {
-                  return e.getTag().timestamp - this.tag.timestamp;
-                })
-            .collect(Collectors.toList());
-    result = 31 * result + timeDiff.hashCode();
+    // Generate hash for the time differences.
+    long timeDiffHash =
+        this.getEventQcopy().stream()
+            .mapToLong(e -> e.getTag().time.toNanoSeconds() - this.tag.time.toNanoSeconds())
+            .reduce(1, (a, b) -> 31 * a + b);
+    result = 31 * result + (int) timeDiffHash;
 
     return result;
   }
@@ -79,12 +81,16 @@ public class StateSpaceNode {
     index = i;
   }
 
-  public Tag getTag() {
+  public TimeTag getTag() {
     return tag;
   }
 
+  public void setTag(TimeTag newTag) {
+    tag = newTag;
+  }
+
   public TimeValue getTime() {
-    return time;
+    return tag.time;
   }
 
   public Set<ReactionInstance> getReactionsInvoked() {

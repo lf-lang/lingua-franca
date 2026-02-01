@@ -12,6 +12,7 @@ import static org.lflang.util.StringUtil.joinObjects;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
@@ -101,6 +102,7 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
+    code.pr(generateStaticSchedulerArrays(main));
     code.pr(generateSchedulerInitializerMain(main, enclaves, targetConfig));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
@@ -183,6 +185,61 @@ public class CTriggerObjectsGenerator {
             ");"));
     code.unindent();
     code.pr("}");
+    return code.toString();
+  }
+
+  /**
+   * Generate code to populate reactor_self_array and reaction_array fields on the environment
+   * struct, which are used by the static scheduler to access reactor self structs and reactions by
+   * index.
+   *
+   * @param main The main reactor instance.
+   * @return Code to populate these arrays, guarded by SCHEDULER == SCHED_STATIC.
+   */
+  private static String generateStaticSchedulerArrays(ReactorInstance main) {
+    var code = new CodeBuilder();
+    List<ReactorInstance> reactors = ASTUtils.allReactorInstances(main);
+    List<ReactionInstance> reactions = ASTUtils.allReactionInstances(main);
+    var envStruct = CUtil.getEnvironmentStruct(main);
+
+    code.pr("#if SCHEDULER == SCHED_STATIC");
+    code.pr("{");
+    code.indent();
+
+    // Populate reactor_self_array
+    code.pr("// Populate reactor_self_array for the static scheduler.");
+    code.pr(envStruct + ".reactor_self_array_size = " + reactors.size() + ";");
+    code.pr(
+        envStruct
+            + ".reactor_self_array = (self_base_t**)calloc("
+            + reactors.size()
+            + ", sizeof(self_base_t*));");
+    for (int i = 0; i < reactors.size(); i++) {
+      code.pr(
+          envStruct
+              + ".reactor_self_array["
+              + i
+              + "] = (self_base_t*)"
+              + CUtil.reactorRef(reactors.get(i))
+              + ";");
+    }
+
+    // Populate reaction_array
+    code.pr("// Populate reaction_array for the static scheduler.");
+    code.pr(envStruct + ".reaction_array_size = " + reactions.size() + ";");
+    code.pr(
+        envStruct
+            + ".reaction_array = (reaction_t**)calloc("
+            + reactions.size()
+            + ", sizeof(reaction_t*));");
+    for (int i = 0; i < reactions.size(); i++) {
+      code.pr(
+          envStruct + ".reaction_array[" + i + "] = &" + CUtil.reactionRef(reactions.get(i)) + ";");
+    }
+
+    code.unindent();
+    code.pr("}");
+    code.pr("#endif // SCHEDULER == SCHED_STATIC");
     return code.toString();
   }
 
@@ -393,7 +450,7 @@ public class CTriggerObjectsGenerator {
     for (SendRange srcRange : src.eventualDestinations()) {
       for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
         var dst = dstRange.instance;
-        var destStructType = CGenerator.variableStructType(dst);
+        var destStructType = CUtil.variableStructType(dst);
 
         // NOTE: For federated execution, dst.getParent() should always be contained
         // by the currentFederate because an AST transformation removes connections
@@ -1062,7 +1119,7 @@ public class CTriggerObjectsGenerator {
           code.startScopedBlock(trigger.getParent());
 
           var width = trigger.getWidth();
-          var portStructType = CGenerator.variableStructType(trigger);
+          var portStructType = CUtil.variableStructType(trigger);
 
           code.pr(
               String.join(
@@ -1108,7 +1165,7 @@ public class CTriggerObjectsGenerator {
           code.pr("// A reaction writes to a multiport of a child. Allocate memory.");
           portsHandled.add(effect);
           code.startScopedBlock(effect.getParent());
-          var portStructType = CGenerator.variableStructType(effect);
+          var portStructType = CUtil.variableStructType(effect);
           var effectRef = CUtil.portRefNestedName(effect);
           code.pr(
               String.join(

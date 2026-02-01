@@ -1,0 +1,55 @@
+/**
+ * This test case shows that the static scheduler can handle feedback loops,
+ * assuming that a few key constraints are satisfied, among them:
+ * - Reactions triggered by startup and timers cannot have other triggers (use
+ *   Feedback.lf to relax this constraint).
+ * - lf_request_stop() is not supported. The only way to terminate a program is
+ *   to use a timeout value (use Feedback.lf to relax this constraint). If a
+ *   timeout is not provided, it is as if keepalive is by default set to true. 
+ */
+target C {
+    fast: true,
+    // logging: DEBUG,
+    build-type: Debug,
+    scheduler: STATIC,
+    timeout: 1000 msec, // IMPORTANT: this must match ITERATION.
+}
+
+preamble {=
+    #define ITERATION 1000
+=}
+
+reactor A(iteration : int = 1000) {
+    input in:int
+    output out:int
+    state count:int = 0
+    reaction(startup) -> out {=
+        self->count++;
+        lf_set(out, self->count);
+        // lf_print("In A: count = %d", self->count);
+    =}
+    reaction(in) -> out {=
+        self->count++;
+        lf_set(out, self->count);
+        // lf_print("In A: count = %d", self->count);
+    =}
+}
+
+reactor B(iteration : int = 1000) {
+    input in:int
+    output out:int
+    reaction(in) -> out {=
+        // lf_print("In B");
+        if (in->value < self->iteration)
+            lf_set_present(out);
+        else if (in->value == self->iteration)
+            lf_print("SUCCESS: all iterations finished.");
+    =}
+}
+
+main reactor {
+    a = new A(iteration={=ITERATION=})
+    b = new B(iteration={=ITERATION=})
+    a.out -> b.in
+    b.out -> a.in after 1 msec
+}

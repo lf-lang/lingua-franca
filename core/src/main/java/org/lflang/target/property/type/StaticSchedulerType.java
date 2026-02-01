@@ -1,0 +1,20 @@
+package org.lflang.target.property.type;
+
+import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
+
+public class StaticSchedulerType extends OptionsType<StaticScheduler> {
+
+  @Override
+  protected Class<StaticScheduler> enumClass() {
+    return StaticScheduler.class;
+  }
+
+  /** Supported static schedulers (mappers). */
+  public enum StaticScheduler {
+    LB;
+
+    public static StaticScheduler getDefault() {
+      return LB;
+    }
+  }
+}

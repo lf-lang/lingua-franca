@@ -266,7 +266,7 @@ public class SendRange extends RuntimeRange.Port {
                 srcRange.start + srcRangeOffset,
                 newWidth,
                 interleaving,
-                connection);
+                connection != null ? connection : srcRange.connection);
         for (RuntimeRange<PortInstance> dst : destinations) {
           result.addDestination(dst);
         }

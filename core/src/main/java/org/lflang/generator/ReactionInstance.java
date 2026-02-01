@@ -1,13 +1,16 @@
 package org.lflang.generator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.TimeValue;
+import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Action;
 import org.lflang.lf.BuiltinTriggerRef;
 import org.lflang.lf.Port;
@@ -151,6 +154,8 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     if (this.definition.getDeadline() != null) {
       this.declaredDeadline = new DeadlineInstance(this.definition.getDeadline(), this);
     }
+    // If @wcet annotation is specified, update the wcet.
+    this.wcet = AttributeUtils.getWCET(this.definition);
   }
 
   //////////////////////////////////////////////////////
@@ -184,6 +189,12 @@ public class ReactionInstance extends NamedInstance<Reaction> {
    * this reaction.
    */
   public Set<TriggerInstance<? extends Variable>> triggers = new LinkedHashSet<>();
+
+  /**
+   * The worst-case execution time (WCET) of the reaction. Note that this is platform dependent. If
+   * the WCET is unknown, set it to the maximum value.
+   */
+  public TimeValue wcet = TimeValue.MAX_VALUE;
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -299,6 +310,39 @@ public class ReactionInstance extends NamedInstance<Reaction> {
     // The containing reactor is not an enclave connection reactor or the enclave connection
     // reactor is not property structured.
     return parent.containingEnclaveReactor;
+  }
+
+  /**
+   * Return the set of downstream reactions, which are reactions that receive data produced by this
+   * reaction, paired with an associated delay along a connection.
+   *
+   * <p>FIXME: Add caching.
+   *
+   * <p>FIXME: The use of `port.dependentPorts` here restricts the supported LF programs to a single
+   * hierarchy. More needs to be done to relax this.
+   *
+   * <p>FIXME: How to get the accumulated delays?
+   */
+  public Map<ReactionInstance, Long> downstreamReactions() {
+    Map<ReactionInstance, Long> downstreamReactions = new HashMap<>();
+    // Add reactions that get data from this one via a port, coupled with the
+    // delay value.
+    for (TriggerInstance<? extends Variable> effect : effects) {
+      if (effect instanceof PortInstance port) {
+        for (SendRange senderRange : port.eventualDestinationsWithAfterDelays()) {
+          Long delay = 0L;
+          if (senderRange.connection == null) continue;
+          var delayExpr = senderRange.connection.getDelay();
+          if (delayExpr != null) delay = ASTUtils.getDelay(senderRange.connection.getDelay());
+          for (RuntimeRange<PortInstance> destinationRange : senderRange.destinations) {
+            for (var dependentReaction : destinationRange.instance.dependentReactions) {
+              downstreamReactions.put(dependentReaction, delay);
+            }
+          }
+        }
+      }
+    }
+    return downstreamReactions;
   }
 
   /**

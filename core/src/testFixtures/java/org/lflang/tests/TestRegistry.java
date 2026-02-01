@@ -45,7 +45,7 @@ public class TestRegistry {
    * directory in its path that matches an entry in this array will not be discovered.
    */
   public static final List<String> IGNORED_DIRECTORIES =
-      List.of("failing", "knownfailed", "failed", "fed-gen");
+      List.of("failing", "knownfailed", "failed", "fed-gen", "static_unsupported");
 
   /** Path to the root of the repository. */
   public static final Path LF_REPO_PATH = Paths.get("").toAbsolutePath();
@@ -340,6 +340,7 @@ public class TestRegistry {
     FLEXPRET(false, "flexpret", TestLevel.BUILD),
     PATMOS(false, "patmos", TestLevel.EXECUTION),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
+    STATIC_SCHEDULER(false, "static", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 
     /** Whether we should compare coverage against other targets. */

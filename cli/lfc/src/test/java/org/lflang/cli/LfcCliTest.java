@@ -50,6 +50,7 @@ import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PrintStatisticsProperty;
 import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
+import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
@@ -270,7 +271,8 @@ public class LfcCliTest {
               checkOverrideValue(genArgs, NoCompileProperty.INSTANCE, true);
               checkOverrideValue(genArgs, PrintStatisticsProperty.INSTANCE, true);
               checkOverrideValue(genArgs, RuntimeVersionProperty.INSTANCE, "rs");
-              checkOverrideValue(genArgs, SchedulerProperty.INSTANCE, Scheduler.GEDF_NP);
+              checkOverrideValue(
+                  genArgs, SchedulerProperty.INSTANCE, new SchedulerOptions(Scheduler.GEDF_NP));
               checkOverrideValue(genArgs, SingleThreadedProperty.INSTANCE, true);
 
               assertEquals(true, genArgs.clean());

@@ -494,6 +494,31 @@ public class CUtil {
   }
 
   /**
+   * Construct a unique type for the struct of the specified typed variable (port or action) of the
+   * specified reactor class. This is required to be the same as the type name returned by
+   * variableStructType(TriggerInstance).
+   */
+  public static String variableStructType(
+      Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
+    return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr))
+        + "_"
+        + variable.getName()
+        + "_t";
+  }
+
+  /**
+   * Construct a unique type for the struct of the specified instance (port or action). This is
+   * required to be the same as the type name returned by {@link #variableStructType(Variable,
+   * TypeParameterizedReactor, boolean)}.
+   *
+   * @param portOrAction The port or action instance.
+   * @return The name of the self struct.
+   */
+  public static String variableStructType(TriggerInstance<?> portOrAction) {
+    return CUtil.getName(portOrAction.getParent().tpr) + "_" + portOrAction.getName() + "_t";
+  }
+
+  /**
    * Return a reference to the trigger_t struct of the specified trigger instance (input port or
    * action). This trigger_t struct is on the self struct.
    *
@@ -833,6 +858,15 @@ public class CUtil {
    */
   public static String getEnvironmentStruct(CEnclaveInstance inst) {
     return ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
+  }
+
+  /**
+   * @brief Return a string representing a global C variable that is the struct of the environment
+   *     of the specified reactor instance.
+   * @param inst The reactor instance.
+   */
+  public static String getEnvironmentStruct(ReactorInstance inst) {
+    return ENVIRONMENT_VARIABLE_NAME + "[" + inst.uniqueID() + "]";
   }
 
   /**

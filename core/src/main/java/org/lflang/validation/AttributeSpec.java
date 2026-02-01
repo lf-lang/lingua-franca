@@ -229,6 +229,10 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "absent_after",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    // @wcet("time_value")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "wcet",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
     // @sparse
     ATTRIBUTE_SPECS_BY_NAME.put("sparse", new AttributeSpec(null));
     // @icon("value")

@@ -61,7 +61,6 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.VarRef;
-import org.lflang.lf.Variable;
 import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
@@ -82,6 +81,7 @@ import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
+import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 import org.lflang.util.FlexPRETUtil;
@@ -314,9 +314,13 @@ public class CGenerator extends GeneratorBase {
 
     registerTransformation(this.enclaveAST);
 
-    registerTransformation(
-        new DelayedConnectionTransformation(
-            delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
+    // Perform the AST transformation for delayed connections if applicable.
+    // The static scheduler does not use delayed connections.
+    if (targetConfig.useDelayedConnectionTransformation()) {
+      registerTransformation(
+          new DelayedConnectionTransformation(
+              delayConnectionBodyGenerator, types, fileConfig.resource, true, true));
+    }
   }
 
   public CGenerator(LFGeneratorContext context, boolean ccppMode) {
@@ -419,6 +423,20 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
+    // Create a static schedule if the static scheduler is used.
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      System.out.println("--- Generating a static schedule");
+      CScheduleGenerator schedGen =
+          new CScheduleGenerator(
+              this.fileConfig,
+              this.targetConfig,
+              this.main,
+              ASTUtils.allReactorInstances(main),
+              ASTUtils.allReactionInstances(main),
+              ASTUtils.allPortInstances(main));
+      schedGen.doGenerate();
+    }
+
     // Inform the runtime of the number of watchdogs (needed for Zephyr support to create threads).
     // TODO: Can we do this at a better place? We need to do it when we have the main reactor
     // since we need main to get all enclaves.
@@ -440,6 +458,10 @@ public class CGenerator extends GeneratorBase {
               .map(CUtil::getName)
               .map(it -> it + (cppMode ? ".cpp" : ".c"))
               .collect(Collectors.toCollection(ArrayList::new));
+      // If STATIC scheduler is used, add the schedule file.
+      if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+        sources.add("static_schedule.c");
+      }
       sources.add(cFilename);
       var cmakeCode =
           cmakeGenerator.generateCMakeCode(sources, cppMode, mainDef != null, cMakeExtras, context);
@@ -986,6 +1008,9 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
+    if (targetConfig.get(SchedulerProperty.INSTANCE).type() == Scheduler.STATIC) {
+      header.pr("#include \"include/core/utils/circular_buffer.h\"");
+    }
     src.pr("#include \"include/api/schedule.h\"");
     src.pr("#include <string.h>"); // For memcpy.
     if (CPreambleGenerator.arduinoBased(targetConfig)) {
@@ -1208,14 +1233,18 @@ public class CGenerator extends GeneratorBase {
           // to be malloc'd at initialization.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
+            body.pr(
+                CUtil.variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
             body.pr(
                 String.join(
                     "\n",
-                    variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
+                    CUtil.variableStructType(port, containedTpr, false)
+                        + "** "
+                        + port.getName()
+                        + ";",
                     "int " + port.getName() + "_width;"));
           }
         } else {
@@ -1224,7 +1253,8 @@ public class CGenerator extends GeneratorBase {
           // self struct of the container.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
+            body.pr(
+                CUtil.variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
@@ -1232,7 +1262,10 @@ public class CGenerator extends GeneratorBase {
             body.pr(
                 String.join(
                     "\n",
-                    variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
+                    CUtil.variableStructType(port, containedTpr, false)
+                        + "** "
+                        + port.getName()
+                        + ";",
                     "int " + port.getName() + "_width;"));
           }
           body.pr("trigger_t " + port.getName() + "_trigger;");
@@ -1681,31 +1714,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Construct a unique type for the struct of the specified typed variable (port or action) of the
-   * specified reactor class. This is required to be the same as the type name returned by {@link
-   * #variableStructType(TriggerInstance)}.
-   */
-  public static String variableStructType(
-      Variable variable, TypeParameterizedReactor tpr, boolean userFacing) {
-    return (userFacing ? tpr.getName().toLowerCase() : CUtil.getName(tpr))
-        + "_"
-        + variable.getName()
-        + "_t";
-  }
-
-  /**
-   * Construct a unique type for the struct of the specified instance (port or action). This is
-   * required to be the same as the type name returned by {@link #variableStructType(Variable,
-   * TypeParameterizedReactor, boolean)}.
-   *
-   * @param portOrAction The port or action instance.
-   * @return The name of the self struct.
-   */
-  public static String variableStructType(TriggerInstance<?> portOrAction) {
-    return CUtil.getName(portOrAction.getParent().tpr) + "_" + portOrAction.getName() + "_t";
-  }
-
-  /**
    * If tracing is turned on, then generate code that records the full name of the specified reactor
    * instance in the trace table. If tracing is not turned on, do nothing.
    *
@@ -2039,7 +2047,8 @@ public class CGenerator extends GeneratorBase {
       CompileDefinitionsProperty.INSTANCE.update(
           targetConfig,
           Map.of(
-              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
+              "SCHEDULER",
+                  targetConfig.get(SchedulerProperty.INSTANCE).type().getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
@@ -2244,6 +2253,6 @@ public class CGenerator extends GeneratorBase {
   }
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
-    return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+    return ASTUtils.allReactorInstances(main).stream().map(it -> it.tpr).distinct();
   }
 }
