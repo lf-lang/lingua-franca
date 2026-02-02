@@ -15,7 +15,7 @@ import org.lflang.pretvm.dag.JobNode;
  *
  * @author Shaokai J. Lin
  */
-public class LoadBalancedScheduler extends StaticScheduler {
+public class LoadBalancedScheduler extends StaticMapper {
 
   /** Directory where graphs are stored */
   protected final Path graphDir;

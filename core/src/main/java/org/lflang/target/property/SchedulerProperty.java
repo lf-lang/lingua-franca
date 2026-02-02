@@ -10,8 +10,8 @@ import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
-import org.lflang.target.property.type.StaticSchedulerType;
-import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
+import org.lflang.target.property.type.StaticMapperType;
+import org.lflang.target.property.type.StaticMapperType.StaticMapper;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 
@@ -33,7 +33,7 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
   @Override
   public SchedulerOptions fromAst(Element node, MessageReporter reporter) {
     Scheduler schedulerType = null;
-    StaticScheduler staticSchedulerType = null;
+    StaticMapper staticMapperType = null;
     String schedulerStr = ASTUtils.elementToSingleString(node);
     if (!schedulerStr.equals("")) {
       schedulerType = new SchedulerType().forName(schedulerStr);
@@ -41,7 +41,7 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
         reporter.nowhere().error("Invalid scheduler: " + schedulerStr);
         schedulerType = Scheduler.getDefault();
       }
-      if (schedulerType == Scheduler.STATIC) staticSchedulerType = StaticScheduler.getDefault();
+      if (schedulerType == Scheduler.STATIC) staticMapperType = StaticMapper.getDefault();
     } else {
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         SchedulerDictOption option =
@@ -53,16 +53,16 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
                   new SchedulerType().forName(ASTUtils.elementToSingleString(entry.getValue()));
             }
             case MAPPER -> {
-              staticSchedulerType =
-                  new StaticSchedulerType()
+              staticMapperType =
+                  new StaticMapperType()
                       .forName(ASTUtils.elementToSingleString(entry.getValue()));
-              if (staticSchedulerType == null) staticSchedulerType = StaticScheduler.getDefault();
+              if (staticMapperType == null) staticMapperType = StaticMapper.getDefault();
             }
           }
         }
       }
     }
-    return new SchedulerOptions(schedulerType, staticSchedulerType);
+    return new SchedulerOptions(schedulerType, staticMapperType);
   }
 
   @Override
@@ -105,24 +105,24 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
   }
 
   /** Settings related to Scheduler Options. */
-  public record SchedulerOptions(Scheduler type, StaticScheduler staticScheduler) {
+  public record SchedulerOptions(Scheduler type, StaticMapper staticMapper) {
     public SchedulerOptions(Scheduler type) {
       this(type, null);
     }
 
     public SchedulerOptions update(Scheduler newType) {
-      return new SchedulerOptions(newType, this.staticScheduler);
+      return new SchedulerOptions(newType, this.staticMapper);
     }
 
-    public SchedulerOptions update(StaticScheduler newStaticScheduler) {
-      return new SchedulerOptions(this.type, newStaticScheduler);
+    public SchedulerOptions update(StaticMapper newStaticMapper) {
+      return new SchedulerOptions(this.type, newStaticMapper);
     }
   }
 
   /** Scheduler dictionary options. */
   public enum SchedulerDictOption implements DictionaryElement {
     TYPE("type", new SchedulerType()),
-    MAPPER("mapper", new StaticSchedulerType());
+    MAPPER("mapper", new StaticMapperType());
 
     public final TargetPropertyType type;
 

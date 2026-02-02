@@ -42,7 +42,7 @@ import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.dag.DagGenerator;
 import org.lflang.pretvm.instruction.Instruction;
 import org.lflang.pretvm.scheduler.LoadBalancedScheduler;
-import org.lflang.pretvm.scheduler.StaticScheduler;
+import org.lflang.pretvm.scheduler.StaticMapper;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -128,13 +128,13 @@ public class CScheduleGenerator {
     // Create a DAG generator
     DagGenerator dagGenerator = new DagGenerator(this.fileConfig);
 
-    // Create a scheduler.
-    StaticScheduler scheduler = createStaticScheduler();
+    // Create a mapper.
+    StaticMapper mapper = createStaticMapper();
 
     // Determine the number of workers, if unspecified.
     if (this.workers == 0) {
       // Update the previous value of 0.
-      this.workers = scheduler.setNumberOfWorkers();
+      this.workers = mapper.setNumberOfWorkers();
     }
 
     // Always update the target config and CMAKE compile definitions
@@ -180,7 +180,7 @@ public class CScheduleGenerator {
 
       // Generate a partitioned DAG based on the number of workers,
       // and generate a dot graph.
-      Dag dagPartitioned = scheduler.partitionDag(dag, i, this.workers);
+      Dag dagPartitioned = mapper.partitionDag(dag, i, this.workers);
       Path dagPartitionedDot = graphDir.resolve("dag_partitioned" + "_" + i + ".dot");
       dagPartitioned.generateDotFile(dagPartitionedDot);
 
@@ -211,8 +211,8 @@ public class CScheduleGenerator {
     instGen.generateCode(linkedInstructions);
   }
 
-  /** Create a static scheduler. */
-  private StaticScheduler createStaticScheduler() {
+  /** Create a static mapper. */
+  private StaticMapper createStaticMapper() {
     return new LoadBalancedScheduler(this.graphDir);
   }
 }

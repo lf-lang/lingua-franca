@@ -6,11 +6,11 @@ import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.dag.JobNode;
 
 /**
- * Interface for static scheduler
+ * Interface for static mapper
  *
  * @author Shaokai J. Lin
  */
-public abstract class StaticScheduler {
+public abstract class StaticMapper {
 
   ////////////////////////////////////////////////////////////////////
   /// Abstract methods to be implemented by child classes

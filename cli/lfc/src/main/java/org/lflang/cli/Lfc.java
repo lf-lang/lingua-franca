@@ -25,7 +25,7 @@ import org.lflang.target.property.RuntimeVersionProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.StaticSchedulerProperty;
+import org.lflang.target.property.StaticMapperProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.TracingProperty.TracingOptions;
 import org.lflang.target.property.VerifyProperty;
@@ -36,8 +36,8 @@ import org.lflang.target.property.type.LoggingType;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
-import org.lflang.target.property.type.StaticSchedulerType;
-import org.lflang.target.property.type.StaticSchedulerType.StaticScheduler;
+import org.lflang.target.property.type.StaticMapperType;
+import org.lflang.target.property.type.StaticMapperType.StaticMapper;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -151,7 +151,7 @@ public class Lfc extends CliBase {
       description =
           "Select a specific mapper (i.e., static scheduler) if scheduler is set to STATIC."
               + " Options: LB (default)")
-  private String staticScheduler;
+  private String staticMapper;
 
   @Option(
       names = {"--tracing"},
@@ -334,18 +334,18 @@ public class Lfc extends CliBase {
     return null;
   }
 
-  /** Return a static scheduler if one has been specified via the CLI arguments, or null otherwise. */
-  private StaticScheduler getStaticScheduler() {
-    StaticScheduler resolved = null;
-    if (staticScheduler != null) {
-      // Validate scheduler.
-      resolved = new StaticSchedulerType().forName(staticScheduler);
+  /** Return a static mapper if one has been specified via the CLI arguments, or null otherwise. */
+  private StaticMapper getStaticMapper() {
+    StaticMapper resolved = null;
+    if (staticMapper != null) {
+      // Validate mapper.
+      resolved = new StaticMapperType().forName(staticMapper);
       if (resolved == null) {
-        reporter.printFatalErrorAndExit(staticScheduler + ": Invalid scheduler.");
+        reporter.printFatalErrorAndExit(staticMapper + ": Invalid mapper.");
       }
     } else if (scheduler != null && scheduler.equalsIgnoreCase(Scheduler.STATIC.name())) {
       // Apply default mapper when scheduler is STATIC but no mapper is specified.
-      resolved = StaticScheduler.getDefault();
+      resolved = StaticMapper.getDefault();
     }
     return resolved;
   }
@@ -415,7 +415,7 @@ public class Lfc extends CliBase {
             new Argument<>(VerifyProperty.INSTANCE, verify),
             new Argument<>(RuntimeVersionProperty.INSTANCE, runtimeVersion),
             new Argument<>(SchedulerProperty.INSTANCE, getScheduler()),
-            new Argument<>(StaticSchedulerProperty.INSTANCE, getStaticScheduler()),
+            new Argument<>(StaticMapperProperty.INSTANCE, getStaticMapper()),
             new Argument<>(SingleThreadedProperty.INSTANCE, getSingleThreaded()),
             new Argument<>(TracingProperty.INSTANCE, getTracingOptions()),
             new Argument<>(WorkersProperty.INSTANCE, getWorkers())));

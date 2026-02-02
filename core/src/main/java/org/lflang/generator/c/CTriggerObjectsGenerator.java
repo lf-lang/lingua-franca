@@ -102,7 +102,7 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateStaticSchedulerArrays(main));
+    code.pr(generateStaticMapperArrays(main));
     code.pr(generateSchedulerInitializerMain(main, enclaves, targetConfig));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
@@ -196,7 +196,7 @@ public class CTriggerObjectsGenerator {
    * @param main The main reactor instance.
    * @return Code to populate these arrays, guarded by SCHEDULER == SCHED_STATIC.
    */
-  private static String generateStaticSchedulerArrays(ReactorInstance main) {
+  private static String generateStaticMapperArrays(ReactorInstance main) {
     var code = new CodeBuilder();
     List<ReactorInstance> reactors = ASTUtils.allReactorInstances(main);
     List<ReactionInstance> reactions = ASTUtils.allReactionInstances(main);

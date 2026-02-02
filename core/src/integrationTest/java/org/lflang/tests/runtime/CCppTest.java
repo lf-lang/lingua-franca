@@ -52,7 +52,7 @@ public class CCppTest extends TestBase {
     excluded |= category == TestCategory.PATMOS;
     excluded |= category == TestCategory.NO_INLINING;
     excluded |= category == TestCategory.VERIFIER;
-    excluded |= category == TestCategory.STATIC_SCHEDULER;
+    excluded |= category == TestCategory.STATIC_MAPPER;
     return !excluded;
   }
 }
