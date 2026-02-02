@@ -343,6 +343,9 @@ public class Lfc extends CliBase {
       if (resolved == null) {
         reporter.printFatalErrorAndExit(staticScheduler + ": Invalid scheduler.");
       }
+    } else if (scheduler != null && scheduler.equalsIgnoreCase(Scheduler.STATIC.name())) {
+      // Apply default mapper when scheduler is STATIC but no mapper is specified.
+      resolved = StaticScheduler.getDefault();
     }
     return resolved;
   }
