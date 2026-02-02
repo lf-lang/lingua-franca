@@ -43,6 +43,7 @@ import org.lflang.pretvm.dag.DagGenerator;
 import org.lflang.pretvm.instruction.Instruction;
 import org.lflang.pretvm.scheduler.LoadBalancedScheduler;
 import org.lflang.pretvm.scheduler.StaticScheduler;
+import org.lflang.pretvm.scheduler.TaprioScheduleGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.WorkersProperty;
@@ -171,6 +172,12 @@ public class CScheduleGenerator {
       // Generate a dot file.
       Path dagRawDot = graphDir.resolve("dag_raw" + "_" + i + ".dot");
       dag.generateDotFile(dagRawDot);
+
+      // Generate TAPRIO schedule from unpartitioned DAG (periodic phases only).
+      if (schedule.getDiagram().isCyclic() && schedule.getDiagram().hyperperiod > 0) {
+        TaprioScheduleGenerator taprioGen = new TaprioScheduleGenerator(this.main, this.fileConfig);
+        taprioGen.generate(dag, schedule.getDiagram().hyperperiod, i);
+      }
 
       // Prune redundant edges and generate a dot file.
       // FIXME: To remove.

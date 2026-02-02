@@ -1,7 +1,7 @@
 target C {
   scheduler: STATIC,
-  timeout: 1 sec,
-  fast: true, // FIXME: For some strange reason, setting this is false causes the test harness to report failure.
+  timeout: 5 sec,
+  // fast: true, // FIXME: For some strange reason, setting this is false causes the test harness to report failure.
 }
 
 preamble {=
@@ -10,10 +10,11 @@ preamble {=
 
 reactor Sensor {
   output out: int
-  timer t(0, 50 msec)
+  timer t(0, 1 sec)
   state cnt: int = 0
 
-  reaction(t) -> out {= 
+  @wcet("200 ms")
+  reaction(t) -> out {=
     self->cnt++;
     lf_set(out, self->cnt);
   =}
@@ -25,6 +26,7 @@ reactor Processor {
 
   state cnt: int = 0
 
+  @wcet("300 ms")
   reaction(in) -> out {=
     lf_print("Filter Got: %d @ " PRINTF_TIME, in->value, lf_time_logical_elapsed());
     if (++self->cnt == 2) {
@@ -38,6 +40,7 @@ reactor Processor {
 reactor Act {
   input in: int
 
+  @wcet("500 ms")
   reaction(in) {= lf_print("Act Got: %d @ " PRINTF_TIME, in->value, lf_time_logical_elapsed()); =}
 }
 

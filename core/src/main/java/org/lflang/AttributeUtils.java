@@ -237,11 +237,36 @@ public class AttributeUtils {
 
   /** Return a time value that represents the WCET of a reaction. */
   public static TimeValue getWCET(Reaction reaction) {
+    // First try to get the attribute as a Time literal.
     Time wcet = getAttributeTime(reaction, "wcet");
-    if (wcet == null) return TimeValue.MAX_VALUE;
-    int value = wcet.getInterval();
-    TimeUnit unit = TimeUnit.fromName(wcet.getUnit());
-    return new TimeValue(value, unit);
+    if (wcet != null) {
+      int value = wcet.getInterval();
+      TimeUnit unit = TimeUnit.fromName(wcet.getUnit());
+      return new TimeValue(value, unit);
+    }
+    // The @wcet attribute is defined with STRING type, so fall back to parsing the string value.
+    String wcetStr = getAttributeValue(reaction, "wcet");
+    if (wcetStr != null) {
+      String trimmed = wcetStr.trim();
+      // Split into numeric value and unit (e.g., "200 ms" -> "200" and "ms").
+      int splitIndex = 0;
+      while (splitIndex < trimmed.length()
+          && (Character.isDigit(trimmed.charAt(splitIndex)) || trimmed.charAt(splitIndex) == '.')) {
+        splitIndex++;
+      }
+      if (splitIndex > 0 && splitIndex < trimmed.length()) {
+        try {
+          long value = Long.parseLong(trimmed.substring(0, splitIndex).trim());
+          TimeUnit unit = TimeUnit.fromName(trimmed.substring(splitIndex).trim());
+          if (unit != null) {
+            return new TimeValue(value, unit);
+          }
+        } catch (NumberFormatException e) {
+          // Fall through to return MAX_VALUE.
+        }
+      }
+    }
+    return TimeValue.MAX_VALUE;
   }
 
   /**
