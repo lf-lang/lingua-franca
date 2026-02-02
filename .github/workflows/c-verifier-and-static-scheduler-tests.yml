@@ -75,7 +75,7 @@ jobs:
         run: |
           echo "$pwd"
           ls -la
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CStaticSchedulerTest.* core:integrationTestCodeCoverageReport
+          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CStaticMapperTest.* core:integrationTestCodeCoverageReport
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:

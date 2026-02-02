@@ -8,7 +8,7 @@ import org.lflang.TimeValue;
  *
  * @author Shaokai J. Lin
  */
-public class IntervalNode extends DagNode {
+public class IntervalNode extends AuxiliaryNode {
 
   //////////////////////////////////////////////////////////////////////
   /// Private Variables

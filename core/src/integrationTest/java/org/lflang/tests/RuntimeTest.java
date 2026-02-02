@@ -243,7 +243,7 @@ public abstract class RuntimeTest extends TestBase {
             || category == TestCategory.ENCLAVE
             || category == TestCategory.ARDUINO
             || category == TestCategory.VERIFIER
-            || category == TestCategory.STATIC_SCHEDULER
+            || category == TestCategory.STATIC_MAPPER
             || category == TestCategory.ZEPHYR_UNTHREADED
             || category == TestCategory.ZEPHYR_BOARDS
             || category == TestCategory.ZEPHYR_THREADED

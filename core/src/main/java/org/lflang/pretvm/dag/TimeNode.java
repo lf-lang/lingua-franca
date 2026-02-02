@@ -8,7 +8,7 @@ import org.lflang.TimeValue;
  *
  * @author Shaokai J. Lin
  */
-public class TimeNode extends DagNode implements Comparable<DagNode> {
+public class TimeNode extends AuxiliaryNode implements Comparable<DagNode> {
 
   //////////////////////////////////////////////////////////////////////
   /// Private Variables

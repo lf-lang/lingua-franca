@@ -9,33 +9,31 @@ import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SchedulerProperty.SchedulerOptions;
 import org.lflang.target.property.type.LoggingType.LogLevel;
 import org.lflang.target.property.type.SchedulerType.Scheduler;
-import org.lflang.target.property.type.StaticSchedulerType;
+import org.lflang.target.property.type.StaticMapperType;
 import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.Transformers;
 
-public class CStaticSchedulerTest extends TestBase {
-  protected CStaticSchedulerTest() {
+public class CStaticMapperTest extends TestBase {
+  protected CStaticMapperTest() {
     super(Target.C);
   }
 
   @Test
-  public void runStaticSchedulerTests() {
-    Assumptions.assumeTrue(
-        isLinux() || isMac(), "Static scheduler tests only run on Linux or macOS");
+  public void runStaticMapperTests() {
+    Assumptions.assumeTrue(isLinux() || isMac(), "Static mapper tests only run on Linux or macOS");
 
     super.runTestsFor(
         List.of(Target.C),
-        Message.DESC_STATIC_SCHEDULER,
-        TestRegistry.TestCategory.STATIC_SCHEDULER::equals,
+        Message.DESC_STATIC_MAPPER,
+        TestRegistry.TestCategory.STATIC_MAPPER::equals,
         Transformers::noChanges,
         config -> {
           // Execute all static tests using STATIC and LB.
           // FIXME: How to respect the config specified in the LF code?
           SchedulerProperty.INSTANCE.override(
               config,
-              new SchedulerOptions(Scheduler.STATIC)
-                  .update(StaticSchedulerType.StaticScheduler.LB));
+              new SchedulerOptions(Scheduler.STATIC).update(StaticMapperType.StaticMapper.LB));
           // Keep the logging level at INFO because logs from the long
           // running tests (e.g., RaceConditionCheck.lf) could overflow
           // the buffer and stall the process.

@@ -5,8 +5,8 @@ import java.util.Random;
 import org.lflang.pretvm.dag.Dag;
 import org.lflang.pretvm.dag.JobNode;
 
-/** Utility methods for static schedulers. */
-public class StaticSchedulerUtils {
+/** Utility methods for static mappers. */
+public class StaticMapperUtils {
 
   /** Generate a random hex color string (e.g. "#A3F0C2"). */
   public static String generateRandomColor() {

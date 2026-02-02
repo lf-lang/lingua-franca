@@ -34,7 +34,7 @@ public abstract class DagNode {
 
   /** Return true if the node is an auxiliary node (i.e., not a job node) */
   public boolean isAuxiliary() {
-    return !(this instanceof JobNode);
+    return this instanceof AuxiliaryNode;
   }
 
   /** Abstract method to be overriden by subclass for checking if two nodes are synonymous. */
