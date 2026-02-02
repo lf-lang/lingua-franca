@@ -54,8 +54,7 @@ public final class SchedulerProperty extends TargetProperty<SchedulerOptions, Un
             }
             case MAPPER -> {
               staticMapperType =
-                  new StaticMapperType()
-                      .forName(ASTUtils.elementToSingleString(entry.getValue()));
+                  new StaticMapperType().forName(ASTUtils.elementToSingleString(entry.getValue()));
               if (staticMapperType == null) staticMapperType = StaticMapper.getDefault();
             }
           }

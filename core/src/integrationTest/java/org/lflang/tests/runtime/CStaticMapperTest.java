@@ -21,8 +21,7 @@ public class CStaticMapperTest extends TestBase {
 
   @Test
   public void runStaticMapperTests() {
-    Assumptions.assumeTrue(
-        isLinux() || isMac(), "Static mapper tests only run on Linux or macOS");
+    Assumptions.assumeTrue(isLinux() || isMac(), "Static mapper tests only run on Linux or macOS");
 
     super.runTestsFor(
         List.of(Target.C),
@@ -34,8 +33,7 @@ public class CStaticMapperTest extends TestBase {
           // FIXME: How to respect the config specified in the LF code?
           SchedulerProperty.INSTANCE.override(
               config,
-              new SchedulerOptions(Scheduler.STATIC)
-                  .update(StaticMapperType.StaticMapper.LB));
+              new SchedulerOptions(Scheduler.STATIC).update(StaticMapperType.StaticMapper.LB));
           // Keep the logging level at INFO because logs from the long
           // running tests (e.g., RaceConditionCheck.lf) could overflow
           // the buffer and stall the process.

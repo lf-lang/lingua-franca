@@ -8,8 +8,7 @@ import org.lflang.target.property.type.StaticMapperType;
 import org.lflang.target.property.type.StaticMapperType.StaticMapper;
 
 /** Directive for specifying the use of a specific static mapper. */
-public final class StaticMapperProperty
-    extends TargetProperty<StaticMapper, StaticMapperType> {
+public final class StaticMapperProperty extends TargetProperty<StaticMapper, StaticMapperType> {
 
   /** Singleton target property instance. */
   public static final StaticMapperProperty INSTANCE = new StaticMapperProperty();
