@@ -197,10 +197,15 @@ public class SSTGenerator {
   private static void generateSSTConfig(FederationFileConfig fileConfig, String name) {
     // Values to fill in
     String entityName = "net1." + name;
+    int authID = 101;
+    String encryptionMode = "AES_128_CBC";
+    int hmacMode = 1;
     String pubkeyRoot =
         fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString()
             + File.separator
-            + "Auth101EntityCert.pem";
+            + "Auth"
+            + authID
+            + "EntityCert.pem";
     String privkeyRoot =
         fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
             + File.separator
@@ -221,6 +226,15 @@ public class SSTGenerator {
         .append("\n")
         .append("entityInfo.purpose={\"group\":\"Servers\"}\n")
         .append("entityInfo.number_key=1\n")
+        .append("authInfo.id=")
+        .append(authID)
+        .append("\n")
+        .append("encryptionMode=")
+        .append(encryptionMode)
+        .append("\n")
+        .append("HmacMode=")
+        .append(hmacMode)
+        .append("\n")
         .append("authInfo.pubkey.path=")
         .append(pubkeyRoot)
         .append("\n")
