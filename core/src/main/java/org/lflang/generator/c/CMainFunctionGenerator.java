@@ -8,6 +8,7 @@ import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.TimeOutProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
@@ -41,12 +42,32 @@ public class CMainFunctionGenerator {
     return code.toString();
   }
 
+  /**
+   * Generate setenv call for TRACE_PLUGIN_ENDPOINT if configured in trace-plugin.
+   *
+   * @param indent The indentation to use for the generated code.
+   * @return The setenv statement or empty string if not configured.
+   */
+  private String generateOtelEndpointSetup(String indent) {
+    var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
+    if (tracePlugin != null && tracePlugin.endpoint != null && !tracePlugin.endpoint.isEmpty()) {
+      return indent
+          + "setenv(\"TRACE_PLUGIN_ENDPOINT\", \""
+          + tracePlugin.endpoint
+          + "\", 1); // To be read by the trace plugin";
+    }
+    return "";
+  }
+
   /** Generate the `main` function. */
   private String generateMainFunction() {
     var platform = Platform.AUTO;
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
     }
+    String otelSetup = generateOtelEndpointSetup("\t");
+    String otelSetupSpaces = generateOtelEndpointSetup("   ");
+    String otelSetupFourSpaces = generateOtelEndpointSetup("    ");
     switch (platform) {
       case ARDUINO -> {
         /**
@@ -67,7 +88,9 @@ public class CMainFunctionGenerator {
                 + targetConfig.get(PlatformProperty.INSTANCE).baudRate().value()
                 + ");",
             "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
-            "\tlf_reactor_c_main(0, NULL);",
+            otelSetup.isEmpty()
+                ? "\tlf_reactor_c_main(0, NULL);"
+                : otelSetup + "\n\tlf_reactor_c_main(0, NULL);",
             "}\n",
             "void loop() {}");
       }
@@ -77,19 +100,29 @@ public class CMainFunctionGenerator {
         return String.join(
             "\n",
             "int main(void) {",
-            "   int res = lf_reactor_c_main(0, NULL);",
+            otelSetupSpaces.isEmpty()
+                ? "   int res = lf_reactor_c_main(0, NULL);"
+                : otelSetupSpaces + "\n   int res = lf_reactor_c_main(0, NULL);",
             "   exit(res);",
             "   return 0;",
             "}");
       }
       case RP2040 -> {
-        return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
+        return String.join(
+            "\n",
+            "int main(void) {",
+            otelSetupSpaces.isEmpty()
+                ? "   return lf_reactor_c_main(0, NULL);"
+                : otelSetupSpaces + "\n   return lf_reactor_c_main(0, NULL);",
+            "}");
       }
       default -> {
         return String.join(
             "\n",
             "int main(int argc, const char* argv[]) {",
-            "    return lf_reactor_c_main(argc, argv);",
+            otelSetupFourSpaces.isEmpty()
+                ? "    return lf_reactor_c_main(argc, argv);"
+                : otelSetupFourSpaces + "\n    return lf_reactor_c_main(argc, argv);",
             "}");
       }
     }
