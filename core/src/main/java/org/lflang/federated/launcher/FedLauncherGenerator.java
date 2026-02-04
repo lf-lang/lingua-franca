@@ -316,8 +316,8 @@ public class FedLauncherGenerator {
   private String getSSTAuthExecutionCode() {
     String authLaunchCode =
         "java -jar "
-            + targetConfig.get(SSTPathProperty.INSTANCE)
-            + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
+            + fileConfig.getSSTAuthPath().toString()
+            + "/auth-server-jar-with-dependencies.jar -p "
             + fileConfig.getSSTAuthPath().toString()
             + "/properties/exampleAuth101.properties --password="
             + fileConfig.name

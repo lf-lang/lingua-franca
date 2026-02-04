@@ -409,9 +409,14 @@ public class SSTGenerator {
     Path source3 = sstRepoRootPath.resolve("auth").resolve("properties");
     Path destination3 = fileConfig.getSSTAuthPath().resolve("properties");
 
+    // Copy jar file.
+    Path source4 = sstRepoRootPath.resolve("auth").resolve("auth-server").resolve("target").resolve("auth-server-jar-with-dependencies.jar");
+    Path destination4 = fileConfig.getSSTAuthPath().resolve("auth-server-jar-with-dependencies.jar");
+
     FileUtil.copyDirectoryContents(source1, destination1, false);
     FileUtil.copyDirectoryContents(source2, destination2, false);
     FileUtil.copyDirectoryContents(source3, destination3, false);
+    FileUtil.copyFile(source4, destination4);
   }
 
   private static void updatePropertiesFile(FederationFileConfig fileConfig) throws IOException {
