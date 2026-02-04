@@ -9,6 +9,7 @@ import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
@@ -58,6 +59,10 @@ public class CPreambleGenerator {
 
     if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
       code.pr("#include \"trace/api/trace.h\"");
+      var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
+      if (tracePlugin != null && tracePlugin.endpoint != null && !tracePlugin.endpoint.isEmpty()) {
+        code.pr("#include <stdlib.h>"); // For setenv
+      }
     }
     code.pr("#include \"include/core/mixed_radix.h\"");
     code.pr("#include \"include/core/port.h\"");
