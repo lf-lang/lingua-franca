@@ -183,7 +183,13 @@ public class FedLauncherGenerator {
       // Local PID managements
       shCode.append(
           "echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
-      shCode.append("fg %1" + "\n");
+      if (targetConfig.get(CommunicationModeProperty.INSTANCE) != CommunicationMode.SST) {
+        // RTI is job %1
+        shCode.append("fg %1\n");
+      } else {
+        // RTI is job %2 (Auth is %1)
+        shCode.append("fg %2\n");
+}
     }
     // Wait for launched processes to finish
     shCode
@@ -314,7 +320,8 @@ public class FedLauncherGenerator {
             + "/auth/auth-server/target/auth-server-jar-with-dependencies.jar -p "
             + fileConfig.getSSTAuthPath().toString()
             + "/properties/exampleAuth101.properties --password="
-            + fileConfig.name;
+            + fileConfig.name
+            + "</dev/null";
 
     String launchCodeWithLogging = String.join(" ", authLaunchCode, ">& auth.log &");
     String launchCodeWithoutLogging = String.join(" ", authLaunchCode, "&");
