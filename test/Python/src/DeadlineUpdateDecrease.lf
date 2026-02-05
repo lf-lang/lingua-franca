@@ -1,0 +1,37 @@
+# Verify that deadline decreases from 100 ms to 50 ms works.
+# Also, test if the decreased deadline works when reaction is triggered again.
+target Python {
+  timeout: 50 msec
+}
+
+preamble {=
+  import time
+=}
+
+reactor DecreaseDeadline {
+  state deadline_decreased = False
+  timer t(0, 50 msec)
+
+  reaction(t) {=
+    if not self.deadline_decreased:
+      self.update_deadline(MSEC(50))
+      time.sleep(0.06)
+      if not self.check_deadline():
+        print("Deadline update failed. Deadline handler was not invoked on lag of 50 msec.")
+        exit(1)
+      self.deadline_decreased = True
+    else:
+      print("Deadline not updated correctly.")
+      exit(1)
+  =} deadline(100 msec) {=
+    elapsed_logical_time = lf.time.logical_elapsed()
+    elapsed_physicl_time = lf.time.physical_elapsed()
+    print(f"Deadline violation detected as expected at Logical time: {elapsed_logical_time / MSEC(1)} msecs. Physical time: {elapsed_physicl_time / MSEC(1)} msecs.")
+    # When the next reaction is invoked on logical time 50 msec, the deadline handler will be invoked because lf_sleep() here.
+    time.sleep(0.06)
+  =}
+}
+
+main reactor {
+  decreaseDeadline = new DecreaseDeadline()
+}

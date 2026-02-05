@@ -1,0 +1,46 @@
+# Verify that deadline increases from 200 ms to 1 sec works.
+# Also, test if the increased deadline works when reaction is triggered again.
+target Python {
+  timeout: 1500 msec
+}
+
+preamble {=
+  import time
+=}
+
+reactor IncreaseDeadline {
+  state deadline_increased = False
+  state deadline_checked = False
+  timer t(0, 1 sec)
+
+  reaction(t) {=
+    if not self.deadline_increased:
+      self.update_deadline(MSEC(500))
+      time.sleep(0.2)
+      if self.check_deadline():
+        print("Deadline update failed. Deadline handler should not invoked on lag of 200 msec.")
+        exit(1)
+      time.sleep(0.8)
+      if not self.check_deadline():
+        print("Deadline update failed. Deadline handler was not invoked on lag of 1 sec.")
+        exit(1)
+      self.deadline_increased = True
+    else:
+      # When the reaction is triggered again, the deadline should not be violated, and enter here.
+      print("Deadline was not violated with lag smaller than 1 sec, as expected.")
+  =} deadline(200 msec) {=
+    elapsed_logical_time = lf.time.logical_elapsed()
+    elapsed_physicl_time = lf.time.physical_elapsed()
+    print(f"Deadline violation detected at Logical time: {elapsed_logical_time / MSEC(1)} msecs. Physical time: {elapsed_physicl_time / MSEC(1)} msecs.")
+    # When the next reaction is invoked on logical time 1 sec, the deadline handler should not be invoked when only sleeping 200 msecs.
+    time.sleep(0.2)
+    if self.deadline_checked:
+      print("Deadline should not be violated with lag smaller than 1 sec!")
+      exit(1)
+    self.deadline_checked = True
+  =}
+}
+
+main reactor {
+  increaseDeadline = new IncreaseDeadline()
+}
