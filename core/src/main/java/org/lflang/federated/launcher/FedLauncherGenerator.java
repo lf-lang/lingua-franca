@@ -292,6 +292,7 @@ public class FedLauncherGenerator {
         "# Use two distinct traps so we can see which signal causes this.",
         "cleanup() {",
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
+        killAuthCommand,
         "        exit 0",
         "    else",
         "        printf \"Killing federate %s.\\n\" ${pids[*]}",
