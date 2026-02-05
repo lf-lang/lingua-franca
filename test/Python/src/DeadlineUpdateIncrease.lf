@@ -1,5 +1,5 @@
-// Verify that deadline increases from 200 ms to 1 sec works.
-// Also, test if the increased deadline works when reaction is triggered again.
+# Verify that deadline increases from 200 ms to 1 sec works.
+# Also, test if the increased deadline works when reaction is triggered again.
 target Python {
   timeout: 1500 msec
 }

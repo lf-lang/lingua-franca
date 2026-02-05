@@ -1,5 +1,5 @@
-// Verify that deadline decreases from 100 ms to 50 ms works.
-// Also, test if the decreased deadline works when reaction is triggered again.
+# Verify that deadline decreases from 100 ms to 50 ms works.
+# Also, test if the decreased deadline works when reaction is triggered again.
 target Python {
   timeout: 50 msec
 }
