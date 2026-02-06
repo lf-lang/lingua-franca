@@ -94,6 +94,10 @@ public class FederationFileConfig extends FileConfig {
     return getSSTPath().resolve("graphs");
   }
 
+  public Path getSSTPolicyPath() {
+    return getSSTPath().resolve("policy");
+  }
+
   public Path getSSTAuthPath() {
     return getSSTPath().resolve("auth");
   }

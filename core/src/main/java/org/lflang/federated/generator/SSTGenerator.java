@@ -47,6 +47,7 @@ public class SSTGenerator {
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
+    FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTPolicyPath().toFile());
 
     // Create graph used when creating credentials.
     // Set graph path.
@@ -60,6 +61,18 @@ public class SSTGenerator {
       messageReporter
           .nowhere()
           .info("Graph file generated successfully into: " + graphPath.toString());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
+    // Write the policy file (JSON array).
+    Path policyPath = fileConfig.getSSTPolicyPath().resolve(fileConfig.name + ".json");
+    JsonArray policyArray = generateCommunicationPolicy();
+
+    try (FileWriter fileWriter = new FileWriter(policyPath.toString())) {
+      Gson gson = new GsonBuilder().setPrettyPrinting().create();
+      gson.toJson(policyArray, fileWriter);
+      messageReporter.nowhere().info("Policy file generated successfully into: " + policyPath);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -85,6 +98,8 @@ public class SSTGenerator {
             + graphPath
             + " -p "
             + fileConfig.name
+            + " --policy "
+            + policyPath
             + " && "
             + "echo \"generateAll.sh finished successfully.\"");
 
@@ -311,6 +326,51 @@ public class SSTGenerator {
     return graphObject;
   }
 
+  private static JsonObject createGroupPolicy(
+      String requestingGroup,
+      String targetType,
+      String target,
+      int maxNumSessionKeyOwners,
+      String sessionCryptoSpec,
+      String absoluteValidity,
+      String relativeValidity) {
+
+    JsonObject o = new JsonObject();
+    o.addProperty("RequestingGroup", requestingGroup);
+    o.addProperty("TargetType", targetType);
+    o.addProperty("Target", target);
+    o.addProperty("MaxNumSessionKeyOwners", maxNumSessionKeyOwners);
+    o.addProperty("SessionCryptoSpec", sessionCryptoSpec);
+    o.addProperty("AbsoluteValidity", absoluteValidity);
+    o.addProperty("RelativeValidity", relativeValidity);
+    return o;
+  }
+
+    // Creates the policy JSON array to be passed to authConfigGenerator.js via --policy <file>.
+  private static JsonArray generateCommunicationPolicy() {
+    JsonArray policies = new JsonArray();
+
+    policies.add(createGroupPolicy(
+        "Federates",
+        "Group",
+        "RTI",
+        2,
+        "AES-128-CBC:SHA256",
+        "1*day",
+        "2*hour"));
+
+    policies.add(createGroupPolicy(
+        "Federates",
+        "Group",
+        "Federates",
+        2,
+        "AES-128-CBC:SHA256",
+        "1*day",
+        "2*hour"));
+
+    return policies;
+  }
+
   private static JsonObject createAuthEntry(
       int id,
       String entityHost,
@@ -341,7 +401,7 @@ public class SSTGenerator {
     JsonArray entityList = new JsonArray();
 
     // RTI entity
-    JsonObject rti = createEntity("Servers", "net1.rti", "Net1.rti");
+    JsonObject rti = createEntity("RTI", "net1.rti", "Net1.rti");
     rti.addProperty("port", rtiConfig.getPort());
     rti.addProperty("host", rtiConfig.getHost());
     entityList.add(rti);
@@ -349,7 +409,7 @@ public class SSTGenerator {
     // Federate entities
     for (FederateInstance federate : federateInstances) {
       String federateName = federate.name;
-      JsonObject entity = createEntity("Clients", "net1." + federateName, "Net1." + federateName);
+      JsonObject entity = createEntity("Federates", "net1." + federateName, "Net1." + federateName);
       entityList.add(entity);
     }
     return entityList;
