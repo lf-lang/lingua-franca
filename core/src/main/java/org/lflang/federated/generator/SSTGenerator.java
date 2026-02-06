@@ -239,7 +239,7 @@ public class SSTGenerator {
         .append("entityInfo.name=")
         .append(entityName)
         .append("\n")
-        .append("entityInfo.purpose={\"group\":\"Servers\"}\n")
+        .append("entityInfo.purpose={\"group\":\"RTI\"}\n")
         .append("entityInfo.number_key=1\n")
         .append("authInfo.id=")
         .append(authID)
