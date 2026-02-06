@@ -59,6 +59,7 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
@@ -67,6 +68,7 @@ import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
@@ -167,6 +169,12 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
+    // If communication mode is SST, generate configurations for SST.
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
+    }
+
     FedEmitter fedEmitter =
         new FedEmitter(
             fileConfig,
@@ -249,12 +257,21 @@ public class FedGenerator {
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
 
     var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
+
+    var configureArgs = new java.util.ArrayList<String>();
+    configureArgs.add("-Bbuild");
+    configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
+
+    // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      configureArgs.add("-DCOMM_TYPE=SST");
+    }
+
+    configureArgs.add(".");
+
     var configure =
-        LFCommand.get(
-            "cmake",
-            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
-            false,
-            fileConfig.getRtiSrcGenPath());
+        LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
+
     var build =
         LFCommand.get(
             "cmake",
