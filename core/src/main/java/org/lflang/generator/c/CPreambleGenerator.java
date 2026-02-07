@@ -43,6 +43,7 @@ public class CPreambleGenerator {
       code.pr("extern \"C\" {");
     }
     code.pr("#include <limits.h>");
+    code.pr("#include <math.h>");
     if (arduinoBased(targetConfig)) {
       code.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
     } else {

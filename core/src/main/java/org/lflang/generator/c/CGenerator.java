@@ -12,8 +12,12 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -69,6 +73,7 @@ import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
+import org.lflang.target.property.CoresProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
@@ -79,9 +84,11 @@ import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleThreadedProperty;
+import org.lflang.target.property.ThreadPolicyProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
+import org.lflang.TimeValue;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 import org.lflang.util.FlexPRETUtil;
@@ -633,6 +640,8 @@ public class CGenerator extends GeneratorBase {
               CExtensionUtils.surroundWithIfElseFederatedCentralized(
                   "    lf_latest_tag_confirmed(tag_to_send);", "    (void) tag_to_send;"),
               "}"));
+
+      generatePriorityFunction();
 
       // Generate an empty termination function for non-federated
       // execution. For federated execution, an implementation is
@@ -2041,6 +2050,22 @@ public class CGenerator extends GeneratorBase {
           Map.of(
               "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
+
+      // Add thread policy and cores if set
+      if (targetConfig.isSet(ThreadPolicyProperty.INSTANCE)) {
+        CompileDefinitionsProperty.INSTANCE.update(
+            targetConfig,
+            Map.of(
+                "LF_THREAD_POLICY",
+                targetConfig.get(ThreadPolicyProperty.INSTANCE).cDefine));
+      }
+      if (targetConfig.isSet(CoresProperty.INSTANCE)) {
+        CompileDefinitionsProperty.INSTANCE.update(
+            targetConfig,
+            Map.of(
+                "LF_NUMBER_OF_CORES",
+                String.valueOf(targetConfig.get(CoresProperty.INSTANCE))));
+      }
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
@@ -2235,5 +2260,130 @@ public class CGenerator extends GeneratorBase {
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
     return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+  }
+
+  /**
+   * Generate a function that provides access to deadline statistics (min, max, median) 
+   * of the application. For federated applications, uses federation-level statistics.
+   * For non-federated applications, collects from the main reactor instance.
+   * 
+   * This function collects deadlines from all reaction instances in the reactor instance tree,
+   * including those from banks and parameterized reactors, to compute accurate statistics.
+   */
+  private void generatePriorityFunction() {
+    boolean isFederated = targetConfig.isSet(FedSetupProperty.INSTANCE);
+
+    double minDeadline;
+    double maxDeadline;
+    double medianDeadline;
+
+    if (isFederated) {
+      // For federated applications, read deadline stats from the federation properties JSON file
+      Path jsonPath = fileConfig.srcPath.resolve("include" + File.separator + "federation_properties.json");
+
+      try {
+        if (Files.exists(jsonPath)) {
+          String jsonContent = Files.readString(jsonPath, StandardCharsets.UTF_8);
+          JsonObject json = JsonParser.parseString(jsonContent).getAsJsonObject();
+          minDeadline = json.get("minDeadlineMs").getAsDouble();
+          maxDeadline = json.get("maxDeadlineMs").getAsDouble();
+          medianDeadline = json.get("medianDeadlineMs").getAsDouble();
+        } else {
+          messageReporter.nowhere().warning(
+              "Federation properties JSON file not found at " + jsonPath + ", using default values");
+          minDeadline = 0.0;
+          maxDeadline = 0.0;
+          medianDeadline = 0.0;
+        }
+      } catch (IOException | RuntimeException e) {
+        messageReporter.nowhere().warning(
+            "Failed to read federation properties JSON: " + e.getMessage() + ", using default values");
+        minDeadline = 0.0;
+        maxDeadline = 0.0;
+        medianDeadline = 0.0;
+      }
+    } else {
+      // For non-federated applications, collect deadlines from the main reactor instance
+      List<TimeValue> validDeadlines = collectAllDeadlines(main).stream()
+          .filter(d -> !TimeValue.NEVER.equals(d) && !TimeValue.MAX_VALUE.equals(d) && !TimeValue.FOREVER.equals(d))
+          .sorted()
+          .collect(Collectors.toList());
+
+      if (validDeadlines.isEmpty()) {
+        minDeadline = 0.0;
+        maxDeadline = 0.0;
+        medianDeadline = 0.0;
+      } else {
+        minDeadline = validDeadlines.get(0).toNanoSeconds() / 1000000.0;
+        maxDeadline = validDeadlines.get(validDeadlines.size() - 1).toNanoSeconds() / 1000000.0;
+        int mid = validDeadlines.size() / 2;
+        medianDeadline = (validDeadlines.size() % 2 == 0)
+            ? (validDeadlines.get(mid - 1).toNanoSeconds() + validDeadlines.get(mid).toNanoSeconds()) / 2 / 1000000.0
+            : validDeadlines.get(mid).toNanoSeconds() / 1000000.0;
+      }
+    }
+
+    // No valid deadlines — all reactions get the highest priority
+    if (minDeadline == 0.0 && maxDeadline == 0.0 && medianDeadline == 0.0) {
+      code.pr(
+          String.join(
+              "\n",
+              "// Priority assignment function (no deadlines found)",
+              "int get_priority_value(interval_t rel_deadline) {",
+              "    return 98;",
+              "}"));
+      return;
+    }
+
+    // Generate the priority function using the computed deadline statistics
+    code.pr(
+        String.join(
+            "\n",
+            "int get_priority_value(interval_t rel_deadline) {",
+            "  double d_max = " + maxDeadline + ";",
+            "  double d_min = " + minDeadline + ";",
+            "  double median = " + medianDeadline + ";",
+            "  double rel_deadline_ms = rel_deadline / 1000000.0;",
+            "  // Constants that shape the priority function",
+            "  double alpha_max = 0.025;",
+            "  double alpha_min = 0.005;",
+            "  int prio = 1;",
+            "  if (d_min == d_max) {",
+            "    prio = 98;",
+            "  } else {",
+            "    double alpha = alpha_max - (median - d_min) / (d_max - d_min) * (alpha_max - alpha_min);",
+            "    double K = 96 / (exp(-alpha * d_min) - exp(-alpha * d_max));",
+            "    double P = 98 - 96 * exp(-alpha * d_min) / (exp(-alpha * d_min) - exp(-alpha * d_max));",
+            "    double continuous_fun_value = K * exp(-alpha * rel_deadline_ms) + P;",
+            "    prio = (int)round(continuous_fun_value);",
+            "  }",
+            "  return prio;",
+            "}"));
+  }
+
+  /**
+   * Recursively collect all inferred deadlines from a ReactorInstance.
+   *
+   * <p>This uses inferred deadlines which include deadline propagation through
+   * the reaction graph — if a downstream reaction has an earlier deadline, it is
+   * propagated to upstream reactions.
+   *
+   * @param instance The reactor instance to collect deadlines from.
+   * @return A list of all deadlines found in this instance and its children.
+   */
+  private List<TimeValue> collectAllDeadlines(ReactorInstance instance) {
+    List<TimeValue> deadlines = new ArrayList<>();
+
+    // Collect inferred deadlines from all reactions in this instance
+    for (ReactionInstance reaction : instance.reactions) {
+      deadlines.addAll(reaction.getInferredDeadlinesList());
+    }
+
+    // Recursively collect deadlines from child reactor instances
+    for (ReactorInstance child : instance.children) {
+      deadlines.addAll(collectAllDeadlines(child));
+    }
+
+    return deadlines;
   }
 }

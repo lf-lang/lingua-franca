@@ -167,6 +167,15 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
+    // Generate federation-level properties JSON file
+    try {
+      FedUtils.generateFederationPropertiesFile(fileConfig, main, messageReporter);
+    } catch (IOException e) {
+      messageReporter
+          .nowhere()
+          .error("Failed to generate federation properties file: " + e.getMessage());
+    }
+
     FedEmitter fedEmitter =
         new FedEmitter(
             fileConfig,
