@@ -245,6 +245,10 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   public static final SynthesisOption SPACING =
       SynthesisOption.<Integer>createRangeOption("Spacing (%)", 0, 150, 5, 75).setCategory(LAYOUT);
 
+  public static final SynthesisOption SHOW_HEAT_MAP =
+      SynthesisOption.createCheckOption("Reaction Heat Map", false)
+          .setCategory(EXPERIMENTAL);
+
   /** Synthesis actions */
   public static final DisplayedActionData COLLAPSE_ALL =
       DisplayedActionData.create(CollapseAllReactorsAction.ID, "Hide all Details");
@@ -288,7 +292,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         LAYOUT,
         FIXED_PORT_SIDE,
         LayoutPostProcessing.MODEL_ORDER,
-        SPACING);
+        SPACING,
+        EXPERIMENTAL,
+        SHOW_HEAT_MAP);
   }
 
   @Override
