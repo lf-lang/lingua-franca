@@ -33,7 +33,7 @@ public class SSTGenerator {
       List<FederateInstance> federates,
       MessageReporter messageReporter,
       LFGeneratorContext context,
-      RtiConfig rtiConfig) {
+      RtiConfig rtiConfig) throws IOException {
     if (context.getTargetConfig().get(SSTPathProperty.INSTANCE).isEmpty()) {
       context
           .getErrorReporter()
@@ -203,6 +203,9 @@ public class SSTGenerator {
               "Federate generated SST config into: "
                   + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString());
     }
+
+    // Copy the configs and credentials of rti and federates, to the src-gen for tar deployments.
+    SSTGenerator.copyAuthAndConfigsAndKeys(fileConfig, federates);
   }
 
   public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
@@ -515,6 +518,84 @@ public class SSTGenerator {
         writer.newLine();
       }
     }
+  }
+
+  private static void copyAuthAndConfigsAndKeys(FederationFileConfig fileConfig, List<FederateInstance> federates)
+      throws IOException {
+    // 1. Copy Auth to RTI directory.
+    Path auth_src = fileConfig.getSSTAuthPath();
+    Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
+    FileUtil.copyDirectoryContents(auth_src, rti_src, false);
+
+    Path keysRoot = fileConfig.getSSTCredentialsPath().resolve("keys");
+    Path configsRoot = fileConfig.getSSTConfigPath();
+    Path authCertsRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
+
+    // 2. Copy Configs and Keys to src-gen of federates and RTIs.
+    // =========================
+    // Federates
+    // =========================
+    for (FederateInstance federate : federates) {
+      Path dst = fileConfig.getSrcGenPath()
+          .resolve(federate.name)
+          .resolve("sst");
+      Files.createDirectories(dst);
+
+      // 1) Copy private key
+      String keySuffix = federate.name + "Key.pem";
+      List<Path> keyMatches = FileUtil.globFilesEndsWith(keysRoot, keySuffix);
+      if (keyMatches.isEmpty()) {
+        throw new IOException(
+            "No key file found for federate: " + federate.name
+                + " (expected suffix: " + keySuffix + ") under " + keysRoot);
+      }
+      Path keyFile = keyMatches.get(0);
+      FileUtil.copyFile(keyFile, dst.resolve(keyFile.getFileName()));
+
+      // 2) Copy config
+      Path configSrc = configsRoot.resolve(federate.name + ".config");
+      if (!Files.isRegularFile(configSrc)) {
+        throw new IOException(
+            "No config file found for federate: " + federate.name
+                + " at " + configSrc);
+      }
+      FileUtil.copyFile(configSrc, dst.resolve(federate.name + ".config"));
+
+      // 3) Copy auth certificates
+      if (!Files.isDirectory(authCertsRoot)) {
+        throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+      }
+      FileUtil.copyDirectoryContents(authCertsRoot, dst, false);
+    }
+
+    // =========================
+    // RTI
+    // =========================
+    Path rtiDst = fileConfig.getRtiSrcGenPath().resolve("sst");
+    Files.createDirectories(rtiDst);
+
+    // 1) Copy RTI private key
+    String rtiKeySuffix = "rtiKey.pem";
+    List<Path> rtiKeyMatches = FileUtil.globFilesEndsWith(keysRoot, rtiKeySuffix);
+    if (rtiKeyMatches.isEmpty()) {
+      throw new IOException(
+          "No key file found for RTI (expected suffix: " + rtiKeySuffix + ") under " + keysRoot);
+    }
+    Path rtiKeyFile = rtiKeyMatches.get(0);
+    FileUtil.copyFile(rtiKeyFile, rtiDst.resolve(rtiKeyFile.getFileName()));
+
+    // 2) Copy RTI config
+    Path rtiConfigSrc = configsRoot.resolve("rti.config");
+    if (!Files.isRegularFile(rtiConfigSrc)) {
+      throw new IOException("No rti.config found at " + rtiConfigSrc);
+    }
+    FileUtil.copyFile(rtiConfigSrc, rtiDst.resolve("rti.config"));
+
+    // 3) Copy auth certificates to RTI
+    if (!Files.isDirectory(authCertsRoot)) {
+      throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+    }
+    FileUtil.copyDirectoryContents(authCertsRoot, rtiDst, false);
   }
 
   private static String updatePath(String line, String sstAuthPathStr) {
