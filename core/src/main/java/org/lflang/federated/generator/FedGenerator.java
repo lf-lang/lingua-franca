@@ -169,12 +169,6 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
-    // If communication mode is SST, generate configurations for SST.
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
-        == CommunicationMode.SST) {
-      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
-    }
-
     FedEmitter fedEmitter =
         new FedEmitter(
             fileConfig,
@@ -226,6 +220,12 @@ public class FedGenerator {
 
     // Compile an RTI for this federation.
     buildRtiLocally(context);
+
+    // If communication mode is SST, generate configurations for SST.
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
+    }
 
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
