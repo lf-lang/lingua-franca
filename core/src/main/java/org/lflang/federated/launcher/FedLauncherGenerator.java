@@ -508,6 +508,24 @@ public class FedLauncherGenerator {
     String remoteBuildLogFileName = logDirectory + "/build.log";
     String buildShellFileName = "build_" + name + ".sh";
     String tarFileName = name + ".tar.gz";
+
+    // ---- Add this block ----
+    String cmakeArgs = "";
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      cmakeArgs = " -DCOMM_TYPE=SST";
+    }
+
+    // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee
+    // sends to stdout and file.
+    String buildCmdLine =
+        "echo \"rm -rf build && mkdir -p build && cd build && cmake .."
+            + cmakeArgs
+            + " && make 2>&1 | tee -a "
+            + remoteBuildLogFileName
+            + "\" >> "
+            + buildShellFileName
+            + "; ";
+
     return String.join(
         "\n",
         "echo \"Making directory "
@@ -582,13 +600,7 @@ public class FedLauncherGenerator {
             + "\" >> "
             + buildShellFileName
             + "; "
-            // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee
-            // sens to stdout and file.
-            + "echo \"rm -rf build && mkdir -p build && cd build && cmake .. && make 2>&1 | tee -a "
-            + remoteBuildLogFileName
-            + "\" >> "
-            + buildShellFileName
-            + "; "
+            + buildCmdLine
             + "echo \"mv "
             + name
             + " "
