@@ -170,6 +170,7 @@ public class FedLauncherGenerator {
                 getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
             .append("\n");
         shCode
+        //TODO: Need to fix calling rtiConfig.getDirectory() here
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
       } else {
@@ -365,10 +366,14 @@ public class FedLauncherGenerator {
       commands.add("                        -t \\");
     }
     if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      commands.add(
-          "                        -sst "
-              + SSTGenerator.getSSTConfig(fileConfig, "rti").toString()
-              + " \\");
+      String sstConfigPath;
+      if (isRemote) {
+        sstConfigPath = SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "rti.config";
+      } else {
+        sstConfigPath = SSTGenerator.getSSTConfig(fileConfig, "rti").toString();
+      }
+
+      commands.add("                        -sst " + sstConfigPath + " \\");
     }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
@@ -431,6 +436,7 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
         "    date >> " + logFileName + "; \\",
+        //TODO: Need to fix calling rtiConfig.getDirectory() here
         "    echo \"Executing RTI: "
             + rtiLaunchString
             + "\n\" 2>&1 | tee -a "
@@ -582,6 +588,13 @@ public class FedLauncherGenerator {
     String runLogFileName = logDirectory + "/" + federate.name + ".log";
     String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
     String executeCommand = binDirectory + "/" + federate.name + " -i '$FEDERATION_ID'";
+
+    if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      executeCommand =
+          executeCommand
+              + " -sst "
+              + SSTGenerator.getSSTRemoteBasePath(fileConfig, federate.name) + federate.name+ ".config";
+    }
 
     return String.join(
         "\n",

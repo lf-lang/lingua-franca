@@ -601,4 +601,10 @@ public class SSTGenerator {
   private static String updatePath(String line, String sstAuthPathStr) {
     return line.replace("../", sstAuthPathStr + "/");
   }
+
+
+  /** Return the path to the RTI binary on the remote host. */
+  public static String getSSTRemoteBasePath(FederationFileConfig fileConfig, String entityName) {
+    return "~/LinguaFrancaRemote/" + fileConfig.name + "/" + entityName + "/sst/";
+  }
 }
