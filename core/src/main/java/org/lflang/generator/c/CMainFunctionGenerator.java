@@ -8,6 +8,7 @@ import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.TimeOutProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
@@ -41,12 +42,40 @@ public class CMainFunctionGenerator {
     return code.toString();
   }
 
+  /**
+   * Generate setenv calls for environment variables that need to be set at the start of main.
+   *
+   * @return The setenv statements with a comment header, or empty string if none needed.
+   */
+  private String generateEnvVarSetup() {
+    StringBuilder sb = new StringBuilder();
+    String indent = "    ";
+    var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
+    if (tracePlugin != null && tracePlugin.endpoint != null && !tracePlugin.endpoint.isEmpty()) {
+      var quotedEndpoint = StringUtil.addDoubleQuotes(tracePlugin.endpoint);
+      sb.append(indent).append("// Set environment variables\n");
+      sb.append("#ifdef _WIN32\n");
+      sb.append(indent)
+          .append("_putenv_s(\"TRACE_PLUGIN_ENDPOINT\", ")
+          .append(quotedEndpoint)
+          .append("); // To be read by the trace plugin\n");
+      sb.append("#else\n");
+      sb.append(indent)
+          .append("setenv(\"TRACE_PLUGIN_ENDPOINT\", ")
+          .append(quotedEndpoint)
+          .append(", 1); // To be read by the trace plugin\n");
+      sb.append("#endif");
+    }
+    return sb.toString();
+  }
+
   /** Generate the `main` function. */
   private String generateMainFunction() {
     var platform = Platform.AUTO;
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
     }
+    String envVarSetup = generateEnvVarSetup();
     switch (platform) {
       case ARDUINO -> {
         /**
@@ -57,17 +86,18 @@ public class CMainFunctionGenerator {
         return String.join(
             "\n",
             "\nvoid _lf_arduino_print_message_function(const char* format, va_list args) {",
-            "\tchar buf[128];",
-            "\tvsnprintf(buf, 128, format, args);",
-            "\tSerial.print(buf);",
+            "    char buf[128];",
+            "    vsnprintf(buf, 128, format, args);",
+            "    Serial.print(buf);",
             "}\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-            "\tSerial.begin("
+            "    Serial.begin("
                 + targetConfig.get(PlatformProperty.INSTANCE).baudRate().value()
                 + ");",
-            "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
-            "\tlf_reactor_c_main(0, NULL);",
+            "    lf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
+            envVarSetup,
+            "    lf_reactor_c_main(0, NULL);",
             "}\n",
             "void loop() {}");
       }
@@ -77,18 +107,21 @@ public class CMainFunctionGenerator {
         return String.join(
             "\n",
             "int main(void) {",
-            "   int res = lf_reactor_c_main(0, NULL);",
-            "   exit(res);",
-            "   return 0;",
+            envVarSetup,
+            "    int res = lf_reactor_c_main(0, NULL);",
+            "    exit(res);",
+            "    return 0;",
             "}");
       }
       case RP2040 -> {
-        return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
+        return String.join(
+            "\n", "int main(void) {", envVarSetup, "    return lf_reactor_c_main(0, NULL);", "}");
       }
       default -> {
         return String.join(
             "\n",
             "int main(int argc, const char* argv[]) {",
+            envVarSetup,
             "    return lf_reactor_c_main(argc, argv);",
             "}");
       }
