@@ -426,8 +426,43 @@ public class FedLauncherGenerator {
 
   private String getRemoteLaunchCode(
       Object host, Object target, String logFileName, String rtiLaunchString) {
+
+    String sstAuthLaunch = "";
+
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      String authBase = SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "../auth";
+      String authCommand =
+          "java -jar "
+              + authBase
+              + "/auth-server-jar-with-dependencies.jar -p "
+              + authBase
+              + "/properties/exampleAuth101.properties --password="
+              + fileConfig.name
+              + "</dev/null";
+
+      // Run Auth on the remote host via ssh (like RTI)
+      sstAuthLaunch =
+          String.join(
+              "\n",
+              "# Prompt for the password before starting SST Auth",
+              "echo \"Executing Auth.\"",
+              "# Launch the SST Auth on remote host.",
+              "ssh " + target + " 'mkdir -p log; \\",
+              "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\" ,
+              "    if [ \"$1\" = \"-l\" ]; then \\",
+              "        " + authCommand + " >& auth.log; \\",
+              "    else \\",
+              "        " + authCommand + "; \\",
+              "    fi' &",
+              "# Store the PID of the channel to Auth",
+              "AUTH=$!",
+              "# Wait for Auth to boot up before starting RTI/federates",
+              "sleep 2");
+    }
+
     return String.join(
         "\n",
+        sstAuthLaunch,
         "echo \"#### Launching the runtime infrastructure (RTI) on remote host " + host + ".\"",
         "# FIXME: Killing this ssh does not kill the remote process.",
         "# A double -t -t option to ssh forces creation of a virtual terminal, which",
@@ -436,7 +471,6 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
         "    date >> " + logFileName + "; \\",
-        //TODO: Need to fix calling rtiConfig.getDirectory() here
         "    echo \"Executing RTI: "
             + rtiLaunchString
             + "\n\" 2>&1 | tee -a "
