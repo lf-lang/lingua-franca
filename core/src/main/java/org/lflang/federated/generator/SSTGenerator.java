@@ -563,7 +563,7 @@ public class SSTGenerator {
       Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
       FileUtil.copyDirectoryContents(auth_src, rti_src, false);
 
-          // Update path to remote base.
+    // Update the copied properties to the remote base.
     SSTGenerator.updatePropertiesFile(rti_src.resolve("properties"), SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "../auth/");
 
     // 2. Copy Configs and Keys to src-gen of federates and RTIs.
