@@ -564,12 +564,13 @@ public class SSTGenerator {
       FileUtil.copyDirectoryContents(auth_src, rti_src, false);
 
     // Update the copied properties to the remote base.
-    SSTGenerator.updatePropertiesFile(rti_src.resolve("properties"), SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "../auth/");
+    SSTGenerator.updatePropertiesFile(rti_src.resolve("properties"), SSTGenerator.getRelativeRemoteBasePath(fileConfig, "RTI") + "/auth/");
 
     // 2. Copy Configs and Keys to src-gen of federates and RTIs.
-    Path keysRoot = fileConfig.getSSTCredentialsPath().resolve("keys");
+    Path credentialsRoot = fileConfig.getSSTCredentialsPath(); // .../sst/credentials
+    Path keysRoot = credentialsRoot.resolve("keys");
     Path configsRoot = fileConfig.getSSTConfigPath();
-    Path authCertsRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
+    Path authCertsRoot = credentialsRoot.resolve("auth_certs");
 
     // =========================
     // Federates
@@ -580,6 +581,10 @@ public class SSTGenerator {
           .resolve("sst");
       Files.createDirectories(dst);
 
+      // ---- Make sure we keep the credentials directory structure
+      Path dstCredentialsRoot = dst.resolve("credentials");
+      Files.createDirectories(dstCredentialsRoot);
+
       // 1) Copy private key
       String keySuffix = federate.name + "Key.pem";
       List<Path> keyMatches = FileUtil.globFilesEndsWith(keysRoot, keySuffix);
@@ -589,7 +594,12 @@ public class SSTGenerator {
                 + " (expected suffix: " + keySuffix + ") under " + keysRoot);
       }
       Path keyFile = keyMatches.get(0);
-      FileUtil.copyFile(keyFile, dst.resolve(keyFile.getFileName()));
+
+      // Preserve structure: credentials/keys/net1/<file>
+      Path keyRel = credentialsRoot.relativize(keyFile); // keys/net1/Net1.xxxKey.pem
+      Path keyDst = dstCredentialsRoot.resolve(keyRel);  // dst/credentials/keys/net1/...
+      Files.createDirectories(keyDst.getParent());
+      FileUtil.copyFile(keyFile, keyDst);
 
       // 2) Copy config
       Path configSrc = configsRoot.resolve(federate.name + ".config");
@@ -604,10 +614,10 @@ public class SSTGenerator {
       if (!Files.isDirectory(authCertsRoot)) {
         throw new IOException("Missing auth_certs directory at " + authCertsRoot);
       }
-      FileUtil.copyDirectoryContents(authCertsRoot, dst, false);
+      FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
 
       // 4) Update the copied configs to the remote base.
-      SSTGenerator.updateConfigFile(dst.resolve(federate.name + ".config"), getSSTRemoteBasePath(fileConfig, federate.name));
+      SSTGenerator.updateConfigFile(dst.resolve(federate.name + ".config"), fileConfig.name + "/" + federate.name + "/sst/");
     }
 
     // =========================
@@ -616,7 +626,11 @@ public class SSTGenerator {
     Path rtiDst = fileConfig.getRtiSrcGenPath().resolve("sst");
     Files.createDirectories(rtiDst);
 
-    // 1) Copy RTI private key
+    // Keep credentials directory structure
+    Path rtiCredentialsDst = rtiDst.resolve("credentials");
+    Files.createDirectories(rtiCredentialsDst);
+
+    // 1) Copy RTI private key (keep original relative path under credentials/)
     String rtiKeySuffix = "rtiKey.pem";
     List<Path> rtiKeyMatches = FileUtil.globFilesEndsWith(keysRoot, rtiKeySuffix);
     if (rtiKeyMatches.isEmpty()) {
@@ -624,7 +638,12 @@ public class SSTGenerator {
           "No key file found for RTI (expected suffix: " + rtiKeySuffix + ") under " + keysRoot);
     }
     Path rtiKeyFile = rtiKeyMatches.get(0);
-    FileUtil.copyFile(rtiKeyFile, rtiDst.resolve(rtiKeyFile.getFileName()));
+
+    // Preserve structure: credentials/keys/net1/<file>
+    Path rtiKeyRel = credentialsRoot.relativize(rtiKeyFile); // keys/net1/Net1.rtiKey.pem
+    Path rtiKeyDst = rtiCredentialsDst.resolve(rtiKeyRel);   // rtiDst/credentials/keys/net1/...
+    Files.createDirectories(rtiKeyDst.getParent());
+    FileUtil.copyFile(rtiKeyFile, rtiKeyDst);
 
     // 2) Copy RTI config
     Path rtiConfigSrc = configsRoot.resolve("rti.config");
@@ -633,14 +652,14 @@ public class SSTGenerator {
     }
     FileUtil.copyFile(rtiConfigSrc, rtiDst.resolve("rti.config"));
 
-    // 3) Copy auth certificates to RTI
+    // 3) Copy auth certificates
     if (!Files.isDirectory(authCertsRoot)) {
       throw new IOException("Missing auth_certs directory at " + authCertsRoot);
     }
-    FileUtil.copyDirectoryContents(authCertsRoot, rtiDst, false);
+    FileUtil.copyDirectory(authCertsRoot, rtiCredentialsDst, false);
 
     // 4) Update the copied configs to the remote base.
-    SSTGenerator.updateConfigFile(rtiDst.resolve("rti.config"), getSSTRemoteBasePath(fileConfig, "RTI"));
+    SSTGenerator.updateConfigFile(rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath(fileConfig, "RTI"));
   }
 
   private static void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
@@ -687,7 +706,19 @@ public class SSTGenerator {
   }
 
   /** Return the path to the RTI binary on the remote host. */
+  public static String getRemoteBasePath(FederationFileConfig fileConfig, String entityName) {
+    return "~/LinguaFrancaRemote/" + fileConfig.name + "/" + entityName;
+  }
+
+  /** Return the path to the RTI binary on the remote host. */
   public static String getSSTRemoteBasePath(FederationFileConfig fileConfig, String entityName) {
-    return "~/LinguaFrancaRemote/" + fileConfig.name + "/" + entityName + "/sst/";
+    return getRemoteBasePath(fileConfig, entityName) + "/sst/";
+  }
+
+  private static String getRelativeRemoteBasePath(FederationFileConfig fileConfig, String entityName) {
+    return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName;
+  }
+  private static String getRelativeSSTRemoteBasePath(FederationFileConfig fileConfig, String entityName) {
+    return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName + "/sst/";
   }
 }
