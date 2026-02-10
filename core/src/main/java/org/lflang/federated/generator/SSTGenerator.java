@@ -605,6 +605,9 @@ public class SSTGenerator {
         throw new IOException("Missing auth_certs directory at " + authCertsRoot);
       }
       FileUtil.copyDirectoryContents(authCertsRoot, dst, false);
+
+      // 4) Update the copied configs to the remote base.
+      SSTGenerator.updateConfigFile(dst.resolve(federate.name + ".config"), getSSTRemoteBasePath(fileConfig, federate.name));
     }
 
     // =========================
@@ -635,8 +638,53 @@ public class SSTGenerator {
       throw new IOException("Missing auth_certs directory at " + authCertsRoot);
     }
     FileUtil.copyDirectoryContents(authCertsRoot, rtiDst, false);
+
+    // 4) Update the copied configs to the remote base.
+    SSTGenerator.updateConfigFile(rtiDst.resolve("rti.config"), getSSTRemoteBasePath(fileConfig, "RTI"));
   }
 
+  private static void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
+    if (fileToUpdate == null) throw new IllegalArgumentException("fileToUpdate is null");
+    if (newBasePath == null || newBasePath.isBlank())
+      throw new IllegalArgumentException("newBasePath is null/blank");
+    if (!Files.isRegularFile(fileToUpdate))
+      throw new IOException("Config file not found: " + fileToUpdate);
+
+    String base = newBasePath.replace("\\", "/");
+    if (!base.endsWith("/")) base += "/";
+
+    List<String> out = new ArrayList<>();
+    boolean changed = false;
+
+    for (String line : Files.readAllLines(fileToUpdate)) {
+      String updated = line;
+
+      if (line.startsWith("authInfo.pubkey.path=")) {
+        updated = replaceConfigPathBaseKeepTail(line, "authInfo.pubkey.path=", base);
+      } else if (line.startsWith("entityInfo.privkey.path=")) {
+        updated = replaceConfigPathBaseKeepTail(line, "entityInfo.privkey.path=", base);
+      }
+
+      if (!updated.equals(line)) changed = true;
+      out.add(updated);
+    }
+
+    if (changed) {
+      FileUtil.writeToFile(String.join("\n", out) + "\n", fileToUpdate);
+    }
+  }
+
+  private static String replaceConfigPathBaseKeepTail(String fullLine, String keyPrefix, String base) {
+    String value = fullLine.substring(keyPrefix.length()).trim().replace("\\", "/");
+
+    int idx = value.indexOf("credentials/");
+    if (idx < 0) {
+      throw new IllegalArgumentException("Unexpected path format for line: " + fullLine);
+    }
+
+    String tail = value.substring(idx); // e.g. credentials/auth_certs/...
+    return keyPrefix + base + tail;
+  }
 
   /** Return the path to the RTI binary on the remote host. */
   public static String getSSTRemoteBasePath(FederationFileConfig fileConfig, String entityName) {
