@@ -10,7 +10,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -181,7 +184,7 @@ public class SSTGenerator {
       messageReporter
           .nowhere()
           .info("Auth necessary files copied into: " + fileConfig.getSSTAuthPath().toString());
-      SSTGenerator.updatePropertiesFile(fileConfig);
+      SSTGenerator.updatePropertiesFile(fileConfig.getSSTAuthPath().resolve("properties"), fileConfig.getSSTAuthPath().toString());
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -482,56 +485,92 @@ public class SSTGenerator {
     FileUtil.copyFile(source4, destination4);
   }
 
-  private static void updatePropertiesFile(FederationFileConfig fileConfig) throws IOException {
-    File file =
-        Paths.get(
-                fileConfig.getSSTAuthPath().resolve("properties").toString(),
-                "exampleAuth101.properties")
-            .toFile();
-    List<String> updatedLines = new ArrayList<>();
-    String sstAuthPathStr = fileConfig.getSSTAuthPath().toString();
-
-    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        if (line.startsWith("entity_key_store_path=")) {
-          line = updatePath(line, sstAuthPathStr);
-        } else if (line.startsWith("internet_key_store_path=")) {
-          line = updatePath(line, sstAuthPathStr);
-        } else if (line.startsWith("database_key_store_path=")) {
-          line = updatePath(line, sstAuthPathStr);
-        } else if (line.startsWith("database_encryption_key_path=")) {
-          line = updatePath(line, sstAuthPathStr);
-        } else if (line.startsWith("trusted_ca_cert_paths=")) {
-          line = updatePath(line, sstAuthPathStr);
-        } else if (line.startsWith("auth_database_dir=")) {
-          line = updatePath(line, sstAuthPathStr);
-        }
-        updatedLines.add(line);
-      }
+  /**
+   * Update all .properties files under the given propertiesDir.
+   *
+   * @param propertiesDir Path to the ".../sst/auth/properties" directory (parent path only).
+   * @param updateBasePath new base path to use for replacement (must point to ".../sst/auth/" or ".../RTI/auth/")
+   */
+  private static void updatePropertiesFile(Path propertiesDir, String updateBasePath) throws IOException {
+    if (propertiesDir == null) {
+      throw new IllegalArgumentException("propertiesDir must not be null");
+    }
+    if (!Files.isDirectory(propertiesDir)) {
+      throw new IOException("Properties directory not found: " + propertiesDir);
     }
 
-    // Write the updated lines back to the file
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-      for (String updatedLine : updatedLines) {
-        writer.write(updatedLine);
-        writer.newLine();
+    if (!updateBasePath.endsWith("/")) {
+      updateBasePath += "/";
+    }
+    // Find all .properties files under the directory (recursive)
+    List<Path> propFiles = FileUtil.globFilesEndsWith(propertiesDir, ".properties");
+    if (propFiles.isEmpty()) {
+      // nothing to do
+      return;
+    }
+
+    for (Path propFile : propFiles) {
+      List<String> updatedLines = new ArrayList<>();
+      try (BufferedReader reader = new BufferedReader(new FileReader(propFile.toFile()))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          if (line.startsWith("entity_key_store_path=")
+              || line.startsWith("internet_key_store_path=")
+              || line.startsWith("database_key_store_path=")
+              || line.startsWith("database_encryption_key_path=")
+              || line.startsWith("trusted_ca_cert_paths=")
+              || line.startsWith("auth_database_dir=")) {
+            line = updatePath(line, updateBasePath);
+          }
+          updatedLines.add(line);
+        }
       }
+
+      // Write changes back only if something changed
+      String joined = String.join("\n", updatedLines) + "\n";
+      FileUtil.writeToFile(joined, propFile);
     }
   }
 
-  private static void copyAuthAndConfigsAndKeys(FederationFileConfig fileConfig, List<FederateInstance> federates)
-      throws IOException {
-    // 1. Copy Auth to RTI directory.
-    Path auth_src = fileConfig.getSSTAuthPath();
-    Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
-    FileUtil.copyDirectoryContents(auth_src, rti_src, false);
+  private static String updatePath(String line, String base) {
+    int idx = line.indexOf('=');
+    if (idx < 0) return line;
 
+    String key = line.substring(0, idx + 1);
+    String value = line.substring(idx + 1);
+
+    // Case 1: relative "../..."  -> just strip "../"
+    if (value.startsWith("../")) {
+      return key + base + value.substring("../".length());
+    }
+
+    // Case 2: absolute path already -> rewrite using tail after "/sst/auth/"
+    String marker = "/sst/auth/";
+    int m = value.indexOf(marker);
+    if (m >= 0) {
+      String tail = value.substring(m + marker.length()); // e.g. "databases/auth101/..."
+      return key + base + tail;
+    }
+
+    // Otherwise: unknown format, leave unchanged
+    return line;
+  }
+
+    private static void copyAuthAndConfigsAndKeys(FederationFileConfig fileConfig, List<FederateInstance> federates)
+    throws IOException {
+      // 1. Copy Auth to RTI directory.
+      Path auth_src = fileConfig.getSSTAuthPath();
+      Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
+      FileUtil.copyDirectoryContents(auth_src, rti_src, false);
+
+          // Update path to remote base.
+    SSTGenerator.updatePropertiesFile(rti_src.resolve("properties"), SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "../auth/");
+
+    // 2. Copy Configs and Keys to src-gen of federates and RTIs.
     Path keysRoot = fileConfig.getSSTCredentialsPath().resolve("keys");
     Path configsRoot = fileConfig.getSSTConfigPath();
     Path authCertsRoot = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
 
-    // 2. Copy Configs and Keys to src-gen of federates and RTIs.
     // =========================
     // Federates
     // =========================
@@ -596,10 +635,6 @@ public class SSTGenerator {
       throw new IOException("Missing auth_certs directory at " + authCertsRoot);
     }
     FileUtil.copyDirectoryContents(authCertsRoot, rtiDst, false);
-  }
-
-  private static String updatePath(String line, String sstAuthPathStr) {
-    return line.replace("../", sstAuthPathStr + "/");
   }
 
 
