@@ -52,11 +52,19 @@ public class CMainFunctionGenerator {
     String indent = "    ";
     var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
     if (tracePlugin != null && tracePlugin.endpoint != null && !tracePlugin.endpoint.isEmpty()) {
+      var quotedEndpoint = StringUtil.addDoubleQuotes(tracePlugin.endpoint);
       sb.append(indent).append("// Set environment variables\n");
+      sb.append("#ifdef _WIN32\n");
       sb.append(indent)
-          .append("setenv(\"TRACE_PLUGIN_ENDPOINT\", \"")
-          .append(tracePlugin.endpoint)
-          .append("\", 1); // To be read by the trace plugin");
+          .append("_putenv_s(\"TRACE_PLUGIN_ENDPOINT\", ")
+          .append(quotedEndpoint)
+          .append("); // To be read by the trace plugin\n");
+      sb.append("#else\n");
+      sb.append(indent)
+          .append("setenv(\"TRACE_PLUGIN_ENDPOINT\", ")
+          .append(quotedEndpoint)
+          .append(", 1); // To be read by the trace plugin\n");
+      sb.append("#endif");
     }
     return sb.toString();
   }
