@@ -43,20 +43,22 @@ public class CMainFunctionGenerator {
   }
 
   /**
-   * Generate setenv call for TRACE_PLUGIN_ENDPOINT if configured in trace-plugin.
+   * Generate setenv calls for environment variables that need to be set at the start of main.
    *
-   * @param indent The indentation to use for the generated code.
-   * @return The setenv statement or empty string if not configured.
+   * @return The setenv statements with a comment header, or empty string if none needed.
    */
-  private String generateOtelEndpointSetup(String indent) {
+  private String generateEnvVarSetup() {
+    StringBuilder sb = new StringBuilder();
+    String indent = "    ";
     var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
     if (tracePlugin != null && tracePlugin.endpoint != null && !tracePlugin.endpoint.isEmpty()) {
-      return indent
-          + "setenv(\"TRACE_PLUGIN_ENDPOINT\", \""
-          + tracePlugin.endpoint
-          + "\", 1); // To be read by the trace plugin";
+      sb.append(indent).append("// Set environment variables\n");
+      sb.append(indent)
+          .append("setenv(\"TRACE_PLUGIN_ENDPOINT\", \"")
+          .append(tracePlugin.endpoint)
+          .append("\", 1); // To be read by the trace plugin");
     }
-    return "";
+    return sb.toString();
   }
 
   /** Generate the `main` function. */
@@ -65,9 +67,7 @@ public class CMainFunctionGenerator {
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
     }
-    String otelSetup = generateOtelEndpointSetup("\t");
-    String otelSetupSpaces = generateOtelEndpointSetup("   ");
-    String otelSetupFourSpaces = generateOtelEndpointSetup("    ");
+    String envVarSetup = generateEnvVarSetup();
     switch (platform) {
       case ARDUINO -> {
         /**
@@ -78,19 +78,18 @@ public class CMainFunctionGenerator {
         return String.join(
             "\n",
             "\nvoid _lf_arduino_print_message_function(const char* format, va_list args) {",
-            "\tchar buf[128];",
-            "\tvsnprintf(buf, 128, format, args);",
-            "\tSerial.print(buf);",
+            "    char buf[128];",
+            "    vsnprintf(buf, 128, format, args);",
+            "    Serial.print(buf);",
             "}\n",
             "// Arduino setup() and loop() functions",
             "void setup() {",
-            "\tSerial.begin("
+            "    Serial.begin("
                 + targetConfig.get(PlatformProperty.INSTANCE).baudRate().value()
                 + ");",
-            "\tlf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
-            otelSetup.isEmpty()
-                ? "\tlf_reactor_c_main(0, NULL);"
-                : otelSetup + "\n\tlf_reactor_c_main(0, NULL);",
+            "    lf_register_print_function(&_lf_arduino_print_message_function, LOG_LEVEL);",
+            envVarSetup,
+            "    lf_reactor_c_main(0, NULL);",
             "}\n",
             "void loop() {}");
       }
@@ -100,29 +99,26 @@ public class CMainFunctionGenerator {
         return String.join(
             "\n",
             "int main(void) {",
-            otelSetupSpaces.isEmpty()
-                ? "   int res = lf_reactor_c_main(0, NULL);"
-                : otelSetupSpaces + "\n   int res = lf_reactor_c_main(0, NULL);",
-            "   exit(res);",
-            "   return 0;",
+            envVarSetup,
+            "    int res = lf_reactor_c_main(0, NULL);",
+            "    exit(res);",
+            "    return 0;",
             "}");
       }
       case RP2040 -> {
         return String.join(
             "\n",
             "int main(void) {",
-            otelSetupSpaces.isEmpty()
-                ? "   return lf_reactor_c_main(0, NULL);"
-                : otelSetupSpaces + "\n   return lf_reactor_c_main(0, NULL);",
+            envVarSetup,
+            "    return lf_reactor_c_main(0, NULL);",
             "}");
       }
       default -> {
         return String.join(
             "\n",
             "int main(int argc, const char* argv[]) {",
-            otelSetupFourSpaces.isEmpty()
-                ? "    return lf_reactor_c_main(argc, argv);"
-                : otelSetupFourSpaces + "\n    return lf_reactor_c_main(argc, argv);",
+            envVarSetup,
+            "    return lf_reactor_c_main(argc, argv);",
             "}");
       }
     }
