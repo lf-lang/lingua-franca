@@ -190,7 +190,7 @@ public class SSTGenerator {
     }
 
     // Generate SST config for the rti.
-    SSTGenerator.generateSSTConfig(fileConfig, "rti");
+    SSTGenerator.generateSSTConfig(fileConfig, "rti", rtiConfig.getHost());
     messageReporter
         .nowhere()
         .info(
@@ -199,7 +199,7 @@ public class SSTGenerator {
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      SSTGenerator.generateSSTConfig(fileConfig, federate.name);
+      SSTGenerator.generateSSTConfig(fileConfig, federate.name, rtiConfig.getHost());
       messageReporter
           .nowhere()
           .info(
@@ -215,7 +215,7 @@ public class SSTGenerator {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  private static void generateSSTConfig(FederationFileConfig fileConfig, String name) {
+  private static void generateSSTConfig(FederationFileConfig fileConfig, String name, String authAndRtiIP) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
@@ -233,9 +233,12 @@ public class SSTGenerator {
             + "Net1."
             + name
             + "Key.pem";
-    String authIpAddress = "127.0.0.1";
+    if ("localhost".equals(authAndRtiIP)) {
+      authAndRtiIP = "127.0.0.1";
+    }
+    String authIpAddress = authAndRtiIP;
     int authPortNumber = 21900;
-    String entityServerIpAddress = "127.0.0.1";
+    String entityServerIpAddress = authAndRtiIP;
     int entityServerPortNumber = 15045;
     String networkProtocol = "TCP";
 
