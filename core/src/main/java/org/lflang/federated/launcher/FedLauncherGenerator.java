@@ -97,9 +97,7 @@ public class FedLauncherGenerator {
     StringBuilder distCode = new StringBuilder();
     shCode.append(getSetupCode()).append("\n");
     String distHeader = getDistHeader();
-    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      shCode.append(getSSTAuthExecutionCode()).append("\n");
-    }
+
     String host = rtiConfig.getHost();
     String target = host;
 
@@ -113,6 +111,9 @@ public class FedLauncherGenerator {
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
+      if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        shCode.append(getSSTAuthExecutionCode()).append("\n");
+      }
       shCode
           .append(
               getLaunchCode(getRtiCommand(fileConfig.getRtiBinPath().toString(), federates, false)))
@@ -430,7 +431,7 @@ public class FedLauncherGenerator {
     String sstAuthLaunch = "";
 
     if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      String authBase = SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "../auth";
+      String authBase = SSTGenerator.getRemoteBasePath(fileConfig, "RTI") + "/auth";
       String authCommand =
           "java -jar "
               + authBase
@@ -444,16 +445,12 @@ public class FedLauncherGenerator {
       sstAuthLaunch =
           String.join(
               "\n",
-              "# Prompt for the password before starting SST Auth",
+            "# Launch the SST Auth on remote host.",
               "echo \"Executing Auth.\"",
-              "# Launch the SST Auth on remote host.",
               "ssh " + target + " 'mkdir -p log; \\",
-              "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\" ,
-              "    if [ \"$1\" = \"-l\" ]; then \\",
-              "        " + authCommand + " >& auth.log; \\",
-              "    else \\",
-              "        " + authCommand + "; \\",
-              "    fi' &",
+              "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\",
+              "    " + authCommand + " 2>&1 | tee -a log/auth.log",
+              "' &",
               "# Store the PID of the channel to Auth",
               "AUTH=$!",
               "# Wait for Auth to boot up before starting RTI/federates",
