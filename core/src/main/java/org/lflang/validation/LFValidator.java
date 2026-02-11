@@ -1322,11 +1322,15 @@ public class LFValidator extends BaseLFValidator {
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
-    // Above generic check is not sufficient for maxwait and absent_after.
+    // Above generic check is not sufficient for maxwait, absent_after, and cores.
     if (name.equals("maxwait")) {
       checkMaxWaitAttribute(attr);
     } else if (name.equals("absent_after")) {
       checkAbsentAfterAttribute(attr);
+    } else if (name.equals("cores")) {
+      checkCoresAttribute(attr);
+    } else if (name.equals("scheduler")) {
+      checkSchedulerAttribute(attr);
     }
   }
 
@@ -1346,6 +1350,90 @@ public class LFValidator extends BaseLFValidator {
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
+    }
+  }
+
+  private void checkCoresAttribute(Attribute attr) {
+    // Check that the attribute is on an Instantiation or a Reactor (main reactor).
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
+      warning(
+          "cores attribute can only be used on a reactor or an instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    // Validate that all parameters are either ranges or integer values.
+    if (attr.getAttrParms() == null || attr.getAttrParms().isEmpty()) {
+      error("cores attribute requires at least one parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    for (var parm : attr.getAttrParms()) {
+      if (parm.getRange() != null) {
+        // Valid range parameter
+        if (parm.getRange().getLow() < 0 || parm.getRange().getHigh() < 0) {
+          error("Core IDs must be non-negative.", Literals.ATTRIBUTE__ATTR_NAME);
+        }
+        if (parm.getRange().getLow() > parm.getRange().getHigh()) {
+          error(
+              "Invalid range: low value must be less than or equal to high value.",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+      } else if (parm.getValue() != null) {
+        try {
+          int val = Integer.parseInt(parm.getValue());
+          if (val < 0) {
+            error("Core IDs must be non-negative.", Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        } catch (NumberFormatException e) {
+          error(
+              "cores attribute parameters must be integers or ranges (e.g., 0..3).",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+      } else {
+        error(
+            "cores attribute parameters must be integers or ranges (e.g., 0..3).",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+  }
+
+  private void checkSchedulerAttribute(Attribute attr) {
+    // Check that the attribute is on an Instantiation or a Reactor (main reactor).
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
+      warning(
+          "scheduler attribute can only be used on a reactor or an instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    // Validate the "platform" parameter.
+    var platformParm = attr.getAttrParms().stream()
+        .filter(p -> "platform".equals(p.getName()))
+        .findFirst()
+        .orElse(null);
+    if (platformParm != null && platformParm.getValue() != null) {
+      String platform = org.lflang.util.StringUtil.removeQuotes(platformParm.getValue());
+      if (!"posix".equalsIgnoreCase(platform)) {
+        error(
+            "Unsupported scheduler platform: \"" + platform + "\". Currently only \"posix\" is supported.",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+    // Validate the "policy" parameter.
+    var policyParm = attr.getAttrParms().stream()
+        .filter(p -> "policy".equals(p.getName()))
+        .findFirst()
+        .orElse(null);
+    if (policyParm != null && policyParm.getValue() != null) {
+      String policy = org.lflang.util.StringUtil.removeQuotes(policyParm.getValue());
+      if (!"rt-fifo".equalsIgnoreCase(policy)
+          && !"rt-rr".equalsIgnoreCase(policy)
+          && !"normal".equalsIgnoreCase(policy)) {
+        error(
+            "Unsupported scheduling policy: \"" + policy
+                + "\". Allowed values are: \"rt-fifo\", \"rt-rr\", \"normal\".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
     }
   }
 

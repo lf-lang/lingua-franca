@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
@@ -2066,6 +2067,33 @@ public class CGenerator extends GeneratorBase {
                 "LF_NUMBER_OF_CORES",
                 String.valueOf(targetConfig.get(CoresProperty.INSTANCE))));
       }
+
+      // Check for @cores attribute on the main reactor definition.
+      // This overrides the cores target property with specific core IDs.
+      if (mainDef != null) {
+        Reactor mainReactor = ASTUtils.toDefinition(mainDef.getReactorClass());
+        List<Integer> coreIds = AttributeUtils.getCores(mainReactor);
+        if (!coreIds.isEmpty()) {
+          String coreIdsInit = "{" + coreIds.stream()
+              .map(String::valueOf)
+              .collect(Collectors.joining(",")) + "}";
+          CompileDefinitionsProperty.INSTANCE.update(
+              targetConfig,
+              Map.of("LF_CORE_IDS_INIT", coreIdsInit));
+        }
+
+        // Check for @scheduler attribute on the main reactor definition.
+        // This overrides the thread-policy target property.
+        String[] scheduler = AttributeUtils.getScheduler(mainReactor);
+        if (scheduler != null) {
+          String cDefine = policyNameToCDefine(scheduler[1]);
+          if (cDefine != null) {
+            CompileDefinitionsProperty.INSTANCE.update(
+                targetConfig,
+                Map.of("LF_THREAD_POLICY", cDefine));
+          }
+        }
+      }
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
@@ -2371,6 +2399,21 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor instance to collect deadlines from.
    * @return A list of all deadlines found in this instance and its children.
    */
+  /**
+   * Map a policy name string (from the @scheduler attribute) to the corresponding C #define value.
+   *
+   * @param policyName The policy name ("rt-fifo", "rt-rr", or "normal").
+   * @return The C define string, or null if the policy name is not recognised.
+   */
+  private static String policyNameToCDefine(String policyName) {
+    return switch (policyName.toLowerCase()) {
+      case "rt-fifo" -> "LF_SCHED_PRIORITY";
+      case "rt-rr" -> "LF_SCHED_TIMESLICE";
+      case "normal" -> "LF_SCHED_FAIR";
+      default -> null;
+    };
+  }
+
   private List<TimeValue> collectAllDeadlines(ReactorInstance instance) {
     List<TimeValue> deadlines = new ArrayList<>();
 

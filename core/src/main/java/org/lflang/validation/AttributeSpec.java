@@ -275,6 +275,29 @@ public class AttributeSpec {
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
 
+    // @cores(0..3) or @cores(0, 2, 4) specify CPU cores for thread pinning.
+    // Using a custom check because the grammar's Range and multi-param list don't fit
+    // the standard named-parameter validation.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "cores",
+        new AttributeSpec(List.of()) {
+          @Override
+          public void check(LFValidator validator, Attribute attr) {
+            // Validation is done in LFValidator.checkCoresAttribute
+          }
+        });
+
+    // @scheduler(platform="posix", policy="rt-fifo") specifies the thread scheduling policy.
+    // If applied to the main reactor, it affects all federates.
+    // If applied to a specific federate instantiation, it overrides the policy for
+    // that federate only.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "scheduler",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("platform", AttrParamType.STRING, false),
+                new AttrParamSpec("policy", AttrParamType.STRING, false))));
+
     // Attributes used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // Marker for total port order (TPO) levels.

@@ -1,5 +1,6 @@
 package org.lflang;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -341,6 +342,76 @@ public class AttributeUtils {
       }
     }
     return TimeValue.ZERO;
+  }
+
+  /**
+   * Return the list of CPU core IDs specified by the `@cores` attribute of the given node.
+   * The attribute accepts either a range (e.g., `@cores(0..3)` meaning cores 0,1,2,3)
+   * or a comma-separated list of integers (e.g., `@cores(0, 2, 4)`),
+   * or a mix of both (e.g., `@cores(0..3, 6, 8..10)`).
+   *
+   * @param node The AST node (Instantiation or Reactor).
+   * @return A list of specific core IDs, or an empty list if the attribute is not present.
+   */
+  public static List<Integer> getCores(EObject node) {
+    final var attr = findAttributeByName(node, "cores");
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return List.of();
+    }
+    List<Integer> coreIds = new ArrayList<>();
+    for (AttrParm parm : attr.getAttrParms()) {
+      if (parm.getRange() != null) {
+        // Range like 0-3 → expand to 0,1,2,3
+        int low = parm.getRange().getLow();
+        int high = parm.getRange().getHigh();
+        for (int i = low; i <= high; i++) {
+          coreIds.add(i);
+        }
+      } else if (parm.getValue() != null) {
+        // Single integer like "2"
+        try {
+          coreIds.add(Integer.parseInt(parm.getValue()));
+        } catch (NumberFormatException e) {
+          // Invalid value; validation should catch this
+        }
+      }
+    }
+    return coreIds;
+  }
+
+  /**
+   * Return the thread scheduling policy specified by the `@scheduler` attribute of the given node,
+   * or null if the attribute is not present.
+   *
+   * <p>The attribute has two required parameters:
+   * <ul>
+   *   <li>{@code platform} – the target platform (currently only {@code "posix"} is supported)</li>
+   *   <li>{@code policy} – the scheduling policy name ({@code "rt-fifo"}, {@code "rt-rr"},
+   *       or {@code "normal"})</li>
+   * </ul>
+   *
+   * @param node The AST node (Instantiation or Reactor).
+   * @return A two-element String array {@code [platform, policyName]}, or null if the attribute
+   *     is not present.
+   */
+  public static String[] getScheduler(EObject node) {
+    final var attr = findAttributeByName(node, "scheduler");
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return null;
+    }
+    String platform = null;
+    String policyName = null;
+    for (AttrParm parm : attr.getAttrParms()) {
+      if ("platform".equals(parm.getName())) {
+        platform = StringUtil.removeQuotes(parm.getValue());
+      } else if ("policy".equals(parm.getName())) {
+        policyName = StringUtil.removeQuotes(parm.getValue());
+      }
+    }
+    if (platform != null && policyName != null) {
+      return new String[] {platform, policyName};
+    }
+    return null;
   }
 
   /**

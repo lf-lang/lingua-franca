@@ -234,7 +234,10 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? (value=Literal | time=Time);
+    (name=ID '=')? (value=Literal | time=Time | range=Range);
+
+Range:
+    low=INT '..' high=INT;
 
 /////////// For target parameters
 
