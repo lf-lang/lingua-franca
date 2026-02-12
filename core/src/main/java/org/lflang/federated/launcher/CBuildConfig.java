@@ -4,6 +4,7 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.generator.SSTGenerator;
+import org.lflang.federated.generator.TLSGenerator;
 import org.lflang.generator.c.CCompiler;
 import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
@@ -41,6 +42,12 @@ public class CBuildConfig extends BuildConfig {
           commandToReturn
               + " -sst "
               + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString();
+    } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+      commandToReturn +=
+          " -tls "
+          + TLSGenerator.getLocalCertPath(fileConfig, federate.name).toString()
+          + " "
+          + TLSGenerator.getLocalKeyPath(fileConfig, federate.name).toString();
     }
     return commandToReturn;
   }

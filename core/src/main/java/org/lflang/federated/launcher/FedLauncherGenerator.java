@@ -12,6 +12,7 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.generator.SSTGenerator;
+import org.lflang.federated.generator.TLSGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
@@ -375,6 +376,19 @@ public class FedLauncherGenerator {
       }
 
       commands.add("                        -sst " + sstConfigPath + " \\");
+    } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+      String certPath;
+      String keyPath;
+
+      if (isRemote) {
+        certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, "rti");
+        keyPath  = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, "rti");
+      } else {
+        certPath = TLSGenerator.getLocalCertPath(fileConfig, "rti").toString();
+        keyPath  = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
+      }
+
+      commands.add("                        -tls " + certPath + " " + keyPath + " \\");
     }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
@@ -510,6 +524,8 @@ public class FedLauncherGenerator {
     String cmakeArgs = "";
     if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       cmakeArgs = " -DCOMM_TYPE=SST";
+    } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+      cmakeArgs = " -DCOMM_TYPE=TLS";
     }
 
     // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee
@@ -637,6 +653,10 @@ public class FedLauncherGenerator {
           executeCommand
               + " -sst "
               + SSTGenerator.getSSTRemoteBasePath(fileConfig, federate.name) + federate.name+ ".config";
+    } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+      String certRemote = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, federate.name);
+      String keyRemote  = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, federate.name);
+      executeCommand += " -tls " + certRemote + " " + keyRemote;
     }
 
     return String.join(
