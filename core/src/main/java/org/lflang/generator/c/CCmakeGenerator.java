@@ -423,8 +423,13 @@ public class CCmakeGenerator {
       cMakeCode.pr("find_package(sst-lib REQUIRED)");
       cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE sst-lib::sst-c-api)");
       cMakeCode.newLine();
+    } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+      // TLS requires OpenSSL only
+      cMakeCode.pr("# Find OpenSSL for TLS support");
+      cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
+      cMakeCode.newLine();
     }
-
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
         && platformOptions.platform() != Platform.ZEPHYR
         && platformOptions.platform() != Platform.FLEXPRET
