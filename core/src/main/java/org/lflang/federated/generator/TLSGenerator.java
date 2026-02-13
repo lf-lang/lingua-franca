@@ -45,7 +45,7 @@ public class TLSGenerator {
 
   /** fed-gen/<program>/credentials */
   public static Path getLocalCredentialsRoot(FederationFileConfig fileConfig) {
-    return fileConfig.getOutPath().resolve("credentials");
+    return fileConfig.getGenPath().resolve("credentials");
   }
 
   public static Path getLocalEntityCredentialsDir(FederationFileConfig fileConfig, String entityName) {
