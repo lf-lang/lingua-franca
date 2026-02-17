@@ -2358,6 +2358,7 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "// Priority assignment function (no deadlines found)",
               "int get_priority_value(interval_t rel_deadline) {",
+              "    if (rel_deadline <= 0) return 0;",
               "    return 98;",
               "}"));
       return;
@@ -2368,6 +2369,7 @@ public class CGenerator extends GeneratorBase {
         String.join(
             "\n",
             "int get_priority_value(interval_t rel_deadline) {",
+            "  if (rel_deadline <= 0) return 0;",
             "  double d_max = " + maxDeadline + ";",
             "  double d_min = " + minDeadline + ";",
             "  double median = " + medianDeadline + ";",
