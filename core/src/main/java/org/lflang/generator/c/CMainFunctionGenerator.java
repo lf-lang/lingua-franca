@@ -2,8 +2,10 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.Reactor;
 import org.lflang.target.TargetConfig;
@@ -126,14 +128,18 @@ public class CMainFunctionGenerator {
     code.pr("for (int i = 1; i < argc; i++) {");
     code.indent();
 
-    boolean first = true;
+    code.pr("if (strcmp(argv[i], \"--help\") == 0 || strcmp(argv[i], \"-h\") == 0) {");
+    code.indent();
+    code.pr(generateHelpMessage());
+    code.pr("free(newargv);");
+    code.pr("return 0;");
+    code.unindent();
+
     for (Parameter param : cliParams) {
       var name = param.getName();
       var isTime = ASTUtils.isOfTimeType(param);
-      var prefix = first ? "if" : "} else if";
-      first = false;
 
-      code.pr(prefix + " (strcmp(argv[i], \"--" + name + "\") == 0) {");
+      code.pr("} else if (strcmp(argv[i], \"--" + name + "\") == 0) {");
       code.indent();
 
       if (isTime) {
@@ -189,6 +195,60 @@ public class CMainFunctionGenerator {
     code.pr("return ret;");
     code.unindent();
     code.pr("}");
+    return code.toString();
+  }
+
+  /**
+   * Generate the printf statements for the --help message, listing all
+   * user-defined main reactor parameters and the runtime options.
+   */
+  private String generateHelpMessage() {
+    var code = new CodeBuilder();
+    code.pr("printf(\"Usage: %s [options]\\n\\n\", argv[0]);");
+    code.pr("printf(\"Reactor Parameters:\\n\");");
+    for (Parameter param : cliParams) {
+      var name = param.getName();
+      var isTime = ASTUtils.isOfTimeType(param);
+      if (isTime) {
+        TimeValue defaultVal = ASTUtils.getDefaultAsTimeValue(param);
+        String defaultStr = (defaultVal != null) ? defaultVal.toString() : "0";
+        code.pr(
+            "printf(\"  --"
+                + name
+                + " <value> <units>\\n"
+                + "      time value (default: "
+                + defaultStr
+                + ")\\n\\n\");");
+      } else {
+        String defaultStr = "0";
+        var expr = param.getInit().getExpr();
+        if (expr instanceof Literal) {
+          defaultStr = ((Literal) expr).getLiteral();
+        }
+        code.pr(
+            "printf(\"  --"
+                + name
+                + " <value>\\n"
+                + "      int value (default: "
+                + defaultStr
+                + ")\\n\\n\");");
+      }
+    }
+    code.pr("printf(\"Runtime Options:\\n\");");
+    code.pr(
+        "printf(\"  -f, --fast <true|false>\\n"
+            + "      Whether to wait for physical time to match logical time.\\n\\n\");");
+    code.pr(
+        "printf(\"  -o, --timeout <duration> <units>\\n"
+            + "      Stop after the specified amount of logical time, where units are one of\\n"
+            + "      nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\\n\\n\");");
+    code.pr(
+        "printf(\"  -k, --keepalive <true|false>\\n"
+            + "      Whether to continue execution even when there are no events to process.\\n\\n\");");
+    code.pr(
+        "printf(\"  -w, --workers <n>\\n"
+            + "      Execute in <n> threads if possible (optional feature).\\n\\n\");");
+    code.pr("printf(\"  -h, --help\\n      Display this help message.\\n\\n\");");
     return code.toString();
   }
 
