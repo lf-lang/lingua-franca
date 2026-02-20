@@ -6,6 +6,7 @@ target C {
   timeout: 5 sec,
   fast: true
 }
+
 reactor Source(period: time = 1 sec) {
   timer t(0, period)
   output out: int
@@ -20,6 +21,7 @@ reactor Source(period: time = 1 sec) {
     printf("Total firings: %d\n", self->count);
   =}
 }
+
 reactor Print(expected: int = 6) {
   input in: int
   state count: int = 0

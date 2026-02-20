@@ -52,9 +52,9 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.Parameter;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -1976,10 +1976,8 @@ public class CGenerator extends GeneratorBase {
     if (instance.isMainOrFederated() && !cliParameters.isEmpty()) {
       for (Parameter param : cliParameters) {
         var name = param.getName();
-        initializeTriggerObjects.pr(
-            "if (_lf_cli_" + name + "_given) {");
-        initializeTriggerObjects.pr(
-            "    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        initializeTriggerObjects.pr("if (_lf_cli_" + name + "_given) {");
+        initializeTriggerObjects.pr("    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
         initializeTriggerObjects.pr("}");
       }
     }

@@ -2,9 +2,9 @@ package org.lflang.generator.c;
 
 import java.util.List;
 import org.lflang.TimeValue;
+import org.lflang.generator.TimerInstance;
 import org.lflang.lf.Expression;
 import org.lflang.lf.ParameterReference;
-import org.lflang.generator.TimerInstance;
 
 /**
  * Generates C code to declare and initialize timers.

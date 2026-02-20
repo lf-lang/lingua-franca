@@ -151,10 +151,7 @@ public class CMainFunctionGenerator {
         code.pr("}");
         code.pr("const char* time_str = argv[++i];");
         code.pr("const char* unit_str = argv[++i];");
-        code.pr(
-            "if (lf_time_parse(time_str, unit_str, &_lf_cli_"
-                + name
-                + ") != 0) {");
+        code.pr("if (lf_time_parse(time_str, unit_str, &_lf_cli_" + name + ") != 0) {");
         code.indent();
         code.pr(
             "fprintf(stderr, \"Error: invalid time value '%s %s' for --"
@@ -168,10 +165,7 @@ public class CMainFunctionGenerator {
       } else {
         code.pr("if (i + 1 >= argc) {");
         code.indent();
-        code.pr(
-            "fprintf(stderr, \"Error: --"
-                + name
-                + " needs a value.\\n\");");
+        code.pr("fprintf(stderr, \"Error: --" + name + " needs a value.\\n\");");
         code.pr("free(newargv);");
         code.pr("return 1;");
         code.unindent();
