@@ -2,7 +2,10 @@ package org.lflang.generator.c;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.Reactor;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.KeepaliveProperty;
@@ -19,13 +22,22 @@ import org.lflang.util.StringUtil;
 public class CMainFunctionGenerator {
   private TargetConfig targetConfig;
 
+  /** The main reactor definition, or null if there is no main reactor. */
+  private Reactor mainReactor;
+
   /** The command to run the generated code if specified in the target directive. */
   private List<String> runCommand;
 
-  public CMainFunctionGenerator(TargetConfig targetConfig) {
+  /** Parameters of the main reactor that can be overridden from the command line. */
+  private List<Parameter> cliParams;
+
+  public CMainFunctionGenerator(TargetConfig targetConfig, Reactor mainReactor) {
     this.targetConfig = targetConfig;
+    this.mainReactor = mainReactor;
     runCommand = new ArrayList<>();
+    cliParams = new ArrayList<>();
     parseTargetParameters();
+    collectCliParameters();
   }
 
   /**
@@ -36,6 +48,7 @@ public class CMainFunctionGenerator {
    */
   public String generateCode() {
     CodeBuilder code = new CodeBuilder();
+    code.pr(generateCliGlobals());
     code.pr(generateMainFunction());
     code.pr(generateSetDefaultCliOption());
     return code.toString();
@@ -86,11 +99,146 @@ public class CMainFunctionGenerator {
         return String.join("\n", "int main(void) {", "   return lf_reactor_c_main(0, NULL);", "}");
       }
       default -> {
-        return String.join(
-            "\n",
-            "int main(int argc, const char* argv[]) {",
-            "    return lf_reactor_c_main(argc, argv);",
-            "}");
+        if (cliParams.isEmpty()) {
+          return String.join(
+              "\n",
+              "int main(int argc, const char* argv[]) {",
+              "    return lf_reactor_c_main(argc, argv);",
+              "}");
+        }
+        return generateMainWithCliParsing();
+      }
+    }
+  }
+
+  /**
+   * Generate a main() function that pre-processes command-line arguments to extract
+   * user-defined main reactor parameters before forwarding the remaining arguments
+   * to lf_reactor_c_main().
+   */
+  private String generateMainWithCliParsing() {
+    var code = new CodeBuilder();
+    code.pr("int main(int argc, const char* argv[]) {");
+    code.indent();
+    code.pr("const char** newargv = (const char**)malloc(argc * sizeof(const char*));");
+    code.pr("int newargc = 0;");
+    code.pr("newargv[newargc++] = argv[0];");
+    code.pr("for (int i = 1; i < argc; i++) {");
+    code.indent();
+
+    boolean first = true;
+    for (Parameter param : cliParams) {
+      var name = param.getName();
+      var isTime = ASTUtils.isOfTimeType(param);
+      var prefix = first ? "if" : "} else if";
+      first = false;
+
+      code.pr(prefix + " (strcmp(argv[i], \"--" + name + "\") == 0) {");
+      code.indent();
+
+      if (isTime) {
+        code.pr("if (i + 2 >= argc) {");
+        code.indent();
+        code.pr(
+            "fprintf(stderr, \"Error: --"
+                + name
+                + " needs a time value and units (e.g., --"
+                + name
+                + " 500 msec).\\n\");");
+        code.pr("free(newargv);");
+        code.pr("return 1;");
+        code.unindent();
+        code.pr("}");
+        code.pr("const char* time_str = argv[++i];");
+        code.pr("const char* unit_str = argv[++i];");
+        code.pr(
+            "if (lf_time_parse(time_str, unit_str, &_lf_cli_"
+                + name
+                + ") != 0) {");
+        code.indent();
+        code.pr(
+            "fprintf(stderr, \"Error: invalid time value '%s %s' for --"
+                + name
+                + ".\\n\", time_str, unit_str);");
+        code.pr("free(newargv);");
+        code.pr("return 1;");
+        code.unindent();
+        code.pr("}");
+        code.pr("_lf_cli_" + name + "_given = true;");
+      } else {
+        code.pr("if (i + 1 >= argc) {");
+        code.indent();
+        code.pr(
+            "fprintf(stderr, \"Error: --"
+                + name
+                + " needs a value.\\n\");");
+        code.pr("free(newargv);");
+        code.pr("return 1;");
+        code.unindent();
+        code.pr("}");
+        code.pr("_lf_cli_" + name + " = atoi(argv[++i]);");
+        code.pr("_lf_cli_" + name + "_given = true;");
+      }
+
+      code.unindent();
+    }
+    code.pr("} else {");
+    code.indent();
+    code.pr("newargv[newargc++] = argv[i];");
+    code.unindent();
+    code.pr("}");
+
+    code.unindent();
+    code.pr("}");
+    code.pr("int ret = lf_reactor_c_main(newargc, newargv);");
+    code.pr("free(newargv);");
+    code.pr("return ret;");
+    code.unindent();
+    code.pr("}");
+    return code.toString();
+  }
+
+  /**
+   * Generate global variable declarations for CLI parameter overrides,
+   * along with the necessary #include directives.
+   */
+  private String generateCliGlobals() {
+    if (cliParams.isEmpty()) {
+      return "";
+    }
+    var code = new CodeBuilder();
+    code.pr("#include <string.h>");
+    code.pr("#include <stdlib.h>");
+    code.pr("#include <stdio.h>");
+    for (Parameter param : cliParams) {
+      var name = param.getName();
+      var isTime = ASTUtils.isOfTimeType(param);
+      if (isTime) {
+        code.pr("interval_t _lf_cli_" + name + ";");
+      } else {
+        code.pr("int _lf_cli_" + name + ";");
+      }
+      code.pr("bool _lf_cli_" + name + "_given = false;");
+    }
+    return code.toString();
+  }
+
+  /**
+   * Collect main reactor parameters that can be overridden from the command line.
+   * Currently supports parameters of type 'time' and 'int'.
+   */
+  private void collectCliParameters() {
+    if (mainReactor == null) {
+      return;
+    }
+    for (Parameter param : ASTUtils.allParameters(mainReactor)) {
+      if (ASTUtils.isOfTimeType(param)) {
+        cliParams.add(param);
+      } else if (param.getType() != null && !param.getType().isTime()) {
+        var baseType = ASTUtils.baseType(param.getType());
+        if ("int".equals(baseType)) {
+          cliParams.add(param);
+        }
       }
     }
   }
@@ -114,6 +262,11 @@ public class CMainFunctionGenerator {
             "        default_argv = _lf_default_argv;",
             "}")
         : "void lf_set_default_command_line_options() {}";
+  }
+
+  /** Return the list of main reactor parameters that can be overridden from the command line. */
+  public List<Parameter> getCliParameters() {
+    return cliParams;
   }
 
   /** Parse the target parameters and set flags to the runCommand accordingly. */

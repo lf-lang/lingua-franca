@@ -52,6 +52,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Parameter;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Port;
@@ -295,6 +296,9 @@ public class CGenerator extends GeneratorBase {
 
   /** A code-generator for enclave-specific code, */
   private CEnclaveGenerator enclaveGenerator;
+
+  /** Main reactor parameters that can be overridden from the command line. */
+  private List<Parameter> cliParameters = new ArrayList<>();
 
   /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
   private final CEnclavedReactorTransformation enclaveAST;
@@ -563,7 +567,11 @@ public class CGenerator extends GeneratorBase {
 
   private void generateCodeFor(String lfModuleName) throws IOException {
     code.pr(generateDirectives());
-    code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
+    Reactor mainReactorClass =
+        mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
+    var mainFunctionGenerator = new CMainFunctionGenerator(targetConfig, mainReactorClass);
+    code.pr(mainFunctionGenerator.generateCode());
+    this.cliParameters = mainFunctionGenerator.getCliParameters();
     // Generate code for each reactor.
     generateReactorDefinitions();
     copyUserFiles(targetConfig, fileConfig);
@@ -1962,6 +1970,17 @@ public class CGenerator extends GeneratorBase {
       } else {
         initializeTriggerObjects.pr(
             selfRef + "->" + parameter.getName() + " = " + initializer + ";");
+      }
+    }
+    // For the main reactor, override parameters with command-line values if given.
+    if (instance.isMainOrFederated() && !cliParameters.isEmpty()) {
+      for (Parameter param : cliParameters) {
+        var name = param.getName();
+        initializeTriggerObjects.pr(
+            "if (_lf_cli_" + name + "_given) {");
+        initializeTriggerObjects.pr(
+            "    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        initializeTriggerObjects.pr("}");
       }
     }
   }
