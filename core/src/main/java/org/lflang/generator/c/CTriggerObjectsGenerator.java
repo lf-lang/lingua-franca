@@ -10,6 +10,7 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 import static org.lflang.util.StringUtil.joinObjects;
 
 import com.google.common.collect.Iterables;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -401,7 +402,9 @@ public class CTriggerObjectsGenerator {
         // really necessary.
         var mod = (dst.isMultiport() || (src.isInput() && src.isMultiport())) ? "" : "&";
         code.pr("// Connect " + srcRange + " to port " + dstRange);
-        code.startScopedRangeBlock(srcRange, dstRange);
+        var srcWidthExpr = CPortGenerator.getParameterWidthExpr(srcRange.instance);
+        var dstWidthExpr = CPortGenerator.getParameterWidthExpr(dstRange.instance);
+        code.startScopedRangeBlock(srcRange, dstRange, srcWidthExpr, dstWidthExpr);
         if (src.isInput()) {
           // Source port is written to by reaction in port's parent's parent
           // and ultimate destination is further downstream.
@@ -440,7 +443,7 @@ public class CTriggerObjectsGenerator {
             code.pr(CUtil.portRef(dst, dr, db, dc) + "->destination_channel = " + dc + ";");
           }
         }
-        code.endScopedRangeBlock(srcRange, dstRange);
+        code.endScopedRangeBlock(srcRange, dstRange, srcWidthExpr, dstWidthExpr);
       }
     }
     return code.toString();
@@ -584,7 +587,8 @@ public class CTriggerObjectsGenerator {
         // so that we can simultaneously calculate the size of the total array.
         for (SendRange srcRange : port.eventualDestinations()) {
           var srcNested = port.isInput();
-          code.startScopedRangeBlock(srcRange, sr, sb, sc, srcNested);
+          var srcWidthExpr = CPortGenerator.getParameterWidthExpr(srcRange.instance);
+          code.startScopedRangeBlock(srcRange, sr, sb, sc, srcNested, srcWidthExpr);
 
           var triggerArray =
               CUtil.reactionRef(reaction, sr) + ".triggers[triggers_index[" + sr + "]++]";
@@ -615,7 +619,7 @@ public class CTriggerObjectsGenerator {
                   "        " + srcRange.destinations.size() + ", sizeof(trigger_t*),",
                   "        &" + reactorSelfStruct + "->base.allocations); ",
                   triggerArray + " = trigger_array;"));
-          code.endScopedRangeBlock(srcRange);
+          code.endScopedRangeBlock(srcRange, srcWidthExpr);
         }
       }
       var cumulativePortWidth = 0;
@@ -635,7 +639,9 @@ public class CTriggerObjectsGenerator {
           for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
             var dst = dstRange.instance;
 
-            code.startScopedRangeBlock(srcRange, dstRange);
+            var srcWidthExpr2 = CPortGenerator.getParameterWidthExpr(srcRange.instance);
+            var dstWidthExpr2 = CPortGenerator.getParameterWidthExpr(dstRange.instance);
+            code.startScopedRangeBlock(srcRange, dstRange, srcWidthExpr2, dstWidthExpr2);
 
             // If the source is nested, need to take into account the parent's bank index
             // when indexing into the triggers array.
@@ -699,7 +705,7 @@ public class CTriggerObjectsGenerator {
                           + CUtil.triggerRef(dst, dr)
                           + ";"));
             }
-            code.endScopedRangeBlock(srcRange, dstRange);
+            code.endScopedRangeBlock(srcRange, dstRange, srcWidthExpr2, dstWidthExpr2);
             multicastCount++;
           }
         }
@@ -748,7 +754,9 @@ public class CTriggerObjectsGenerator {
                   + ".");
           // The input port may itself have multiple destinations.
           for (SendRange sendingRange : port.eventualDestinations()) {
-            code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
+            var sendWidthExpr = CPortGenerator.getParameterWidthExpr(sendingRange.instance);
+            code.startScopedRangeBlock(
+                sendingRange, sr, sb, sc, sendingRange.instance.isInput(), sendWidthExpr);
             // Syntax is slightly different for a multiport output vs. single port.
             var connector = (port.isMultiport()) ? "->" : ".";
             code.pr(
@@ -785,7 +793,7 @@ public class CTriggerObjectsGenerator {
               code.endChannelIteration(port);
             }
 
-            code.endScopedRangeBlock(sendingRange);
+            code.endScopedRangeBlock(sendingRange, sendWidthExpr);
           }
         }
       }
@@ -814,7 +822,9 @@ public class CTriggerObjectsGenerator {
             "// For reference counting, set num_destinations for port "
                 + output.getFullName()
                 + ".");
-        code.startScopedRangeBlock(sendingRange, sr, sb, sc, sendingRange.instance.isInput());
+        var outWidthExpr = CPortGenerator.getParameterWidthExpr(sendingRange.instance);
+        code.startScopedRangeBlock(
+            sendingRange, sr, sb, sc, sendingRange.instance.isInput(), outWidthExpr);
         code.pr(
             CUtil.portRef(output, sr, sb, sc)
                 + "._base.num_destinations = "
@@ -825,7 +835,7 @@ public class CTriggerObjectsGenerator {
                 + "._base.source_reactor = (self_base_t*)"
                 + CUtil.reactorRef(reactor, sr)
                 + ";");
-        code.endScopedRangeBlock(sendingRange);
+        code.endScopedRangeBlock(sendingRange, outWidthExpr);
       }
 
       if (output.eventualDestinations().size() == 0) {
@@ -946,6 +956,8 @@ public class CTriggerObjectsGenerator {
     // These statements must be inserted after the array is malloc'd,
     // but we construct them while we are counting outputs.
     var outputCount = 0;
+    // Build a C expression for the output count when parameter-based widths are involved.
+    var outputCountExprParts = new ArrayList<String>();
     var init = new CodeBuilder();
 
     init.startScopedBlock();
@@ -978,16 +990,26 @@ public class CTriggerObjectsGenerator {
         var connector = ".";
         if (effect.isInput()) connector = "->";
 
+        var effectWidthExpr = CPortGenerator.getParameterWidthExpr(effect);
+        var effectWidthStr = (effectWidthExpr != null)
+            ? effectWidthExpr : String.valueOf(effect.getWidth());
+
         // Point the output_produced field to where the is_present field of the port is.
         init.pr(
             String.join(
                 "\n",
-                "for (int i = 0; i < " + effect.getWidth() + "; i++) {",
+                "for (int i = 0; i < " + effectWidthStr + "; i++) {",
                 "    " + CUtil.reactionRef(reaction) + ".output_produced[i + count]",
                 "            = &" + portRef + "[i]" + connector + "is_present;",
                 "}",
-                "count += " + effect.getWidth() + ";"));
+                "count += " + effectWidthStr + ";"));
         outputCount += effect.getWidth() * bankWidth;
+        if (effectWidthExpr != null) {
+          outputCountExprParts.add(
+              bankWidth > 1 ? effectWidthExpr + " * " + bankWidth : effectWidthExpr);
+        } else {
+          outputCountExprParts.add(String.valueOf(effect.getWidth() * bankWidth));
+        }
       } else {
         // The effect is not a multiport.
         init.pr(
@@ -996,16 +1018,25 @@ public class CTriggerObjectsGenerator {
                 + portRef
                 + ".is_present;");
         outputCount += bankWidth;
+        outputCountExprParts.add(String.valueOf(bankWidth));
       }
       init.endScopedBlock();
     }
     init.endScopedBlock();
+
+    // Use the C expression if any part is parameter-based; otherwise use the literal.
+    var hasParamWidth = outputCountExprParts.stream().anyMatch(
+        p -> !p.matches("\\d+"));
+    var outputCountStr = hasParamWidth
+        ? String.join(" + ", outputCountExprParts)
+        : String.valueOf(outputCount);
+
     code.pr(
         String.join(
             "\n",
             "// Total number of outputs (single ports and multiport channels)",
             "// produced by " + reaction + ".",
-            CUtil.reactionRef(reaction) + ".num_outputs = " + outputCount + ";"));
+            CUtil.reactionRef(reaction) + ".num_outputs = " + outputCountStr + ";"));
     if (outputCount > 0) {
       code.pr(
           String.join(
@@ -1013,13 +1044,13 @@ public class CTriggerObjectsGenerator {
               "// Allocate memory for triggers[] and triggered_sizes[] on the reaction_t",
               "// struct for this reaction.",
               CUtil.reactionRef(reaction) + ".triggers = (trigger_t***)lf_allocate(",
-              "        " + outputCount + ", sizeof(trigger_t**),",
+              "        " + outputCountStr + ", sizeof(trigger_t**),",
               "        &" + reactorSelfStruct + "->base.allocations);",
               CUtil.reactionRef(reaction) + ".triggered_sizes = (int*)lf_allocate(",
-              "        " + outputCount + ", sizeof(int),",
+              "        " + outputCountStr + ", sizeof(int),",
               "        &" + reactorSelfStruct + "->base.allocations);",
               CUtil.reactionRef(reaction) + ".output_produced = (bool**)lf_allocate(",
-              "        " + outputCount + ", sizeof(bool*),",
+              "        " + outputCountStr + ", sizeof(bool*),",
               "        &" + reactorSelfStruct + "->base.allocations);"));
     }
 

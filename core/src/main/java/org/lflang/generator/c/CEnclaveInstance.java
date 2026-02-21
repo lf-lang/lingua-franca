@@ -11,6 +11,7 @@ import org.lflang.generator.ReactorInstance;
  */
 public class CEnclaveInstance {
   public int numIsPresentFields = 0;
+  public String numIsPresentFieldsExpr = null;
   public int numStartupReactions = 0;
   public int numShutdownReactions = 0;
   public int numTimerTriggers = 0;

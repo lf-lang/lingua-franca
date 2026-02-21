@@ -11,6 +11,8 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Port;
 import org.lflang.lf.ReactorDecl;
+import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 
 /**
@@ -95,18 +97,19 @@ public class CPortGenerator {
    */
   public static String initializeInputMultiport(PortInstance input, String reactorSelfStruct) {
     var portRefName = CUtil.portRefName(input);
+    var widthExpr = getWidthExpr(input, reactorSelfStruct);
     // If the port is a multiport, create an array.
     if (input.isMultiport()) {
       String result =
           String.join(
               "\n",
-              portRefName + "_width = " + input.getWidth() + ";",
+              portRefName + "_width = " + widthExpr + ";",
               "// Allocate memory for multiport inputs.",
               portRefName + " = (" + variableStructType(input) + "**)lf_allocate(",
-              "        " + input.getWidth() + ", sizeof(" + variableStructType(input) + "*),",
+              "        " + widthExpr + ", sizeof(" + variableStructType(input) + "*),",
               "        &" + reactorSelfStruct + "->base.allocations); ",
               "// Set inputs by default to an always absent default input.",
-              "for (int i = 0; i < " + input.getWidth() + "; i++) {",
+              "for (int i = 0; i < " + widthExpr + "; i++) {",
               "    "
                   + portRefName
                   + "[i] = &"
@@ -119,16 +122,16 @@ public class CPortGenerator {
         return String.join(
             "\n",
             result,
-            "if (" + input.getWidth() + " >= LF_SPARSE_WIDTH_THRESHOLD) {",
+            "if (" + widthExpr + " >= LF_SPARSE_WIDTH_THRESHOLD) {",
             "    " + portRefName + "__sparse = (lf_sparse_io_record_t*)lf_allocate(1,",
             "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "
-                + input.getWidth()
+                + widthExpr
                 + "/LF_SPARSE_CAPACITY_DIVIDER,",
             "            &" + reactorSelfStruct + "->base.allocations);",
             "    "
                 + portRefName
                 + "__sparse->capacity = "
-                + input.getWidth()
+                + widthExpr
                 + "/LF_SPARSE_CAPACITY_DIVIDER;",
             "    if (sparse_io_record_sizes.start == NULL) {",
             "        sparse_io_record_sizes = vector_new(1);",
@@ -156,6 +159,7 @@ public class CPortGenerator {
       PortInstance output, String reactorSelfStruct, CTypes types) {
     var portRefName = CUtil.portRefName(output);
     var portStructType = variableStructType(output);
+    var widthExpr = getWidthExpr(output, reactorSelfStruct);
 
     // To support generics, we have to do a song and dance here.
     var type = output.getParent().tpr.resolveType(ASTUtils.getInferredType(output.getDefinition()));
@@ -169,17 +173,17 @@ public class CPortGenerator {
     return output.isMultiport()
         ? String.join(
             "\n",
-            portRefName + "_width = " + output.getWidth() + ";",
+            portRefName + "_width = " + widthExpr + ";",
             "// Allocate memory for multiport output.",
             portRefName + " = (" + portStructType + "*)lf_allocate(",
-            "        " + output.getWidth() + ", sizeof(" + portStructType + "),",
+            "        " + widthExpr + ", sizeof(" + portStructType + "),",
             "        &" + reactorSelfStruct + "->base.allocations); ",
             portRefName + "_pointers = (" + portStructType + "**)lf_allocate(",
-            "        " + output.getWidth() + ", sizeof(" + portStructType + "*),",
+            "        " + widthExpr + ", sizeof(" + portStructType + "*),",
             "        &" + reactorSelfStruct + "->base.allocations); ",
             "// Assign each output port pointer to be used in",
             "// reactions to facilitate user access to output ports",
-            "for(int i=0; i < " + output.getWidth() + "; i++) {",
+            "for(int i=0; i < " + widthExpr + "; i++) {",
             isFixedSizeArrayType
                 ? "        " + portRefName + "[i].type.element_size = " + elementSize + ";"
                 : "",
@@ -314,5 +318,40 @@ public class CPortGenerator {
                 "int _lf_" + outputName + "_width;"));
       }
     }
+  }
+
+  /**
+   * Return a C expression for the width of a multiport. If the port's width spec
+   * is a single parameter reference, return a reference to that parameter on the
+   * self struct so that runtime overrides take effect. Otherwise, return the
+   * resolved integer width as a literal.
+   */
+  private static String getWidthExpr(PortInstance port, String reactorSelfStruct) {
+    WidthSpec widthSpec = port.getDefinition().getWidthSpec();
+    if (widthSpec != null && widthSpec.getTerms().size() == 1) {
+      WidthTerm term = widthSpec.getTerms().get(0);
+      if (term.getParameter() != null) {
+        return reactorSelfStruct + "->" + term.getParameter().getName();
+      }
+    }
+    return String.valueOf(port.getWidth());
+  }
+
+  /**
+   * Return a C expression for the width of a multiport, using the port's parent
+   * reactor to derive the self struct reference. Uses bank index 0 since all bank
+   * members share the same parameter-based width.
+   *
+   * @return A C expression string, or null if the width is not parameter-based.
+   */
+  public static String getParameterWidthExpr(PortInstance port) {
+    WidthSpec widthSpec = port.getDefinition().getWidthSpec();
+    if (widthSpec != null && widthSpec.getTerms().size() == 1) {
+      WidthTerm term = widthSpec.getTerms().get(0);
+      if (term.getParameter() != null) {
+        return CUtil.reactorRefName(port.getParent()) + "[0]->" + term.getParameter().getName();
+      }
+    }
+    return null;
   }
 }

@@ -224,7 +224,9 @@ public class CEnclaveGenerator {
               + ","
               + enclave.numResetReactions
               + ","
-              + enclave.numIsPresentFields
+              + (enclave.numIsPresentFieldsExpr != null
+                  ? enclave.numIsPresentFieldsExpr
+                  : String.valueOf(enclave.numIsPresentFields))
               + ","
               + enclave.numModalReactors
               + ","

@@ -1583,25 +1583,38 @@ public class CGenerator extends GeneratorBase {
         temp.startScopedBlock(child);
 
         // Need to find the total number of channels over all output ports of the child before
-        // generating the
-        // iteration.
+        // generating the iteration. Use C expressions for parameter-based widths.
         var totalChannelCount = 0;
+        var totalChannelCountParts = new java.util.ArrayList<String>();
         for (PortInstance output : child.outputs) {
           if (!output.getDependsOnReactions().isEmpty()) {
             totalChannelCount += output.getWidth();
+            var paramExpr = CPortGenerator.getParameterWidthExpr(output);
+            totalChannelCountParts.add(
+                (paramExpr != null) ? paramExpr : String.valueOf(output.getWidth()));
           }
         }
+        var hasParamChannelWidth = totalChannelCountParts.stream()
+            .anyMatch(p -> !p.matches("\\d+"));
+        var totalChannelCountExpr = hasParamChannelWidth
+            ? String.join(" + ", totalChannelCountParts)
+            : String.valueOf(totalChannelCount);
+
         for (PortInstance output : child.outputs) {
           if (!output.getDependsOnReactions().isEmpty()) {
             foundOne = true;
             temp.pr(
                 "// Add output port " + output.getFullName() + " to array of is_present fields.");
-            temp.startChannelIteration(output);
+            var channelWidthExpr = CPortGenerator.getParameterWidthExpr(output);
+            temp.startChannelIteration(output, channelWidthExpr);
+            var indexMultiplier = hasParamChannelWidth
+                ? totalChannelCountExpr + " * " + child.getWidth()
+                : String.valueOf(totalChannelCount * child.getWidth());
             var indexString =
                 "("
                     + CUtil.runtimeIndex(instance)
                     + ") * "
-                    + totalChannelCount * child.getWidth()
+                    + indexMultiplier
                     + " + "
                     + instance.containingEnclave.numIsPresentFields
                     + " + count";
@@ -1637,6 +1650,12 @@ public class CGenerator extends GeneratorBase {
         temp.endScopedBlock();
         temp.endScopedBlock();
         instance.containingEnclave.numIsPresentFields += totalChannelCount * child.getTotalWidth();
+        if (hasParamChannelWidth) {
+          var currentExpr = instance.containingEnclave.numIsPresentFieldsExpr;
+          var newPart = totalChannelCountExpr + " * " + child.getTotalWidth();
+          instance.containingEnclave.numIsPresentFieldsExpr =
+              (currentExpr != null) ? currentExpr + " + " + newPart : newPart;
+        }
       }
     }
     if (foundOne) startTimeStep.pr(temp.toString());

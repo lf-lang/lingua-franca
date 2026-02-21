@@ -1,0 +1,41 @@
+// Test that main reactor parameters propagate to child reactor deadlines.
+// Also tests command-line override of parameters.
+// Default: execution_time=100ms, deadline_time=50ms -> violation occurs -> expect_violation=1.
+// CLI test: --execution_time 10 msec --deadline_time 200 msec --expect_violation 0
+//   -> no violation -> expect_violation=0.
+target C
+
+reactor Source(width: int = 2) {
+  output[width] out: int
+
+  reaction(startup) -> out {=
+    int count = 0;
+    for (int i = 0; i < out_width; i++) {
+      lf_set(out[i], count++);
+    }
+  =}
+}
+
+reactor Print(width: int = 2) {
+  input[width] in: int
+  reaction(in) {=
+    int count = 0;
+    for (int i = 0; i < in_width; i++) {
+      lf_print("Received %d on channel %d.", in[i]->value, i);
+      if (in[i]->value != count++) {
+        lf_print_error_and_exit("Expected %d on channel %d, but got %d.",
+          count, i, in[i]->value);
+      }
+    }
+    if (count != self->width) {
+      lf_print_error_and_exit("Expected to receive %d inputs, but only got %d.",
+        self->width, count);
+    }
+  =}
+}
+
+main reactor CommandLineMultiport(width: int = 2) {
+  s = new Source(width=width)
+  p = new Print(width=width)
+  s.out -> p.in
+}

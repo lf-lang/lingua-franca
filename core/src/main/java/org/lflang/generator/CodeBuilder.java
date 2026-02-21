@@ -5,6 +5,7 @@ import static org.lflang.util.StringUtil.joinObjects;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import org.eclipse.emf.common.CommonPlugin;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
@@ -216,8 +217,13 @@ public class CodeBuilder {
    * @param port The port.
    */
   public void startChannelIteration(PortInstance port) {
+    startChannelIteration(port, null);
+  }
+
+  public void startChannelIteration(PortInstance port, String widthExpr) {
     if (port.isMultiport) {
       var channel = CUtil.channelIndexName(port);
+      var effectiveWidth = (widthExpr != null) ? widthExpr : String.valueOf(port.width);
       pr("// Port " + port.getFullName() + " is a multiport. Iterate over its channels.");
       pr(
           "for (int "
@@ -225,7 +231,7 @@ public class CodeBuilder {
               + " = 0; "
               + channel
               + " < "
-              + port.width
+              + effectiveWidth
               + "; "
               + channel
               + "++) {");
@@ -284,6 +290,20 @@ public class CodeBuilder {
       String bankIndex,
       String channelIndex,
       boolean nested) {
+    startScopedRangeBlock(range, runtimeIndex, bankIndex, channelIndex, nested, null);
+  }
+
+  /**
+   * Overload that accepts an optional widthExpr to replace the compile-time width
+   * in generated C code with a runtime expression (e.g., self->param_name).
+   */
+  public void startScopedRangeBlock(
+      RuntimeRange<PortInstance> range,
+      String runtimeIndex,
+      String bankIndex,
+      String channelIndex,
+      boolean nested,
+      String widthExpr) {
 
     pr("// Iterate over range " + range.toString() + ".");
     var ri = (runtimeIndex == null) ? "runtime_index" : runtimeIndex;
@@ -292,14 +312,24 @@ public class CodeBuilder {
     var rangeMR = range.startMR();
     var sizeMR = rangeMR.getDigits().size();
     var nestedLevel = (nested) ? 2 : 1;
+    var effectiveWidth = (widthExpr != null) ? widthExpr : String.valueOf(range.width);
 
     startScopedBlock();
-    if (range.width > 1) {
+    if (range.width > 1 || widthExpr != null) {
+      // Build radixes string, replacing the first radix (channel width) if widthExpr is given.
+      String radixesStr;
+      if (widthExpr != null && !rangeMR.getRadixes().isEmpty()) {
+        var radixes = new ArrayList<>(rangeMR.getRadixes());
+        var rest = radixes.subList(1, radixes.size());
+        radixesStr = widthExpr + (rest.isEmpty() ? "" : ", " + joinObjects(rest, ", "));
+      } else {
+        radixesStr = joinObjects(rangeMR.getRadixes(), ", ");
+      }
       pr(
           String.join(
               "\n",
               "int range_start[] =  { " + joinObjects(rangeMR.getDigits(), ", ") + " };",
-              "int range_radixes[] = { " + joinObjects(rangeMR.getRadixes(), ", ") + " };",
+              "int range_radixes[] = { " + radixesStr + " };",
               "int permutation[] = { " + joinObjects(range.permutation(), ", ") + " };",
               "mixed_radix_int_t range_mr = {",
               "    " + sizeMR + ",",
@@ -312,7 +342,7 @@ public class CodeBuilder {
                   + "; range_count < "
                   + range.start
                   + " + "
-                  + range.width
+                  + effectiveWidth
                   + "; range_count++) {"));
       indent();
       pr(
@@ -394,6 +424,17 @@ public class CodeBuilder {
    * @param dstRange The destination range.
    */
   public void startScopedRangeBlock(SendRange srcRange, RuntimeRange<PortInstance> dstRange) {
+    startScopedRangeBlock(srcRange, dstRange, null, null);
+  }
+
+  /**
+   * Overload that accepts optional width expressions for source and destination ranges.
+   */
+  public void startScopedRangeBlock(
+      SendRange srcRange,
+      RuntimeRange<PortInstance> dstRange,
+      String srcWidthExpr,
+      String dstWidthExpr) {
     var srcRangeMR = srcRange.startMR();
     var srcSizeMR = srcRangeMR.getRadixes().size();
     var srcNestedLevel = (srcRange.instance.isInput()) ? 2 : 1;
@@ -401,7 +442,16 @@ public class CodeBuilder {
 
     pr("// Iterate over ranges " + srcRange + " and " + dstRange + ".");
     startScopedBlock();
-    if (srcRange.width > 1) {
+    if (srcRange.width > 1 || srcWidthExpr != null) {
+      // Build src radixes string, replacing the first radix if srcWidthExpr is given.
+      String srcRadixesStr;
+      if (srcWidthExpr != null && !srcRangeMR.getRadixes().isEmpty()) {
+        var radixes = new ArrayList<>(srcRangeMR.getRadixes());
+        var rest = radixes.subList(1, radixes.size());
+        srcRadixesStr = srcWidthExpr + (rest.isEmpty() ? "" : ", " + joinObjects(rest, ", "));
+      } else {
+        srcRadixesStr = joinObjects(srcRangeMR.getRadixes(), ", ");
+      }
       pr(
           String.join(
               "\n",
@@ -409,7 +459,7 @@ public class CodeBuilder {
               "int src_value[] =  { "
                   + joinObjects(srcRangeMR.getDigits(), ", ")
                   + " }; // Will be incremented.",
-              "int src_radixes[] = { " + joinObjects(srcRangeMR.getRadixes(), ", ") + " };",
+              "int src_radixes[] = { " + srcRadixesStr + " };",
               "int src_permutation[] = { " + joinObjects(srcRange.permutation(), ", ") + " };",
               "mixed_radix_int_t src_range_mr = {",
               "    " + srcSizeMR + ",",
@@ -432,9 +482,9 @@ public class CodeBuilder {
               "SUPPRESS_UNUSED_WARNING(" + sb + ");"));
     }
 
-    startScopedRangeBlock(dstRange, dr, db, dc, dstNested);
+    startScopedRangeBlock(dstRange, dr, db, dc, dstNested, dstWidthExpr);
 
-    if (srcRange.width > 1) {
+    if (srcRange.width > 1 || srcWidthExpr != null) {
       pr(
           String.join(
               "\n",
@@ -498,7 +548,11 @@ public class CodeBuilder {
    * @param range The send range.
    */
   public void endScopedRangeBlock(RuntimeRange<PortInstance> range) {
-    if (range.width > 1) {
+    endScopedRangeBlock(range, null);
+  }
+
+  public void endScopedRangeBlock(RuntimeRange<PortInstance> range, String widthExpr) {
+    if (range.width > 1 || widthExpr != null) {
       pr("mixed_radix_incr(&range_mr);");
       endScopedBlock(); // Terminate for loop.
     }
@@ -512,7 +566,20 @@ public class CodeBuilder {
    * @param dstRange The destination range.
    */
   public void endScopedRangeBlock(SendRange srcRange, RuntimeRange<PortInstance> dstRange) {
-    if (srcRange.width > 1) {
+    endScopedRangeBlock(srcRange, dstRange, null, null);
+  }
+
+  /**
+   * Overload that accepts optional width expressions for the wrap-around check.
+   */
+  public void endScopedRangeBlock(
+      SendRange srcRange,
+      RuntimeRange<PortInstance> dstRange,
+      String srcWidthExpr,
+      String dstWidthExpr) {
+    var effectiveSrcWidth =
+        (srcWidthExpr != null) ? srcWidthExpr : String.valueOf(srcRange.width);
+    if (srcRange.width > 1 || srcWidthExpr != null) {
       pr(
           String.join(
               "\n",
@@ -520,7 +587,7 @@ public class CodeBuilder {
               "if (mixed_radix_to_int(&src_range_mr) >= "
                   + srcRange.start
                   + " + "
-                  + srcRange.width
+                  + effectiveSrcWidth
                   + ") {",
               "    // Start over with the source.",
               "    for (int i = 0; i < src_range_mr.size; i++) {",
@@ -528,7 +595,7 @@ public class CodeBuilder {
               "    }",
               "}"));
     }
-    if (dstRange.width > 1) {
+    if (dstRange.width > 1 || dstWidthExpr != null) {
       pr("mixed_radix_incr(&range_mr);");
       endScopedBlock(); // Terminate for loop.
     }
