@@ -55,8 +55,16 @@ public class CCliTest extends TestBase {
    */
   @Test
   public void testCommandLineDeadlineOverride() {
-    cliArgs = List.of("--execution_time", "10", "msec", "--deadline_time", "500", "msec",
-        "--expect_violation", "0");
+    cliArgs =
+        List.of(
+            "--execution_time",
+            "10",
+            "msec",
+            "--deadline_time",
+            "500",
+            "msec",
+            "--expect_violation",
+            "0");
     Path testFile = Path.of("test/C/src/CommandLineDeadline.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);

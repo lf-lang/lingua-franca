@@ -1894,7 +1894,12 @@ public class CGenerator extends GeneratorBase {
         if (delayExpr instanceof ParameterReference paramRef) {
           var reactorRef = CUtil.reactorRef(reaction.getParent());
           initializeTriggerObjects.pr(
-              selfRef + ".deadline = " + reactorRef + "->" + paramRef.getParameter().getName() + ";");
+              selfRef
+                  + ".deadline = "
+                  + reactorRef
+                  + "->"
+                  + paramRef.getParameter().getName()
+                  + ";");
         } else {
           var deadline = reaction.declaredDeadline.maxDelay;
           initializeTriggerObjects.pr(

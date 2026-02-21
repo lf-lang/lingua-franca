@@ -1,13 +1,23 @@
 package org.lflang.generator.c;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Assignment;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Literal;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.WidthSpec;
+import org.lflang.lf.WidthTerm;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.KeepaliveProperty;
@@ -33,13 +43,18 @@ public class CMainFunctionGenerator {
   /** Parameters of the main reactor that can be overridden from the command line. */
   private List<Parameter> cliParams;
 
+  /** Names of top-level parameters that are used for multiport or bank widths. */
+  private Set<String> widthParams;
+
   public CMainFunctionGenerator(TargetConfig targetConfig, Reactor mainReactor) {
     this.targetConfig = targetConfig;
     this.mainReactor = mainReactor;
     runCommand = new ArrayList<>();
     cliParams = new ArrayList<>();
+    widthParams = new HashSet<>();
     parseTargetParameters();
     collectCliParameters();
+    collectWidthParameters();
   }
 
   /**
@@ -141,6 +156,17 @@ public class CMainFunctionGenerator {
 
       code.pr("} else if (strcmp(argv[i], \"--" + name + "\") == 0) {");
       code.indent();
+
+      if (widthParams.contains(name)) {
+        code.pr(
+            "fprintf(stderr, \"Error: Command-line changes to multiport and bank widths"
+                + " are not supported.\\n"
+                + "Change the width in the source code and recompile instead.\\n\");");
+        code.pr("free(newargv);");
+        code.pr("return 1;");
+        code.unindent();
+        continue;
+      }
 
       if (isTime) {
         code.pr("if (i + 2 >= argc) {");
@@ -357,6 +383,85 @@ public class CMainFunctionGenerator {
     // The runCommand has a first entry that is ignored but needed.
     if (runCommand.size() > 0) {
       runCommand.add(0, "dummy");
+    }
+  }
+
+  /**
+   * Collect names of top-level parameters that are transitively used as multiport
+   * widths or bank widths. Overriding these from the command line is not supported
+   * because the connection topology is determined at compile time.
+   */
+  private void collectWidthParameters() {
+    if (mainReactor == null) return;
+    Set<String> mainParamNames = new HashSet<>();
+    for (Parameter p : cliParams) mainParamNames.add(p.getName());
+    if (mainParamNames.isEmpty()) return;
+
+    Map<String, String> identity = new HashMap<>();
+    for (String n : mainParamNames) identity.put(n, n);
+    findWidthParams(mainReactor, mainParamNames, identity, widthParams, new HashSet<>());
+  }
+
+  /**
+   * Recursively search for parameters used in port or bank width specs, tracing
+   * parameter assignments through instantiations back to the main reactor.
+   *
+   * @param reactor       The reactor to inspect.
+   * @param trackedParams Names of parameters in this reactor that originate from the main reactor.
+   * @param toMainParam   Maps a tracked parameter name in this reactor to the originating
+   *                      main-reactor parameter name.
+   * @param result        Accumulates main-reactor parameter names that influence widths.
+   * @param visited       Reactor definitions already visited (to avoid infinite recursion).
+   */
+  private void findWidthParams(
+      Reactor reactor,
+      Set<String> trackedParams,
+      Map<String, String> toMainParam,
+      Set<String> result,
+      Set<Reactor> visited) {
+    if (!visited.add(reactor)) return;
+
+    for (Port port : ASTUtils.allPorts(reactor)) {
+      WidthSpec ws = port.getWidthSpec();
+      if (ws == null) continue;
+      for (WidthTerm term : ws.getTerms()) {
+        Parameter p = term.getParameter();
+        if (p != null && trackedParams.contains(p.getName())) {
+          result.add(toMainParam.get(p.getName()));
+        }
+      }
+    }
+
+    for (Instantiation inst : ASTUtils.allInstantiations(reactor)) {
+      WidthSpec bws = inst.getWidthSpec();
+      if (bws != null) {
+        for (WidthTerm term : bws.getTerms()) {
+          Parameter p = term.getParameter();
+          if (p != null && trackedParams.contains(p.getName())) {
+            result.add(toMainParam.get(p.getName()));
+          }
+        }
+      }
+
+      Reactor childReactor = ASTUtils.toDefinition(inst.getReactorClass());
+      if (childReactor == null) continue;
+
+      Set<String> childTracked = new HashSet<>();
+      Map<String, String> childToMain = new HashMap<>();
+      for (Assignment assign : inst.getParameters()) {
+        var rhs = assign.getRhs().getExpr();
+        if (rhs instanceof ParameterReference pr) {
+          String srcName = pr.getParameter().getName();
+          if (trackedParams.contains(srcName)) {
+            String childName = assign.getLhs().getName();
+            childTracked.add(childName);
+            childToMain.put(childName, toMainParam.get(srcName));
+          }
+        }
+      }
+      if (!childTracked.isEmpty()) {
+        findWidthParams(childReactor, childTracked, childToMain, result, visited);
+      }
     }
   }
 }
