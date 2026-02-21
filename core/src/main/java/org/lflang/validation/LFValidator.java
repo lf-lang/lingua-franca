@@ -782,6 +782,22 @@ public class LFValidator extends BaseLFValidator {
       }
     }
 
+    if (isCBasedTarget()) {
+      EObject container = param.eContainer();
+      Reactor reactor = (Reactor) container;
+      if (reactor.isMain() || reactor.isFederated()) {
+        List<String> reservedNames =
+            List.of("fast", "timeout", "keepalive", "workers", "id", "rti", "help");
+        if (reservedNames.contains(param.getName())) {
+          error(
+              "Parameter '"
+                  + param.getName()
+                  + "' name conflicts with a built-in command-line option.",
+              Literals.PARAMETER__NAME);
+        }
+      }
+    }
+
     if (isCBasedTarget() && this.info.overflowingParameters.contains(param)) {
       error(
           "Time value used to specify a deadline exceeds the maximum of "
