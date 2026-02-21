@@ -241,10 +241,14 @@ public class CMainFunctionGenerator {
     code.pr(
         "printf(\"  -o, --timeout <duration> <units>\\n"
             + "      Stop after the specified amount of logical time, where units are one of\\n"
-            + "      nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\\n\\n\");");
+            + "      nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\\n"
+            + "\\n"
+            + "\");");
     code.pr(
         "printf(\"  -k, --keepalive <true|false>\\n"
-            + "      Whether to continue execution even when there are no events to process.\\n\\n\");");
+            + "      Whether to continue execution even when there are no events to process.\\n"
+            + "\\n"
+            + "\");");
     code.pr(
         "printf(\"  -w, --workers <n>\\n"
             + "      Execute in <n> threads if possible (optional feature).\\n\\n\");");
@@ -285,10 +289,22 @@ public class CMainFunctionGenerator {
     if (mainReactor == null) {
       return;
     }
+    // Embedded platforms have no command-line interface.
+    if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
+      var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
+      if (platform == Platform.ARDUINO
+          || platform == Platform.ZEPHYR
+          || platform == Platform.RP2040
+          || platform == Platform.FLEXPRET) {
+        return;
+      }
+    }
     for (Parameter param : ASTUtils.allParameters(mainReactor)) {
       if (ASTUtils.isOfTimeType(param)) {
         cliParams.add(param);
-      } else if (param.getType() != null && !param.getType().isTime()) {
+      } else if (param.getType() != null
+          && !param.getType().isTime()
+          && param.getType().getCStyleArraySpec() == null) {
         var baseType = ASTUtils.baseType(param.getType());
         if ("int".equals(baseType)) {
           cliParams.add(param);
