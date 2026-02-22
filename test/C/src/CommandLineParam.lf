@@ -7,14 +7,14 @@ target C {
   fast: true
 }
 
-reactor Source(period: time = 1 sec) {
+reactor Source(period: time = 1 sec, value: double = 3.14159) {
   timer t(0, period)
-  output out: int
+  output out: double
   state count: int = 0
 
   reaction(t) -> out {=
     self->count++;
-    lf_set(out, self->count);
+    lf_set(out, self->value);
   =}
 
   reaction(shutdown) {=
@@ -22,14 +22,17 @@ reactor Source(period: time = 1 sec) {
   =}
 }
 
-reactor Print(expected: int = 6) {
-  input in: int
+reactor Print(expected: int = 6, value: double = 3.14159) {
+  input in: double
   state count: int = 0
 
   reaction(in) {=
     self->count++;
-    printf("Received: %d at time %lld\n", in->value,
+    printf("Received: %f at time %lld\n", in->value,
            (long long)(lf_time_logical_elapsed() / 1000000));
+    if (in->value != self->value) {
+      lf_print_error_and_exit("Expected %f but got %f.", self->value, in->value);
+    }
   =}
 
   reaction(shutdown) {=
@@ -40,8 +43,8 @@ reactor Print(expected: int = 6) {
   =}
 }
 
-main reactor CommandLineParam(period: time = 1 sec, expected: int = 6) {
-  s = new Source(period=period)
-  p = new Print(expected=expected)
+main reactor CommandLineParam(period: time = 1 sec, expected: int = 6, value: double = 3.14159) {
+  s = new Source(period=period, value=value)
+  p = new Print(expected=expected, value=value)
   s.out -> p.in
 }

@@ -170,11 +170,7 @@ public class CMainFunctionGenerator {
     // Declare storage variables for each parameter.
     for (Parameter param : cliParams) {
       var name = param.getName();
-      if (ASTUtils.isOfTimeType(param)) {
-        code.pr("interval_t _lf_cli_" + name + ";");
-      } else {
-        code.pr("int _lf_cli_" + name + ";");
-      }
+      code.pr(cTypeFor(param) + " _lf_cli_" + name + ";");
       code.pr("bool _lf_cli_" + name + "_given = false;");
     }
 
@@ -183,26 +179,13 @@ public class CMainFunctionGenerator {
     code.indent();
     for (Parameter param : cliParams) {
       var name = param.getName();
-      var isTime = ASTUtils.isOfTimeType(param);
       var isWidth = widthParams.contains(name);
-      String description;
-      if (isTime) {
-        TimeValue defaultVal = ASTUtils.getDefaultAsTimeValue(param);
-        String defaultStr = (defaultVal != null) ? defaultVal.toString() : "0";
-        description = "time value (default: " + defaultStr + ")";
-      } else {
-        String defaultStr = "0";
-        var expr = param.getInit().getExpr();
-        if (expr instanceof Literal) {
-          defaultStr = ((Literal) expr).getLiteral();
-        }
-        description = "int value (default: " + defaultStr + ")";
-      }
+      String description = descriptionFor(param);
       code.pr(
           "{\""
               + name
               + "\", "
-              + isTime
+              + cliTypeEnumFor(param)
               + ", &_lf_cli_"
               + name
               + ", &_lf_cli_"
@@ -218,9 +201,12 @@ public class CMainFunctionGenerator {
     return code.toString();
   }
 
+  /** Supported scalar types for command-line overrides. */
+  private static final Set<String> SUPPORTED_CLI_TYPES = Set.of("int", "double", "float");
+
   /**
    * Collect main reactor parameters that can be overridden from the command line.
-   * Currently supports parameters of type 'time' and 'int'.
+   * Supports parameters of type time, int, double, and float.
    */
   private void collectCliParameters() {
     if (mainReactor == null) {
@@ -243,11 +229,49 @@ public class CMainFunctionGenerator {
           && !param.getType().isTime()
           && param.getType().getCStyleArraySpec() == null) {
         var baseType = ASTUtils.baseType(param.getType());
-        if ("int".equals(baseType)) {
+        if (SUPPORTED_CLI_TYPES.contains(baseType)) {
           cliParams.add(param);
         }
       }
     }
+  }
+
+  /** Return the C type string for a CLI parameter. */
+  private String cTypeFor(Parameter param) {
+    if (ASTUtils.isOfTimeType(param)) return "interval_t";
+    var baseType = ASTUtils.baseType(param.getType());
+    return switch (baseType) {
+      case "double" -> "double";
+      case "float" -> "float";
+      default -> "int";
+    };
+  }
+
+  /** Return the lf_cli_type_t enum constant name for a CLI parameter. */
+  private String cliTypeEnumFor(Parameter param) {
+    if (ASTUtils.isOfTimeType(param)) return "CLI_TIME";
+    var baseType = ASTUtils.baseType(param.getType());
+    return switch (baseType) {
+      case "double" -> "CLI_DOUBLE";
+      case "float" -> "CLI_FLOAT";
+      default -> "CLI_INT";
+    };
+  }
+
+  /** Return a human-readable description string for a CLI parameter's help message. */
+  private String descriptionFor(Parameter param) {
+    if (ASTUtils.isOfTimeType(param)) {
+      TimeValue defaultVal = ASTUtils.getDefaultAsTimeValue(param);
+      String defaultStr = (defaultVal != null) ? defaultVal.toString() : "0";
+      return "time value (default: " + defaultStr + ")";
+    }
+    var baseType = ASTUtils.baseType(param.getType());
+    String defaultStr = "0";
+    var expr = param.getInit().getExpr();
+    if (expr instanceof Literal) {
+      defaultStr = ((Literal) expr).getLiteral();
+    }
+    return baseType + " value (default: " + defaultStr + ")";
   }
 
   /**

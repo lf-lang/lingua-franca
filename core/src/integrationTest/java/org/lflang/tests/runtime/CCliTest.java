@@ -38,10 +38,14 @@ public class CCliTest extends TestBase {
     return new ProcessBuilder(cmdList).directory(command.directory());
   }
 
-  /** Test that --period and --expected override timer behavior. */
+  /**
+   * Test that --period, --expected, and --value override timer behavior and double parameter.
+   * With defaults (period=1s, expected=6, value=3.14159), overriding to period=500ms changes
+   * the firing count to 11, and overriding value=2.71828 changes the double sent on each output.
+   */
   @Test
   public void testCommandLineParameterOverride() {
-    cliArgs = List.of("--period", "500", "msec", "--expected", "11");
+    cliArgs = List.of("--period", "500", "msec", "--expected", "11", "--value", "2.71828");
     Path testFile = Path.of("test/C/src/CommandLineParam.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
