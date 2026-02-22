@@ -2001,8 +2001,15 @@ public class CGenerator extends GeneratorBase {
     if (instance.isMainOrFederated() && !cliParameters.isEmpty()) {
       for (Parameter param : cliParameters) {
         var name = param.getName();
+        var baseType = param.getType() != null ? ASTUtils.baseType(param.getType()) : "";
         initializeTriggerObjects.pr("if (_lf_cli_" + name + "_given) {");
-        initializeTriggerObjects.pr("    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        if ("string".equals(baseType)) {
+          // CLI variable is const char*; self struct field is char* (typedef string).
+          initializeTriggerObjects.pr(
+              "    " + selfRef + "->" + name + " = (char*)_lf_cli_" + name + ";");
+        } else {
+          initializeTriggerObjects.pr("    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        }
         initializeTriggerObjects.pr("}");
       }
     }

@@ -88,6 +88,20 @@ public class CCliTest extends TestBase {
   }
 
   /**
+   * Test that --value and --use_default override string and bool parameters.
+   * With default use_default=false and value="Hello, world!", overriding value to "Goodbye!"
+   * should cause the Print reactor to expect "Goodbye!".
+   * Running with --use_default true should ignore the value parameter and use the hardcoded default.
+   */
+  @Test
+  public void testCommandLineStringBoolOverride() {
+    cliArgs = List.of("--value", "Goodbye!", "--use_default", "false");
+    Path testFile = Path.of("test/C/src/CommandLineStringBool.lf").toAbsolutePath();
+    LFTest test = new LFTest(testFile);
+    runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
+  }
+
+  /**
    * Test that CLI overrides propagate through the launch script in federated execution. With
    * defaults (execution_time=100ms, deadline_time=50ms) a deadline violation occurs. The CLI
    * override sets execution_time=10ms and deadline_time=500ms with expect_violation=0, so

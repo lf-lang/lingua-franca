@@ -202,7 +202,8 @@ public class CMainFunctionGenerator {
   }
 
   /** Supported scalar types for command-line overrides. */
-  private static final Set<String> SUPPORTED_CLI_TYPES = Set.of("int", "double", "float");
+  private static final Set<String> SUPPORTED_CLI_TYPES =
+      Set.of("int", "double", "float", "bool", "string");
 
   /**
    * Collect main reactor parameters that can be overridden from the command line.
@@ -243,6 +244,8 @@ public class CMainFunctionGenerator {
     return switch (baseType) {
       case "double" -> "double";
       case "float" -> "float";
+      case "bool" -> "bool";
+      case "string" -> "const char*";
       default -> "int";
     };
   }
@@ -254,6 +257,8 @@ public class CMainFunctionGenerator {
     return switch (baseType) {
       case "double" -> "CLI_DOUBLE";
       case "float" -> "CLI_FLOAT";
+      case "bool" -> "CLI_BOOL";
+      case "string" -> "CLI_STRING";
       default -> "CLI_INT";
     };
   }
@@ -271,6 +276,8 @@ public class CMainFunctionGenerator {
     if (expr instanceof Literal) {
       defaultStr = ((Literal) expr).getLiteral();
     }
+    // Escape double quotes in the default string (e.g., string literals).
+    defaultStr = defaultStr.replace("\"", "\\\"");
     return baseType + " value (default: " + defaultStr + ")";
   }
 
