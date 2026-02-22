@@ -27,8 +27,8 @@ import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
-import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TargetTypes;
+import org.lflang.generator.TimerInstance;
 import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
 import org.lflang.generator.c.CParameterGenerator;
@@ -486,8 +486,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
     for (ParameterInstance param : instance.parameters) {
       if (cRequiredParams.contains(param.getName())) {
         var initializer = CParameterGenerator.getInitializer(param);
-        initializeTriggerObjects.pr(
-            selfRef + "->" + param.getName() + " = " + initializer + ";");
+        initializeTriggerObjects.pr(selfRef + "->" + param.getName() + " = " + initializer + ";");
       }
     }
   }
