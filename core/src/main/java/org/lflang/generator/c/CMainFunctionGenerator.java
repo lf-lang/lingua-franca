@@ -129,181 +129,92 @@ public class CMainFunctionGenerator {
   }
 
   /**
-   * Generate a main() function that pre-processes command-line arguments to extract
-   * user-defined main reactor parameters before forwarding the remaining arguments
-   * to lf_reactor_c_main().
+   * Generate a main() function that uses the table-driven process_user_args()
+   * to extract user-defined main reactor parameters before forwarding the
+   * remaining arguments to lf_reactor_c_main().
    */
   private String generateMainWithCliParsing() {
     var code = new CodeBuilder();
     code.pr("int main(int argc, const char* argv[]) {");
     code.indent();
-    code.pr("const char** newargv = (const char**)malloc(argc * sizeof(const char*));");
+    code.pr("_lf_cli_params = _lf_cli_params_table;");
+    code.pr("_lf_cli_params_count = " + cliParams.size() + ";");
+    code.pr("// Use a fixed-size array because MSVC does not support variable-length arrays.");
+    code.pr("#define MAX_ARGV 64");
+    code.pr("if (argc > MAX_ARGV) {");
+    code.indent();
+    code.pr("lf_print_error(\"Too many command-line arguments (max %d).\", MAX_ARGV);");
+    code.pr("return 1;");
+    code.unindent();
+    code.pr("}");
+    code.pr("const char* newargv[MAX_ARGV];");
     code.pr("int newargc = 0;");
-    code.pr("newargv[newargc++] = argv[0];");
-    code.pr("for (int i = 1; i < argc; i++) {");
-    code.indent();
-
-    code.pr("if (strcmp(argv[i], \"--help\") == 0 || strcmp(argv[i], \"-h\") == 0) {");
-    code.indent();
-    code.pr(generateHelpMessage());
-    code.pr("free(newargv);");
-    code.pr("return 0;");
-    code.unindent();
-
-    for (Parameter param : cliParams) {
-      var name = param.getName();
-      var isTime = ASTUtils.isOfTimeType(param);
-
-      code.pr("} else if (strcmp(argv[i], \"--" + name + "\") == 0) {");
-      code.indent();
-
-      if (widthParams.contains(name)) {
-        code.pr(
-            "fprintf(stderr, \"Error: Command-line changes to multiport and bank widths"
-                + " are not supported.\\n"
-                + "Change the width in the source code and recompile instead.\\n\");");
-        code.pr("free(newargv);");
-        code.pr("return 1;");
-        code.unindent();
-        continue;
-      }
-
-      if (isTime) {
-        code.pr("if (i + 2 >= argc) {");
-        code.indent();
-        code.pr(
-            "fprintf(stderr, \"Error: --"
-                + name
-                + " needs a time value and units (e.g., --"
-                + name
-                + " 500 msec).\\n\");");
-        code.pr("free(newargv);");
-        code.pr("return 1;");
-        code.unindent();
-        code.pr("}");
-        code.pr("const char* time_str = argv[++i];");
-        code.pr("const char* unit_str = argv[++i];");
-        code.pr("if (lf_time_parse(time_str, unit_str, &_lf_cli_" + name + ") != 0) {");
-        code.indent();
-        code.pr(
-            "fprintf(stderr, \"Error: invalid time value '%s %s' for --"
-                + name
-                + ".\\n\", time_str, unit_str);");
-        code.pr("free(newargv);");
-        code.pr("return 1;");
-        code.unindent();
-        code.pr("}");
-        code.pr("_lf_cli_" + name + "_given = true;");
-      } else {
-        code.pr("if (i + 1 >= argc) {");
-        code.indent();
-        code.pr("fprintf(stderr, \"Error: --" + name + " needs a value.\\n\");");
-        code.pr("free(newargv);");
-        code.pr("return 1;");
-        code.unindent();
-        code.pr("}");
-        code.pr("_lf_cli_" + name + " = atoi(argv[++i]);");
-        code.pr("_lf_cli_" + name + "_given = true;");
-      }
-
-      code.unindent();
-    }
-    code.pr("} else {");
-    code.indent();
-    code.pr("newargv[newargc++] = argv[i];");
-    code.unindent();
-    code.pr("}");
-
-    code.unindent();
-    code.pr("}");
-    code.pr("int ret = lf_reactor_c_main(newargc, newargv);");
-    code.pr("free(newargv);");
-    code.pr("return ret;");
+    code.pr("int result = process_user_args(argc, argv, &newargc, newargv);");
+    code.pr("if (result != 0) return (result == 1) ? 0 : 1;");
+    code.pr("return lf_reactor_c_main(newargc, newargv);");
     code.unindent();
     code.pr("}");
     return code.toString();
   }
 
   /**
-   * Generate the printf statements for the --help message, listing all
-   * user-defined main reactor parameters and the runtime options.
-   */
-  private String generateHelpMessage() {
-    var code = new CodeBuilder();
-    code.pr("printf(\"Usage: %s [options]\\n\\n\", argv[0]);");
-    code.pr("printf(\"Reactor Parameters:\\n\");");
-    for (Parameter param : cliParams) {
-      var name = param.getName();
-      var isTime = ASTUtils.isOfTimeType(param);
-      if (isTime) {
-        TimeValue defaultVal = ASTUtils.getDefaultAsTimeValue(param);
-        String defaultStr = (defaultVal != null) ? defaultVal.toString() : "0";
-        code.pr(
-            "printf(\"  --"
-                + name
-                + " <value> <units>\\n"
-                + "      time value (default: "
-                + defaultStr
-                + ")\\n\\n\");");
-      } else {
-        String defaultStr = "0";
-        var expr = param.getInit().getExpr();
-        if (expr instanceof Literal) {
-          defaultStr = ((Literal) expr).getLiteral();
-        }
-        code.pr(
-            "printf(\"  --"
-                + name
-                + " <value>\\n"
-                + "      int value (default: "
-                + defaultStr
-                + ")\\n\\n\");");
-      }
-    }
-    code.pr("printf(\"Runtime Options:\\n\");");
-    code.pr(
-        "printf(\"  -f, --fast <true|false>\\n"
-            + "      Whether to wait for physical time to match logical time.\\n\\n\");");
-    code.pr(
-        "printf(\"  -o, --timeout <duration> <units>\\n"
-            + "      Stop after the specified amount of logical time, where units are one of\\n"
-            + "      nsec, usec, msec, sec, minute, hour, day, week, or the plurals of those.\\n"
-            + "\\n"
-            + "\");");
-    code.pr(
-        "printf(\"  -k, --keepalive <true|false>\\n"
-            + "      Whether to continue execution even when there are no events to process.\\n"
-            + "\\n"
-            + "\");");
-    code.pr(
-        "printf(\"  -w, --workers <n>\\n"
-            + "      Execute in <n> threads if possible (optional feature).\\n\\n\");");
-    code.pr("printf(\"  -h, --help\\n      Display this help message.\\n\\n\");");
-    return code.toString();
-  }
-
-  /**
-   * Generate global variable declarations for CLI parameter overrides,
-   * along with the necessary #include directives.
+   * Generate global variable declarations for CLI parameter overrides
+   * and the parameter descriptor table used by process_user_args().
    */
   private String generateCliGlobals() {
     if (cliParams.isEmpty()) {
       return "";
     }
     var code = new CodeBuilder();
-    code.pr("#include <string.h>");
-    code.pr("#include <stdlib.h>");
-    code.pr("#include <stdio.h>");
+
+    // Declare storage variables for each parameter.
     for (Parameter param : cliParams) {
       var name = param.getName();
-      var isTime = ASTUtils.isOfTimeType(param);
-      if (isTime) {
+      if (ASTUtils.isOfTimeType(param)) {
         code.pr("interval_t _lf_cli_" + name + ";");
       } else {
         code.pr("int _lf_cli_" + name + ";");
       }
       code.pr("bool _lf_cli_" + name + "_given = false;");
     }
+
+    // Generate the parameter descriptor table.
+    code.pr("lf_cli_param_t _lf_cli_params_table[] = {");
+    code.indent();
+    for (Parameter param : cliParams) {
+      var name = param.getName();
+      var isTime = ASTUtils.isOfTimeType(param);
+      var isWidth = widthParams.contains(name);
+      String description;
+      if (isTime) {
+        TimeValue defaultVal = ASTUtils.getDefaultAsTimeValue(param);
+        String defaultStr = (defaultVal != null) ? defaultVal.toString() : "0";
+        description = "time value (default: " + defaultStr + ")";
+      } else {
+        String defaultStr = "0";
+        var expr = param.getInit().getExpr();
+        if (expr instanceof Literal) {
+          defaultStr = ((Literal) expr).getLiteral();
+        }
+        description = "int value (default: " + defaultStr + ")";
+      }
+      code.pr(
+          "{\""
+              + name
+              + "\", "
+              + isTime
+              + ", &_lf_cli_"
+              + name
+              + ", &_lf_cli_"
+              + name
+              + "_given, \""
+              + description
+              + "\", "
+              + isWidth
+              + "},");
+    }
+    code.unindent();
+    code.pr("};");
     return code.toString();
   }
 
