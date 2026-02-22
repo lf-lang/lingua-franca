@@ -19,12 +19,18 @@ public class CTimerGenerator {
    *
    * @param timer The timer to initialize for.
    * @param enc The enclave instance.
+   * @param useParamRefs If true and the timer offset/period is a parameter reference, generate
+   *     a reference to the self struct field so runtime overrides take effect. Set to false for
+   *     targets (e.g., Python) whose self struct stores parameters as non-native types.
    */
-  public static String generateInitializer(TimerInstance timer, CEnclaveInstance enc) {
+  public static String generateInitializer(
+      TimerInstance timer, CEnclaveInstance enc, boolean useParamRefs) {
     var triggerStructName = CUtil.reactorRef(timer.getParent()) + "->_lf__" + timer.getName();
     var selfRef = CUtil.reactorRef(timer.getParent());
-    var offset = getTimerExpr(timer.getDefinition().getOffset(), selfRef, timer.getOffset());
-    var period = getTimerExpr(timer.getDefinition().getPeriod(), selfRef, timer.getPeriod());
+    var offset =
+        getTimerExpr(timer.getDefinition().getOffset(), selfRef, timer.getOffset(), useParamRefs);
+    var period =
+        getTimerExpr(timer.getDefinition().getPeriod(), selfRef, timer.getPeriod(), useParamRefs);
     var mode = timer.getMode(false);
     var envId = enc.getReactorInstance().uniqueID();
     var modeRef =
@@ -55,13 +61,14 @@ public class CTimerGenerator {
   }
 
   /**
-   * Return a C expression for a timer offset or period. If the AST expression
-   * is a parameter reference, return a reference to the parameter field on
-   * the self struct so that runtime overrides take effect. Otherwise, return
-   * the resolved literal time expression.
+   * Return a C expression for a timer offset or period. If {@code useParamRefs} is true and
+   * the AST expression is a parameter reference, return a reference to the parameter field on
+   * the self struct so that runtime overrides take effect. Otherwise, return the resolved
+   * literal time expression.
    */
-  private static String getTimerExpr(Expression expr, String selfRef, TimeValue resolved) {
-    if (expr instanceof ParameterReference paramRef) {
+  private static String getTimerExpr(
+      Expression expr, String selfRef, TimeValue resolved, boolean useParamRefs) {
+    if (useParamRefs && expr instanceof ParameterReference paramRef) {
       return selfRef + "->" + paramRef.getParameter().getName();
     }
     return CTypes.getInstance().getTargetTimeExpr(resolved);

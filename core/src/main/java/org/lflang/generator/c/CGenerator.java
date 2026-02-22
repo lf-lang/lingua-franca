@@ -1655,10 +1655,20 @@ public class CGenerator extends GeneratorBase {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
         initializeTriggerObjects.pr(
-            CTimerGenerator.generateInitializer(timer, instance.containingEnclave));
+            CTimerGenerator.generateInitializer(
+                timer, instance.containingEnclave, supportsNativeParameterReferences()));
         instance.containingEnclave.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
+  }
+
+  /**
+   * Return true if the generated C self struct stores parameters as native C types so that
+   * timer/deadline init code can reference them directly. The Python target stores parameters
+   * as PyObject* and must override this to return false.
+   */
+  protected boolean supportsNativeParameterReferences() {
+    return true;
   }
 
   /**
@@ -1891,7 +1901,8 @@ public class CGenerator extends GeneratorBase {
       var selfRef = CUtil.reactorRef(reaction.getParent()) + "->_lf__reaction_" + reaction.index;
       if (reaction.declaredDeadline != null) {
         var delayExpr = reaction.getDefinition().getDeadline().getDelay();
-        if (delayExpr instanceof ParameterReference paramRef) {
+        if (supportsNativeParameterReferences()
+            && delayExpr instanceof ParameterReference paramRef) {
           var reactorRef = CUtil.reactorRef(reaction.getParent());
           initializeTriggerObjects.pr(
               selfRef
