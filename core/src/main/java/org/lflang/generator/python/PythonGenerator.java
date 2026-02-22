@@ -23,11 +23,15 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.IntegratedBuilder;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.generator.ParameterInstance;
+import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.SubContext;
+import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.c.CCmakeGenerator;
 import org.lflang.generator.c.CGenerator;
+import org.lflang.generator.c.CParameterGenerator;
 import org.lflang.generator.c.CUtil;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.generator.docker.PythonDockerGenerator;
@@ -36,6 +40,7 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Model;
 import org.lflang.lf.Output;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
@@ -448,14 +453,43 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   }
 
   /**
-   * Generate runtime initialization code in C for parameters of a given reactor instance
+   * Generate runtime initialization code in C for parameters of a given reactor instance.
+   * Parameters are generally initialized in Python, but parameters referenced by timer
+   * offset/period expressions or deadline delay expressions must also be set on the C
+   * self struct because the C runtime reads these fields directly from the struct.
    *
    * @param instance The reactor instance.
    */
   @Override
   protected void generateParameterInitialization(ReactorInstance instance) {
-    // Do nothing
-    // Parameters are initialized in Python
+    var selfRef = CUtil.reactorRef(instance);
+    Set<String> cRequiredParams = new HashSet<>();
+    for (TimerInstance timer : instance.timers) {
+      var def = timer.getDefinition();
+      if (def != null) {
+        if (def.getOffset() instanceof ParameterReference pr) {
+          cRequiredParams.add(pr.getParameter().getName());
+        }
+        if (def.getPeriod() instanceof ParameterReference pr) {
+          cRequiredParams.add(pr.getParameter().getName());
+        }
+      }
+    }
+    for (ReactionInstance reaction : instance.reactions) {
+      if (reaction.getDefinition().getDeadline() != null) {
+        var delayExpr = reaction.getDefinition().getDeadline().getDelay();
+        if (delayExpr instanceof ParameterReference pr) {
+          cRequiredParams.add(pr.getParameter().getName());
+        }
+      }
+    }
+    for (ParameterInstance param : instance.parameters) {
+      if (cRequiredParams.contains(param.getName())) {
+        var initializer = CParameterGenerator.getInitializer(param);
+        initializeTriggerObjects.pr(
+            selfRef + "->" + param.getName() + " = " + initializer + ";");
+      }
+    }
   }
 
   /**
