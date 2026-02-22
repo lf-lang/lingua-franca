@@ -1822,7 +1822,8 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor.
    */
   private void generateActionInitializations(ReactorInstance instance) {
-    initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance));
+    initializeTriggerObjects.pr(
+        CActionGenerator.generateInitializers(instance, supportsNativeParameterReferences()));
   }
 
   /**

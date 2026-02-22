@@ -48,6 +48,19 @@ public class CCliTest extends TestBase {
   }
 
   /**
+   * Test that --min_delay and --min_spacing override action timing. With defaults (min_delay=1ns,
+   * min_spacing=10ns), overriding to min_delay=10us and min_spacing=100us changes when the action
+   * fires. The test verifies that elapsed times match the overridden values.
+   */
+  @Test
+  public void testCommandLineActionOverride() {
+    cliArgs = List.of("--min_delay", "10", "us", "--min_spacing", "100", "us");
+    Path testFile = Path.of("test/C/src/CommandLineAction.lf").toAbsolutePath();
+    LFTest test = new LFTest(testFile);
+    runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
+  }
+
+  /**
    * Test that --deadline_time and --execution_time override deadline behavior. With defaults
    * (execution_time=100ms, deadline_time=50ms) a deadline violation occurs. The CLI override
    * sets execution_time=10ms and deadline_time=200ms, so NO violation occurs, proving both
@@ -66,6 +79,30 @@ public class CCliTest extends TestBase {
             "--expect_violation",
             "0");
     Path testFile = Path.of("test/C/src/CommandLineDeadline.lf").toAbsolutePath();
+    LFTest test = new LFTest(testFile);
+    runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
+  }
+
+  /**
+   * Test that CLI overrides propagate through the launch script in federated execution. With
+   * defaults (execution_time=100ms, deadline_time=50ms) a deadline violation occurs. The CLI
+   * override sets execution_time=10ms and deadline_time=500ms with expect_violation=0, so
+   * NO violation occurs, proving the launch script forwards arguments to federates.
+   */
+  @Test
+  public void testCommandLineDeadlineFederatedOverride() {
+    cliArgs =
+        List.of(
+            "--execution_time",
+            "10",
+            "msec",
+            "--deadline_time",
+            "500",
+            "msec",
+            "--expect_violation",
+            "0");
+    Path testFile =
+        Path.of("test/C/src/federated/CommandLineDeadlineFederated.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
   }
