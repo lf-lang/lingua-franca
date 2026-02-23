@@ -26,8 +26,7 @@ import org.lflang.util.LFCommand;
  */
 public class CCliTest extends TestBase {
 
-  private static final ThreadLocal<List<String>> cliArgs =
-      ThreadLocal.withInitial(List::of);
+  private static final ThreadLocal<List<String>> cliArgs = ThreadLocal.withInitial(List::of);
 
   @AfterEach
   void resetCliArgs() {
