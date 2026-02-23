@@ -287,16 +287,23 @@ public class AttributeSpec {
           }
         });
 
-    // @scheduler(platform="posix", policy="rt-fifo") specifies the thread scheduling policy.
+    // @platform("posix") or @platform(value="posix", scheduler="rt-fifo") specifies the
+    // target platform and (optionally) the thread scheduling policy.
+    // When only the platform is given, "value" can be omitted: @platform("posix").
+    // When both parameters are given, "value" must be explicit:
+    //   @platform(value="posix", scheduler="rt-fifo").
     // If applied to the main reactor, it affects all federates.
     // If applied to a specific federate instantiation, it overrides the policy for
     // that federate only.
+    // The "value" parameter (mandatory) is the platform name (currently only "posix").
+    // The "scheduler" parameter (optional) is the scheduling policy: "rt-fifo", "rt-rr",
+    // or "normal".
     ATTRIBUTE_SPECS_BY_NAME.put(
-        "scheduler",
+        "platform",
         new AttributeSpec(
             List.of(
-                new AttrParamSpec("platform", AttrParamType.STRING, false),
-                new AttrParamSpec("policy", AttrParamType.STRING, false))));
+                new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false),
+                new AttrParamSpec("scheduler", AttrParamType.STRING, true))));
 
     // Attributes used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));

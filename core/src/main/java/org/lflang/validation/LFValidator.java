@@ -1329,8 +1329,8 @@ public class LFValidator extends BaseLFValidator {
       checkAbsentAfterAttribute(attr);
     } else if (name.equals("cores")) {
       checkCoresAttribute(attr);
-    } else if (name.equals("scheduler")) {
-      checkSchedulerAttribute(attr);
+    } else if (name.equals("platform")) {
+      checkPlatformAttribute(attr);
     }
   }
 
@@ -1397,40 +1397,41 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
-  private void checkSchedulerAttribute(Attribute attr) {
+  private void checkPlatformAttribute(Attribute attr) {
     // Check that the attribute is on an Instantiation or a Reactor (main reactor).
     var container = attr.eContainer();
     if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
       warning(
-          "scheduler attribute can only be used on a reactor or an instantiation.",
+          "platform attribute can only be used on a reactor or an instantiation.",
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
     }
-    // Validate the "platform" parameter.
-    var platformParm = attr.getAttrParms().stream()
-        .filter(p -> "platform".equals(p.getName()))
+    // Validate the "value" parameter (the platform name).
+    // It can be unnamed (first positional parameter) or explicitly named "value".
+    var valueParm = attr.getAttrParms().stream()
+        .filter(p -> p.getName() == null || "value".equals(p.getName()))
         .findFirst()
         .orElse(null);
-    if (platformParm != null && platformParm.getValue() != null) {
-      String platform = org.lflang.util.StringUtil.removeQuotes(platformParm.getValue());
+    if (valueParm != null && valueParm.getValue() != null) {
+      String platform = org.lflang.util.StringUtil.removeQuotes(valueParm.getValue());
       if (!"posix".equalsIgnoreCase(platform)) {
         error(
-            "Unsupported scheduler platform: \"" + platform + "\". Currently only \"posix\" is supported.",
+            "Unsupported platform: \"" + platform + "\". Currently only \"posix\" is supported.",
             Literals.ATTRIBUTE__ATTR_NAME);
       }
     }
-    // Validate the "policy" parameter.
-    var policyParm = attr.getAttrParms().stream()
-        .filter(p -> "policy".equals(p.getName()))
+    // Validate the optional "scheduler" parameter.
+    var schedulerParm = attr.getAttrParms().stream()
+        .filter(p -> "scheduler".equals(p.getName()))
         .findFirst()
         .orElse(null);
-    if (policyParm != null && policyParm.getValue() != null) {
-      String policy = org.lflang.util.StringUtil.removeQuotes(policyParm.getValue());
-      if (!"rt-fifo".equalsIgnoreCase(policy)
-          && !"rt-rr".equalsIgnoreCase(policy)
-          && !"normal".equalsIgnoreCase(policy)) {
+    if (schedulerParm != null && schedulerParm.getValue() != null) {
+      String scheduler = org.lflang.util.StringUtil.removeQuotes(schedulerParm.getValue());
+      if (!"rt-fifo".equalsIgnoreCase(scheduler)
+          && !"rt-rr".equalsIgnoreCase(scheduler)
+          && !"normal".equalsIgnoreCase(scheduler)) {
         error(
-            "Unsupported scheduling policy: \"" + policy
+            "Unsupported scheduling policy: \"" + scheduler
                 + "\". Allowed values are: \"rt-fifo\", \"rt-rr\", \"normal\".",
             Literals.ATTRIBUTE__ATTR_NAME);
       }

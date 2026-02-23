@@ -380,36 +380,41 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the thread scheduling policy specified by the `@scheduler` attribute of the given node,
-   * or null if the attribute is not present.
+   * Return the platform configuration specified by the {@code @platform} attribute of the given
+   * node, or null if the attribute is not present.
    *
-   * <p>The attribute has two required parameters:
+   * <p>The attribute has one mandatory parameter and one optional parameter:
    * <ul>
-   *   <li>{@code platform} – the target platform (currently only {@code "posix"} is supported)</li>
-   *   <li>{@code policy} – the scheduling policy name ({@code "rt-fifo"}, {@code "rt-rr"},
-   *       or {@code "normal"})</li>
+   *   <li>{@code value} (mandatory) – the target platform (currently only {@code "posix"} is
+   *       supported). When it is the only parameter, {@code "value"} can be omitted:
+   *       {@code @platform("posix")}. When both parameters are given, {@code "value"} must be
+   *       explicit: {@code @platform(value="posix", scheduler="rt-fifo")}.</li>
+   *   <li>{@code scheduler} (optional) – the thread scheduling policy name ({@code "rt-fifo"},
+   *       {@code "rt-rr"}, or {@code "normal"})</li>
    * </ul>
    *
    * @param node The AST node (Instantiation or Reactor).
-   * @return A two-element String array {@code [platform, policyName]}, or null if the attribute
+   * @return A two-element String array {@code [platformName, schedulerPolicy]}, where
+   *     {@code schedulerPolicy} may be null if not specified. Returns null if the attribute
    *     is not present.
    */
-  public static String[] getScheduler(EObject node) {
-    final var attr = findAttributeByName(node, "scheduler");
+  public static String[] getPlatform(EObject node) {
+    final var attr = findAttributeByName(node, "platform");
     if (attr == null || attr.getAttrParms().isEmpty()) {
       return null;
     }
-    String platform = null;
-    String policyName = null;
+    String platformName = null;
+    String schedulerPolicy = null;
     for (AttrParm parm : attr.getAttrParms()) {
-      if ("platform".equals(parm.getName())) {
-        platform = StringUtil.removeQuotes(parm.getValue());
-      } else if ("policy".equals(parm.getName())) {
-        policyName = StringUtil.removeQuotes(parm.getValue());
+      if (parm.getName() == null || "value".equals(parm.getName())) {
+        // The default (unnamed) parameter or explicitly named "value"
+        platformName = StringUtil.removeQuotes(parm.getValue());
+      } else if ("scheduler".equals(parm.getName())) {
+        schedulerPolicy = StringUtil.removeQuotes(parm.getValue());
       }
     }
-    if (platform != null && policyName != null) {
-      return new String[] {platform, policyName};
+    if (platformName != null) {
+      return new String[] {platformName, schedulerPolicy};
     }
     return null;
   }

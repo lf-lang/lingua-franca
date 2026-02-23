@@ -2082,11 +2082,11 @@ public class CGenerator extends GeneratorBase {
               Map.of("LF_CORE_IDS_INIT", coreIdsInit));
         }
 
-        // Check for @scheduler attribute on the main reactor definition.
-        // This overrides the thread-policy target property.
-        String[] scheduler = AttributeUtils.getScheduler(mainReactor);
-        if (scheduler != null) {
-          String cDefine = policyNameToCDefine(scheduler[1]);
+        // Check for @platform attribute on the main reactor definition.
+        // If it specifies a scheduler policy, this overrides the thread-policy target property.
+        String[] platformAttr = AttributeUtils.getPlatform(mainReactor);
+        if (platformAttr != null && platformAttr[1] != null) {
+          String cDefine = policyNameToCDefine(platformAttr[1]);
           if (cDefine != null) {
             CompileDefinitionsProperty.INSTANCE.update(
                 targetConfig,
@@ -2402,7 +2402,8 @@ public class CGenerator extends GeneratorBase {
    * @return A list of all deadlines found in this instance and its children.
    */
   /**
-   * Map a policy name string (from the @scheduler attribute) to the corresponding C #define value.
+   * Map a policy name string (from the @platform attribute's scheduler parameter) to the
+   * corresponding C #define value.
    *
    * @param policyName The policy name ("rt-fifo", "rt-rr", or "normal").
    * @return The C define string, or null if the policy name is not recognised.

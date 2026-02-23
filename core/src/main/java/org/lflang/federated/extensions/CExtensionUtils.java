@@ -227,14 +227,14 @@ public class CExtensionUtils {
           java.util.Map.of("LF_CORE_IDS_INIT", coreIdsInit));
     }
 
-    // Handle @scheduler attribute for thread scheduling policy.
+    // Handle @platform attribute for thread scheduling policy.
     // Check the federate's instantiation first; if not present, check the parent (main) reactor.
-    String[] scheduler = AttributeUtils.getScheduler(federate.instantiation);
-    if (scheduler == null && federate.instantiation.eContainer() instanceof Reactor parentReactor2) {
-      scheduler = AttributeUtils.getScheduler(parentReactor2);
+    String[] platformAttr = AttributeUtils.getPlatform(federate.instantiation);
+    if (platformAttr == null && federate.instantiation.eContainer() instanceof Reactor parentReactor2) {
+      platformAttr = AttributeUtils.getPlatform(parentReactor2);
     }
-    if (scheduler != null) {
-      String cDefine = schedulerPolicyToCDefine(scheduler[1]);
+    if (platformAttr != null && platformAttr[1] != null) {
+      String cDefine = schedulerPolicyToCDefine(platformAttr[1]);
       if (cDefine != null) {
         CompileDefinitionsProperty.INSTANCE.update(
             federate.targetConfig,
@@ -248,7 +248,8 @@ public class CExtensionUtils {
   }
 
   /**
-   * Map a policy name string (from the @scheduler attribute) to the corresponding C #define value.
+   * Map a policy name string (from the @platform attribute's scheduler parameter) to the
+   * corresponding C #define value.
    */
   private static String schedulerPolicyToCDefine(String policyName) {
     return switch (policyName.toLowerCase()) {
