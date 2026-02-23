@@ -3,6 +3,7 @@ package org.lflang.tests.runtime;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
 import org.lflang.tests.LFTest;
@@ -17,11 +18,21 @@ import org.lflang.util.LFCommand;
  * <p>Verifies that main reactor parameters can be overridden via command-line arguments and that
  * the overridden values propagate correctly to child reactors, including timers and deadlines.
  *
+ * <p>Uses a ThreadLocal so that the CLI arguments set in each test method are visible to the
+ * runner instance created reflectively by {@link TestBase#runSingleTestAndPrintResults}, which
+ * executes on the same thread.  This is safe for concurrent test execution.
+ *
  * @author Edward A. Lee
  */
 public class CCliTest extends TestBase {
 
-  private static List<String> cliArgs = List.of();
+  private static final ThreadLocal<List<String>> cliArgs =
+      ThreadLocal.withInitial(List::of);
+
+  @AfterEach
+  void resetCliArgs() {
+    cliArgs.remove();
+  }
 
   public CCliTest() {
     super(Target.C);
@@ -34,7 +45,7 @@ public class CCliTest extends TestBase {
       throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
     }
     List<String> cmdList = new ArrayList<>(command.command());
-    cmdList.addAll(cliArgs);
+    cmdList.addAll(cliArgs.get());
     return new ProcessBuilder(cmdList).directory(command.directory());
   }
 
@@ -45,7 +56,7 @@ public class CCliTest extends TestBase {
    */
   @Test
   public void testCommandLineParameterOverride() {
-    cliArgs = List.of("--period", "500", "msec", "--expected", "11", "--value", "2.71828");
+    cliArgs.set(List.of("--period", "500", "msec", "--expected", "11", "--value", "2.71828"));
     Path testFile = Path.of("test/C/src/CommandLineParam.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
@@ -58,7 +69,7 @@ public class CCliTest extends TestBase {
    */
   @Test
   public void testCommandLineActionOverride() {
-    cliArgs = List.of("--min_delay", "10", "us", "--min_spacing", "100", "us");
+    cliArgs.set(List.of("--min_delay", "10", "us", "--min_spacing", "100", "us"));
     Path testFile = Path.of("test/C/src/CommandLineAction.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
@@ -72,7 +83,7 @@ public class CCliTest extends TestBase {
    */
   @Test
   public void testCommandLineDeadlineOverride() {
-    cliArgs =
+    cliArgs.set(
         List.of(
             "--execution_time",
             "10",
@@ -81,7 +92,7 @@ public class CCliTest extends TestBase {
             "500",
             "msec",
             "--expect_violation",
-            "0");
+            "0"));
     Path testFile = Path.of("test/C/src/CommandLineDeadline.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
@@ -95,7 +106,7 @@ public class CCliTest extends TestBase {
    */
   @Test
   public void testCommandLineStringBoolOverride() {
-    cliArgs = List.of("--value", "Goodbye!", "--use_default", "false");
+    cliArgs.set(List.of("--value", "Goodbye!", "--use_default", "false"));
     Path testFile = Path.of("test/C/src/CommandLineStringBool.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);
     runSingleTestAndPrintResults(test, CCliTest.class, TestLevel.EXECUTION);
@@ -109,7 +120,7 @@ public class CCliTest extends TestBase {
    */
   @Test
   public void testCommandLineDeadlineFederatedOverride() {
-    cliArgs =
+    cliArgs.set(
         List.of(
             "--execution_time",
             "10",
@@ -118,7 +129,7 @@ public class CCliTest extends TestBase {
             "500",
             "msec",
             "--expect_violation",
-            "0");
+            "0"));
     Path testFile =
         Path.of("test/C/src/federated/CommandLineDeadlineFederated.lf").toAbsolutePath();
     LFTest test = new LFTest(testFile);

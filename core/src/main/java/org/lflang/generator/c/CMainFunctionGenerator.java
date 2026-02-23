@@ -207,7 +207,7 @@ public class CMainFunctionGenerator {
 
   /**
    * Collect main reactor parameters that can be overridden from the command line.
-   * Supports parameters of type time, int, double, and float.
+   * Supports time and stringparameters and scalar parameters of type int, double, float, and bool.
    */
   private void collectCliParameters() {
     if (mainReactor == null) {
@@ -271,13 +271,16 @@ public class CMainFunctionGenerator {
       return "time value (default: " + defaultStr + ")";
     }
     var baseType = ASTUtils.baseType(param.getType());
-    String defaultStr = "0";
-    var expr = param.getInit().getExpr();
-    if (expr instanceof Literal) {
-      defaultStr = ((Literal) expr).getLiteral();
+    String defaultStr = "unspecified";
+    var init = param.getInit();
+    if (init != null) {
+      var expr = init.getExpr();
+      if (expr instanceof Literal) {
+        defaultStr = ((Literal) expr).getLiteral();
+      }
+      // Escape double quotes in the default string (e.g., string literals).
+      defaultStr = defaultStr.replace("\"", "\\\"");
     }
-    // Escape double quotes in the default string (e.g., string literals).
-    defaultStr = defaultStr.replace("\"", "\\\"");
     return baseType + " value (default: " + defaultStr + ")";
   }
 
@@ -353,15 +356,17 @@ public class CMainFunctionGenerator {
    * @param toMainParam   Maps a tracked parameter name in this reactor to the originating
    *                      main-reactor parameter name.
    * @param result        Accumulates main-reactor parameter names that influence widths.
-   * @param visited       Reactor definitions already visited (to avoid infinite recursion).
+   * @param stack         Recursion stack for cycle detection. Unlike a global visited set, entries
+   *                      are removed after returning so that the same reactor definition can be
+   *                      analyzed multiple times with different parameter mappings.
    */
   private void findWidthParams(
       Reactor reactor,
       Set<String> trackedParams,
       Map<String, String> toMainParam,
       Set<String> result,
-      Set<Reactor> visited) {
-    if (!visited.add(reactor)) return;
+      Set<Reactor> stack) {
+    if (!stack.add(reactor)) return;
 
     for (Port port : ASTUtils.allPorts(reactor)) {
       WidthSpec ws = port.getWidthSpec();
@@ -402,8 +407,9 @@ public class CMainFunctionGenerator {
         }
       }
       if (!childTracked.isEmpty()) {
-        findWidthParams(childReactor, childTracked, childToMain, result, visited);
+        findWidthParams(childReactor, childTracked, childToMain, result, stack);
       }
     }
+    stack.remove(reactor);
   }
 }
