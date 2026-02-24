@@ -768,16 +768,36 @@ public class LFValidator extends BaseLFValidator {
 
     if (this.target == Target.CPP) {
       EObject container = param.eContainer();
-      Reactor reactor = (Reactor) container;
-      if (reactor.isMain()) {
-        // we need to check for the cli parameters that are always taken
-        List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
-        if (cliParams.contains(param.getName())) {
-          error(
-              "Parameter '"
-                  + param.getName()
-                  + "' is already in use as command line argument by Lingua Franca,",
-              Literals.PARAMETER__NAME);
+      if (container instanceof Reactor) {
+        Reactor reactor = (Reactor) container;
+        if (reactor.isMain()) {
+          // we need to check for the cli parameters that are always taken
+          List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
+          if (cliParams.contains(param.getName())) {
+            error(
+                "Parameter '"
+                    + param.getName()
+                    + "' is already in use as command line argument by Lingua Franca,",
+                Literals.PARAMETER__NAME);
+          }
+        }
+      }
+    }
+
+    if (isCBasedTarget()) {
+      EObject container = param.eContainer();
+      if (container instanceof Reactor) {
+        Reactor reactor = (Reactor) container;
+        if (reactor.isMain() || reactor.isFederated()) {
+          List<String> reservedNames =
+              List.of("fast", "timeout", "keepalive", "workers", "id", "rti", "help");
+          if (reservedNames.contains(param.getName())) {
+            error(
+                "Parameter '"
+                    + param.getName()
+                    + "' name conflicts with a built-in command-line option.",
+                Literals.PARAMETER__NAME);
+          }
         }
       }
     }

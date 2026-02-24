@@ -448,14 +448,25 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   }
 
   /**
-   * Generate runtime initialization code in C for parameters of a given reactor instance
+   * Generate runtime initialization code in C for parameters of a given reactor instance.
+   * In Python, parameters are initialized in Python and stored as PyObject* on the C self
+   * struct, so no C-side initialization is needed.
    *
    * @param instance The reactor instance.
    */
   @Override
   protected void generateParameterInitialization(ReactorInstance instance) {
-    // Do nothing
-    // Parameters are initialized in Python
+    // Do nothing. Parameters are initialized in Python.
+  }
+
+  /**
+   * Return false because the Python C self struct stores parameters as PyObject*, not native
+   * C types. Timer and deadline init code must use resolved literal values instead of
+   * parameter references.
+   */
+  @Override
+  protected boolean supportsNativeParameterReferences() {
+    return false;
   }
 
   /**
