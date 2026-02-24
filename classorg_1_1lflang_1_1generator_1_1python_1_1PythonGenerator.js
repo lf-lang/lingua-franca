@@ -27,6 +27,7 @@ var classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator =
     [ "isOSCompatible", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a68ec764c01fa4a426c90faa3be0cb340", null ],
     [ "processProtoFile", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a7056d943b0f025ea9a50a871ea85e95e", null ],
     [ "setUpGeneralParameters", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#adcf1fce9fd2362d761a3485247feb4cb", null ],
+    [ "supportsNativeParameterReferences", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a81310a31b75bf792769abf7b76ab4353", null ],
     [ "genericActionType", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a8ba05ee0c6a9d598ef8fb472630906e8", null ],
     [ "genericPortType", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a8c8184bacb3fa2eb89f0af13cd476d6b", null ]
 ];

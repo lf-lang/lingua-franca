@@ -373,6 +373,7 @@ var annotated_dup =
           ] ],
           [ "runtime", "namespaceorg_1_1lflang_1_1tests_1_1runtime.html", [
             [ "CArduinoTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest" ],
+            [ "CCliTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest" ],
             [ "CCppTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest" ],
             [ "CFlexPRETTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest" ],
             [ "CPatmosTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest" ],

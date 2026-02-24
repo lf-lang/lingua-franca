@@ -639,6 +639,7 @@ var hierarchy =
           [ "org.lflang.tests.runtime.TypeScriptTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html", null ]
         ] ],
         [ "org.lflang.tests.runtime.CArduinoTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest.html", null ],
+        [ "org.lflang.tests.runtime.CCliTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html", null ],
         [ "org.lflang.tests.runtime.CCppTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest.html", null ],
         [ "org.lflang.tests.runtime.CFlexPRETTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest.html", null ],
         [ "org.lflang.tests.runtime.CPatmosTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html", null ],

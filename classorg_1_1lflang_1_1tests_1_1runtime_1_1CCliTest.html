@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.16.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>lingua-franca: org.lflang.tests.serialization.SerializationTest Class Reference</title>
+<title>lingua-franca: org.lflang.tests.runtime.CCliTest Class Reference</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon" />
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
@@ -68,7 +68,7 @@ $(function() {
   </div>
 </div>
 <script type="text/javascript">
-$(function(){initNavTree('classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html','','classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest-members'); });
+$(function(){initNavTree('classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html','','classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest-members'); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -94,19 +94,28 @@ $(function(){initNavTree('classorg_1_1lflang_1_1tests_1_1serialization_1_1Serial
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.tests.serialization.SerializationTest Class Reference<div class="ingroups"><a class="el" href="group__Tests.html">Tests</a></div></div></div>
+  <div class="headertitle"><div class="title">org.lflang.tests.runtime.CCliTest Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>Collection of tests for the serialization.  
+<p>Integration tests for command-line parameter override functionality.  
  <a href="#details">More...</a></p>
 
 <p>Inherits <a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html">org.lflang.tests.TestBase</a>.</p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a5bea727d556a6a6e0e415cffc2c441df" id="r_a5bea727d556a6a6e0e415cffc2c441df"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a5bea727d556a6a6e0e415cffc2c441df">runSerializationTests</a> ()</td></tr>
-<tr class="memitem:aa323a997505939f2886c1017cc375cfa" id="r_aa323a997505939f2886c1017cc375cfa"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aa323a997505939f2886c1017cc375cfa">runSerializationTestsWithThreadingOff</a> ()</td></tr>
+<tr class="memitem:ac5e93eb01771c1dda24a3a9ede0aeab1" id="r_ac5e93eb01771c1dda24a3a9ede0aeab1"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ac5e93eb01771c1dda24a3a9ede0aeab1">CCliTest</a> ()</td></tr>
+<tr class="memitem:ae54487a2774ff6675043d4b66d37bbd2" id="r_ae54487a2774ff6675043d4b66d37bbd2"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ae54487a2774ff6675043d4b66d37bbd2">testCommandLineActionOverride</a> ()</td></tr>
+<tr class="memdesc:ae54487a2774ff6675043d4b66d37bbd2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Test that &ndash;min_delay and &ndash;min_spacing override action timing.  <br /></td></tr>
+<tr class="memitem:aa5a042edcf047fc70ef33176f2b8aaf8" id="r_aa5a042edcf047fc70ef33176f2b8aaf8"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aa5a042edcf047fc70ef33176f2b8aaf8">testCommandLineDeadlineFederatedOverride</a> ()</td></tr>
+<tr class="memdesc:aa5a042edcf047fc70ef33176f2b8aaf8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Test that CLI overrides propagate through the launch script in federated execution.  <br /></td></tr>
+<tr class="memitem:a38f9978e70512e43b7ef02553a6cb5f8" id="r_a38f9978e70512e43b7ef02553a6cb5f8"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a38f9978e70512e43b7ef02553a6cb5f8">testCommandLineDeadlineOverride</a> ()</td></tr>
+<tr class="memdesc:a38f9978e70512e43b7ef02553a6cb5f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Test that &ndash;deadline_time and &ndash;execution_time override deadline behavior.  <br /></td></tr>
+<tr class="memitem:a72abcef75a1c5dc95edff142d80b5594" id="r_a72abcef75a1c5dc95edff142d80b5594"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a72abcef75a1c5dc95edff142d80b5594">testCommandLineParameterOverride</a> ()</td></tr>
+<tr class="memdesc:a72abcef75a1c5dc95edff142d80b5594"><td class="mdescLeft">&#160;</td><td class="mdescRight">Test that &ndash;period, &ndash;expected, and &ndash;value override timer behavior and double parameter.  <br /></td></tr>
+<tr class="memitem:a10bdcc75d3c567c317342cbfe269423d" id="r_a10bdcc75d3c567c317342cbfe269423d"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a10bdcc75d3c567c317342cbfe269423d">testCommandLineStringBoolOverride</a> ()</td></tr>
+<tr class="memdesc:a10bdcc75d3c567c317342cbfe269423d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Test that &ndash;value and &ndash;use_default override string and bool parameters.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -125,10 +134,10 @@ Static Public Attributes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:a3c02b63e01343db1960f7fb183b42bec" id="r_a3c02b63e01343db1960f7fb183b42bec"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a3c02b63e01343db1960f7fb183b42bec">applyDefaultConfiguration</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config)</td></tr>
-<tr class="memdesc:a3c02b63e01343db1960f7fb183b42bec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust target configuration for all runs of this test class.  <br /></td></tr>
-<tr class="memitem:ab7eb2f2d3c228ab7984b5a2df5cbe589" id="r_ab7eb2f2d3c228ab7984b5a2df5cbe589"><td class="memItemLeft">ProcessBuilder&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#ab7eb2f2d3c228ab7984b5a2df5cbe589">getExecCommand</a> (<a class="el" href="classorg_1_1lflang_1_1tests_1_1LFTest.html">LFTest</a> test)  throws <a class="el" href="classorg_1_1lflang_1_1tests_1_1TestError.html">TestError</a> </td></tr>
-<tr class="memdesc:ab7eb2f2d3c228ab7984b5a2df5cbe589"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a preconfigured ProcessBuilder for executing the test program.  <br /></td></tr>
+<tr class="memitem:acbbd37d213419ddbc3ee9a577b86b895" id="r_acbbd37d213419ddbc3ee9a577b86b895"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#acbbd37d213419ddbc3ee9a577b86b895">applyDefaultConfiguration</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config)</td></tr>
+<tr class="memdesc:acbbd37d213419ddbc3ee9a577b86b895"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjust target configuration for all runs of this test class.  <br /></td></tr>
+<tr class="memitem:ae0e0660beced13cab7bb841bbb563dd2" id="r_ae0e0660beced13cab7bb841bbb563dd2"><td class="memItemLeft">ProcessBuilder&#160;</td><td class="memItemRight"><a class="el" href="#ae0e0660beced13cab7bb841bbb563dd2">getExecCommand</a> (<a class="el" href="classorg_1_1lflang_1_1tests_1_1LFTest.html">LFTest</a> test)  throws <a class="el" href="classorg_1_1lflang_1_1tests_1_1TestError.html">TestError</a> </td></tr>
+<tr class="memdesc:ae0e0660beced13cab7bb841bbb563dd2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a preconfigured ProcessBuilder for executing the test program.  <br /></td></tr>
 <tr class="memitem:aab4725f7eda0dbd2a3162800dc6ab7d5" id="r_aab4725f7eda0dbd2a3162800dc6ab7d5"><td class="memItemLeft">GeneratorArguments&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#aab4725f7eda0dbd2a3162800dc6ab7d5">getGeneratorArguments</a> ()</td></tr>
 <tr class="memdesc:aab4725f7eda0dbd2a3162800dc6ab7d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return generator arguments suitable for testing.  <br /></td></tr>
 <tr class="memitem:aff3ae7508377e27da65c5deaf4c31534" id="r_aff3ae7508377e27da65c5deaf4c31534"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#aff3ae7508377e27da65c5deaf4c31534">runTestsAndPrintResults</a> (<a class="el" href="enumorg_1_1lflang_1_1target_1_1Target.html">Target</a> <a class="el" href="namespaceorg_1_1lflang_1_1target.html">target</a>, Predicate&lt; <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html">TestCategory</a> &gt; selected, <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html">TestLevel</a> level, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Transformers_1_1Transformer.html">Transformer</a> transformer, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Configurators_1_1Configurator.html">Configurator</a> configurator, boolean copy)</td></tr>
@@ -137,7 +146,6 @@ Protected Member Functions</h2></td></tr>
 <tr class="memdesc:a0b6820b95f35eff2cf460e32920bf015"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run tests in the given selection for a subset of given targets.  <br /></td></tr>
 <tr class="memitem:a1ebac2651a6dd6b8044d96eb597402d6" id="r_a1ebac2651a6dd6b8044d96eb597402d6"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#a1ebac2651a6dd6b8044d96eb597402d6">runTestsForTargets</a> (String description, Predicate&lt; <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html">TestCategory</a> &gt; selected, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Transformers_1_1Transformer.html">Transformer</a> transformer, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Configurators_1_1Configurator.html">Configurator</a> configurator, <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html">TestLevel</a> level, boolean copy)</td></tr>
 <tr class="memdesc:a1ebac2651a6dd6b8044d96eb597402d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run tests in the given selection for all targets enabled in this class.  <br /></td></tr>
-<tr class="memitem:a5d64cdca47bbd7172b156dce77bc9e9e" id="r_a5d64cdca47bbd7172b156dce77bc9e9e"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a5d64cdca47bbd7172b156dce77bc9e9e">SerializationTest</a> ()</td></tr>
 <tr class="memitem:acf8d6dd5602a2cd1575379119f5909e2" id="r_acf8d6dd5602a2cd1575379119f5909e2"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#acf8d6dd5602a2cd1575379119f5909e2">supportsSingleThreadedExecution</a> ()</td></tr>
 <tr class="memdesc:acf8d6dd5602a2cd1575379119f5909e2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether to enable threading.  <br /></td></tr>
 </table><table class="memberdecls">
@@ -152,6 +160,10 @@ Static Protected Member Functions</h2></td></tr>
 <tr class="memitem:ac847b48162a5aa845f798a78465ff5fb" id="r_ac847b48162a5aa845f798a78465ff5fb"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#ac847b48162a5aa845f798a78465ff5fb">printTestHeader</a> (<a class="el" href="enumorg_1_1lflang_1_1target_1_1Target.html">Target</a> <a class="el" href="namespaceorg_1_1lflang_1_1target.html">target</a>, String description)</td></tr>
 <tr class="memdesc:ac847b48162a5aa845f798a78465ff5fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print a header that describes a collection of tests.  <br /></td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pac-methods" class="groupheader"><a id="pac-methods" name="pac-methods"></a>
+Package Functions</h2></td></tr>
+<tr class="memitem:a784997a790463b0eea9db3d0b30d578a" id="r_a784997a790463b0eea9db3d0b30d578a"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a784997a790463b0eea9db3d0b30d578a">resetCliArgs</a> ()</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pac-attribs" class="groupheader"><a id="pac-attribs" name="pac-attribs"></a>
 Package Attributes</h2></td></tr>
 <tr class="memitem:ad9cea2a81034b6aba70301c2b728b5cf" id="r_ad9cea2a81034b6aba70301c2b728b5cf"><td class="memItemLeft">JavaIoFileSystemAccess&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#ad9cea2a81034b6aba70301c2b728b5cf">fileAccess</a></td></tr>
@@ -161,36 +173,31 @@ Package Attributes</h2></td></tr>
 <tr class="memitem:afc6768563083e4403de7f0d1dd375f68" id="r_afc6768563083e4403de7f0d1dd375f68"><td class="memItemLeft">IResourceValidator&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#afc6768563083e4403de7f0d1dd375f68">validator</a></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Collection of tests for the serialization. </p>
+<div class="textblock"><p>Integration tests for command-line parameter override functionality. </p>
+<p>Verifies that main reactor parameters can be overridden via command-line arguments and that the overridden values propagate correctly to child reactors, including timers and deadlines.</p>
+<p>Uses a ThreadLocal so that the CLI arguments set in each test method are visible to the runner instance created reflectively by <code><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#ab92abba6f078f75ef0933f7d3e2b2183">TestBase#runSingleTestAndPrintResults</a></code>, which executes on the same thread. This is safe for concurrent test execution.</p>
+<dl class="section author"><dt>Author</dt><dd>Edward A. Lee </dd></dl>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a5d64cdca47bbd7172b156dce77bc9e9e" name="a5d64cdca47bbd7172b156dce77bc9e9e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d64cdca47bbd7172b156dce77bc9e9e">&#9670;&#160;</a></span>SerializationTest()</h2>
+<a id="ac5e93eb01771c1dda24a3a9ede0aeab1" name="ac5e93eb01771c1dda24a3a9ede0aeab1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac5e93eb01771c1dda24a3a9ede0aeab1">&#9670;&#160;</a></span>CCliTest()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">org.lflang.tests.serialization.SerializationTest.SerializationTest </td>
+          <td class="memname">org.lflang.tests.runtime.CCliTest.CCliTest </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 </div>
 </div>
 <a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
-<a id="a3c02b63e01343db1960f7fb183b42bec" name="a3c02b63e01343db1960f7fb183b42bec"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3c02b63e01343db1960f7fb183b42bec">&#9670;&#160;</a></span>applyDefaultConfiguration()</h2>
+<a id="acbbd37d213419ddbc3ee9a577b86b895" name="acbbd37d213419ddbc3ee9a577b86b895"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acbbd37d213419ddbc3ee9a577b86b895">&#9670;&#160;</a></span>applyDefaultConfiguration()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -199,7 +206,7 @@ Package Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void org.lflang.tests.serialization.SerializationTest.applyDefaultConfiguration </td>
+          <td class="memname">void org.lflang.tests.TestBase.applyDefaultConfiguration </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>config</em></span></td><td>)</td>
           <td></td>
@@ -207,19 +214,19 @@ Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Adjust target configuration for all runs of this test class. </p>
 
-<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#acbbd37d213419ddbc3ee9a577b86b895">org.lflang.tests.TestBase</a>.</p>
+<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#a27e0d99769e527d067e8abaf35395157">org.lflang.tests.runtime.PythonTest</a>, and <a class="el" href="classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html#a3c02b63e01343db1960f7fb183b42bec">org.lflang.tests.serialization.SerializationTest</a>.</p>
 
 </div>
 </div>
-<a id="ab7eb2f2d3c228ab7984b5a2df5cbe589" name="ab7eb2f2d3c228ab7984b5a2df5cbe589"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab7eb2f2d3c228ab7984b5a2df5cbe589">&#9670;&#160;</a></span>getExecCommand()</h2>
+<a id="ae0e0660beced13cab7bb841bbb563dd2" name="ae0e0660beced13cab7bb841bbb563dd2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae0e0660beced13cab7bb841bbb563dd2">&#9670;&#160;</a></span>getExecCommand()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -228,7 +235,7 @@ Package Attributes</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">ProcessBuilder org.lflang.tests.TestBase.getExecCommand </td>
+          <td class="memname">ProcessBuilder org.lflang.tests.runtime.CCliTest.getExecCommand </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1tests_1_1LFTest.html">LFTest</a></td>          <td class="paramname"><span class="paramname"><em>test</em></span></td><td>)</td>
           <td> throws <a class="el" href="classorg_1_1lflang_1_1tests_1_1TestError.html">TestError</a></td>
@@ -236,7 +243,7 @@ Package Attributes</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -249,7 +256,7 @@ Package Attributes</h2></td></tr>
   </dd>
 </dl>
 
-<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html#ae0e0660beced13cab7bb841bbb563dd2">org.lflang.tests.runtime.CCliTest</a>, and <a class="el" href="classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#ad25d62612518ff3bcbbef416500bf577">org.lflang.tests.runtime.CPatmosTest</a>.</p>
+<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#ab7eb2f2d3c228ab7984b5a2df5cbe589">org.lflang.tests.TestBase</a>.</p>
 
 </div>
 </div>
@@ -430,36 +437,27 @@ Package Attributes</h2></td></tr>
 
 </div>
 </div>
-<a id="a5bea727d556a6a6e0e415cffc2c441df" name="a5bea727d556a6a6e0e415cffc2c441df"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5bea727d556a6a6e0e415cffc2c441df">&#9670;&#160;</a></span>runSerializationTests()</h2>
+<a id="a784997a790463b0eea9db3d0b30d578a" name="a784997a790463b0eea9db3d0b30d578a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a784997a790463b0eea9db3d0b30d578a">&#9670;&#160;</a></span>resetCliArgs()</h2>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void org.lflang.tests.serialization.SerializationTest.runSerializationTests </td>
+          <td class="memname">void org.lflang.tests.runtime.CCliTest.resetCliArgs </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="aa323a997505939f2886c1017cc375cfa" name="aa323a997505939f2886c1017cc375cfa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa323a997505939f2886c1017cc375cfa">&#9670;&#160;</a></span>runSerializationTestsWithThreadingOff()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">void org.lflang.tests.serialization.SerializationTest.runSerializationTestsWithThreadingOff </td>
-          <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel package">package</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
@@ -754,6 +752,106 @@ Package Attributes</h2></td></tr>
 
 </div>
 </div>
+<a id="ae54487a2774ff6675043d4b66d37bbd2" name="ae54487a2774ff6675043d4b66d37bbd2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae54487a2774ff6675043d4b66d37bbd2">&#9670;&#160;</a></span>testCommandLineActionOverride()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.tests.runtime.CCliTest.testCommandLineActionOverride </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Test that &ndash;min_delay and &ndash;min_spacing override action timing. </p>
+<p>With defaults (min_delay=1ns, min_spacing=10ns), overriding to min_delay=10us and min_spacing=100us changes when the action fires. The test verifies that elapsed times match the overridden values. </p>
+
+</div>
+</div>
+<a id="aa5a042edcf047fc70ef33176f2b8aaf8" name="aa5a042edcf047fc70ef33176f2b8aaf8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa5a042edcf047fc70ef33176f2b8aaf8">&#9670;&#160;</a></span>testCommandLineDeadlineFederatedOverride()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.tests.runtime.CCliTest.testCommandLineDeadlineFederatedOverride </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Test that CLI overrides propagate through the launch script in federated execution. </p>
+<p>With defaults (execution_time=100ms, deadline_time=50ms) a deadline violation occurs. The CLI override sets execution_time=10ms and deadline_time=500ms with expect_violation=0, so NO violation occurs, proving the launch script forwards arguments to federates. </p>
+
+</div>
+</div>
+<a id="a38f9978e70512e43b7ef02553a6cb5f8" name="a38f9978e70512e43b7ef02553a6cb5f8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a38f9978e70512e43b7ef02553a6cb5f8">&#9670;&#160;</a></span>testCommandLineDeadlineOverride()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.tests.runtime.CCliTest.testCommandLineDeadlineOverride </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Test that &ndash;deadline_time and &ndash;execution_time override deadline behavior. </p>
+<p>With defaults (execution_time=100ms, deadline_time=50ms) a deadline violation occurs. The CLI override sets execution_time=10ms and deadline_time=200ms, so NO violation occurs, proving both overrides took effect. </p>
+
+</div>
+</div>
+<a id="a72abcef75a1c5dc95edff142d80b5594" name="a72abcef75a1c5dc95edff142d80b5594"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a72abcef75a1c5dc95edff142d80b5594">&#9670;&#160;</a></span>testCommandLineParameterOverride()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.tests.runtime.CCliTest.testCommandLineParameterOverride </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Test that &ndash;period, &ndash;expected, and &ndash;value override timer behavior and double parameter. </p>
+<p>With defaults (period=1s, expected=6, value=3.14159), overriding to period=500ms changes the firing count to 11, and overriding value=2.71828 changes the double sent on each output. </p>
+
+</div>
+</div>
+<a id="a10bdcc75d3c567c317342cbfe269423d" name="a10bdcc75d3c567c317342cbfe269423d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a10bdcc75d3c567c317342cbfe269423d">&#9670;&#160;</a></span>testCommandLineStringBoolOverride()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void org.lflang.tests.runtime.CCliTest.testCommandLineStringBoolOverride </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Test that &ndash;value and &ndash;use_default override string and bool parameters. </p>
+<p>With default use_default=false and value="Hello, world!", overriding value to "Goodbye!" should cause the Print reactor to expect "Goodbye!". Running with &ndash;use_default true should ignore the value parameter and use the hardcoded default. </p>
+
+</div>
+</div>
 <a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
 <a id="ad9cea2a81034b6aba70301c2b728b5cf" name="ad9cea2a81034b6aba70301c2b728b5cf"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad9cea2a81034b6aba70301c2b728b5cf">&#9670;&#160;</a></span>fileAccess</h2>
@@ -920,7 +1018,7 @@ Package Attributes</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/serialization/<b>SerializationTest.java</b></li>
+<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/integrationTest/java/org/lflang/tests/runtime/<b>CCliTest.java</b></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
@@ -935,7 +1033,7 @@ Package Attributes</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1tests.html">tests</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1tests_1_1serialization.html">serialization</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html">SerializationTest</a></li>
+    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1tests.html">tests</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1tests_1_1runtime.html">runtime</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html">CCliTest</a></li>
     <li class="footer">Generated on <span class="timestamp"></span> for lingua-franca by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.16.1 </li>
   </ul>
 </div>

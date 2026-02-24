@@ -153,6 +153,8 @@ Protected Member Functions</h2></td></tr>
 <tr class="memitem:a0503805e6aad133a914bbf0ec86087b8" id="r_a0503805e6aad133a914bbf0ec86087b8"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html">PythonDockerGenerator</a>&#160;</td><td class="memItemRight"><a class="el" href="#a0503805e6aad133a914bbf0ec86087b8">getDockerGenerator</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context)</td></tr>
 <tr class="memitem:af00a81e28cf43c3b0d64ad11a310667f" id="r_af00a81e28cf43c3b0d64ad11a310667f"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#af00a81e28cf43c3b0d64ad11a310667f">handleProtoFiles</a> ()</td></tr>
 <tr class="memitem:adcf1fce9fd2362d761a3485247feb4cb" id="r_adcf1fce9fd2362d761a3485247feb4cb"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="#adcf1fce9fd2362d761a3485247feb4cb">setUpGeneralParameters</a> ()</td></tr>
+<tr class="memitem:a81310a31b75bf792769abf7b76ab4353" id="r_a81310a31b75bf792769abf7b76ab4353"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="#a81310a31b75bf792769abf7b76ab4353">supportsNativeParameterReferences</a> ()</td></tr>
+<tr class="memdesc:a81310a31b75bf792769abf7b76ab4353"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return false because the Python C self struct stores parameters as PyObject*, not native C types.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pac-attribs" class="groupheader"><a id="pac-attribs" name="pac-attribs"></a>
 Package Attributes</h2></td></tr>
@@ -381,6 +383,7 @@ Package Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Generate runtime initialization code in C for parameters of a given reactor instance. </p>
+<p>In Python, parameters are initialized in Python and stored as PyObject* on the C self struct, so no C-side initialization is needed.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">instance</td><td>The reactor instance. </td></tr>
@@ -935,6 +938,34 @@ Package Attributes</h2></td></tr>
   </tr>
 </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a81310a31b75bf792769abf7b76ab4353" name="a81310a31b75bf792769abf7b76ab4353"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a81310a31b75bf792769abf7b76ab4353">&#9670;&#160;</a></span>supportsNativeParameterReferences()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.generator.python.PythonGenerator.supportsNativeParameterReferences </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return false because the Python C self struct stores parameters as PyObject*, not native C types. </p>
+<p>Timer and deadline init code must use resolved literal values instead of parameter references. </p>
 
 </div>
 </div>

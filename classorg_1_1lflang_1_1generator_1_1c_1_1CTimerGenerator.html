@@ -103,8 +103,8 @@ $(function(){initNavTree('classorg_1_1lflang_1_1generator_1_1c_1_1CTimerGenerato
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a3e9751d6f0f1e4ed1ff1c177146979d4" id="r_a3e9751d6f0f1e4ed1ff1c177146979d4"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#a3e9751d6f0f1e4ed1ff1c177146979d4">generateInitializer</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1TimerInstance.html">TimerInstance</a> timer, <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveInstance.html">CEnclaveInstance</a> enc)</td></tr>
-<tr class="memdesc:a3e9751d6f0f1e4ed1ff1c177146979d4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code to initialize the given timer.  <br /></td></tr>
+<tr class="memitem:aff5c78e2f68ec0d3c2b184906849e7f8" id="r_aff5c78e2f68ec0d3c2b184906849e7f8"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#aff5c78e2f68ec0d3c2b184906849e7f8">generateInitializer</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1TimerInstance.html">TimerInstance</a> timer, <a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveInstance.html">CEnclaveInstance</a> enc, boolean useParamRefs)</td></tr>
+<tr class="memdesc:aff5c78e2f68ec0d3c2b184906849e7f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code to initialize the given timer.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Generates C code to declare and initialize timers. </p>
@@ -112,8 +112,8 @@ Static Public Member Functions</h2></td></tr>
 <dd>
 {Soroush Bateni </dd></dl>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
-<a id="a3e9751d6f0f1e4ed1ff1c177146979d4" name="a3e9751d6f0f1e4ed1ff1c177146979d4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3e9751d6f0f1e4ed1ff1c177146979d4">&#9670;&#160;</a></span>generateInitializer()</h2>
+<a id="aff5c78e2f68ec0d3c2b184906849e7f8" name="aff5c78e2f68ec0d3c2b184906849e7f8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aff5c78e2f68ec0d3c2b184906849e7f8">&#9670;&#160;</a></span>generateInitializer()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -129,7 +129,12 @@ Static Public Member Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveInstance.html">CEnclaveInstance</a></td>          <td class="paramname"><span class="paramname"><em>enc</em></span>&#160;)</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1CEnclaveInstance.html">CEnclaveInstance</a></td>          <td class="paramname"><span class="paramname"><em>enc</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>useParamRefs</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -144,6 +149,7 @@ Static Public Member Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">timer</td><td>The timer to initialize for. </td></tr>
     <tr><td class="paramname">enc</td><td>The enclave instance. </td></tr>
+    <tr><td class="paramname">useParamRefs</td><td>If true and the timer offset/period is a parameter reference, generate a reference to the self struct field so runtime overrides take effect. Set to false for targets (e.g., Python) whose self struct stores parameters as non-native types. </td></tr>
   </table>
   </dd>
 </dl>

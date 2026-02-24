@@ -7,7 +7,7 @@ var group__Generator =
     [ "org.lflang.generator.c.CActionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html", [
       [ "generateAuxiliaryStruct", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#a68b4bab7f129c9886ae3eaabaf036681", null ],
       [ "generateDeclarations", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#a7c2e744872569f130bd83faabe277524", null ],
-      [ "generateInitializers", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#a4e1cadd72eff27095b2b96debd22c1d6", null ],
+      [ "generateInitializers", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#a0a826e9680f1051ff1e1a76450a7272c", null ],
       [ "generateTokenInitializer", "classorg_1_1lflang_1_1generator_1_1c_1_1CActionGenerator.html#aa6ce83dbeeee329dd549583e24d10de9", null ]
     ] ],
     [ "org.lflang.generator.c.CCmakeGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CCmakeGenerator.html", [
@@ -138,8 +138,9 @@ var group__Generator =
       [ "useHierarchicalBin", "classorg_1_1lflang_1_1generator_1_1c_1_1CFileConfig.html#ac86a63029d65b24543f6ed15a4cc1423", null ]
     ] ],
     [ "org.lflang.generator.c.CMainFunctionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CMainFunctionGenerator.html", [
-      [ "CMainFunctionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CMainFunctionGenerator.html#a553de8e07df6cea80d04908297bda075", null ],
-      [ "generateCode", "classorg_1_1lflang_1_1generator_1_1c_1_1CMainFunctionGenerator.html#a43c99f701929e56b199b9a4ac22bdc37", null ]
+      [ "CMainFunctionGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CMainFunctionGenerator.html#a0465cad351f51795359afe81918cad43", null ],
+      [ "generateCode", "classorg_1_1lflang_1_1generator_1_1c_1_1CMainFunctionGenerator.html#a43c99f701929e56b199b9a4ac22bdc37", null ],
+      [ "getCliParameters", "classorg_1_1lflang_1_1generator_1_1c_1_1CMainFunctionGenerator.html#ad7085621d798db9b8567e24c1948fc65", null ]
     ] ],
     [ "org.lflang.generator.c.CMethodGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CMethodGenerator.html", [
       [ "generateMacrosForMethods", "classorg_1_1lflang_1_1generator_1_1c_1_1CMethodGenerator.html#ad3ce935965dd0964a6a1af5c21a267dc", null ],
@@ -212,7 +213,7 @@ var group__Generator =
       [ "generateInitializer", "classorg_1_1lflang_1_1generator_1_1c_1_1CStateGenerator.html#a1d71186133f789a26f19cec8cd0927cc", null ]
     ] ],
     [ "org.lflang.generator.c.CTimerGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CTimerGenerator.html", [
-      [ "generateInitializer", "classorg_1_1lflang_1_1generator_1_1c_1_1CTimerGenerator.html#a3e9751d6f0f1e4ed1ff1c177146979d4", null ]
+      [ "generateInitializer", "classorg_1_1lflang_1_1generator_1_1c_1_1CTimerGenerator.html#aff5c78e2f68ec0d3c2b184906849e7f8", null ]
     ] ],
     [ "org.lflang.generator.c.CTracingGenerator", "classorg_1_1lflang_1_1generator_1_1c_1_1CTracingGenerator.html", [
       [ "generateTraceTableEntries", "classorg_1_1lflang_1_1generator_1_1c_1_1CTracingGenerator.html#ab2c1940a94163fca41e12f61dce2262f", null ]
@@ -547,6 +548,7 @@ var group__Generator =
       [ "isOSCompatible", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a68ec764c01fa4a426c90faa3be0cb340", null ],
       [ "processProtoFile", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a7056d943b0f025ea9a50a871ea85e95e", null ],
       [ "setUpGeneralParameters", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#adcf1fce9fd2362d761a3485247feb4cb", null ],
+      [ "supportsNativeParameterReferences", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a81310a31b75bf792769abf7b76ab4353", null ],
       [ "genericActionType", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a8ba05ee0c6a9d598ef8fb472630906e8", null ],
       [ "genericPortType", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonGenerator.html#a8c8184bacb3fa2eb89f0af13cd476d6b", null ]
     ] ],

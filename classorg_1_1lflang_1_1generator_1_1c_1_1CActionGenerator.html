@@ -107,8 +107,8 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:a68b4bab7f129c9886ae3eaabaf036681"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the struct type definitions for the action of the reactor.  <br /></td></tr>
 <tr class="memitem:a7c2e744872569f130bd83faabe277524" id="r_a7c2e744872569f130bd83faabe277524"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#a7c2e744872569f130bd83faabe277524">generateDeclarations</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> body, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> constructorCode)</td></tr>
 <tr class="memdesc:a7c2e744872569f130bd83faabe277524"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the declarations of actions in the self struct.  <br /></td></tr>
-<tr class="memitem:a4e1cadd72eff27095b2b96debd22c1d6" id="r_a4e1cadd72eff27095b2b96debd22c1d6"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#a4e1cadd72eff27095b2b96debd22c1d6">generateInitializers</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> instance)</td></tr>
-<tr class="memdesc:a4e1cadd72eff27095b2b96debd22c1d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">For each action of the specified reactor instance, generate initialization code for the offset and period fields.  <br /></td></tr>
+<tr class="memitem:a0a826e9680f1051ff1e1a76450a7272c" id="r_a0a826e9680f1051ff1e1a76450a7272c"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#a0a826e9680f1051ff1e1a76450a7272c">generateInitializers</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a> instance, boolean useParamRefs)</td></tr>
+<tr class="memdesc:a0a826e9680f1051ff1e1a76450a7272c"><td class="mdescLeft">&#160;</td><td class="mdescRight">For each action of the specified reactor instance, generate initialization code for the offset and period fields.  <br /></td></tr>
 <tr class="memitem:aa6ce83dbeeee329dd549583e24d10de9" id="r_aa6ce83dbeeee329dd549583e24d10de9"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#aa6ce83dbeeee329dd549583e24d10de9">generateTokenInitializer</a> (String selfStruct, String actionName, String payloadSize)</td></tr>
 <tr class="memdesc:aa6ce83dbeeee329dd549583e24d10de9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a template token initialized to the payload size.  <br /></td></tr>
 </table>
@@ -237,8 +237,8 @@ Hou Seng Wong </dd></dl>
 
 </div>
 </div>
-<a id="a4e1cadd72eff27095b2b96debd22c1d6" name="a4e1cadd72eff27095b2b96debd22c1d6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4e1cadd72eff27095b2b96debd22c1d6">&#9670;&#160;</a></span>generateInitializers()</h2>
+<a id="a0a826e9680f1051ff1e1a76450a7272c" name="a0a826e9680f1051ff1e1a76450a7272c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0a826e9680f1051ff1e1a76450a7272c">&#9670;&#160;</a></span>generateInitializers()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -249,8 +249,12 @@ Hou Seng Wong </dd></dl>
         <tr>
           <td class="memname">String org.lflang.generator.c.CActionGenerator.generateInitializers </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></td>          <td class="paramname"><span class="paramname"><em>instance</em></span></td><td>)</td>
+          <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1generator_1_1ReactorInstance.html">ReactorInstance</a></td>          <td class="paramname"><span class="paramname"><em>instance</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>useParamRefs</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -264,6 +268,7 @@ Hou Seng Wong </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">instance</td><td>The reactor. </td></tr>
+    <tr><td class="paramname">useParamRefs</td><td>If true, use self-struct parameter references for min_delay/min_spacing when the AST expression is a ParameterReference, so runtime CLI overrides take effect. </td></tr>
   </table>
   </dd>
 </dl>
