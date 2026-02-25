@@ -54,6 +54,8 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
 import org.lflang.diagram.synthesis.util.UtilityExtensions;
+import org.lflang.diagram.synthesis.util.HeatMapDataProvider;
+import org.lflang.diagram.synthesis.util.HeatMapDataProvider.ReactionExecutionData;
 import org.lflang.generator.ReactionInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TimerInstance;
@@ -355,6 +357,74 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     }
   }
 
+  /**
+   * Compute a heat-map color for the given average execution time using a blue-to-red gradient with
+   * log-scale normalization for wide dynamic range.
+   *
+   * <p>Gradient stops: Blue (cold) -> Cyan -> Green -> Yellow -> Red (hot).
+   *
+   * @param avgNanos the average execution time in nanoseconds
+   * @param globalMin the minimum average across all tracked reactions
+   * @param globalMax the maximum average across all tracked reactions
+   * @return an RGB int array {@code {red, green, blue}} in the range 0-255
+   */
+  public static int[] computeHeatColor(long avgNanos, long globalMin, long globalMax) {
+    if (globalMax <= globalMin || avgNanos <= globalMin) {
+      // Cold: blue
+      return new int[] {0, 0, 255};
+    }
+    if (avgNanos >= globalMax) {
+      // Hot: red
+      return new int[] {255, 0, 0};
+    }
+
+    // Log-scale normalization to handle wide dynamic ranges.
+    double logMin = Math.log1p(globalMin);
+    double logMax = Math.log1p(globalMax);
+    double logVal = Math.log1p(avgNanos);
+    double t = (logVal - logMin) / (logMax - logMin);
+    t = Math.max(0.0, Math.min(1.0, t));
+
+    // 4-stop gradient: Blue(0) -> Cyan(0.25) -> Green(0.5) -> Yellow(0.75) -> Red(1.0)
+    int r, g, b;
+    if (t < 0.25) {
+      double s = t / 0.25;
+      r = 0;
+      g = (int) (255 * s);
+      b = 255;
+    } else if (t < 0.5) {
+      double s = (t - 0.25) / 0.25;
+      r = 0;
+      g = 255;
+      b = (int) (255 * (1 - s));
+    } else if (t < 0.75) {
+      double s = (t - 0.5) / 0.25;
+      r = (int) (255 * s);
+      g = 255;
+      b = 0;
+    } else {
+      double s = (t - 0.75) / 0.25;
+      r = 255;
+      g = (int) (255 * (1 - s));
+      b = 0;
+    }
+    return new int[] {r, g, b};
+  }
+
+  /**
+   * Derive the trace-compatible reactor name from the diagram full name. The diagram uses {@code
+   * getFullName()} which includes the top-level reactor (e.g. "main.counter"), while the trace
+   * system uses a shortened name with the top-level stripped (e.g. "counter"). This method strips
+   * the first segment to bridge the two naming conventions.
+   */
+  private static String toTraceName(String diagramFullName) {
+    int dot = diagramFullName.indexOf('.');
+    if (dot >= 0 && dot < diagramFullName.length() - 1) {
+      return diagramFullName.substring(dot + 1);
+    }
+    return diagramFullName;
+  }
+
   /** Creates the visual representation of a reaction node */
   public KPolygon addReactionFigure(KNode node, ReactionInstance reaction) {
     int minHeight = 22;
@@ -368,6 +438,31 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     _kRenderingExtensions.setLineWidth(baseShape, 1);
     _kRenderingExtensions.setForeground(baseShape, Colors.GRAY_45);
     _kRenderingExtensions.setBackground(baseShape, Colors.GRAY_65);
+
+    // Heat map coloring: override the background if enabled and data is available.
+    boolean heatMapEnabled = getBooleanValue(LinguaFrancaSynthesis.SHOW_HEAT_MAP);
+    ReactionExecutionData heatData = null;
+    if (heatMapEnabled && HeatMapDataProvider.getInstance().hasData()) {
+      String traceName = toTraceName(reactor.getFullName());
+      int reactionIndex = reactor.reactions.indexOf(reaction);
+      heatData = HeatMapDataProvider.getInstance().getExecutionData(traceName, reactionIndex);
+      if (heatData != null) {
+        long globalMin = HeatMapDataProvider.getInstance().getGlobalMinNanos();
+        long globalMax = HeatMapDataProvider.getInstance().getGlobalMaxNanos();
+        int[] rgb = computeHeatColor(heatData.getAvgNs(), globalMin, globalMax);
+        _kRenderingExtensions.setBackground(baseShape, Colors.WHITE);
+        var bgColor = _kRenderingExtensions.getBackground(baseShape);
+        bgColor.setRed(rgb[0]);
+        bgColor.setGreen(rgb[1]);
+        bgColor.setBlue(rgb[2]);
+        _kRenderingExtensions.setForeground(baseShape, Colors.WHITE);
+        var fgColor = _kRenderingExtensions.getForeground(baseShape);
+        fgColor.setRed(Math.max(0, rgb[0] - 40));
+        fgColor.setGreen(Math.max(0, rgb[1] - 40));
+        fgColor.setBlue(Math.max(0, rgb[2] - 40));
+      }
+    }
+
     _linguaFrancaStyleExtensions.boldLineSelectionStyle(baseShape);
     baseShape
         .getPoints()
@@ -539,7 +634,26 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       }
     }
 
+    // Add execution time label when heat map is active and data is available.
+    if (heatData != null) {
+      String timeLabel = formatNanos(heatData.getAvgNs());
+      _kLabelExtensions.addOutsideBottomCenteredNodeLabel(node, timeLabel, 7);
+    }
+
     return baseShape;
+  }
+
+  /** Format nanoseconds into a human-readable string (ns, us, ms, or s). */
+  private static String formatNanos(long ns) {
+    if (ns < 1_000L) {
+      return ns + " ns";
+    } else if (ns < 1_000_000L) {
+      return String.format("%.1f us", ns / 1_000.0);
+    } else if (ns < 1_000_000_000L) {
+      return String.format("%.2f ms", ns / 1_000_000.0);
+    } else {
+      return String.format("%.3f s", ns / 1_000_000_000.0);
+    }
   }
 
   /** Stopwatch figure for deadlines. */
