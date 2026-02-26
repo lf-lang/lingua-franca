@@ -7,6 +7,7 @@ import org.lflang.generator.LFGeneratorContext;
  * Generates the docker file related code for the Python target.
  *
  * @author Hou Seng Wong
+ * @ingroup Docker
  */
 public class PythonDockerGenerator extends CDockerGenerator {
   public static final String DEFAULT_BASE_IMAGE = "python:3.10-alpine";

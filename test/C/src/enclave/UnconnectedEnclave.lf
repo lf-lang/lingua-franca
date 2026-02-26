@@ -1,0 +1,41 @@
+// This tests that the AST transformation works for conneections where we have
+// enclaves not connected in various configurations
+target C {
+  timeout: 1 s,
+  fast: true
+}
+
+import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
+
+reactor NormalSink {
+  input in: int
+
+  reaction(in) {=  =}
+}
+
+reactor NormalSource {
+  output out: int
+}
+
+main reactor {
+  @enclave
+  e1 = new EnclaveSource()
+  @enclave
+  e2 = new EnclaveSink()
+  @enclave
+  e3 = new EnclaveSource()
+  @enclave
+  e4 = new EnclaveSource()
+
+  @enclave
+  e6 = new NormalSink()
+
+  e1.out -> e2.in after 50 msec  // 1. Part of multi-connection but dropped (e3)
+
+  // 2. Not connected at all (e4)
+  // 3. Part of multi-connection dest but dropped
+  src = new NormalSource()
+  sink = new NormalSink()
+
+  src.out -> sink.in
+}

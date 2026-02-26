@@ -1,0 +1,17 @@
+target Python
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    out.set(42)
+  =}
+}
+
+reactor Sink {
+  input inp
+
+  reaction(inp) {=
+    print("Received {:d} at time {:d}".format(inp.value, lf.time.logical_elapsed()))
+  =}
+}

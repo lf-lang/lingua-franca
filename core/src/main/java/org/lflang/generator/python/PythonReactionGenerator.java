@@ -30,6 +30,11 @@ import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate Python code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class PythonReactionGenerator {
   /**
    * Generate code to call reaction numbered "reactionIndex" in reactor "reactor".
@@ -37,6 +42,7 @@ public class PythonReactionGenerator {
    * @param reactor The reactor containing the reaction
    * @param reactionIndex The index of the reaction
    * @param pyObjects CPython related objects
+   * @param inits Initialization code.
    */
   public static String generateCPythonReactionCaller(
       TypeParameterizedReactor reactor, int reactionIndex, List<String> pyObjects, String inits) {
@@ -136,7 +142,8 @@ public class PythonReactionGenerator {
    * Generate the reaction in the .c file, which calls the Python reaction through the CPython interface.
    *
    * @param reaction The reaction to generate Python-specific initialization for.
-   * @param r The reactor to which <code>reaction<code> belongs to.
+   * @param tpr The type-parameterized reactor.
+   * @param r The reactor to which <code>reaction</code> belongs to.
    * @param reactionIndex The index number of the reaction in decl.
    * @param mainDef The main reactor.
    * @param messageReporter An error reporter.
@@ -175,7 +182,16 @@ public class PythonReactionGenerator {
             generateCPythonReactionCaller(tpr, reactionIndex, pyObjects, cPyInit)));
 
     // Generate code for the STP violation handler, if there is one.
-    if (reaction.getStp() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generateFunction(
+                CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
+                cInit,
+                reaction.getTardy().getCode(),
+                generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)));
+      }
+    } else if (reaction.getStp() != null) {
       code.pr(
           generateFunction(
               CReactionGenerator.generateStpFunctionHeader(tpr, reactionIndex),
@@ -430,7 +446,7 @@ public class PythonReactionGenerator {
     code.pr(nameOfSelfStruct + "->_lf_name = \"" + instance.uniqueID() + "_lf\";");
 
     for (ReactionInstance reaction : instance.reactions) {
-      // Reactions marked with a {@code @_c_body} attribute are generated in C
+      // Reactions marked with a `@_c_body` attribute are generated in C
       if (AttributeUtils.hasCBody(reaction.getDefinition())) continue;
       // Create a PyObject for each reaction
       code.pr(generateCPythonReactionLinker(instance, reaction, nameOfSelfStruct));
@@ -452,7 +468,9 @@ public class PythonReactionGenerator {
         generateCPythonFunctionLinker(
             nameOfSelfStruct, generateCPythonReactionFunctionName(reaction.index),
             instance, generatePythonReactionFunctionName(reaction.index)));
-    if (reaction.getDefinition().getStp() != null) {
+    if (reaction.getDefinition().getStp() != null
+        || (reaction.getDefinition().getTardy() != null
+            && reaction.getDefinition().getTardy().getCode() != null)) {
       code.pr(
           generateCPythonFunctionLinker(
               nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
@@ -497,9 +515,9 @@ public class PythonReactionGenerator {
    * Generate the function that is executed whenever the deadline of the reaction with the given
    * reaction index is missed
    *
-   * @param reaction The reaction to generate deadline miss code for
-   * @param reactionIndex The agreed-upon index of the reaction in the reactor (should match the C
-   *     generated code)
+   * @param pythonFunctionName The name of the Python function.
+   * @param inits Initialization code.
+   * @param reactionBody The body of the reaction.
    * @param reactionParameters The parameters to the deadline violation function, which are the same
    *     as the reaction function
    */
@@ -540,10 +558,11 @@ public class PythonReactionGenerator {
    *
    * @param reactor The reactor
    * @param reaction The reaction of reactor
+   * @param reactionIndex The index of the reaction.
    */
   public static String generatePythonReaction(
       Reactor reactor, Reaction reaction, int reactionIndex) {
-    // Reactions marked with a {@code @_c_body} attribute are generated in C
+    // Reactions marked with a `@_c_body` attribute are generated in C
     if (AttributeUtils.hasCBody(reaction)) return "";
 
     CodeBuilder code = new CodeBuilder();
@@ -559,7 +578,16 @@ public class PythonReactionGenerator {
             ASTUtils.toText(reaction.getCode()),
             reactionParameters));
     // Generate code for the STP violation handler function, if there is one.
-    if (reaction.getStp() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generatePythonFunction(
+                generatePythonSTPFunctionName(reactionIndex),
+                "",
+                ASTUtils.toText(reaction.getTardy().getCode()),
+                reactionParameters));
+      }
+    } else if (reaction.getStp() != null) {
       code.pr(
           generatePythonFunction(
               generatePythonSTPFunctionName(reactionIndex),

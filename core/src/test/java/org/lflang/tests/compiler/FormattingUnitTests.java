@@ -11,6 +11,10 @@ import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 import org.lflang.tests.LfParsingTestHelper;
 
+/**
+ * Test the formatting of LF programs.
+ * @ingroup Tests
+ */
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 public class FormattingUnitTests {

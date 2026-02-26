@@ -13,6 +13,7 @@ import org.lflang.tests.Transformers;
  * Collection of Arduino tests for the C target.
  *
  * @author Anirudh Rengarajan <arengarajan@berkeley.edu>
+ * @ingroup Tests
  */
 public class CArduinoTest extends TestBase {
 

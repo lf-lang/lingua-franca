@@ -1,0 +1,57 @@
+target C {
+  fast: true,
+  timeout: 5 s
+}
+
+main reactor {
+  timer t(0, 1 sec)
+  logical action a: int  // Default should be the same as a(0, 0, "defer").
+  logical action b(0, 0, "drop"): int
+  logical action c(0, 0, "replace"): int
+  state count_a: int = 0
+  state count_a_r: int = 0
+  state count_b: int = 0
+  state count_b_r: int = 0
+  state count_c: int = 0
+  state count_c_r: int = 1
+
+  reaction(t) -> a, b, c {=
+    // Schedule two events with the same tag for each action.
+    // First default is defer. Receiver should get both.
+    lf_schedule_int(a, MSEC(100), self->count_a++);
+    lf_schedule_int(a, MSEC(100), self->count_a++);
+    // Second is drop. Receiver should get only the first of the two.
+    lf_schedule_int(b, MSEC(100), self->count_b++);
+    lf_schedule_int(b, MSEC(100), self->count_b++);
+    // Third is replace. Receiver should get only the second of the two.
+    lf_schedule_int(c, MSEC(100), self->count_c++);
+    lf_schedule_int(c, MSEC(100), self->count_c++);
+  =}
+
+  reaction(a) {=
+    interval_t elapsed = lf_time_logical_elapsed();
+    lf_print("Defer policy: Received %d at " PRINTF_TAG, a->value, elapsed, lf_tag().microstep);
+    if (a->value != self->count_a_r) {
+      lf_print_error_and_exit("Defer policy: Expected %d but got %d", self->count_a_r, a->value);
+    }
+    self->count_a_r++;
+  =}
+
+  reaction(b) {=
+    interval_t elapsed = lf_time_logical_elapsed();
+    lf_print("Drop policy: Received %d at " PRINTF_TAG, b->value, elapsed, lf_tag().microstep);
+    if (b->value != self->count_b_r) {
+      lf_print_error_and_exit("Drop policy: Expected %d but got %d", self->count_b_r, b->value);
+    }
+    self->count_b_r += 2;
+  =}
+
+  reaction(c) {=
+    interval_t elapsed = lf_time_logical_elapsed();
+    lf_print("Replace policy: Received %d at " PRINTF_TAG, c->value, elapsed, lf_tag().microstep);
+    if (c->value != self->count_c_r) {
+      lf_print_error_and_exit("Replace policy: Expected %d but got %d", self->count_c_r, c->value);
+    }
+    self->count_c_r += 2;
+  =}
+}

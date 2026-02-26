@@ -20,12 +20,12 @@ reactor CountSelf2(delay = 100 msec) {
 }
 
 reactor Test {
-  input _in
+  input inp
   state count = 0
 
-  reaction(_in) {=
-    print("Received: {:d}".format(_in.value))
-    if _in.value != self.count:
+  reaction(inp) {=
+    print("Received: {:d}".format(inp.value))
+    if inp.value != self.count:
       sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count))
       exit(1)
 
@@ -36,5 +36,5 @@ reactor Test {
 main reactor {
   d = new CountSelf2()
   t = new Test()
-  d.out -> t._in
+  d.out -> t.inp
 }

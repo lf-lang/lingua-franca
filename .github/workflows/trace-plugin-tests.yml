@@ -1,0 +1,19 @@
+name: Trace plugin tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review, converted_to_draft]
+  workflow_dispatch:
+
+concurrency:
+  group: trace-plugin-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  trace-plugin-tests:
+    uses: lf-lang/lf-trace-xronos/.github/workflows/ci.yml@main
+    with:
+      lf-ref: ${{ github.event.pull_request.head.sha || github.sha }}

@@ -9,6 +9,12 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.Position;
 import org.lflang.generator.Range;
 
+/**
+ * A message reporter that adjusts line numbers to account for the fact that the code has been
+ * generated.
+ *
+ * @ingroup Federated
+ */
 public class LineAdjustingMessageReporter implements MessageReporter {
 
   private final MessageReporter parent;

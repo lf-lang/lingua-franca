@@ -41,7 +41,7 @@ reactor Ticker(period(1600 msec)) {
 
 /** Print a message when an input arrives. */
 reactor Printer {
-  input in_
+  input inp
 
   reaction(startup) {=
     // FIXME: _lf_clock_sync_constant_bias has been removed.
@@ -49,7 +49,7 @@ reactor Printer {
     lf_print("Clock sync error at startup is " PRINTF_TIME " ns.", offset);
   =}
 
-  reaction(in_) {= lf_print("Received %d.", in->value); =}
+  reaction(inp) {= lf_print("Received %d.", in->value); =}
 
   reaction(shutdown) {=
     interval_t offset = _lf_clock_sync_offset + _lf_clock_sync_constant_bias;
@@ -65,7 +65,7 @@ reactor Printer {
 reactor Federate {
   source = new Ticker()
   play = new Printer()
-  source.out -> play.in_
+  source.out -> play.inp
 }
 
 federated reactor ClockSync {

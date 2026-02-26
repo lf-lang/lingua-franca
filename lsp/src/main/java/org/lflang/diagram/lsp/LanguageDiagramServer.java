@@ -26,6 +26,7 @@ import org.lflang.ide.LFIdeSetup;
  * Language server with extended diagram communication.
  *
  * @author Alexander Schulz-Rosengarten
+ * @ingroup LSP
  */
 public class LanguageDiagramServer extends AbstractLanguageServer {
 

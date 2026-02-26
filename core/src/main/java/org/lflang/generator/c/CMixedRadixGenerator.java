@@ -1,5 +1,10 @@
 package org.lflang.generator.c;
 
+/**
+ * Names for the variables used to index into the mixed-radix array.
+ *
+ * @ingroup Generator
+ */
 public class CMixedRadixGenerator {
   /** Standardized name for channel index variable for a source. */
   public static String sc = "src_channel";

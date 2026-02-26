@@ -1,28 +1,3 @@
-/*************
- * Copyright (c) 2019-2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.c;
 
 import java.io.File;
@@ -39,6 +14,7 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.CmakeArgsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Option;
@@ -58,6 +34,7 @@ import org.lflang.util.LFCommand;
  * @author Christian Menard
  * @author Matt Weber
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public class CCompiler {
 
@@ -99,6 +76,7 @@ public class CCompiler {
    *
    * @param generator An instance of GeneratorBase, only used to report error line numbers in the
    *     Eclipse IDE.
+   * @param context The generator context.
    * @return true if compilation succeeds, false otherwise.
    */
   public boolean runCCompiler(GeneratorBase generator, LFGeneratorContext context)
@@ -249,6 +227,13 @@ public class CCompiler {
       arguments.add("-DLF_PACKAGE_DIRECTORY='" + quote + rootPath + quote + "'");
     }
     arguments.add("-DLF_SOURCE_GEN_DIRECTORY='" + quote + srcGenPath + quote + "'");
+
+    // Append user-provided CMake configure definitions. These come after built-ins so they can
+    // override defaults (e.g., CMAKE_BUILD_TYPE).
+    targetConfig
+        .getOrDefault(CmakeArgsProperty.INSTANCE)
+        .forEach((key, value) -> arguments.add("-D" + key + "=" + (value == null ? "" : value)));
+
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
     if (GeneratorUtils.isHostWindows()) {
@@ -308,7 +293,7 @@ public class CCompiler {
   /**
    * Return a flash/emulate command using west. If board is null (defaults to qemu_cortex_m3) or
    * qemu_* Return a flash command which runs the target as an emulation If ordinary target, return
-   * {@code west flash}
+   * `west flash`
    */
   public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"
@@ -372,6 +357,7 @@ public class CCompiler {
    * @param fileName The base name of the file without any extensions
    * @param cppMode Indicate whether the compiler is in C++ mode In C++ mode, the compiler produces
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
+   * @param targetConfig The target configuration.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
     return fileName + getFileExtension(cppMode, targetConfig);

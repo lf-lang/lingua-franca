@@ -10,12 +10,19 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 
+/**
+ * Generate Python code for reactors.
+ *
+ * @ingroup Generator
+ */
 public class PythonReactorGenerator {
   /**
    * Wrapper function for the more elaborate generatePythonReactorClass that keeps track of visited
    * reactors to avoid duplicate generation
    *
    * @param instance The reactor instance to be generated
+   * @param main The main reactor instance.
+   * @param types The Python type helper.
    */
   public static String generatePythonClass(
       ReactorInstance instance, ReactorInstance main, PythonTypes types) {
@@ -28,6 +35,8 @@ public class PythonReactorGenerator {
    *
    * @param instance The reactor instance to be generated
    * @param instantiatedClasses A list of visited instances to avoid generating duplicates
+   * @param main The main reactor instance.
+   * @param types The Python type helper.
    */
   public static String generatePythonClass(
       ReactorInstance instance,
@@ -70,7 +79,9 @@ public class PythonReactorGenerator {
 
   private static String generatePythonClassHeader(String className) {
     return String.join(
-        "\n", "# Python class for reactor " + className + "", "class _" + className + ":");
+        "\n",
+        "# Python class for reactor " + className + "",
+        "class _" + className + "(ReactorBase):");
   }
 
   /**
@@ -92,8 +103,8 @@ public class PythonReactorGenerator {
 
   /**
    * Generate code to instantiate a Python list that will hold the Python
-   * class instance of reactor <code>instance<code>. Will recursively do
-   * the same for the children of <code>instance<code> as well.
+   * class instance of reactor `instance`. Will recursively do
+   * the same for the children of `instance` as well.
    *
    * @param instance The reactor instance for which the Python list will be created.
    */

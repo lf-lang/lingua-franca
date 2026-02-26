@@ -1,0 +1,13 @@
+target Python
+
+reactor U {
+  reaction(startup) {=  =}
+}
+
+reactor B {
+  reaction(startup) {=  =}
+
+  initial mode A {
+    u = new U()
+  }
+}

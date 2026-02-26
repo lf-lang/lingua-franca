@@ -3,11 +3,14 @@ package org.lflang.federated.generator;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.lf.Connection;
 
-/** A collection of utility methods for the federated generator. */
+/**
+ * A collection of utility methods for the federated generator.
+ *
+ * @ingroup Federated
+ */
 public class FedUtils {
   /**
-   * Get the serializer for the {@code connection} between {@code srcFederate} and {@code
-   * dstFederate}.
+   * Get the serializer for the `connection` between `srcFederate` and `dstFederate`.
    */
   public static SupportedSerializers getSerializer(
       Connection connection, FederateInstance srcFederate, FederateInstance dstFederate) {

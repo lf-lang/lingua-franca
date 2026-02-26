@@ -1,34 +1,8 @@
-/*************
- * Copyright (c) 2019, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang;
 
 import static org.eclipse.xtext.xbase.lib.IterableExtensions.filter;
 import static org.eclipse.xtext.xbase.lib.IteratorExtensions.toIterable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -52,10 +26,11 @@ import org.lflang.util.FileUtil;
 /**
  * A helper class for analyzing the AST. This class is instantiated once for each compilation.
  *
- * <p>NOTE: the validator used on imported files uses the same instance! Hence, this class should
+ * NOTE: the validator used on imported files uses the same instance! Hence, this class should
  * not contain any info specific to any particular resource that is involved in the compilation.
  *
  * @author Marten Lohstroh
+ * @ingroup Infrastructure
  */
 public class ModelInfo {
 
@@ -92,7 +67,8 @@ public class ModelInfo {
   /**
    * Redo all analysis based on the given model.
    *
-   * @param model the model to analyze.
+   * @param model The model to analyze.
+   * @param reporter The reporter to use for reporting messages.
    */
   public void update(Model model, MessageReporter reporter) {
     this.updated = true;
@@ -128,22 +104,16 @@ public class ModelInfo {
     checkCaseInsensitiveNameCollisions(model, reporter);
   }
 
-  public void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
+  private void checkCaseInsensitiveNameCollisions(Model model, MessageReporter reporter) {
     var reactorNames = new HashSet<>();
-    var bad = new ArrayList<>();
     for (var reactor : model.getReactors()) {
       var lowerName = getName(reactor).toLowerCase();
-      if (reactorNames.contains(lowerName)) bad.add(lowerName);
+      if (reactorNames.contains(lowerName)) {
+        reporter
+            .at(reactor)
+            .error("Multiple reactors have the same name up to case differences: " + lowerName);
+      }
       reactorNames.add(lowerName);
-    }
-    for (var badName : bad) {
-      model.getReactors().stream()
-          .filter(it -> getName(it).toLowerCase().equals(badName))
-          .forEach(
-              it ->
-                  reporter
-                      .at(it)
-                      .error("Multiple reactors have the same name up to case differences."));
     }
   }
 

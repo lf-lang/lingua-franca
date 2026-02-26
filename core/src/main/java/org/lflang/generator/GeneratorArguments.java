@@ -7,8 +7,6 @@ import java.util.List;
 /**
  * Arguments to be passed to a code generator.
  *
- * <p>
- *
  * @param clean Whether to clean before building.
  * @param externalRuntimeUri FIXME: change type of
  *     org.lflang.target.property.ExternalRuntimePathProperty to URI
@@ -19,6 +17,7 @@ import java.util.List;
  * @param rti The location of the rti.
  * @param overrides List of arguments that are meant to override target properties
  * @author Marten Lohstroh
+ * @ingroup Generator
  */
 public record GeneratorArguments(
     boolean clean,

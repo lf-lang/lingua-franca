@@ -12,6 +12,7 @@ import org.lflang.generator.LFGeneratorContext;
  * Information about an indexed Lingua Franca test program.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public class LFTest implements Comparable<LFTest> {
 

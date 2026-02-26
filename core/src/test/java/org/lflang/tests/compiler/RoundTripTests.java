@@ -30,6 +30,10 @@ import org.lflang.tests.LfParsingTestHelper;
 import org.lflang.tests.TestRegistry;
 import org.lflang.tests.TestRegistry.TestCategory;
 
+/**
+ * Test the round trip of LF programs.
+ * @ingroup Tests
+ */
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
 @Execution(ExecutionMode.CONCURRENT)

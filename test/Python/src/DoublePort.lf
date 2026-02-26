@@ -1,0 +1,47 @@
+target Python {
+  timeout: 900 msec,
+  fast: true
+}
+
+import Count from "lib/Count.lf"
+
+reactor CountMicrostep {
+  state count = 1
+  output out
+  logical action act
+  timer t(0, 1 sec)
+
+  reaction(t) -> act {=
+    act.schedule(0, self.count)
+    self.count += 1
+  =}
+
+  reaction(act) -> out {=
+    out.set(act.value)
+  =}
+}
+
+reactor Print {
+  input inp
+  input inp2
+
+  reaction(inp, inp2) {=
+    current_tag = lf.tag()
+    print("At tag ({}, {}), received in = {} and in2 = {}.".format(current_tag.time, current_tag.microstep, inp.value, inp2.value))
+    if inp.is_present and inp2.is_present:
+      self.sys.stderr.write("ERROR: invalid logical simultaneity.")
+      self.sys.exit(1)
+  =}
+
+  reaction(shutdown) {=
+    print("SUCCESS: messages were at least one microstep apart.")
+  =}
+}
+
+main reactor {
+  c = new Count()
+  cm = new CountMicrostep()
+  p = new Print()
+  c.out -> p.inp
+  cm.out -> p.inp2
+}

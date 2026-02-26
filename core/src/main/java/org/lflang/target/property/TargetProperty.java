@@ -71,9 +71,9 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    * Given an AST node, produce a corresponding value that is assignable to this target property, or
    * report an error via the given reporter in case any problems are encountered.
    *
-   * @param node The AST node to derive a value of type {@code T} from.
+   * @param node The AST node to derive a value of type `T` from.
    * @param reporter A reporter for reporting errors.
-   * @return A value of type {@code T}.
+   * @return A value of type `T`.
    */
   protected abstract T fromAst(Element node, MessageReporter reporter);
 
@@ -81,9 +81,9 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
    * Given a string, produce a corresponding value that is assignable to this target property, or
    * report an error via the given reporter in case any problems are encountered.
    *
-   * @param string The string to derive a value of type {@code T} from.
+   * @param string The string to derive a value of type `T` from.
    * @param reporter A reporter for reporting errors.
-   * @return A value of type {@code T}.
+   * @return A value of type `T`.
    */
   protected abstract T fromString(String string, MessageReporter reporter);
 
@@ -105,7 +105,7 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   public abstract String name();
 
   /**
-   * Return {@code true} if this property is to be loaded from imported files, {@code false}
+   * Return `true` if this property is to be loaded from imported files, `false`
    * otherwise.
    */
   public boolean loadFromImport() {
@@ -113,15 +113,15 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   }
 
   /**
-   * Return {@code true} if this property is to be loaded by federates when specified at the level
-   * of the federation, {@code false} otherwise.
+   * Return `true` if this property is to be loaded by federates when specified at the level
+   * of the federation, `false` otherwise.
    */
   public boolean loadFromFederation() {
     return true;
   }
 
   /**
-   * Return {@code true} if this property is to be loaded from imported federates, {@code false}
+   * Return `true` if this property is to be loaded from imported federates, `false`
    * otherwise.
    */
   public boolean loadFromFederate() {
@@ -152,7 +152,7 @@ public abstract class TargetProperty<T, S extends TargetPropertyType> {
   /**
    * Update the given configuration based on the given corresponding AST node. If the given
    * configuration does not belong in the AST, then report an error using the error message given by
-   * {@code TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE}.
+   * `TargetConfig.NOT_IN_LF_SYNTAX_MESSAGE`.
    *
    * @param config The configuration to update.
    * @param pair The pair that holds the value to perform the update with.

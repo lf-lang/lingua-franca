@@ -14,7 +14,7 @@ import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.StringUtil;
 
 /**
- * Generates code for preambles for the C and CCpp target. This includes #include and #define
+ * Generates code for preambles for the C and CCpp target. This includes `#include` and `#define`
  * directives at the top of each generated ".c" file.
  *
  * @author Edward A. Lee
@@ -27,6 +27,7 @@ import org.lflang.util.StringUtil;
  * @author Hou Seng Wong
  * @author Peter Donovan
  * @author Anirudh Rengarajan
+ * @ingroup Generator
  */
 public class CPreambleGenerator {
 

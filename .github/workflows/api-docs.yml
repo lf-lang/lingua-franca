@@ -1,0 +1,43 @@
+name: API docs
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  check-warnings:
+    runs-on: macos-latest
+    steps:
+    - name: Requirements
+      run: |
+        brew install doxygen
+    - name: Checkout repo
+      uses: actions/checkout@1.0.0
+    - name: Check Doxygen warnings
+      run: |
+        cd docs
+        ./check-doxygen-warnings.sh
+
+  build:
+    runs-on: macos-latest
+    needs: check-warnings
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+    - name: Requirements
+      run: |
+        brew install doxygen
+    - name: Checkout repo
+      uses: actions/checkout@1.0.0
+    - name: Build docs
+      run: cd docs
+        && doxygen Doxyfile.in
+        && cd build/html
+        && touch .nojekyll
+    - name: Deploy
+      uses: JamesIves/github-pages-deploy-action@releases/v3
+      with:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        BRANCH: gh-pages # The branch the action should deploy to.
+        FOLDER: docs/build/html # The folder the action should deploy.

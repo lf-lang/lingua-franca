@@ -60,6 +60,8 @@ tasks.register('runLff', JavaExec) {
     dependsOn('cli:lff:run')
 }
 tasks.register('targetTest') {
+    group = "Verification"
+    description = "Run the integration tests for the specified target, given by -Ptarget=<target>. Optional: -Dscheduler=<scheduler>"
     doLast {
         if (!project.hasProperty('target')) {
             def testFiles = rootProject.fileTree("${rootProject.rootDir}/core/src/integrationTest/java/org/lflang/tests/runtime").files
@@ -70,6 +72,8 @@ tasks.register('targetTest') {
     finalizedBy('core:integrationTestCodeCoverageReport')
 }
 tasks.register('singleTest') {
+    group = "Verification"
+    description = "Run a single LF test file, e.g., ./gradlew singleTest -DsingleTest=test/C/src/Minimal.lf"
     doLast {
         if (System.getProperty('singleTest') == null) {
             throw new GradleException('Please set the \'singleTest\' system property using -DsingleTest=<...> to specify the LF test file that you would like to run.')

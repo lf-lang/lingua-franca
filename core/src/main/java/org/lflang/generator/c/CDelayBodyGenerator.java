@@ -7,6 +7,11 @@ import org.lflang.generator.DelayBodyGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.VarRef;
 
+/**
+ * Generate code for the bodies of the reactions involved in connections with the 'after' keyword.
+ *
+ * @ingroup Generator
+ */
 public class CDelayBodyGenerator implements DelayBodyGenerator {
 
   protected CTypes types;
@@ -25,8 +30,7 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
   @Override
   public String generateDelayBody(Action action, VarRef port) {
     var ref = ASTUtils.generateVarRef(port);
-    return CReactionGenerator.generateDelayBody(
-        ref, action.getName(), CUtil.isTokenType(getInferredType(action)));
+    return CReactionGenerator.generateDelayBody(ref, action.getName(), getInferredType(action));
   }
 
   /**
@@ -41,10 +45,7 @@ public class CDelayBodyGenerator implements DelayBodyGenerator {
   public String generateForwardBody(Action action, VarRef port) {
     var outputName = ASTUtils.generateVarRef(port);
     return CReactionGenerator.generateForwardBody(
-        outputName,
-        types.getTargetType(action),
-        action.getName(),
-        CUtil.isTokenType(getInferredType(action)));
+        outputName, types.getTargetType(action), action.getName(), getInferredType(action));
   }
 
   @Override

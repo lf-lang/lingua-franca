@@ -2,6 +2,11 @@ package org.lflang.diagram.lsp;
 
 import java.util.Objects;
 
+/**
+ * Build arguments for the diagram server.
+ *
+ * @ingroup LSP
+ */
 public class BuildArgs {
 
   private String uri;

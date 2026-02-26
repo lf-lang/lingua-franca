@@ -126,7 +126,6 @@ public class TargetConfig {
    * Load configuration from the given resource.
    *
    * @param resource A resource to load from.
-   * @param reporter A reporter for reporting issues.
    * @param reporter A message reporter for reporting errors and warnings.
    */
   protected void load(Resource resource, MessageReporter reporter) {
@@ -211,6 +210,8 @@ public class TargetConfig {
    * @param pairs AST node that holds all the target properties.
    * @param relativePath The path from the main resource to the resource from which the new
    *     properties originate.
+   * @param loadOrNot Predicate to determine whether a property should be loaded.
+   * @param err Message reporter for errors.
    */
   public void update(
       TargetConfig config,
@@ -260,7 +261,7 @@ public class TargetConfig {
     }
   }
 
-  /** Return {@code true} if the given target property is supported, {@code false} otherwise. */
+  /** Return `true` if the given target property is supported, `false` otherwise. */
   public boolean isSupported(TargetProperty p) {
     return properties.containsKey(p);
   }
@@ -332,7 +333,7 @@ public class TargetConfig {
   }
 
   /**
-   * Return {@code true} if this target property has been set (past initialization), {@code false}
+   * Return `true` if this target property has been set (past initialization), `false`
    * otherwise.
    */
   public boolean isSet(TargetProperty<?, ?> property) {
@@ -454,7 +455,7 @@ public class TargetConfig {
   }
 
   /**
-   * Construct a {@code TargetDecl} by extracting the fields of the given {@code TargetConfig}.
+   * Construct a `TargetDecl` by extracting the fields of the given `TargetConfig`.
    *
    * @return A generated TargetDecl.
    */

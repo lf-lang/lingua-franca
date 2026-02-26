@@ -5,6 +5,7 @@ package org.lflang.diagram.lsp;
  * information. This node typically represents a reactor within a Lingua Franca (LF) file.
  *
  * @see LibraryFile
+ * @ingroup LSP
  */
 public class ReactorNode {
 

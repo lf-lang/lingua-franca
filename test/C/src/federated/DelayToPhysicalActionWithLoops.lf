@@ -1,0 +1,54 @@
+/**
+ * When there is an output in the federate reactor, the compiler checks if the output is
+ * (transitively) connected to a physical action inside the same reactor, as the physical action
+ * could result in generating a large number of NULL messages. As the compiler looks for the
+ * physical action recursively, it should be able to handle non-trivial "trigger loop" formed by a
+ * set of actions. This tests check if the compiler can successfully handle programs with such a
+ * pattern without getting stack overflow.
+ */
+target C {
+  timeout: 1 msec
+}
+
+reactor Simple {
+  // This output is required to trigger finding the closest upstream physical action inside the reactor.
+  output out: int
+  logical action a
+  logical action b
+
+  reaction(a) -> b {=  =}
+
+  reaction(b) -> a, out {=  =}
+}
+
+reactor Hard(small_delay: time = 1 s, medium_delay: time = 2 s, large_delay: time = 10 s) {
+  output out2: int
+  @label(
+      "We want to find THIS physical action from out2. The compiler should warn about min path delay = 2 sec.")
+  physical action d(small_delay)
+  @label("This physical action has a larger min delay. The compiler should ignore it.")
+  physical action e(large_delay)
+  @label("This physical is also not the one that leads to a minimal path.")
+  physical action f(medium_delay)
+  delay = new Delay(width=2)
+  delay2 = new Delay(width=1)
+  delay.out -> delay2.in after 1 sec
+
+  reaction(d, delay2.out) -> delay.in {=  =}
+
+  reaction(e, delay2.out) -> d, out2 {=  =}
+
+  reaction(f) -> delay.in {=  =}
+}
+
+reactor Delay(width: int = 1) {
+  input[width] in: int
+  output out: int
+
+  reaction(in) -> out {=  =}
+}
+
+federated reactor {
+  simple = new Simple()
+  hard = new Hard()
+}
