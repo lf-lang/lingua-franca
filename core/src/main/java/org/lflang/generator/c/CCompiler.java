@@ -222,11 +222,11 @@ public class CCompiler {
     // put into the cmake file (and fileConfig.srcPath is the wrong directory
     // anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
-      // Do not convert to Unix path
-      arguments.add("-DLF_SOURCE_DIRECTORY='" + quote + srcPath + quote + "'");
-      arguments.add("-DLF_PACKAGE_DIRECTORY='" + quote + rootPath + quote + "'");
+      // Do not convert to Unix path. Do not add quotes here; CMake defineString() adds them.
+      arguments.add("-DLF_SOURCE_DIRECTORY=" + srcPath);
+      arguments.add("-DLF_PACKAGE_DIRECTORY=" + rootPath);
     }
-    arguments.add("-DLF_SOURCE_GEN_DIRECTORY='" + quote + srcGenPath + quote + "'");
+    arguments.add("-DLF_SOURCE_GEN_DIRECTORY=" + srcGenPath);
 
     // Append user-provided CMake configure definitions. These come after built-ins so they can
     // override defaults (e.g., CMAKE_BUILD_TYPE).
