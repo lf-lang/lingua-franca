@@ -1,0 +1,17 @@
+target C
+
+preamble {=
+  typedef struct {
+    int value1;
+    int value2;
+  } custom_type_t;
+=}
+
+reactor CustomType {
+  output out: custom_type_t
+
+  reaction(startup) -> out {=
+    custom_type_t value = {42, 43};
+    lf_set(out, value);
+  =}
+}

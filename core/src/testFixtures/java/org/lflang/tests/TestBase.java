@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.google.inject.Provider;
-import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -15,8 +13,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +34,6 @@ import org.eclipse.xtext.validation.CheckMode;
 import org.eclipse.xtext.validation.IResourceValidator;
 import org.lflang.DefaultMessageReporter;
 import org.lflang.FileConfig;
-import org.lflang.LFRuntimeModule;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult;
@@ -53,7 +50,6 @@ import org.lflang.tests.Configurators.Configurator;
 import org.lflang.tests.LFTest.Result;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers.Transformer;
-import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
 /**
@@ -61,6 +57,7 @@ import org.lflang.util.LFCommand;
  * TestRegistry}.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public abstract class TestBase extends LfInjectedTestBase {
 
@@ -146,6 +143,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
     public static final String DESC_ARDUINO = "Running Arduino tests.";
     public static final String DESC_ZEPHYR = "Running Zephyr tests.";
+    public static final String DESC_PATMOS = "Running Patmos tests.";
     public static final String DESC_AS_CCPP = "Running C tests as CCpp.";
     public static final String DESC_SINGLE_THREADED =
         "Run non-concurrent and non-federated tests with in single-threaded mode.";
@@ -172,6 +170,8 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param target The target to run tests for.
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
+   * @param level The test level.
+   * @param transformer The transformer to apply to tests.
    * @param configurator A procedure for configuring the tests.
    * @param copy Whether to work on copies of tests in the test. registry.
    */
@@ -202,7 +202,9 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param description A string that describes the collection of tests.
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
+   * @param transformer The transformer to apply to tests.
    * @param configurator A procedure for configuring the tests.
+   * @param level The test level.
    * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsForTargets(
@@ -224,7 +226,9 @@ public abstract class TestBase extends LfInjectedTestBase {
    * @param description A string that describes the collection of tests.
    * @param selected A predicate that given a test category returns whether it should be included in
    *     this test run or not.
+   * @param transformer The transformer to apply to tests.
    * @param configurator A procedure for configuring the tests.
+   * @param level The test level.
    * @param copy Whether to work on copies of tests in the test. registry.
    */
   protected void runTestsFor(
@@ -288,8 +292,7 @@ public abstract class TestBase extends LfInjectedTestBase {
    */
   public static void runSingleTestAndPrintResults(
       LFTest test, Class<? extends TestBase> testClass, TestLevel level) {
-    Injector injector =
-        new LFStandaloneSetup(new LFRuntimeModule()).createInjectorAndDoEMFRegistration();
+    Injector injector = new LFStandaloneSetup().createInjectorAndDoEMFRegistration();
     TestBase runner;
     try {
       @SuppressWarnings("unchecked")
@@ -381,6 +384,13 @@ public abstract class TestBase extends LfInjectedTestBase {
         FileConfig.findPackageRoot(test.getSrcPath(), s -> {})
             .resolve(FileConfig.DEFAULT_SRC_GEN_DIR)
             .toString());
+
+    // Update the test by applying the transformation.
+    if (transformer != null) {
+      if (!transformer.transform(resource)) {
+        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
+      }
+    }
     var context =
         new MainContext(
             LFGeneratorContext.Mode.STANDALONE,
@@ -390,13 +400,6 @@ public abstract class TestBase extends LfInjectedTestBase {
             resource,
             fileAccess,
             fileConfig -> new DefaultMessageReporter());
-
-    // Update the test by applying the transformation.
-    if (transformer != null) {
-      if (!transformer.transform(resource)) {
-        throw new TestError("Test transformation unsuccessful.", Result.TRANSFORM_FAIL);
-      }
-    }
 
     // Reload the context because properties may have changed as part of the transformation.
     test.loadContext(context);
@@ -411,7 +414,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     }
   }
 
-  /** Return a URI pointing to an external runtime if there is one, {@code null} otherwise. */
+  /** Return a URI pointing to an external runtime if there is one, `null` otherwise. */
   private URI getExternalRuntimeUri() {
     var sysProps = System.getProperties();
     URI uri = null;
@@ -568,104 +571,17 @@ public abstract class TestBase extends LfInjectedTestBase {
     return sw.toString();
   }
 
-  /** Bash script that is used to execute docker tests. */
-  private static final String DOCKER_RUN_SCRIPT =
-      """
-            #!/bin/bash
-
-            # exit when any command fails
-            set -e
-
-            docker compose -f "$1" rm -f
-            docker compose -f "$1" up --build | tee docker_log.txt
-            docker compose -f "$1" down --rmi local
-
-            errors=`grep -E "exited with code [1-9]" docker_log.txt | cat`
-            rm docker_log.txt
-
-            if [[ $errors ]]; then
-                echo "===================================================================="
-                echo "ERROR: One or multiple containers exited with a non-zero exit code."
-                echo "       See the log above for details. The following containers failed:"
-                echo $errors
-                exit 1
-            fi
-
-            exit 0
-            """;
-
-  /** Path to a bash script containing DOCKER_RUN_SCRIPT. */
-  private static Path dockerRunScript = null;
-
-  /**
-   * Return the path to a bash script containing DOCKER_RUN_SCRIPT.
-   *
-   * <p>If the script does not yet exist, it is created.
-   */
-  private static synchronized Path getDockerRunScript() throws TestError {
-    if (dockerRunScript != null) {
-      return dockerRunScript;
-    }
-
-    try {
-      var file = File.createTempFile("run_docker_test", "sh");
-      file.deleteOnExit();
-      file.setExecutable(true);
-      var path = file.toPath();
-      try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-        writer.write(DOCKER_RUN_SCRIPT);
-      }
-      dockerRunScript = path;
-    } catch (IOException e) {
-      throw new TestError("IO Error during test preparation.", Result.TEST_EXCEPTION, e);
-    }
-
-    return dockerRunScript;
-  }
-
-  /** Throws TestError if docker does not exist. Does nothing otherwise. */
-  private void checkDockerExists() throws TestError {
-    if (LFCommand.get("docker", List.of()) == null) {
-      throw new TestError("Executable 'docker' not found", Result.NO_EXEC_FAIL);
-    }
-    if (LFCommand.get("docker-compose", List.of()) == null) {
-      throw new TestError("Executable 'docker-compose' not found", Result.NO_EXEC_FAIL);
-    }
-  }
-
-  /**
-   * Return a ProcessBuilder used to test the docker execution.
-   *
-   * @param test The test to get the execution command for.
-   */
-  private ProcessBuilder getDockerExecCommand(LFTest test) throws TestError {
-    checkDockerExists();
-    var srcGenPath = test.getFileConfig().getSrcGenPath();
-    var dockerComposeFile = FileUtil.globFilesEndsWith(srcGenPath, "docker-compose.yml").get(0);
-    return new ProcessBuilder(getDockerRunScript().toString(), dockerComposeFile.toString());
-  }
-
   /**
    * Return a preconfigured ProcessBuilder for executing the test program.
    *
    * @param test The test to get the execution command for.
    */
-  private ProcessBuilder getExecCommand(LFTest test) throws TestError {
-
-    var srcBasePath = test.getFileConfig().srcPkgPath.resolve("src");
-    var relativePathName = srcBasePath.relativize(test.getFileConfig().srcPath).toString();
-
-    // special case to test docker file generation
-    if (relativePathName.equalsIgnoreCase(TestCategory.DOCKER.getPath())
-        || relativePathName.equalsIgnoreCase(TestCategory.DOCKER_FEDERATED.getPath())) {
-      return getDockerExecCommand(test);
-    } else {
-      LFCommand command = test.getFileConfig().getCommand();
-      if (command == null) {
-        throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
-      }
-      return new ProcessBuilder(command.command()).directory(command.directory());
+  protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
+    LFCommand command = test.getFileConfig().getCommand();
+    if (command == null) {
+      throw new TestError("File: " + test.getFileConfig().getExecutable(), Result.NO_EXEC_FAIL);
     }
+    return new ProcessBuilder(command.command()).directory(command.directory());
   }
 
   /**
@@ -683,18 +599,34 @@ public abstract class TestBase extends LfInjectedTestBase {
   private void validateAndRun(
       Set<LFTest> tests, Transformer transformer, Configurator configurator, TestLevel level)
       throws IOException {
-    final var x = 78f / tests.size();
-    var marks = 0;
-    var done = 0;
+    var done = 1;
+
+    System.out.println(THICK_LINE);
+
+    class Timing {
+      final String name;
+      final long nanos;
+
+      Timing(String name, long nanos) {
+        this.name = name;
+        this.nanos = nanos;
+      }
+    }
+    var timings = new ArrayList<Timing>();
 
     for (var test : tests) {
+      System.out.println(
+          "Running: " + test.toString() + " (" + (int) (done / (float) tests.size() * 100) + "%)");
       try {
         test.redirectOutputs();
         prepare(test, transformer, configurator);
         validate(test);
         generateCode(test);
         if (level == TestLevel.EXECUTION) {
+          long tStart = System.nanoTime();
           execute(test);
+          long elapsed = System.nanoTime() - tStart;
+          timings.add(new Timing(test.toString(), elapsed));
         }
         test.markPassed();
       } catch (TestError e) {
@@ -703,17 +635,19 @@ public abstract class TestBase extends LfInjectedTestBase {
         test.handleTestError(
             new TestError("Unknown exception during test execution", Result.TEST_EXCEPTION, e));
       } finally {
-        test.restoreOutputs();
+        LFTest.restoreOutputs();
       }
       done++;
-      while (Math.floor(done * x) >= marks && marks < 78) {
-        System.out.print("=");
-        marks++;
-      }
     }
-    while (marks < 78) {
-      System.out.print("=");
-      marks++;
+
+    if (!timings.isEmpty()) {
+      System.out.print(THIN_LINE);
+      System.out.println("Longest-running tests:");
+      timings.stream()
+          .sorted((a, b) -> Long.compare(b.nanos, a.nanos))
+          .limit(10)
+          .forEach(t -> System.out.printf(" - %s: %.2f seconds%n", t.name, t.nanos / 1.0e9));
+      System.out.print(THIN_LINE);
     }
 
     System.out.print(System.lineSeparator());

@@ -2,7 +2,10 @@ package org.lflang.tests;
 
 import org.lflang.tests.LFTest.Result;
 
-/// Indicates an error during test execution
+/**
+ * Indicator for an error during test execution.
+ * @ingroup Tests
+ */
 public class TestError extends Exception {
 
   private final String stackTrace;

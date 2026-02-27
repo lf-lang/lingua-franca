@@ -1,0 +1,36 @@
+target Python {
+  timeout: 5 sec,
+  fast: true
+}
+
+import Count from "lib/Count.lf"
+
+reactor CountContainer {
+  output out
+  c1 = new Count()
+  c1.out -> out
+}
+
+main reactor {
+  state count = 1
+  state received = False
+
+  s = new CountContainer()
+
+  reaction(s.out) {=
+    if (s.out.is_present):
+      print(f"Received {s.out.value}.")
+      if (self.count != s.out.value):
+        sys.stderr.write(f"ERROR: Expected {self.count}.")
+        exit(1)
+      self.received = True
+
+    self.count += 1
+  =}
+
+  reaction(shutdown) {=
+    if not self.received:
+      sys.stderr.write("ERROR: No inputs present.")
+      exit(1)
+  =}
+}

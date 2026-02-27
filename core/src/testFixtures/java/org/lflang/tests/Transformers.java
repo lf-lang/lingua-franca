@@ -2,6 +2,10 @@ package org.lflang.tests;
 
 import org.eclipse.emf.ecore.resource.Resource;
 
+/**
+ * Transformers for test cases.
+ * @ingroup Tests
+ */
 public class Transformers {
 
   /** Function to adapts a given resource. */

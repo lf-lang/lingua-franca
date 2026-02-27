@@ -29,7 +29,11 @@ import org.lflang.generator.ts.TSGenerator;
 import org.lflang.scoping.LFGlobalScopeProvider;
 import org.lflang.target.Target;
 
-/** Generates code from your model files on save. */
+/**
+ * Generates code from your model files on save.
+ *
+ * @ingroup Generator
+ */
 public class LFGenerator extends AbstractGenerator {
 
   @Inject private LFGlobalScopeProvider scopeProvider;
@@ -61,6 +65,10 @@ public class LFGenerator extends AbstractGenerator {
         case CPP -> new CppFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case Rust -> new RustFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
+        case UC ->
+            throw new RuntimeException(
+                "Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC"
+                    + " target.");
       };
     } catch (IOException e) {
       throw new RuntimeException(
@@ -80,8 +88,12 @@ public class LFGenerator extends AbstractGenerator {
       case CCPP -> new CGenerator(context, true);
       case Python -> new PythonGenerator(context);
       case CPP -> new CppGenerator(context, scopeProvider);
-      case TS -> new TSGenerator(context, scopeProvider);
+      case TS -> new TSGenerator(context);
       case Rust -> new RustGenerator(context, scopeProvider);
+      case UC ->
+          throw new RuntimeException(
+              "Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC"
+                  + " target.");
     };
   }
 

@@ -3,27 +3,27 @@ target Python {
 }
 
 reactor TakeTime {
-  input _in
+  input inp
   output out
 
-  reaction(_in) -> out {=
+  reaction(inp) -> out {=
     offset = 0
     for i in range(10000):
       offset+=1
 
-    out.set(_in.value + offset)
+    out.set(inp.value + offset)
   =}
 }
 
 reactor Print {
-  input _in
+  input inp
   state count = 0
   state received = 0
 
-  reaction(_in) {=
+  reaction(inp) {=
     self.received += 1
-    print("Received: {:d} at logical time {:d}".format(_in.value, lf.time.logical_elapsed()))
-    if _in.value != (self.count + 40000):
+    print("Received: {:d} at logical time {:d}".format(inp.value, lf.time.logical_elapsed()))
+    if inp.value != (self.count + 40000):
       sys.stderr.write("ERROR: Expected {:d}.\n".format(self.count + 40000))
       exit(1)
     self.count+=1
@@ -46,13 +46,13 @@ main reactor Pipeline {
   c4 = new TakeTime()
   p = new Print()
 
-  c1.out -> c2._in after 200 msec
-  c2.out -> c3._in after 200 msec
-  c3.out -> c4._in after 200 msec
-  c4.out -> p._in
+  c1.out -> c2.inp after 200 msec
+  c2.out -> c3.inp after 200 msec
+  c3.out -> c4.inp after 200 msec
+  c4.out -> p.inp
 
-  reaction(t) -> c1._in {=
-    c1._in.set(self.count)
+  reaction(t) -> c1.inp {=
+    c1.inp.set(self.count)
     self.count += 1
   =}
 }

@@ -9,7 +9,7 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
   preamble {=
     import sys
   =}
-  input in_
+  input inp
   output out
   timer t(0, 100 msec)
   state count = start
@@ -20,17 +20,17 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
     self.count += 1
   =}
 
-  reaction(in_) {=
-    print("Received {}.".format(in_.value))
-    if in_.value != self.expected:
-      self.sys.stderr.write("Expected {} but got {}.\n".format(self.expected_start, in_.value))
+  reaction(inp) {=
+    print("Received {}.".format(inp.value))
+    if inp.value != self.expected:
+      self.sys.stderr.write("Expected {} but got {}.\n".format(self.expected_start, inp.value))
       self.sys.exit(1)
     self.expected += 1
-  =} STP(stp_offset_param) {=
-    print("Received {} late.".format(in_.value))
+  =} STAA(stp_offset_param) {=
+    print("Received {} late.".format(inp.value))
     current_tag = lf.tag()
     self.expected += 1
-    self.sys.stderr.write("STP offset was violated by ({}, {}).".format(current_tag.time - in_.intended_tag.time, current_tag.microstep - in_.intended_tag.microstep))
+    self.sys.stderr.write("STP offset was violated by ({}, {}).".format(current_tag.time - inp.intended_tag.time, current_tag.microstep - inp.intended_tag.microstep))
   =}
 
   reaction(shutdown) {=
@@ -44,6 +44,6 @@ reactor Platform(start=0, expected_start=0, stp_offset_param=0) {
 federated reactor DecentralizedP2PComm {
   a = new Platform(expected_start=100, stp_offset_param = 10 msec)
   b = new Platform(start=100, stp_offset_param = 10 msec)
-  a.out -> b.in_
-  b.out -> a.in_
+  a.out -> b.inp
+  b.out -> a.inp
 }

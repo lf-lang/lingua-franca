@@ -1,6 +1,8 @@
 target Python {
   files: "../include/hello.py",
-  docker: true
+  docker: {
+    rti-image: "rti:local"
+  }
 }
 
 preamble {=

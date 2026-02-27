@@ -51,7 +51,7 @@ public class MainConflictChecker {
     //  files in the current package (which happens when we get the resources)
     this.fileConfig = fileConfig;
     try {
-      Files.walkFileTree(fileConfig.srcPkgPath, new PackageVisitor());
+      Files.walkFileTree(fileConfig.srcPath, new PackageVisitor());
     } catch (IOException e) {
       System.err.println("Error while checking for name conflicts in package.");
       e.printStackTrace();

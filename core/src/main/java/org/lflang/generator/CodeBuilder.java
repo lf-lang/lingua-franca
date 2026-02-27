@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import org.eclipse.emf.common.CommonPlugin;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.nodemodel.util.NodeModelUtils;
+import org.lflang.ast.ASTUtils;
 import org.lflang.generator.c.CUtil;
 import org.lflang.lf.Code;
 import org.lflang.util.FileUtil;
@@ -18,8 +19,12 @@ import org.lflang.util.FileUtil;
  *
  * @author Edward A. Lee
  * @author Peter Donovan
+ * @ingroup Utilities
  */
 public class CodeBuilder {
+
+  private static final String END_SOURCE_LINE_NUMBER_TAG =
+      "/* END PR SOURCE LINE NUMBER 9sD0aiwE01RcMWl */";
 
   /** Construct a new empty code emitter. */
   public CodeBuilder() {}
@@ -74,7 +79,7 @@ public class CodeBuilder {
   /**
    * Append the specified text plus a final newline.
    *
-   * @param format A format string to be used by {@code String.format} or the text to append if no
+   * @param format A format string to be used by `String.format` or the text to append if no
    *     further arguments are given.
    * @param args Additional arguments to pass to the formatter.
    */
@@ -92,27 +97,15 @@ public class CodeBuilder {
   }
 
   /**
-   * Version of pr() that prints a source line number using a #line prior to each line of the
-   * output. Use this when multiple lines of output code are all due to the same source line in the
-   * .lf file.
-   *
-   * @param eObject The AST node that this source line is based on.
-   * @param text The text to append.
-   */
-  public void pr(EObject eObject, Object text) {
-    var split = text.toString().split("\n");
-    for (String line : split) {
-      prSourceLineNumber(eObject);
-      pr(line);
-    }
-  }
-
-  /**
-   * Print the #line compiler directive with the line number of the specified object.
+   * Print the `#line` compiler directive with the line number of the specified object.
    *
    * @param eObject The node.
+   * @param suppress Do nothing if true.
    */
-  public void prSourceLineNumber(EObject eObject) {
+  public void prSourceLineNumber(EObject eObject, boolean suppress) {
+    if (suppress) {
+      return;
+    }
     var node = NodeModelUtils.getNode(eObject);
     if (node != null) {
       // For code blocks (delimited by {= ... =}, unfortunately,
@@ -120,13 +113,33 @@ public class CodeBuilder {
       // Unfortunately, this is complicated because the code has been
       // tokenized.
       var offset = 0;
-      if (eObject instanceof Code) {
-        offset += 1;
+      if (eObject instanceof Code code) {
+        var text = ASTUtils.toOriginalText(code).lines().findFirst();
+        if (text.isPresent()) {
+          var firstLine = text.get().trim();
+          var exact = NodeModelUtils.getNode(code).getText().replaceAll("\\{=", "");
+          for (var line : (Iterable<String>) () -> exact.lines().iterator()) {
+            if (line.trim().equals(firstLine)) {
+              break;
+            }
+            offset += 1;
+          }
+        }
       }
       // Extract the filename from eResource, an astonishingly difficult thing to do.
-      String filePath = CommonPlugin.resolve(eObject.eResource().getURI()).path();
+      String filePath =
+          CommonPlugin.resolve(eObject.eResource().getURI()).path().replace("\\", "\\\\");
       pr("#line " + (node.getStartLine() + offset) + " \"" + filePath + "\"");
     }
+  }
+
+  /**
+   * Print a tag marking the end of a block corresponding to the source LF file.
+   *
+   * @param suppress Do nothing if true.
+   */
+  public void prEndSourceLineNumber(boolean suppress) {
+    if (!suppress) pr(END_SOURCE_LINE_NUMBER_TAG);
   }
 
   /**
@@ -247,7 +260,7 @@ public class CodeBuilder {
   /**
    * Start a scoped block that iterates over the specified range of port channels.
    *
-   * <p>This must be followed by a call to {@link #endScopedRangeBlock(RuntimeRange)}.
+   * <p>This must be followed by a call to {@link #endScopedRangeBlock}.
    *
    * <p>This block should NOT be nested, where each block is put within a similar block for the
    * reactor's parent. Within the created block, every use of {@link
@@ -375,7 +388,7 @@ public class CodeBuilder {
    * CUtil#reactorRef(ReactorInstance, String)} and related functions must provide the above
    * variable names.
    *
-   * <p>This must be followed by a call to {@link #endScopedRangeBlock(SendRange, RuntimeRange)}.x
+   * <p>This must be followed by a call to {@link #endScopedRangeBlock}.
    *
    * @param srcRange The send range.
    * @param dstRange The destination range.
@@ -541,7 +554,23 @@ public class CodeBuilder {
    * @param path The file to write the code to.
    */
   public CodeMap writeToFile(String path) throws IOException {
-    CodeMap ret = CodeMap.fromGeneratedCode(code.toString());
+    String s = code.toString();
+    int lineNumber = 1;
+    StringBuilder out = new StringBuilder();
+    for (var line : (Iterable<String>) () -> s.lines().iterator()) {
+      lineNumber++;
+      if (line.contains(END_SOURCE_LINE_NUMBER_TAG) && !path.endsWith(".ino")) {
+        out.append("#line ")
+            .append(lineNumber)
+            .append(" \"")
+            .append(path.replace("\\", "\\\\"))
+            .append("\"");
+      } else {
+        out.append(line);
+      }
+      out.append('\n');
+    }
+    CodeMap ret = CodeMap.fromGeneratedCode(out.toString());
     FileUtil.writeToFile(ret.getGeneratedCode(), Path.of(path), true);
     return ret;
   }

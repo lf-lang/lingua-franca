@@ -1,0 +1,69 @@
+/**
+ * @brief A federated system with a decentralized coordinator that has large STA and STAA offsets.
+ *
+ * This test verifies that a large STA and STAA offset can be used when the data flow is predictable
+ * even if the the program is lagging behind physical time.
+ *
+ * @author Edward A. Lee
+ * @deprecated Use DecentralizedLaggingMW.lf instead.
+ */
+target C {
+  coordination: decentralized,
+  timeout: 40 ns
+}
+
+// Pi needs an STP_offset because its event queue is usually empty and otherwise it will advance to the stop time.
+reactor Pi(STP_offset: time = 1 day) {
+  input trigger: bool
+  output out: int
+
+  reaction(trigger) -> out {=
+    tag_t now = lf_tag();
+    lf_print("***** at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
+    lf_set(out, 42);
+  =} STAA(30 s) {=
+    tag_t now = lf_tag();
+    lf_print_error_and_exit("STP violation at Pi at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
+  =}
+}
+
+// Gather doesn't need an STP_offset because its event queue is never empty.
+reactor Gather {
+  input[4] in: int
+  output next: bool
+  logical action a(10 ns)
+  state count: int = 0
+
+  reaction(startup, a) -> next {=
+    lf_set(next, true);
+  =}
+
+  reaction(in) -> a {=
+    tag_t now = lf_tag();
+    for (int i = 0; i < 4; i++) {
+      if (!in[i]->is_present) {
+        lf_print_error_and_exit("Missing input %d in Gather at tag " PRINTF_TAG,
+            i, now.time - lf_time_start(), now.microstep);
+      }
+    }
+    lf_print("%d: at tag " PRINTF_TAG, self->count, now.time - lf_time_start(), now.microstep);
+    self->count++;
+    lf_schedule(a, 0);
+  =} STAA(1 day) {=
+    tag_t now = lf_tag();
+    lf_print_error_and_exit("STP violation at Gather at tag " PRINTF_TAG, now.time - lf_time_start(), now.microstep);
+  =}
+
+  reaction(shutdown) {=
+    if (self->count < 5) {
+      lf_print_error_and_exit("Gather received only %d inputs. Expected 5.", self->count);
+    }
+  =}
+}
+
+federated reactor {
+  pi = new[4] Pi()
+  g = new Gather()
+  pi.out -> g.in
+  (g.next)+ -> pi.trigger
+}

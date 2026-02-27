@@ -12,6 +12,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * A collection of JUnit tests to perform on a given set of targets.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public abstract class RuntimeTest extends TestBase {
 
@@ -232,7 +233,7 @@ public abstract class RuntimeTest extends TestBase {
 
     // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
     // are not compatible with single-threaded execution.
-    // ARDUINO and ZEPHYR have their own test suites, so we don't need to rerun.
+    // ARDUINO, ZEPHYR, FLEXPRET, and PATMOS have their own test suites, so we don't need to rerun.
     boolean excluded =
         category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
@@ -244,7 +245,9 @@ public abstract class RuntimeTest extends TestBase {
             || category == TestCategory.VERIFIER
             || category == TestCategory.ZEPHYR_UNTHREADED
             || category == TestCategory.ZEPHYR_BOARDS
-            || category == TestCategory.ZEPHYR_THREADED;
+            || category == TestCategory.ZEPHYR_THREADED
+            || category == TestCategory.FLEXPRET
+            || category == TestCategory.PATMOS;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.
     excluded |= isWindows() && category == TestCategory.TARGET;

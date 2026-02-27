@@ -1,0 +1,9 @@
+target Python
+
+main reactor {
+  reaction(shutdown) {=
+    current_tag = lf.tag()
+    print(f"Shutdown invoked at tag ({current_tag.time - lf.time.start()}, {current_tag.microstep}). Calling request_stop(), which should have no effect.")
+    request_stop()
+  =}
+}

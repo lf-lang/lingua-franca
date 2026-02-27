@@ -19,6 +19,7 @@ import org.lflang.target.Target;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CPortGenerator {
   /** Generate fields in the self struct for input and output ports */
@@ -101,7 +102,7 @@ public class CPortGenerator {
               "\n",
               portRefName + "_width = " + input.getWidth() + ";",
               "// Allocate memory for multiport inputs.",
-              portRefName + " = (" + variableStructType(input) + "**)_lf_allocate(",
+              portRefName + " = (" + variableStructType(input) + "**)lf_allocate(",
               "        " + input.getWidth() + ", sizeof(" + variableStructType(input) + "*),",
               "        &" + reactorSelfStruct + "->base.allocations); ",
               "// Set inputs by default to an always absent default input.",
@@ -119,7 +120,7 @@ public class CPortGenerator {
             "\n",
             result,
             "if (" + input.getWidth() + " >= LF_SPARSE_WIDTH_THRESHOLD) {",
-            "    " + portRefName + "__sparse = (lf_sparse_io_record_t*)_lf_allocate(1,",
+            "    " + portRefName + "__sparse = (lf_sparse_io_record_t*)lf_allocate(1,",
             "            sizeof(lf_sparse_io_record_t) + sizeof(size_t) * "
                 + input.getWidth()
                 + "/LF_SPARSE_CAPACITY_DIVIDER,",
@@ -149,35 +150,67 @@ public class CPortGenerator {
    *
    * @param output The output port
    * @param reactorSelfStruct The name of the self struct
+   * @param types The C-specific type conversion functions.
    */
-  public static String initializeOutputMultiport(PortInstance output, String reactorSelfStruct) {
+  public static String initializeOutputMultiport(
+      PortInstance output, String reactorSelfStruct, CTypes types) {
     var portRefName = CUtil.portRefName(output);
     var portStructType = variableStructType(output);
+
+    // To support generics, we have to do a song and dance here.
+    var type = output.getParent().tpr.resolveType(ASTUtils.getInferredType(output.getDefinition()));
+    String rootType = CUtil.rootType(types.getTargetType(type));
+    // Since the self struct is allocated using calloc, there is no need to set falsy fields.
+    // If the input type is 'void', we need to avoid generating the code
+    // 'sizeof(void)', which some compilers reject.
+    var elementSize = (rootType.equals("void")) ? "0" : "sizeof(" + rootType + ")";
+    var isFixedSizeArrayType = CUtil.isFixedSizeArrayType(type);
+
     return output.isMultiport()
         ? String.join(
             "\n",
             portRefName + "_width = " + output.getWidth() + ";",
             "// Allocate memory for multiport output.",
-            portRefName + " = (" + portStructType + "*)_lf_allocate(",
+            portRefName + " = (" + portStructType + "*)lf_allocate(",
             "        " + output.getWidth() + ", sizeof(" + portStructType + "),",
             "        &" + reactorSelfStruct + "->base.allocations); ",
-            portRefName + "_pointers = (" + portStructType + "**)_lf_allocate(",
+            portRefName + "_pointers = (" + portStructType + "**)lf_allocate(",
             "        " + output.getWidth() + ", sizeof(" + portStructType + "*),",
             "        &" + reactorSelfStruct + "->base.allocations); ",
             "// Assign each output port pointer to be used in",
             "// reactions to facilitate user access to output ports",
             "for(int i=0; i < " + output.getWidth() + "; i++) {",
+            isFixedSizeArrayType
+                ? "        " + portRefName + "[i].type.element_size = " + elementSize + ";"
+                : "",
+            isFixedSizeArrayType
+                ? "        "
+                    + portRefName
+                    + "[i].length = "
+                    + CUtil.fixedSizeArrayTypeLength(type)
+                    + ";"
+                : "",
             "        " + portRefName + "_pointers[i] = &(" + portRefName + "[i]);",
             "}")
         : String.join(
             "\n",
+            isFixedSizeArrayType
+                ? "        " + portRefName + ".type.element_size = " + elementSize + ";"
+                : "",
+            isFixedSizeArrayType
+                ? "        "
+                    + portRefName
+                    + ".length = "
+                    + CUtil.fixedSizeArrayTypeLength(type)
+                    + ";"
+                : "",
             "// width of -2 indicates that it is not a multiport.",
             portRefName + "_width = -2;");
   }
 
   /**
    * For the specified port, return a declaration for port struct to contain the value of the port.
-   * A multiport output with width 4 and type {@code int[10]}, for example, will result in this:
+   * A multiport output with width 4 and type `int[10]`, for example, will result in this:
    *
    * <pre><code>
    *     int value[10];
@@ -218,7 +251,6 @@ public class CPortGenerator {
       var inputName = input.getName();
       if (ASTUtils.isMultiport(input)) {
         body.pr(
-            input,
             String.join(
                 "\n",
                 "// Multiport input array will be malloc'd later.",
@@ -231,7 +263,6 @@ public class CPortGenerator {
       } else {
         // input is not a multiport.
         body.pr(
-            input,
             String.join(
                 "\n",
                 variableStructType(input, tpr, false) + "* _lf_" + inputName + ";",
@@ -241,14 +272,12 @@ public class CPortGenerator {
                 variableStructType(input, tpr, false) + " _lf_default__" + inputName + ";"));
 
         constructorCode.pr(
-            input,
             String.join(
                 "\n",
                 "// Set input by default to an always absent default input.",
                 "self->_lf_" + inputName + " = &self->_lf_default__" + inputName + ";"));
       }
       constructorCode.pr(
-          input,
           String.join(
               "\n",
               "// Set the default source reactor pointer",
@@ -265,7 +294,6 @@ public class CPortGenerator {
       var outputName = output.getName();
       if (ASTUtils.isMultiport(output)) {
         body.pr(
-            output,
             String.join(
                 "\n",
                 "// Array of output ports.",
@@ -280,7 +308,6 @@ public class CPortGenerator {
                 variableStructType(output, tpr, false) + "** _lf_" + outputName + "_pointers;"));
       } else {
         body.pr(
-            output,
             String.join(
                 "\n",
                 variableStructType(output, tpr, false) + " _lf_" + outputName + ";",

@@ -15,6 +15,10 @@ import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 
+/**
+ * Test the PortInstance class.
+ * @ingroup Tests
+ */
 public class PortInstanceTests {
 
   private MessageReporter reporter = new DefaultMessageReporter();
@@ -170,7 +174,11 @@ public class PortInstanceTests {
    * in the syntax (i.e., no cross-hierarchy connections), but this is not checked.
    *
    * @param src The sending port.
+   * @param srcStart The starting index of the source port range.
+   * @param srcWidth The width of the source port range.
    * @param dst The receiving port.
+   * @param dstStart The starting index of the destination port range.
+   * @param dstWidth The width of the destination port range.
    */
   protected void connect(
       PortInstance src, int srcStart, int srcWidth, PortInstance dst, int dstStart, int dstWidth) {

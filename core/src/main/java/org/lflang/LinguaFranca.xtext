@@ -1,30 +1,3 @@
-/* The Lingua Franca grammar. */
-
-/*************
-Copyright (c) 2020, The University of California at Berkeley.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-1. Redistributions of source code must retain the above copyright notice,
-   this list of conditions and the following disclaimer.
-
-2. Redistributions in binary form must reproduce the above copyright notice,
-   this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-***************/
-
 /**
  * Grammar for Lingua Franca.
  * A note of caution: extending this grammar with productions that introduce
@@ -64,7 +37,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' importURI=STRING ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | '<' importPackage=Path '>') ';'?;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -136,13 +109,14 @@ TargetDecl:
     ';'?
 ;
 
-// An initializer expression. Used in state vars and parameters.
+// An initializer expression. Used for state vars, parameters and parameter assignments.
 Initializer:
-      parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-    | assign?='=' exprs+=Expression
+    assign?='=' expr=Expression
+    // The above case is the default. The lower alternative rules are only
+    // relevant for the C++ target.
+    | expr=BracedListExpression
+    | expr=ParenthesisListExpression
 ;
-
 
 Method:
     const?='const'? 'method' name=ID
@@ -204,7 +178,7 @@ Reaction:
     ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     ( => sources+=VarRef (',' sources+=VarRef)*)?
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    (code=Code)? (stp=STP)? (deadline=Deadline)? (delimited?=';')?
+    (code=Code)? ((stp=STP) | (tardy=Tardy))? (deadline=Deadline)? (delimited?=';')?
     ;
 
 TriggerRef:
@@ -217,12 +191,16 @@ Deadline:
     'deadline' '(' delay=Expression ')' code=Code;
 
 Watchdog:
+    (attributes+=Attribute)*
     'watchdog' name=ID '(' timeout=Expression ')'
     ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
     code=Code;
-    
+
 STP:
-    'STP' '(' value=Expression ')' code=Code;
+    ('STP' | 'STAA') '(' value=Expression ')' (code=Code);
+
+Tardy:
+    present?='tardy' (code=Code)?;
 
 Preamble:
     (visibility=Visibility)? 'preamble' code=Code;
@@ -231,10 +209,11 @@ Instantiation:
     (attributes+=Attribute)*
     name=ID '=' 'new' (widthSpec=WidthSpec)?
     reactorClass=[ReactorDecl] ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? '('
-    (parameters+=Assignment (',' parameters+=Assignment)*)? 
+    (parameters+=Assignment (',' parameters+=Assignment)*)?
     ')' (('at' host=Host ';') | ';'?);
 
 Connection:
+    (attributes+=Attribute)*
     ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     ('->' | physical?='~>')
@@ -255,7 +234,7 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? value=Literal;
+    (name=ID '=')? (value=Literal | time=Time);
 
 /////////// For target parameters
 
@@ -263,7 +242,7 @@ KeyValuePairs:
     {KeyValuePairs} '{' (pairs+=KeyValuePair (',' (pairs+=KeyValuePair))* ','?)? '}';
 
 KeyValuePair:
-    name=Kebab ':' value=Element;
+    name=(Kebab|STRING) ':' value=Element;
 
 Array: // todo allow empty array in grammar, replace with validator error
     '[' elements+=Element (',' (elements+=Element))* ','? ']';
@@ -272,7 +251,7 @@ Element:
     keyvalue=KeyValuePairs
     | array=Array
     | literal=Literal
-    | (time=INT unit=TimeUnit)
+    | time=Time
     | id=Path;
 
 ///////// Pieces
@@ -292,18 +271,8 @@ VarRefOrModeTransition returns VarRef:
 
 Assignment:
     lhs=[Parameter]
-    rhs=AssignmentInitializer
+    rhs=Initializer
 ;
-
-AssignmentInitializer returns Initializer:
-      assign?='=' exprs+=Expression
-    // these syntaxes are legacy and now deprecated
-    // todo remove in future version.
-    | '='? parens?='(' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? ')'
-    // note: the previous syntax `= { expr* }` is now parsed as a BracedListExpression
-    | braces?='{' (exprs+=Expression (','  exprs+=Expression)* (trailingComma?=',')?)? '}'
-;
-
 
 /**
  * Parameter declaration with optional type and mandatory initialization.
@@ -321,6 +290,7 @@ Expression:
     | {CodeExpr} code=Code
     | BracedListExpression
     | BracketListExpression
+    | ParenthesisListExpression
 ;
 
 // A list of expressions within braces.
@@ -336,12 +306,17 @@ BracketListExpression:
      '[' {BracketListExpression} (items+=Expression (',' items+=Expression)*)? ','? ']'
 ;
 
+ParenthesisListExpression:
+     '(' {ParenthesisListExpression} (items+=Expression (',' items+=Expression)*)? ','? ')'
+;
+
+
 ParameterReference:
     parameter=[Parameter]
 ;
 
 Time:
-    (interval=INT unit=TimeUnit)
+    (interval=INT unit=TimeUnit) | forever=Forever | never=Never
 ;
 
 Port:
@@ -349,12 +324,12 @@ Port:
 
 // A type is in the target language, hence either an ID or target code.
 Type:
-   time?='time' (arraySpec=ArraySpec)? 
-   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (arraySpec=ArraySpec)?
+   time?='time'
+   | id=DottedName ('<' typeArgs+=Type (',' typeArgs+=Type)* '>')? (stars+='*')* (CStyleArraySpec=CStyleArraySpec)?
    | code=Code
 ;
 
-ArraySpec:
+CStyleArraySpec:
     '[' ( ofVariableLength?=']' | length=INT ']' );
 
 WidthSpec:
@@ -394,6 +369,14 @@ SignedInt:
     INT | NEGINT
 ;
 
+Forever:
+    'forever'
+;
+
+Never:
+    'never'
+;
+
 Literal:
     STRING | CHAR_LIT | SignedFloat | SignedInt | Boolean
 ;
@@ -426,6 +409,8 @@ terminal SL_COMMENT: ('//' | '#') !('\n'|'\r')* ('\r'? '\n')?;
 terminal ML_COMMENT: ('/*' -> '*/') | ("'''" -> "'''");
 
 terminal LT_ANNOT: "'" ID?;
+
+terminal CPP_RAW_STR: 'R"' -> '"';
 
 terminal STRING:   '"' ( '\\' . | !('\\' | '"' | '\t' | '\r' | '\n') )* '"'
                  | '"""' -> '"""'
@@ -478,7 +463,7 @@ Code:
 ;
 
 FSName:
-    (ID | '.' | '_')+
+    (ID | '.' | '_' | '-')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:
@@ -514,14 +499,14 @@ Body:
 // the end of a target-code segment.
 Token:
     // Non-constant terminals
-    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
+    ID | INT | FLOAT_EXP_SUFFIX | LT_ANNOT | CPP_RAW_STR | STRING | CHAR_LIT | ML_COMMENT | SL_COMMENT | WS | ANY_OTHER |
     // Keywords
     'target' | 'import' | 'main' | 'realtime' | 'reactor' | 'state' | 'time' |
     'mutable' | 'input' | 'output' | 'timer' | 'action' | 'reaction' |
     'startup' | 'shutdown' | 'after' | 'deadline' | 'mutation' | 'preamble' |
     'new' | 'federated' | 'at' | 'as' | 'from' | 'widthof' | 'const' | 'method' |
     'interleaved' | 'mode' | 'initial' | 'reset' | 'history' | 'watchdog' |
-    'extends' |
+    'extends' | 'forever' | 'never' | 'tardy' |
 
     // Other terminals
     NEGINT | TRUE | FALSE |

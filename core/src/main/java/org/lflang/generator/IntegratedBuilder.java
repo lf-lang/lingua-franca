@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import com.google.gson.JsonParser;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import java.nio.file.Path;
@@ -21,9 +22,10 @@ import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext.Mode;
 
 /**
- * Manages Lingua Franca build processes that are requested from the language server.
+ * Manage Lingua Franca build processes that are requested from the language server.
  *
  * @author Peter Donovan
+ * @ingroup Infrastructure
  */
 public class IntegratedBuilder {
   public static final int START_PERCENT_PROGRESS = 0;
@@ -31,7 +33,7 @@ public class IntegratedBuilder {
   public static final int GENERATED_PERCENT_PROGRESS = 67;
   public static final int COMPILED_PERCENT_PROGRESS = 100;
 
-  /** A {@code ProgressReporter} reports the progress of a build. */
+  /** A `ProgressReporter` reports the progress of a build. */
   public interface ReportProgress {
     void apply(String message, Integer percentage);
   }
@@ -46,14 +48,18 @@ public class IntegratedBuilder {
   /* ------------------------- PUBLIC METHODS -------------------------- */
 
   /**
-   * Generates code from the Lingua Franca file {@code f}.
+   * Generates code from the Lingua Franca file `f`.
    *
    * @param uri The URI of a Lingua Franca file.
+   * @param json The JSON configuration.
    * @param mustComplete Whether the build must be taken to completion.
+   * @param reportProgress Callback for reporting build progress.
+   * @param cancelIndicator Indicator for cancellation.
    * @return The result of the build.
    */
   public GeneratorResult run(
       URI uri,
+      String json,
       boolean mustComplete,
       ReportProgress reportProgress,
       CancelIndicator cancelIndicator) {
@@ -70,13 +76,13 @@ public class IntegratedBuilder {
     if (cancelIndicator.isCanceled()) return GeneratorResult.CANCELLED;
     if (messageReporter.getErrorsOccurred()) return GeneratorResult.FAILED;
     reportProgress.apply("Generating code...", VALIDATED_PERCENT_PROGRESS);
-    return doGenerate(uri, mustComplete, reportProgress, cancelIndicator);
+    return doGenerate(uri, json, mustComplete, reportProgress, cancelIndicator);
   }
 
   /* ------------------------- PRIVATE METHODS ------------------------- */
 
   /**
-   * Validates the Lingua Franca file {@code f}.
+   * Validates the Lingua Franca file `f`.
    *
    * @param uri The URI of a Lingua Franca file.
    * @param messageReporter The error reporter.
@@ -91,7 +97,7 @@ public class IntegratedBuilder {
   }
 
   /**
-   * Generates code from the contents of {@code f}.
+   * Generates code from the contents of `f`.
    *
    * @param uri The URI of a Lingua Franca file.
    * @param mustComplete Whether the build must be taken to completion.
@@ -100,6 +106,7 @@ public class IntegratedBuilder {
    */
   private GeneratorResult doGenerate(
       URI uri,
+      String json,
       boolean mustComplete,
       ReportProgress reportProgress,
       CancelIndicator cancelIndicator) {
@@ -109,7 +116,7 @@ public class IntegratedBuilder {
             mustComplete ? Mode.LSP_SLOW : LFGeneratorContext.Mode.LSP_MEDIUM,
             cancelIndicator,
             reportProgress,
-            getArgs(),
+            getArgs(json),
             resource,
             fileAccess,
             fileConfig -> new LanguageServerMessageReporter(resource.getContents().get(0)));
@@ -118,12 +125,12 @@ public class IntegratedBuilder {
   }
 
   /**
-   * Returns the resource corresponding to {@code uri}.
+   * Returns the resource corresponding to `uri`.
    *
    * @param uri The URI of a Lingua Franca file.
-   * @return The resource corresponding to {@code uri}.
+   * @return The resource corresponding to `uri`.
    */
-  private Resource getResource(URI uri) {
+  public Resource getResource(URI uri) {
     return resourceSetProvider.get().getResource(uri, true);
   }
 
@@ -137,7 +144,11 @@ public class IntegratedBuilder {
   }
 
   /** Return arguments to feed to the code generator. Currently, no arguments are being set. */
-  protected GeneratorArguments getArgs() {
-    return GeneratorArguments.none();
+  protected GeneratorArguments getArgs(String jsonString) {
+    if (jsonString == null || jsonString.isBlank()) {
+      return GeneratorArguments.none();
+    }
+    var json = JsonParser.parseString(jsonString).getAsJsonObject();
+    return new GeneratorArguments(false, null, false, json, false, false, null, List.of());
   }
 }

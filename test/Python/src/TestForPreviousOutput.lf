@@ -25,11 +25,11 @@ reactor Source {
 }
 
 reactor Sink {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    print("Received ", _in.value)
-    if _in.value != 42:
+  reaction(inp) {=
+    print("Received ", inp.value)
+    if inp.value != 42:
       sys.stderr.write("FAILED: Expected 42.\n")
       exit(1)
   =}
@@ -38,5 +38,5 @@ reactor Sink {
 main reactor TestForPreviousOutput {
   s = new Source()
   d = new Sink()
-  s.out -> d._in
+  s.out -> d.inp
 }

@@ -10,13 +10,13 @@ import org.eclipse.emf.ecore.EObject;
 import org.lflang.TimeUnit;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -42,6 +42,7 @@ import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -50,6 +51,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -63,12 +65,13 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
-import org.lflang.target.Target;
 
 /**
  * Switch class that checks if subtrees of the AST are semantically equivalent to each other. Return
- * {@code false} if they are not equivalent; return {@code true} or {@code false} (but preferably
- * {@code true}) if they are equivalent.
+ * `false` if they are not equivalent; return `true` or `false` (but preferably
+ * `true`) if they are equivalent.
+ *
+ * @ingroup Utilities
  */
 public class IsEqual extends LfSwitch<Boolean> {
 
@@ -99,6 +102,7 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseImport(Import object) {
     return new ComparisonMachine<>(object, Import.class)
         .equalAsObjects(Import::getImportURI)
+        .equalAsObjects(Import::getImportPackage)
         .listsEquivalent(Import::getReactorClasses)
         .conclusion;
   }
@@ -176,28 +180,9 @@ public class IsEqual extends LfSwitch<Boolean> {
   public Boolean caseInitializer(Initializer object) {
     // Empty braces are not equivalent to no init.
     return new ComparisonMachine<>(object, Initializer.class)
-            .equalAsObjects(Initializer::isBraces)
-            // An initializer with no parens is equivalent to one with parens,
-            // if the list has a single element. This is probably going to change
-            // when we introduce equals initializers.
-            //            .equalAsObjects(Initializer::isParens)
-            .listsEquivalent(Initializer::getExprs)
-            .conclusion
-        || otherObject instanceof Initializer i
-            && i.getExprs().size() == 1
-            && i.getExprs().get(0) instanceof BracedListExpression ble
-            && initializerAndBracedListExpression(object, ble)
-        || otherObject instanceof Initializer i2
-            && object.getExprs().size() == 1
-            && object.getExprs().get(0) instanceof BracedListExpression ble2
-            && initializerAndBracedListExpression(i2, ble2);
-  }
-
-  private static boolean initializerAndBracedListExpression(
-      Initializer object, BracedListExpression otherObject) {
-    return ASTUtils.getTarget(object) == Target.C
-        && listsEqualish(
-            otherObject.getItems(), object.getExprs(), (a, b) -> new IsEqual(a).doSwitch(b));
+        .equalAsObjects(Initializer::isAssign)
+        .equivalent(Initializer::getExpr)
+        .conclusion;
   }
 
   @Override
@@ -303,6 +288,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equalAsObjects(Reaction::getName)
         .equivalent(Reaction::getCode)
         .equivalent(Reaction::getStp)
+        .equivalent(Reaction::getTardy)
         .equivalent(Reaction::getDeadline)
         .conclusion;
   }
@@ -333,6 +319,11 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equivalent(STP::getValue)
         .equivalent(STP::getCode)
         .conclusion;
+  }
+
+  @Override
+  public Boolean caseTardy(Tardy object) {
+    return new ComparisonMachine<>(object, Tardy.class).equivalent(Tardy::getCode).conclusion;
   }
 
   @Override
@@ -403,7 +394,7 @@ public class IsEqual extends LfSwitch<Boolean> {
         .equivalent(Element::getArray)
         .equalAsObjects(Element::getLiteral)
         .equalAsObjects(Element::getId)
-        .equalAsObjects(Element::getUnit)
+        .equivalent(Element::getTime)
         .conclusion;
   }
 
@@ -456,7 +447,9 @@ public class IsEqual extends LfSwitch<Boolean> {
         Time.class,
         ParameterReference.class,
         Code.class,
-        BracedListExpression.class);
+        BracedListExpression.class,
+        BracketListExpression.class,
+        ParenthesisListExpression.class);
   }
 
   @Override
@@ -474,6 +467,13 @@ public class IsEqual extends LfSwitch<Boolean> {
   }
 
   @Override
+  public Boolean caseParenthesisListExpression(ParenthesisListExpression object) {
+    return new ComparisonMachine<>(object, ParenthesisListExpression.class)
+        .listsEquivalent(ParenthesisListExpression::getItems)
+        .conclusion;
+  }
+
+  @Override
   public Boolean caseParameterReference(ParameterReference object) {
     return new ComparisonMachine<>(object, ParameterReference.class)
         .equivalent(ParameterReference::getParameter)
@@ -482,11 +482,16 @@ public class IsEqual extends LfSwitch<Boolean> {
 
   @Override
   public Boolean caseTime(Time object) {
+    if (object == null) return false;
+    // (interval=INT unit=TimeUnit) | forever=Forever | never=Never
     return new ComparisonMachine<>(object, Time.class)
+        .equalAsObjects(Time::getForever)
+        .equalAsObjects(Time::getNever)
         .equalAsObjects(Time::getInterval)
         .equalAsObjectsModulo(
             Time::getUnit,
-            ((Function<TimeUnit, String>) TimeUnit::getCanonicalName).compose(TimeUnit::fromName))
+            ((Function<TimeUnit, String>) TimeUnit::staticGetCanonicalName)
+                .compose(TimeUnit::fromName))
         .conclusion;
   }
 
@@ -500,20 +505,20 @@ public class IsEqual extends LfSwitch<Boolean> {
     return new ComparisonMachine<>(object, Type.class)
         .equivalent(Type::getCode)
         .equalAsObjects(Type::isTime)
-        .equivalent(Type::getArraySpec)
+        .equivalent(Type::getCStyleArraySpec)
         .equalAsObjects(Type::getId)
         .listsEquivalent(Type::getTypeArgs)
         .listsEqualAsObjects(Type::getStars)
-        .equivalent(Type::getArraySpec)
+        .equivalent(Type::getCStyleArraySpec)
         .equivalent(Type::getCode)
         .conclusion;
   }
 
   @Override
-  public Boolean caseArraySpec(ArraySpec object) {
-    return new ComparisonMachine<>(object, ArraySpec.class)
-        .equalAsObjects(ArraySpec::isOfVariableLength)
-        .equalAsObjects(ArraySpec::getLength)
+  public Boolean caseCStyleArraySpec(CStyleArraySpec object) {
+    return new ComparisonMachine<>(object, CStyleArraySpec.class)
+        .equalAsObjects(CStyleArraySpec::isOfVariableLength)
+        .equalAsObjects(CStyleArraySpec::getLength)
         .conclusion;
   }
 
@@ -658,8 +663,8 @@ public class IsEqual extends LfSwitch<Boolean> {
     }
 
     /**
-     * Conclude false if the two properties are not equal as objects, given that {@code
-     * projectionToClassRepresentatives} maps each object to some semantically equivalent object.
+     * Conclude false if the two properties are not equal as objects, given that
+     * `projectionToClassRepresentatives` maps each object to some semantically equivalent object. If either or both of the objects are null, also conclude false.
      */
     <T> ComparisonMachine<E> equalAsObjectsModulo(
         Function<E, T> propertyGetter, Function<T, T> projectionToClassRepresentatives) {
@@ -680,7 +685,7 @@ public class IsEqual extends LfSwitch<Boolean> {
 
     /**
      * Conclude false if the two properties are not semantically equivalent parse nodes, given that
-     * {@code projectionToClassRepresentatives} maps each parse node to some semantically equivalent
+     * `projectionToClassRepresentatives` maps each parse node to some semantically equivalent
      * node.
      */
     <T extends EObject> ComparisonMachine<E> equivalentModulo(

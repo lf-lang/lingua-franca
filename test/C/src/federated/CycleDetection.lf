@@ -3,7 +3,10 @@
  * The failure for this test is not being compiled.
  * @author Edward A. Lee
  */
-target C
+target C {
+  logging: DEBUG,
+  tracing: true
+}
 
 reactor CAReplica {
   input local_update: int
@@ -21,19 +24,22 @@ reactor CAReplica {
     if (remote_update->is_present) {
       self->balance += remote_update->value;
     }
+    lf_print("Balance updated to %d.", self->balance);
   =}
 
   reaction(query) -> response {=
     lf_set(response, self->balance);
+    lf_print("Sending balance of %d.", self->balance);
   =}
 }
 
-reactor UserInput {
+reactor UserInput(send_stop: bool = true) {
   input balance: int
   output deposit: int
 
   reaction(startup) -> deposit {=
     lf_set(deposit, 100);
+    lf_print("Sending deposit of 100.");
   =}
 
   reaction(balance) {=
@@ -46,7 +52,7 @@ reactor UserInput {
     } else {
       lf_print_error_and_exit("Expect balance of 200.");
     }
-    lf_request_stop();
+    if (self->send_stop) lf_request_stop();
   =}
 
   reaction(shutdown) {=

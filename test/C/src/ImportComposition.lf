@@ -13,7 +13,7 @@ main reactor ImportComposition {
 
   reaction(a.y) {=
     interval_t receive_time = lf_time_logical_elapsed();
-    printf("Received %d at time %lld\n", a.y->value, receive_time);
+    printf("Received %d at time " PRINTF_TIME "\n", a.y->value, receive_time);
     self->received = true;
     if (receive_time != 55000000LL) {
       fprintf(stderr, "ERROR: Received time should have been 55,000,000.\n");

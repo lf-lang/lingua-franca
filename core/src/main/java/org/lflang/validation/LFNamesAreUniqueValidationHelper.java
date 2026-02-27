@@ -1,7 +1,13 @@
 package org.lflang.validation;
 
+import java.util.Map;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.xtext.naming.QualifiedName;
+import org.eclipse.xtext.resource.IEObjectDescription;
 import org.eclipse.xtext.validation.NamesAreUniqueValidationHelper;
+import org.eclipse.xtext.validation.ValidationMessageAcceptor;
+import org.lflang.lf.AttrParm;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.LfPackage;
 
 public class LFNamesAreUniqueValidationHelper extends NamesAreUniqueValidationHelper {
@@ -21,5 +27,33 @@ public class LFNamesAreUniqueValidationHelper extends NamesAreUniqueValidationHe
       return LfPackage.Literals.VARIABLE;
     }
     return super.getAssociatedClusterType(eClass);
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  @SuppressWarnings("deprecation")
+  protected void checkDescriptionForDuplicatedName(
+      IEObjectDescription description,
+      Map<EClass, Map<QualifiedName, IEObjectDescription>> clusterTypeToName,
+      ValidationMessageAcceptor acceptor) {
+    // Special handling for value id in AttrParm
+    if (description.getEClass() == LfPackage.eINSTANCE.getAttrParm()) {
+      var param = (AttrParm) description.getEObjectOrProxy();
+      var clusterType = getAssociatedClusterType(param.eClass());
+      if (param.eContainer() instanceof Attribute attribute) {
+        // Only check for duplicates in the same attribute
+        for (int i = 0; i < attribute.getAttrParms().indexOf(param); i++) {
+          var prev = attribute.getAttrParms().get(i);
+          if (param.getName() == null
+              ? param.getName() == prev.getName()
+              : param.getName().equals(prev.getName())) {
+            createDuplicateNameError(description, clusterType, acceptor);
+            return;
+          }
+        }
+      }
+    } else {
+      super.checkDescriptionForDuplicatedName(description, clusterTypeToName, acceptor);
+    }
   }
 }

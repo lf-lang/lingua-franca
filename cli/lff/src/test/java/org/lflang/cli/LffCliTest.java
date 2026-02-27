@@ -45,133 +45,133 @@ public class LffCliTest {
 
   private static final String FILE_BEFORE_REFORMAT =
       """
-        target Python;
-        main   reactor {
-            reaction(startup) {=
-               =}
-        }
-        """;
+      target Python;
+      main   reactor {
+          reaction(startup) {=
+             =}
+      }
+      """;
   private static final String FILE_AFTER_REFORMAT =
       """
-        target Python
+      target Python
 
-        main reactor {
-          reaction(startup) {=  =}
-        }
-        """;
+      main reactor {
+        reaction(startup) {=  =}
+      }
+      """;
 
   private static final List<List<String>> TEST_CASES =
       List.of(
           List.of(
               """
-                  target C
-                  reactor Test { // this is a test
-                  logical action a # this is an a
-                  output humbug: int
-                  reaction (a) -> /* moo */ humbug {=  // this is a humbug reaction
-                    /* it reacts like this*/ react react
-                  =}
-                  }
-                  """,
+              target C
+              reactor Test { // this is a test
+              logical action a # this is an a
+              output humbug: int
+              reaction (a) -> /* moo */ humbug {=  // this is a humbug reaction
+                /* it reacts like this*/ react react
+              =}
+              }
+              """,
               """
-                  target C
+              target C
 
-                  // this is a test
-                  reactor Test {
-                    logical action a  // this is an a
-                    output humbug: int
+              // this is a test
+              reactor Test {
+                logical action a  // this is an a
+                output humbug: int
 
-                    /** moo */
-                    // this is a humbug reaction
-                    reaction(a) -> humbug {=
-                      /* it reacts like this*/ react react
-                    =}
-                  }
-                  """),
+                /** moo */
+                // this is a humbug reaction
+                reaction(a) -> humbug {=
+                  /* it reacts like this*/ react react
+                =}
+              }
+              """),
           List.of(
               """
-                  target C
-                  // Documentation
-                   @icon("Variables.png")
-                   reactor Variables {}
-                  """,
+              target C
+              // Documentation
+               @icon("Variables.png")
+               reactor Variables {}
+              """,
               """
-                  target C
+              target C
 
-                  // Documentation
-                  @icon("Variables.png")
-                  reactor Variables {
-                  }
-                  """),
+              // Documentation
+              @icon("Variables.png")
+              reactor Variables {
+              }
+              """),
           List.of(
               """
-                  target C
-                  reactor Filter(period: int = 0, b: double[](0, 0)) {}
-                  main reactor {
-                  az_f = new Filter(
-                       period = 100,
-                       b = (0.229019233988375, 0.421510777305010)
-                   )
-                   }
-                   """,
+              target C
+              reactor Filter(period: int = 0, b: double[] = {0, 0}) {}
+              main reactor {
+              az_f = new Filter(
+                   period = 100,
+                   b = {0.229019233988375, 0.421510777305010}
+               )
+               }
+              """,
               """
-                  target C
+              target C
 
-                  reactor Filter(period: int = 0, b: double[] = {0, 0}) {
-                  }
+              reactor Filter(period: int = 0, b: double[] = {0, 0}) {
+              }
 
-                  main reactor {
-                    az_f = new Filter(period=100, b = {0.229019233988375, 0.421510777305010})
-                  }
-                  """),
+              main reactor {
+                az_f = new Filter(period=100, b = {0.229019233988375, 0.421510777305010})
+              }
+              """),
           List.of(
               """
-                  target Rust
-                  reactor Snake {  // q
-                  state grid: SnakeGrid ({= /* foo */ SnakeGrid::new(grid_side, &snake) =}); // note that this one borrows snake temporarily
-                  state grid2: SnakeGrid ({= // baz
-                  SnakeGrid::new(grid_side, &snake) =});
-                  }
-                  """,
+target Rust
+reactor Snake {  // q
+state grid: SnakeGrid = {= /* foo */ SnakeGrid::new(grid_side, &snake) =}; // note that this one borrows snake temporarily
+state grid2: SnakeGrid = {= // baz
+SnakeGrid::new(grid_side, &snake) =};
+}
+""",
               """
-                  target Rust
+              target Rust
 
-                  // q
-                  reactor Snake {
-                    // note that this one borrows snake temporarily
-                    state grid: SnakeGrid = {= /* foo */ SnakeGrid::new(grid_side, &snake) =}
-                    // baz
-                    state grid2: SnakeGrid = {= SnakeGrid::new(grid_side, &snake) =}
-                  }
-                  """),
+              // q
+              reactor Snake {
+                // note that this one borrows snake temporarily
+                state grid: SnakeGrid = {= /* foo */ SnakeGrid::new(grid_side, &snake) =}
+                // baz
+                state grid2: SnakeGrid = {= SnakeGrid::new(grid_side, &snake) =}
+              }
+              """),
           List.of(
               """
-                  target Cpp
+target Cpp
 
-                  reactor ContextManager<Req, Resp, Ctx> {
+reactor ContextManager<Req, Resp, Ctx> {
 
 
-                     \s
-                  }
+   \s
+}
 
-                  reactor MACService {
-                    mul_cm = new ContextManager<loooooooooooooooooooooooooooooong, looooooooooooooong, loooooooooooooong>()
-                  }
+reactor MACService {
+  mul_cm = new ContextManager<loooooooooooooooooooooooooooooong, looooooooooooooong, loooooooooooooong>()
+}
 
-                  """,
+""",
               """
-                  target Cpp
+              target Cpp
 
-                  reactor ContextManager<Req, Resp, Ctx> {
-                  }
+              reactor ContextManager<Req, Resp, Ctx> {
+              }
 
-                  reactor MACService {
-                    mul_cm = new ContextManager<
-                        loooooooooooooooooooooooooooooong,
-                        looooooooooooooong,
-                        loooooooooooooong>()
-                  }
-                  """));
+              reactor MACService {
+                mul_cm = new ContextManager<
+                    loooooooooooooooooooooooooooooong,
+                    looooooooooooooong,
+                    loooooooooooooong>()
+              }
+              """));
 
   LffTestFixture lffTester = new LffTestFixture();
 

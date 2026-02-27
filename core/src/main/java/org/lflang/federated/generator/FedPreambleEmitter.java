@@ -11,6 +11,11 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Model;
 import org.lflang.lf.Preamble;
 
+/**
+ * Helper class to generate preamble code for a federate.
+ *
+ * @ingroup Federated
+ */
 public class FedPreambleEmitter {
 
   public FedPreambleEmitter() {}
@@ -33,19 +38,19 @@ public class FedPreambleEmitter {
     for (Preamble p : mainModel.getPreambles()) {
       preambleCode.pr(
           """
-            %spreamble {=
-            %s
-            =}
-            """
+          %spreamble {=
+          %s
+          =}
+          """
               .formatted(
                   p.getVisibility() == null ? "" : p.getVisibility() + " ", toText(p.getCode())));
     }
 
     preambleCode.pr(
         """
-            preamble {=
-            %s
-            =}"""
+        preamble {=
+        %s
+        =}"""
             .formatted(
                 FedTargetExtensionFactory.getExtension(federate.targetConfig.target)
                     .generatePreamble(federate, fileConfig, rtiConfig, messageReporter)));

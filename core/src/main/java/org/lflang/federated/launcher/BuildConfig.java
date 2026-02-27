@@ -4,7 +4,11 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 
-/** A collection of methods used for building target code for federates. */
+/**
+ * A collection of methods used for building target code for federates.
+ *
+ * @ingroup Federated
+ */
 public abstract class BuildConfig {
 
   /** The federate that this configuration applies to. */
@@ -40,12 +44,4 @@ public abstract class BuildConfig {
    * locally, assuming that the current directory is the top-level project folder.
    */
   public abstract String localExecuteCommand();
-
-  /**
-   * Return the command that will execute the federate that this build configuration belongs to
-   * remotely, assuming that the current directory is the top-level project folder.
-   */
-  public String remoteExecuteCommand() {
-    throw new UnsupportedOperationException();
-  }
 }

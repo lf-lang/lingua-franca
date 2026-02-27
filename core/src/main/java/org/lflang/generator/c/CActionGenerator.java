@@ -4,11 +4,14 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
+import org.lflang.lf.Expression;
+import org.lflang.lf.ParameterReference;
 import org.lflang.target.Target;
 
 /**
@@ -22,6 +25,7 @@ import org.lflang.target.Target;
  * @author {Soroush Bateni
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CActionGenerator {
   /**
@@ -29,31 +33,32 @@ public class CActionGenerator {
    * and period fields.
    *
    * @param instance The reactor.
+   * @param useParamRefs If true, use self-struct parameter references for min_delay/min_spacing
+   *     when the AST expression is a ParameterReference, so runtime CLI overrides take effect.
    */
-  public static String generateInitializers(ReactorInstance instance) {
+  public static String generateInitializers(ReactorInstance instance, boolean useParamRefs) {
     List<String> code = new ArrayList<>();
     for (ActionInstance action : instance.actions) {
       if (!action.isShutdown()) {
         var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
-        var minDelay = action.getMinDelay();
-        var minSpacing = action.getMinSpacing();
-        var offsetInitializer =
-            triggerStructName
-                + ".offset = "
-                + CTypes.getInstance().getTargetTimeExpr(minDelay)
-                + ";";
-        var periodInitializer =
-            triggerStructName
-                + ".period = "
-                + (minSpacing != null
-                    ? CTypes.getInstance().getTargetTimeExpr(minSpacing)
-                    : CGenerator.UNDEFINED_MIN_SPACING)
-                + ";";
+        var selfRef = CUtil.reactorRef(action.getParent());
+        var def = action.getDefinition();
+        var offsetExpr =
+            getActionTimeExpr(def.getMinDelay(), selfRef, action.getMinDelay(), useParamRefs);
+        var spacingExpr =
+            action.getMinSpacing() != null
+                ? getActionTimeExpr(
+                    def.getMinSpacing(), selfRef, action.getMinSpacing(), useParamRefs)
+                : CGenerator.UNDEFINED_MIN_SPACING;
+        var offsetInitializer = triggerStructName + ".offset = " + offsetExpr + ";";
+        var periodInitializer = triggerStructName + ".period = " + spacingExpr + ";";
+        var lastTimeInitializer = triggerStructName + ".last_tag = NEVER_TAG;";
         code.addAll(
             List.of(
                 "// Initializing action " + action.getFullName(),
                 offsetInitializer,
-                periodInitializer));
+                periodInitializer,
+                lastTimeInitializer));
 
         var mode = action.getMode(false);
         if (mode != null) {
@@ -74,6 +79,19 @@ public class CActionGenerator {
   }
 
   /**
+   * Return a C expression for an action's min_delay or min_spacing. If {@code useParamRefs} is true
+   * and the AST expression is a {@link ParameterReference}, return a self-struct field reference so
+   * that CLI overrides propagate to the action timing.
+   */
+  private static String getActionTimeExpr(
+      Expression astExpr, String selfRef, TimeValue resolved, boolean useParamRefs) {
+    if (useParamRefs && astExpr instanceof ParameterReference paramRef) {
+      return selfRef + "->" + paramRef.getParameter().getName();
+    }
+    return CTypes.getInstance().getTargetTimeExpr(resolved);
+  }
+
+  /**
    * Create a template token initialized to the payload size. This token is marked to not be freed
    * so that the trigger_t struct always has a template token. At the start of each time step, we
    * need to initialize the is_present field of each action's trigger object to false and free a
@@ -90,12 +108,16 @@ public class CActionGenerator {
         "_lf_initialize_template((token_template_t*)",
         "        &(" + selfStruct + "->_lf__" + actionName + "),",
         payloadSize + ");",
+        "_lf_initialize_template((token_template_t*)",
+        "        &(" + selfStruct + "->_lf_" + actionName + "),",
+        payloadSize + ");",
         selfStruct + "->_lf__" + actionName + ".status = absent;");
   }
 
   /**
    * Generate the declarations of actions in the self struct
    *
+   * @param tpr The type-parameterized reactor.
    * @param body The content of the self struct
    * @param constructorCode The constructor code of the reactor
    */
@@ -103,22 +125,24 @@ public class CActionGenerator {
       TypeParameterizedReactor tpr, CodeBuilder body, CodeBuilder constructorCode) {
     for (Action action : ASTUtils.allActions(tpr.reactor())) {
       var actionName = action.getName();
-      body.pr(
-          action, CGenerator.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
+      body.pr(CGenerator.variableStructType(action, tpr, false) + " _lf_" + actionName + ";");
       // Initialize the trigger pointer and the parent pointer in the action.
       constructorCode.pr(
-          action, "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
-      constructorCode.pr(action, "self->_lf_" + actionName + ".parent = (self_base_t*)self;");
+          "self->_lf_" + actionName + "._base.trigger = &self->_lf__" + actionName + ";");
+      constructorCode.pr("self->_lf_" + actionName + ".parent = (self_base_t*)self;");
+      constructorCode.pr("self->_lf_" + actionName + ".source_id = -1;"); // Default value.
     }
   }
 
   /**
    * Generate the struct type definitions for the action of the reactor
    *
+   * @param tpr The type-parameterized reactor.
    * @param action The action to generate the struct for
    * @param target The target of the code generation (C, CCpp or Python)
    * @param types The helper object for types related stuff
    * @param federatedExtension The code needed to support federated execution
+   * @param userFacing Whether this is user-facing code.
    * @return The auxiliary struct for the port as a string
    */
   public static String generateAuxiliaryStruct(
@@ -144,7 +168,8 @@ public class CActionGenerator {
             "bool is_present;", // From lf_port_or_action_t
             "lf_action_internal_t _base;", // internal substruct
             "self_base_t* parent;", // From lf_port_or_action_t
-            "bool has_value;" // From lf_action_base_t
+            "bool has_value;", // From lf_action_base_t
+            "int source_id;" // From lf_action_base_t
             ));
     code.pr(valueDeclaration(tpr, action, target, types));
     code.pr(federatedExtension.toString());

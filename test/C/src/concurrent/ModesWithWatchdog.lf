@@ -1,0 +1,46 @@
+/**
+ * When in the Primary mode, the watchdog is sure to trigger, causing the reaction to watcher to be
+ * executed one microstep later. Previously, after a mode transition, the microstep was hardwired to
+ * 1, which caused a fatal error after the mode transition when the runtime tried to advance to
+ * microstep 1 and found that it was already at microstep 1. This program tests that this is fixed.
+ * Success is simply running to completion without error.
+ */
+target C {
+  keepalive: true,
+  timeout: 1 s
+}
+
+reactor Arbitrator(timeout: time = 100 ms) {
+  input in1: double
+  input in2: double
+
+  watchdog watcher(timeout) {= lf_print("watchdog timeout."); =}
+
+  initial mode Primary {
+    reaction(in1) -> watcher {=
+      lf_watchdog_start(watcher, 0);
+    =}
+
+    reaction(watcher) -> reset(Backup) {=
+      lf_print("watchdog reaction.");
+      lf_set_mode(Backup);
+    =}
+  }
+
+  mode Backup {
+    reaction(in2) -> watcher {=
+      lf_watchdog_start(watcher, 0);
+    =}
+  }
+}
+
+main reactor {
+  timer t(0, 100 ms)
+
+  ar = new Arbitrator()
+
+  reaction(t) -> ar.in1, ar.in2 {=
+    lf_set(ar.in1, 0.0);
+    lf_set(ar.in2, 0.0);
+  =}
+}

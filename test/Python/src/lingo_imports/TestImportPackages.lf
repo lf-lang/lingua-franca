@@ -1,0 +1,20 @@
+# Test the new import statement for Lingo downloaded packages with the import path enclosed in angle brackets
+target Python {
+  timeout: 2 sec
+}
+
+import Count from <library-test/Import.lf>
+
+reactor Actuator {
+  input results
+
+  reaction(results) {=
+    print(f"Count: {results.value}")
+  =}
+}
+
+main reactor {
+  count = new Count()
+  act = new Actuator()
+  count.out -> act.results
+}

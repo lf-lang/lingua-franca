@@ -25,8 +25,6 @@ package org.lflang.cli
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import org.lflang.LFRuntimeModule
-import org.lflang.LFStandaloneSetup
 import org.opentest4j.AssertionFailedError
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -100,8 +98,7 @@ class LfcIssueReportingTest {
 
         val io = stderr.getSpiedErrIo()
         val backend = ReportingBackend(io, AnsiColors(useColors).bold("lfc: "), AnsiColors(useColors), 2)
-        val injector = LFStandaloneSetup(LFRuntimeModule(), LFStandaloneModule(backend, io))
-            .createInjectorAndDoEMFRegistration()
+        val injector = LFCliSetup(backend, io).createInjectorAndDoEMFRegistration()
         val main = injector.getInstance(Lfc::class.java)
 
         val packageName = loader.packageName.replace('.', '/')

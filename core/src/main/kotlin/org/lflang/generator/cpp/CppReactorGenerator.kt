@@ -94,7 +94,8 @@ class CppReactorGenerator(private val reactor: Reactor, fileConfig: CppFileConfi
         ${" |  "..reactions.generateReactionViewForwardDeclarations()}
             |
             |  class Inner: public lfutil::LFScope {
-            |    const Parameters __lf_parameters;
+            |    [[maybe_unused]] const Inner& __lf_inner = *this;
+            |    [[maybe_unused]] const Parameters __lf_parameters;
         ${" |    "..parameters.generateInnerAliasDeclarations()}
         ${" |    "..state.generateDeclarations()}
         ${" |    "..methods.generateDeclarations()}

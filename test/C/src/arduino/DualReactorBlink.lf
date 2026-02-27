@@ -1,0 +1,35 @@
+target C {
+  platform: {
+    name: "arduino",
+    board: "arduino:avr:mega"
+  }
+}
+
+reactor Blinker {
+  input in_port: bool
+
+  reaction(startup) {=
+    pinMode(LED_BUILTIN, OUTPUT);
+  =}
+
+  reaction(in_port) {=
+    digitalWrite(LED_BUILTIN, in_port->value ? HIGH : LOW);
+  =}
+}
+
+reactor Timer {
+  timer t1(0, 500 msec)
+  state on_off: bool = false
+  output out_port: bool
+
+  reaction(t1) -> out_port {=
+    self->on_off = !self->on_off;
+    lf_set(out_port, self->on_off);
+  =}
+}
+
+main reactor {
+  the_blinker = new Blinker()
+  the_timer = new Timer()
+  the_timer.out_port -> the_blinker.in_port
+}

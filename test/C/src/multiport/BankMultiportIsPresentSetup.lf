@@ -1,0 +1,71 @@
+// Smoke test for checking that the `is_present_fields` is setup correctly
+// for a complicated hierarchy of banks with multiports and actions.
+target C
+
+reactor R1 {
+  logical action a1
+  logical action a2
+  output[2] out: int
+
+  reaction(startup) -> out {=
+    lf_set(out[0], 42);
+  =}
+
+  reaction(startup) -> out {=
+    lf_set(out[1], 43);
+  =}
+}
+
+reactor R4 {
+  logical action a1
+  logical action a2
+  input[3] in: int
+  input[3] in2: int
+  input[2] in3: int
+
+  reaction(in) {=
+    lf_print("in = [%d, %d, %d]", in[0]->value, in[1]->value, in[2]->value);
+  =}
+
+  reaction(in2) {=
+    lf_print("in2 = [%d, %d, %d]", in2[0]->value, in2[1]->value, in2[2]->value);
+  =}
+
+  reaction(in3) {=
+    lf_print("in3 = [%d, %d]", in3[0]->value, in3[1]->value);
+  =}
+}
+
+reactor R2 {
+  logical action a1
+  logical action a2
+  r1 = new[3] R1()
+  r4 = new[2] R4()
+  r1.out -> r4.in
+
+  reaction(startup) -> r4.in2, r4.in3 {=
+    lf_set(r4[0].in2[0], 44);
+    lf_set(r4[1].in2[0], 45);
+    lf_set(r4[0].in2[1], 46);
+    lf_set(r4[1].in2[1], 47);
+    lf_set(r4[0].in2[2], 48);
+    lf_set(r4[1].in2[2], 49);
+
+    lf_set(r4[0].in3[0], 50);
+    lf_set(r4[1].in3[0], 51);
+    lf_set(r4[0].in3[1], 52);
+    lf_set(r4[1].in3[1], 53);
+  =}
+}
+
+reactor R3 {
+  r2 = new[4] R2()
+  logical action a1
+  logical action a2
+}
+
+main reactor {
+  r = new[2] R3()
+  logical action a1
+  logical action a2
+}

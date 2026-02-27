@@ -1,28 +1,3 @@
-/*************
- * Copyright (c) 2019-2021 TU Dresden
- * Copyright (c) 2019-2021 UC Berkeley
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.util;
 
 import java.io.ByteArrayOutputStream;
@@ -46,8 +21,10 @@ import org.eclipse.xtext.util.CancelIndicator;
 /**
  * An abstraction for an external command
  *
- * <p>This is a wrapper around ProcessBuilder which allows for a more convenient usage in our code
+ * This is a wrapper around ProcessBuilder which allows for a more convenient usage in our code
  * base.
+ *
+ * @ingroup Utilities
  */
 public class LFCommand {
 
@@ -56,6 +33,7 @@ public class LFCommand {
    * forwarded.
    */
   private static final int PERIOD_MILLISECONDS = 200;
+
   /**
    * The maximum amount of time to wait for the forwarding of output and error streams to finish.
    */
@@ -67,7 +45,7 @@ public class LFCommand {
   protected ByteArrayOutputStream errors = new ByteArrayOutputStream();
   protected boolean quiet;
 
-  /** Construct an LFCommand that executes the command carried by {@code pb}. */
+  /** Construct an LFCommand that executes the command carried by `pb`. */
   protected LFCommand(ProcessBuilder pb, boolean quiet) {
     this.processBuilder = pb;
     this.quiet = quiet;
@@ -99,8 +77,8 @@ public class LFCommand {
   }
 
   /**
-   * Collect as much output as possible from {@code in} without blocking, print it to {@code print}
-   * if not quiet, and store it in {@code store}.
+   * Collect as much output as possible from `in` without blocking, print it to `print`
+   * if not quiet, and store it in `store`.
    */
   private void collectOutput(InputStream in, ByteArrayOutputStream store, PrintStream print) {
     byte[] buffer = new byte[64];
@@ -129,10 +107,10 @@ public class LFCommand {
   }
 
   /**
-   * Handle user cancellation if necessary, and handle any output from {@code process} otherwise.
+   * Handle user cancellation if necessary, and handle any output from `process` otherwise.
    *
-   * @param process a {@code Process}
-   * @param cancelIndicator a flag indicating whether a cancellation of {@code process} is requested
+   * @param process a `Process`
+   * @param cancelIndicator a flag indicating whether a cancellation of `process` is requested
    *     directly to stderr and stdout).
    */
   private void poll(Process process, CancelIndicator cancelIndicator) {
@@ -148,7 +126,7 @@ public class LFCommand {
   /**
    * Execute the command.
    *
-   * <p>Executing a process directly with {@code processBuilder.start()} could lead to a deadlock as
+   * <p>Executing a process directly with `processBuilder.start()` could lead to a deadlock as
    * the subprocess blocks when output or error buffers are full. This method ensures that output
    * and error messages are continuously read and forwards them to the system output and error
    * streams as well as to the output and error streams hold in this class.
@@ -232,11 +210,16 @@ public class LFCommand {
     quiet = true;
   }
 
+  /** Require this to be verbose, overriding the verbosity specified at construction time. */
+  public void setVerbose() {
+    quiet = false;
+  }
+
   /**
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
    *
-   * @see #get(String, List, boolean, Path)
+   * @see #get
    */
   public static LFCommand get(final String cmd, final List<String> args) {
     return get(cmd, args, false, Paths.get(""));
@@ -246,7 +229,7 @@ public class LFCommand {
    * Create a LFCommand instance from a given command and argument list in the current working
    * directory.
    *
-   * @see #get(String, List, boolean, Path)
+   * @see #get
    */
   public static LFCommand get(final String cmd, final List<String> args, boolean quiet) {
     return get(cmd, args, quiet, Paths.get(""));
@@ -260,7 +243,7 @@ public class LFCommand {
    * following order:
    *
    * <p>1. Check if the given command {@code cmd} is an executable file within {@code dir}. 2. If
-   * the above fails 'which <cmd>' (or 'where <cmd>' on Windows) is executed to see if the command
+   * the above fails 'which {@code cmd}' (or 'where {@code cmd}' on Windows) is executed to see if the command
    * is available on the PATH. 3. If both points above fail, a third attempt is started using bash
    * to indirectly execute the command (see below for an explanation).
    *
@@ -347,10 +330,10 @@ public class LFCommand {
    * Attempt to start the execution of this command.
    *
    * <p>First collect a list of paths where the executable might be found, then select an executable
-   * that successfully executes from the list of paths. Return the {@code Process} instance that is
-   * the result of a successful execution, or {@code null} if no successful execution happened.
+   * that successfully executes from the list of paths. Return the `Process` instance that is
+   * the result of a successful execution, or `null` if no successful execution happened.
    *
-   * @return The {@code Process} that is started by this command, or {@code null} in case of
+   * @return The `Process` that is started by this command, or `null` in case of
    *     failure.
    */
   private Process startProcess() {

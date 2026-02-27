@@ -31,23 +31,36 @@ reactor Source {
 
   reaction(startup) -> out {=
     // Dynamically allocate an output struct.
-    SET_NEW(out);
+    // Note that the default destructor and copy constructor are sufficient here.
+    hello_t* hello = (hello_t*)malloc(sizeof(hello_t));
 
-    // Above allocates a struct, which then must be populated.
-    out->value->name = "Earth";
-    out->value->value = 42;
+    // Populate the struct.
+    hello->name = "Earth";
+    hello->value = 42;
+
+    // Set the output.
+    lf_set(out, hello);
   =}
 }
 
 // expected parameter is for testing.
 reactor Print(expected: int = 42) {
   input in: hello_t*
+  state invoked: bool = false
 
   reaction(in) {=
+    self->invoked = true;
     printf("Received: name = %s, value = %d\n", in->value->name, in->value->value);
     if (in->value->value != self->expected) {
       printf("ERROR: Expected value to be %d.\n", self->expected);
       exit(1);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->invoked == false) {
+      fprintf(stderr, "ERROR: No data received.\n");
+      exit(2);
     }
   =}
 }

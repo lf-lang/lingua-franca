@@ -1,0 +1,36 @@
+/**
+ * This test checks for a bug that was triggered when two STP offsets happened to have equal values.
+ * The problem was that TimeValue did not override hashCode() even though it had implemented
+ * equals().
+ */
+target C {
+  timeout: 1 s,
+  coordination: decentralized
+}
+
+reactor Sensor(period: time = 500 ms) {
+  output y: int
+
+  reaction(startup) -> y {=
+    lf_set(y, 42);
+  =}
+}
+
+reactor Print {
+  input x: int
+  input z: int
+
+  reaction(x) {=
+    lf_print("****** Received %d", x->value);
+  =} STAA(20 ms) {=  =}
+
+  reaction(z) {=  =} STAA(20 ms) {=  =}
+}
+
+federated reactor {
+  s = new Sensor()
+  p = new Print()
+
+  s.y -> p.x
+  s.y -> p.z
+}

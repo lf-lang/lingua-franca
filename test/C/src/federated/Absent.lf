@@ -1,0 +1,46 @@
+target C {
+  tracing: true,
+  timeout: 100 ms
+}
+
+reactor Sender {
+  output out1: int
+  output out2: int
+  timer t(0, 20 ms)
+  state c: int = 1
+
+  reaction(t) -> out1, out2 {=
+    if (self->c % 2 != 0) {
+      lf_set(out1, self->c);
+    } else {
+      lf_set(out2, self->c);
+    }
+    self->c++;
+  =}
+}
+
+reactor Receiver {
+  input in1: int
+  input in2: int
+
+  reaction(in1) {=
+    lf_print("Received %d on in1", in1->value);
+    if (in1->value % 2 == 0) {
+      lf_print_error_and_exit("********* Expected an odd integer!");
+    }
+  =}
+
+  reaction(in2) {=
+    lf_print("Received %d on in2", in2->value);
+    if (in2->value % 2 != 0) {
+      lf_print_error_and_exit("********* Expected an even integer!");
+    }
+  =}
+}
+
+federated reactor(d: time = 1 ms) {
+  s = new Sender()
+  r = new Receiver()
+  s.out1 -> r.in1
+  s.out2 -> r.in2
+}

@@ -1,0 +1,32 @@
+target C {
+  timeout: 20 ms
+}
+
+reactor A {
+  output[2] out: int
+  state count: int = 0
+  timer t(0, 10 ms)
+
+  reaction(t) -> out {=
+    for(int i = 0; i < 2; i++) {
+      lf_set(out[i], self->count++);
+    }
+  =}
+}
+
+reactor B(bank_index: int = 0) {
+  input[3] in: int
+  state count: int = 0  // FIXME
+
+  reaction(in) {=
+    for(int i = 0; i < 3; i++) {
+      lf_print("%d Received %d", self->bank_index, in[i]->value);
+    }
+  =}
+}
+
+main reactor {
+  a = new[3] A()
+  b = new[2] B()
+  a.out -> interleaved(b.in)
+}

@@ -1,35 +1,9 @@
-/*************
- * Copyright (c) 2019-2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.c;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.lflang.FileConfig;
@@ -40,9 +14,10 @@ import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
+import org.lflang.target.property.CmakeArgsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.PlatformProperty.Option;
 import org.lflang.target.property.PlatformProperty.PlatformOptions;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -59,6 +34,7 @@ import org.lflang.util.LFCommand;
  * @author Christian Menard
  * @author Matt Weber
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public class CCompiler {
 
@@ -100,6 +76,7 @@ public class CCompiler {
    *
    * @param generator An instance of GeneratorBase, only used to report error line numbers in the
    *     Eclipse IDE.
+   * @param context The generator context.
    * @return true if compilation succeeds, false otherwise.
    */
   public boolean runCCompiler(GeneratorBase generator, LFGeneratorContext context)
@@ -179,7 +156,7 @@ public class CCompiler {
                     + " finished with no errors.");
       }
       var options = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
-      if (options.platform() == Platform.ZEPHYR && options.flash()) {
+      if (options.platform() == Platform.ZEPHYR && options.flash().value()) {
         messageReporter.nowhere().info("Invoking flash command for Zephyr");
         LFCommand flash = buildWestFlashCommand(options);
         int flashRet = flash.run();
@@ -218,14 +195,17 @@ public class CCompiler {
   private static List<String> cmakeOptions(TargetConfig targetConfig, FileConfig fileConfig) {
     List<String> arguments = new ArrayList<>();
     String separator = File.separator;
-    String maybeQuote = ""; // Windows seems to require extra level of quoting.
-    String srcPath = fileConfig.srcPath.toString(); // Windows requires escaping the backslashes.
+    String quote = "\"";
+    String srcPath = fileConfig.srcPath.toString();
     String rootPath = fileConfig.srcPkgPath.toString();
+    String srcGenPath = fileConfig.getSrcGenPath().toString();
     if (separator.equals("\\")) {
+      // Windows requires escaping the backslashes.
       separator = "\\\\\\\\";
-      maybeQuote = "\\\"";
+      quote = "\\\"";
       srcPath = srcPath.replaceAll("\\\\", "\\\\\\\\");
       rootPath = rootPath.replaceAll("\\\\", "\\\\\\\\");
+      srcGenPath = srcGenPath.replaceAll("\\\\", "\\\\\\\\");
     }
     arguments.addAll(
         List.of(
@@ -236,15 +216,23 @@ public class CCompiler {
             "-DCMAKE_INSTALL_PREFIX=" + FileUtil.toUnixString(fileConfig.getOutPath()),
             "-DCMAKE_INSTALL_BINDIR="
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
-            "-DLF_FILE_SEPARATOR=\"" + maybeQuote + separator + maybeQuote + "\""));
+            "-DLF_FILE_SEPARATOR='" + quote + separator + quote + "'"));
     // Add #define for source file directory.
     // Do not do this for federated programs because for those, the definition is put
     // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
       // Do not convert to Unix path
-      arguments.add("-DLF_SOURCE_DIRECTORY=\"" + maybeQuote + srcPath + maybeQuote + "\"");
-      arguments.add("-DLF_PACKAGE_DIRECTORY=\"" + maybeQuote + rootPath + maybeQuote + "\"");
+      arguments.add("-DLF_SOURCE_DIRECTORY=" + srcPath);
+      arguments.add("-DLF_PACKAGE_DIRECTORY=" + rootPath);
+      arguments.add("-DLF_SOURCE_GEN_DIRECTORY=" + srcGenPath);
     }
+
+    // Append user-provided CMake configure definitions. These come after built-ins so they can
+    // override defaults (e.g., CMAKE_BUILD_TYPE).
+    targetConfig
+        .getOrDefault(CmakeArgsProperty.INSTANCE)
+        .forEach((key, value) -> arguments.add("-D" + key + "=" + (value == null ? "" : value)));
+
     arguments.add(FileUtil.toUnixString(fileConfig.getSrcGenPath()));
 
     if (GeneratorUtils.isHostWindows()) {
@@ -304,14 +292,15 @@ public class CCompiler {
   /**
    * Return a flash/emulate command using west. If board is null (defaults to qemu_cortex_m3) or
    * qemu_* Return a flash command which runs the target as an emulation If ordinary target, return
-   * {@code west flash}
+   * `west flash`
    */
   public LFCommand buildWestFlashCommand(PlatformOptions options) {
     // Set the build directory to be "build"
     Path buildPath = fileConfig.getSrcGenPath().resolve("build");
-    String board = options.board();
+    Option<String> board = options.board();
+    String boardValue = board.value();
     LFCommand cmd;
-    if (board == null || board.startsWith("qemu") || board.equals("native_posix")) {
+    if (!board.setByUser() || boardValue.startsWith("qemu") || boardValue.equals("native_posix")) {
       cmd = commandFactory.createCommand("west", List.of("build", "-t", "run"), buildPath);
     } else {
       cmd = commandFactory.createCommand("west", List.of("flash"), buildPath);
@@ -362,77 +351,12 @@ public class CCompiler {
   }
 
   /**
-   * Return a command to compile the specified C file using a native compiler (generally gcc unless
-   * overridden by the user). This produces a C specific compile command.
-   *
-   * @param fileToCompile The C filename without the .c extension.
-   * @param noBinary If true, the compiler will create a .o output instead of a binary. If false,
-   *     the compile command will produce a binary.
-   */
-  public LFCommand compileCCommand(String fileToCompile, boolean noBinary) {
-    String cFilename = getTargetFileName(fileToCompile, cppMode, targetConfig);
-
-    Path relativeSrcPath =
-        fileConfig
-            .getOutPath()
-            .relativize(fileConfig.getSrcGenPath().resolve(Paths.get(cFilename)));
-    Path relativeBinPath =
-        fileConfig.getOutPath().relativize(fileConfig.binPath.resolve(Paths.get(fileToCompile)));
-
-    // NOTE: we assume that any C compiler takes Unix paths as arguments.
-    String relSrcPathString = FileUtil.toUnixString(relativeSrcPath);
-    String relBinPathString = FileUtil.toUnixString(relativeBinPath);
-
-    // If there is no main reactor, then generate a .o file not an executable.
-    if (noBinary) {
-      relBinPathString += ".o";
-    }
-
-    ArrayList<String> compileArgs = new ArrayList<>();
-    compileArgs.add(relSrcPathString);
-    for (String file : targetConfig.compileAdditionalSources) {
-      var relativePath =
-          fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath().resolve(Paths.get(file)));
-      compileArgs.add(FileUtil.toUnixString(relativePath));
-    }
-
-    // Finally, add the compiler flags in target parameters (if any)
-    compileArgs.addAll(targetConfig.get(CompilerFlagsProperty.INSTANCE));
-
-    // Only set the output file name if it hasn't already been set
-    // using a target property or Args line flag.
-    if (!compileArgs.contains("-o")) {
-      compileArgs.add("-o");
-      compileArgs.add(relBinPathString);
-    }
-
-    // If there is no main reactor, then use the -c flag to prevent linking from occurring.
-    // FIXME: we could add a {@code -c} flag to {@code lfc} to make this explicit in stand-alone
-    // mode.
-    //  Then again, I think this only makes sense when we can do linking.
-    if (noBinary) {
-      compileArgs.add("-c"); // FIXME: revisit
-    }
-
-    LFCommand command =
-        commandFactory.createCommand(
-            targetConfig.get(CompilerProperty.INSTANCE), compileArgs, fileConfig.getOutPath());
-    if (command == null) {
-      messageReporter
-          .nowhere()
-          .error(
-              "The C/CCpp target requires GCC >= 7 to compile the generated code. Auto-compiling"
-                  + " can be disabled using the \"no-compile: true\" target property.");
-    }
-    return command;
-  }
-
-  /**
    * Produces the filename including the target-specific extension
    *
    * @param fileName The base name of the file without any extensions
    * @param cppMode Indicate whether the compiler is in C++ mode In C++ mode, the compiler produces
    *     .cpp files instead of .c files and uses a C++ compiler to compiler the code.
+   * @param targetConfig The target configuration.
    */
   static String getTargetFileName(String fileName, boolean cppMode, TargetConfig targetConfig) {
     return fileName + getFileExtension(cppMode, targetConfig);

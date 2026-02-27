@@ -23,17 +23,17 @@ reactor Source {
 }
 
 reactor Destination {
-  input[4] in_
+  input[4] inp
 
-  reaction(in_) {=
-    for i in range(len(in_)):
-      if in_[i].is_present:
-        print("Received {}.".format(in_[i].value))
+  reaction(inp) {=
+    for i in range(len(inp)):
+      if inp[i].is_present:
+        print("Received {}.".format(inp[i].value))
   =}
 }
 
 federated reactor DistributedMultiportToken {
   s = new Source()
   d = new Destination()
-  s.out -> d.in_
+  s.out -> d.inp
 }

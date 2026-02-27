@@ -4,8 +4,6 @@ import java.util.Objects;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
-import org.lflang.lf.LfPackage.Literals;
-import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.ClockSyncModeType;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
@@ -33,15 +31,6 @@ public final class ClockSyncModeProperty extends TargetProperty<ClockSyncMode, C
   @Override
   protected ClockSyncMode fromString(String string, MessageReporter reporter) {
     return this.type.forName(string);
-  }
-
-  @Override
-  public void validate(TargetConfig config, MessageReporter reporter) {
-    if (!config.isFederated()) {
-      reporter
-          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__NAME)
-          .warning("The 'clock-sync' target property is incompatible with non-federated programs.");
-    }
   }
 
   @Override

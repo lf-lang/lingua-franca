@@ -1,0 +1,57 @@
+target C {
+  timeout: 5 sec,
+  tracing: true,
+  clock-sync: off,
+  coordination: decentralized
+}
+
+reactor Platform(start: int = 0, expected_start: int = 0, period: time = 100 ms) {
+  input in: int
+  output out: int
+  timer t(0, period)
+  state count: int = start
+  state expected: int = expected_start
+
+  reaction(t) -> out {=
+    lf_set(out, self->count++);
+  =}
+
+  reaction(in) {=
+    tag_t current_tag = lf_tag();
+    lf_print("Received %d at tag " PRINTF_TAG, in->value, current_tag.time - lf_time_start(), current_tag.microstep);
+    lf_print("********* Lag is " PRINTF_TIME, current_tag.time - lf_time_physical());
+    if (in->value != self->expected_start++) {
+      lf_print_error_and_exit("Expected %d but got %d.",
+        self->expected_start - 1,
+        in->value
+      );
+    }
+  =} tardy {=
+    lf_print("Received %d late.", in->value);
+    tag_t current_tag = lf_tag();
+    self->expected_start++;
+    lf_print_error("STP offset was violated by " PRINTF_TAG ".",
+      current_tag.time - in->intended_tag.time,
+      current_tag.microstep - in->intended_tag.microstep
+    );
+    lf_print("********* Lag is " PRINTF_TIME, current_tag.time - lf_time_physical());
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Shutdown invoked.");
+    if (self->expected == self->expected_start) {
+      lf_print_error_and_exit("Did not receive anything.");
+    }
+  =}
+}
+
+federated reactor {
+  a = new Platform(expected_start=100, period = 500 ms)
+  b = new Platform(start=100, period = 1 s)
+  // An absent_after of 250 ms prevents this federate from continuing until it gets all four inputs.
+  // Note that this is an example where a time-varying absent_after would be useful.
+  @absent_after(250 ms)
+  a.out -> b.in
+  @absent_after(250 ms)
+  b.out -> a.in
+}

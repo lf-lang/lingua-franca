@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2019-2020, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.generator;
 
 import com.google.common.base.Objects;
@@ -31,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +26,8 @@ import org.lflang.MessageReporter;
 import org.lflang.analyses.uclid.UclidGenerator;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.AstTransformation;
+import org.lflang.generator.docker.DockerComposeGenerator;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.graph.InstantiationGraph;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.Connection;
@@ -59,6 +36,7 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.FilesProperty;
@@ -75,20 +53,15 @@ import org.lflang.validation.AbstractLFValidator;
  * @author Christian Menard
  * @author Matt Weber
  * @author Soroush Bateni
+ * @ingroup Generator
  */
 public abstract class GeneratorBase extends AbstractLFValidator {
-
-  ////////////////////////////////////////////
-  //// Public fields.
 
   /** The main (top-level) reactor instance. */
   public ReactorInstance main;
 
   /** An error reporter for reporting any errors or warnings during the code generation */
   public MessageReporter messageReporter;
-
-  ////////////////////////////////////////////
-  //// Protected fields.
 
   /** The current target configuration. */
   protected final TargetConfig targetConfig;
@@ -119,19 +92,16 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /**
    * A list of Reactor definitions in the main resource, including non-main reactors defined in
    * imported resources. These are ordered in the list in such a way that each reactor is preceded
-   * by any reactor that it instantiates using a command like {@code foo = new Foo();}
+   * by any reactor that it instantiates using a command like `foo = new Foo();`
    */
   protected List<Reactor> reactors = new ArrayList<>();
-
-  /** The set of resources referenced reactor classes reside in. */
-  protected Set<LFResource> resources = new LinkedHashSet<>(); // FIXME: Why do we need this?
 
   /**
    * Graph that tracks dependencies between instantiations. This is a graph where each node is a
    * Reactor (not a ReactorInstance) and an arc from Reactor A to Reactor B means that B contains an
-   * instance of A, constructed with a statement like {@code a = new A();} After creating the graph,
+   * instance of A, constructed with a statement like `a = new A();` After creating the graph,
    * sort the reactors in topological order and assign them to the reactors class variable. Hence,
-   * after this method returns, {@code this.reactors} will be a list of Reactors such that any
+   * after this method returns, `this.reactors` will be a list of Reactors such that any
    * reactor is preceded in the list by reactors that it instantiates.
    */
   protected InstantiationGraph instantiationGraph;
@@ -144,9 +114,6 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Indicates whether the program has any watchdogs. This is used to check for support. */
   public boolean hasWatchdogs = false;
-
-  // //////////////////////////////////////////
-  // // Private fields.
 
   /** A list ot AST transformations to apply before code generation */
   private final List<AstTransformation> astTransformations = new ArrayList<>();
@@ -168,8 +135,26 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     astTransformations.add(transformation);
   }
 
-  // //////////////////////////////////////////
-  // // Code generation functions to override for a concrete code generator.
+  /**
+   * If the given reactor is defined in another file, process its target properties so that they are
+   * reflected in the target configuration.
+   */
+  private void loadTargetProperties(Resource resource) {
+    var mainFileConfig = this.context.getFileConfig();
+    if (resource != mainFileConfig.resource) {
+      this.context
+          .getTargetConfig()
+          .mergeImportedConfig(
+              LFGenerator.createFileConfig(
+                      resource,
+                      mainFileConfig.getSrcGenBasePath(),
+                      mainFileConfig.useHierarchicalBin)
+                  .resource,
+              mainFileConfig.resource,
+              p -> p.loadFromImport(),
+              this.messageReporter);
+    }
+  }
 
   /**
    * Generate code from the Lingua Franca model contained by the specified resource.
@@ -216,38 +201,21 @@ public abstract class GeneratorBase extends AbstractLFValidator {
       }
     }
 
-    // Process target files. Copy each of them into the src-gen dir.
-    // FIXME: Should we do this here? This doesn't make sense for federates the way it is
-    // done here.
-    copyUserFiles(this.targetConfig, context.getFileConfig());
-
     // Collect reactors and create an instantiation graph.
     // These are needed to figure out which resources we need
     // to validate, which happens in setResources().
     setReactorsAndInstantiationGraph(context.getMode());
 
-    List<Resource> allResources = GeneratorUtils.getResources(reactors);
-    resources.addAll(
-        allResources
-            .stream() // FIXME: This filter reproduces the behavior of the method it replaces. But
-            // why must it be so complicated? Why are we worried about weird corner cases
-            // like this?
-            .filter(
-                it ->
-                    !Objects.equal(it, context.getFileConfig().resource)
-                        || mainDef != null && it == mainDef.getReactorClass().eResource())
-            .map(
-                it ->
-                    GeneratorUtils.getLFResource(
-                        it, context.getFileConfig().getSrcGenBasePath(), context, messageReporter))
-            .toList());
+    Set<Resource> allResources = GeneratorUtils.getResources(reactors);
+
     GeneratorUtils.accommodatePhysicalActionsIfPresent(
         allResources,
         getTarget().setsKeepAliveOptionAutomatically(),
         targetConfig,
         messageReporter);
-    // FIXME: Should the GeneratorBase pull in {@code files} from imported
-    // resources?
+
+    // Load target properties for all resources.
+    allResources.forEach(r -> loadTargetProperties(r));
 
     for (AstTransformation transformation : astTransformations) {
       transformation.applyTransformation(reactors);
@@ -255,7 +223,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
     // Transform connections that reside in mutually exclusive modes and are otherwise conflicting
     // This should be done before creating the instantiation graph
-    transformConflictingConnectionsInModalReactors();
+    transformConflictingConnectionsInModalReactors(allResources);
 
     // Invoke these functions a second time because transformations
     // may have introduced new reactors!
@@ -294,9 +262,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /**
    * Create a new instantiation graph. This is a graph where each node is a Reactor (not a
    * ReactorInstance) and an arc from Reactor A to Reactor B means that B contains an instance of A,
-   * constructed with a statement like {@code a = new A();} After creating the graph, sort the
+   * constructed with a statement like `a = new A();` After creating the graph, sort the
    * reactors in topological order and assign them to the reactors class variable. Hence, after this
-   * method returns, {@code this.reactors} will be a list of Reactors such that any reactor is
+   * method returns, `this.reactors` will be a list of Reactors such that any reactor is
    * preceded in the list by reactors that it instantiates.
    */
   protected void setReactorsAndInstantiationGraph(LFGeneratorContext.Mode mode) {
@@ -306,9 +274,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     // Topologically sort the reactors such that all of a reactor's instantiation dependencies occur
     // earlier in
     // the sorted list of reactors. This helps the code generator output code in the correct order.
-    // For example if {@code reactor Foo {bar = new Bar()}} then the definition of {@code Bar} has
+    // For example if `reactor Foo {bar = new Bar()`} then the definition of `Bar` has
     // to be generated before
-    // the definition of {@code Foo}.
+    // the definition of `Foo`.
     reactors = instantiationGraph.nodesInTopologicalOrder();
 
     // If there is no main reactor or if all reactors in the file need to be validated, then make
@@ -330,7 +298,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    *
    * <p>This should be overridden by the target generators.
    *
-   * @param targetConfig The targetConfig to read the {@code files} from.
+   * @param targetConfig The targetConfig to read the `files` from.
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
    */
   protected void copyUserFiles(TargetConfig targetConfig, FileConfig fileConfig) {
@@ -377,7 +345,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
   /**
    * Return the reaction bank index.
    *
-   * @see #setReactionBankIndex(Reaction reaction, int bankIndex)
+   * @see #setReactionBankIndex
    * @param reaction The reaction.
    * @return The reaction bank index, if one has been set, and -1 otherwise.
    */
@@ -424,9 +392,9 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * Finds and transforms connections into forwarding reactions iff the connections have the same
    * destination as other connections or reaction in mutually exclusive modes.
    */
-  private void transformConflictingConnectionsInModalReactors() {
-    for (LFResource r : resources) {
-      var transform = ASTUtils.findConflictingConnectionsInModalReactors(r.eResource);
+  private void transformConflictingConnectionsInModalReactors(Set<Resource> resources) {
+    for (Resource r : resources) {
+      var transform = ASTUtils.findConflictingConnectionsInModalReactors(r);
       if (!transform.isEmpty()) {
         var factory = LfFactory.eINSTANCE;
         for (Connection connection : transform) {
@@ -451,13 +419,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
             reaction.getEffects().add(destRef);
 
             var code = factory.createCode();
-            var source =
-                (sourceRef.getContainer() != null ? sourceRef.getContainer().getName() + "." : "")
-                    + sourceRef.getVariable().getName();
-            var dest =
-                (destRef.getContainer() != null ? destRef.getContainer().getName() + "." : "")
-                    + destRef.getVariable().getName();
-            code.setBody(getConflictingConnectionsInModalReactorsBody(source, dest));
+            code.setBody(getConflictingConnectionsInModalReactorsBody(sourceRef, destRef));
             reaction.setCode(code);
 
             EcoreUtil.remove(connection);
@@ -474,7 +436,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
    * <p>This method needs to be overridden in target specific code generators that support modal
    * reactors.
    */
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef source, VarRef dest) {
     messageReporter
         .nowhere()
         .error(
@@ -618,7 +580,7 @@ public abstract class GeneratorBase extends AbstractLFValidator {
 
   /** Check if a clean was requested from the standalone compiler and perform the clean step. */
   protected void cleanIfNeeded(LFGeneratorContext context) {
-    if (context.getArgs().clean()) {
+    if (context.isCleanRequested()) {
       try {
         context.getFileConfig().doClean();
       } catch (IOException e) {
@@ -627,8 +589,32 @@ public abstract class GeneratorBase extends AbstractLFValidator {
     }
   }
 
+  /** Return a `DockerGenerator` instance suitable for the target. */
+  protected abstract DockerGenerator getDockerGenerator(LFGeneratorContext context);
+
+  /** Create Dockerfiles and docker-compose.yml, build, and create a launcher. */
+  protected boolean buildUsingDocker() {
+    // Create docker file.
+    var dockerCompose = new DockerComposeGenerator(context);
+    var dockerData = getDockerGenerator(context).generateDockerData();
+    try {
+      dockerData.writeDockerFile();
+      dockerData.copyScripts(context);
+      dockerCompose.writeDockerComposeFile(List.of(dockerData));
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error(
+              "Error while writing Docker files: "
+                  + (e.getMessage() == null ? "No cause given" : e.getMessage()));
+      return false;
+    }
+    return dockerCompose.buildIfRequested();
+  }
+
   /**
-   * Check if @property is used. If so, instantiate a UclidGenerator. The verification model needs
+   * Check if `@property` is used. If so, instantiate a UclidGenerator. The verification model needs
    * to be generated before the target code since code generation changes LF program (desugar
    * connections, etc.).
    */

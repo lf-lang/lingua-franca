@@ -1,0 +1,99 @@
+/**
+ * This tests that the precedence order of reaction invocation is kept in the hierarchy of reactors
+ * when a feedback loop is present in decentralized coordination. The STAA is specified only on
+ * top-level reactions to the input and is implied for the contained reactor. This shows how to use
+ * library reactors with decentralized coordination when you need to specify an STAA.
+ *
+ * This test is designed to not be flaky. The timing properties are set so that warnings are printed
+ * if the execution timing is wildly off, specifically if communication between federates takes more
+ * than 100 ms. But the test will not fail in these cases.
+ *
+ * @author Edward A. Lee
+ * @author Soroush Bateni
+ */
+target C {
+  coordination: decentralized,
+  timeout: 4900 msec
+}
+
+reactor Contained(incr: int = 1, stp: time = 0) {
+  timer t(0, 1 sec)
+  input in: int
+  state count: int = 0
+  state received_count: int = 0
+
+  reaction(t) {=
+    self->count += self->incr;
+  =}
+
+  reaction(in) {=
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[LF_TIME_BUFFER_LENGTH];
+    lf_readable_time(time_buffer, time_lag);
+    lf_print("Received %d. Logical time is behind physical time by %s.",
+        in->value, time_buffer
+    );
+    self->received_count = self->count;
+  =}
+
+  reaction(t) {=
+    if (self->received_count != self->count) {
+      interval_t lag = lf_time_physical() - lf_time_logical();
+      if (lag < self->stp) {
+        lf_print_error_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
+      } else {
+        lf_print_warning("Assumed input was absent because STAA expired.");
+      }
+    }
+  =}
+}
+
+reactor Looper(incr: int = 1, delay: time = 0 msec, stp: time = 0) {
+  input in: int
+  output out: int
+  state count: int = 0
+  timer t(0, 1 sec)
+
+  c = new Contained(incr=incr, stp=stp)
+  in -> c.in
+
+  reaction(t) -> out {=
+    lf_set(out, self->count);
+    self->count += self->incr;
+  =}
+
+  reaction(in) {=
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[LF_TIME_BUFFER_LENGTH];
+    lf_readable_time(time_buffer, time_lag);
+    lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+  =} STAA(stp) {=
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[LF_TIME_BUFFER_LENGTH];
+    lf_readable_time(time_buffer, time_lag);
+    lf_print_warning("STP offset was violated. Received %d. Logical time is behind physical time by %s nsec.",
+        in->value, time_buffer
+    );
+  =} deadline(100 ms) {=
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[LF_TIME_BUFFER_LENGTH];
+    lf_readable_time(time_buffer, time_lag);
+    lf_print_warning("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.",
+        in->value, time_buffer
+    );
+  =}
+
+  reaction(shutdown) {=
+    lf_print("******* Shutdown invoked.");
+    if (self->count != 5 * self->incr) {
+      lf_print_error_and_exit("Failed to react five times.");
+    }
+  =}
+}
+
+federated reactor(delay: time = 0) {
+  left = new Looper(stp = 100 ms)
+  right = new Looper(incr=-1, stp = 100 ms)
+  left.out -> right.in
+  right.out -> left.in
+}

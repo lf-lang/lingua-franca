@@ -1,5 +1,6 @@
 /** Test reading a file at a location relative to the source file. */
 target C {
+  logging: DEBUG,
   timeout: 0 s
 }
 
@@ -41,11 +42,19 @@ reactor Check {
     #include <string.h>
   =}
   input in: char*
+  state received: bool = false
 
   reaction(in) {=
     printf("Received: %s\n", in->value);
+    self->received = true;
     if (strcmp("Hello World", in->value) != 0) {
       lf_print_error_and_exit("Expected 'Hello World'");
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!self->received) {
+        lf_print_error_and_exit("No input received.");
     }
   =}
 }

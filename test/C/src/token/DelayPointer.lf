@@ -1,0 +1,77 @@
+// Test delaying a pointer type.
+target C
+
+reactor DelayPointer2(delay: time = 100 msec) {
+  input in: int*
+  output out: int*
+  logical action a: int*
+
+  reaction(a) -> out {=
+    // Using lf_set_token delegates responsibility for
+    // freeing the allocated memory downstream.
+    lf_set_token(out, a->token);
+  =}
+
+  reaction(in) -> a {=
+    // Schedule the actual token from the input rather than
+    // a new token with a copy of the input value.
+    lf_schedule_token(a, self->delay, in->token);
+  =}
+}
+
+reactor Source {
+  output out: int*
+
+  reaction(startup) -> out {=
+    // Default copy constructor is sufficient for this type.
+    // As is the default destructor.
+    int* value = (int*)malloc(sizeof(int));
+    lf_token_t* to_send = lf_new_token((lf_port_base_t*)out, (void*)value, 1);
+    *value = 42;
+    lf_set_token(out, to_send);
+  =}
+}
+
+reactor Test {
+  input in: int*
+  state start_time: time = 0
+  state received_value: bool = false
+
+  reaction(startup) {=
+    // Record the logical time at the start.
+    self->start_time = lf_time_logical();
+  =}
+
+  reaction(in) {=
+    printf("Received: %d.\n", *(in->value));
+    self->received_value = true;
+    // Check the time of the input.
+    instant_t current_time = lf_time_logical();
+    interval_t elapsed = current_time - self->start_time;
+    printf("After " PRINTF_TIME " nsec of logical time.\n", elapsed);
+    if (elapsed != 100000000LL) {
+      printf("ERROR: Expected elapsed time to be 100000000. It was " PRINTF_TIME ".\n", elapsed);
+      exit(1);
+    }
+    if (*(in->value) != 42) {
+      printf("ERROR: Expected input value to be 42. It was %d.\n", *(in->value));
+      exit(2);
+    }
+  =}
+
+  reaction(shutdown) {=
+    printf("Checking that communication occurred.\n");
+    if (!self->received_value) {
+      printf("ERROR: No communication occurred!\n");
+      exit(3);
+    }
+  =}
+}
+
+main reactor {
+  s = new Source()
+  d = new DelayPointer2()
+  t = new Test()
+  s.out -> d.in
+  d.out -> t.in
+}

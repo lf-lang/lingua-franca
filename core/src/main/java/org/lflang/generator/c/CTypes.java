@@ -1,9 +1,7 @@
 package org.lflang.generator.c;
 
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.lflang.InferredType;
 import org.lflang.TimeUnit;
 import org.lflang.TimeValue;
@@ -11,6 +9,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.lf.ParameterReference;
 
+/**
+ * C-specific type information.
+ *
+ * @ingroup Generator
+ */
 public class CTypes implements TargetTypes {
 
   // Regular expression pattern for array types.
@@ -38,25 +41,15 @@ public class CTypes implements TargetTypes {
   }
 
   @Override
-  public String getTargetFixedSizeListType(String baseType, int size) {
-    return String.format("%s[%d]", baseType, size);
-  }
-
-  @Override
-  public String getTargetVariableSizeListType(String baseType) {
-    return String.format("%s[]", baseType);
-  }
-
-  @Override
   public String getTargetUndefinedType() {
     return "/*undefined*/";
   }
 
   /**
    * Given a type, return a C representation of the type. Note that C types are very idiosyncratic.
-   * For example, {@code int[]} is not always accepted as a type, and {@code int*} must be used
-   * instead, except when initializing a variable using a static initializer, as in {@code int[] foo
-   * = {1, 2, 3};}. When initializing a variable using a static initializer, use {@link
+   * For example, `int[]` is not always accepted as a type, and `int*` must be used
+   * instead, except when initializing a variable using a static initializer, as in `int[] foo
+   * = {1, 2, 3`;}. When initializing a variable using a static initializer, use {@link
    * #getVariableDeclaration(TypeParameterizedReactor, InferredType, String, boolean)} instead.
    *
    * @param type The type.
@@ -78,38 +71,25 @@ public class CTypes implements TargetTypes {
 
   @Override
   public String getTargetTimeExpr(TimeValue time) {
-    if (time != null) {
-      if (time.unit != null) {
-        return cMacroName(time.unit) + "(" + time.getMagnitude() + ")";
-      } else {
-        return Long.valueOf(time.getMagnitude()).toString();
-      }
+    if (time.unit != null) {
+      return cMacroName(time.unit) + "(" + time.getMagnitude() + ")";
+    } else {
+      return Long.valueOf(time.getMagnitude()).toString();
     }
-    return "0"; // FIXME: do this or throw exception?
-  }
-
-  @Override
-  public String getFixedSizeListInitExpression(
-      List<String> contents, int listSize, boolean withBraces) {
-    return contents.stream().collect(Collectors.joining(", ", "{ ", " }"));
-  }
-
-  @Override
-  public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-    return contents.stream().collect(Collectors.joining(", ", "{ ", " }"));
   }
 
   /**
-   * Return a variable declaration of the form "{@code type name}". The type is as returned by
-   * {@link #getTargetType(InferredType)}, except with the array syntax {@code [size]} preferred
-   * over the pointer syntax {@code *} (if applicable). This also includes the variable name because
+   * Return a variable declaration of the form "`type name`". The type is as returned by
+   * {@link #getTargetType(InferredType)}, except with the array syntax `[size]` preferred
+   * over the pointer syntax `*` (if applicable). This also includes the variable name because
    * C requires the array type specification to be placed after the variable name rather than with
-   * the type. The result is of the form {@code type variable_name[size]} or {@code type
-   * variable_name} depending on whether the given type is an array type, unless the array type has
-   * no size (it is given as {@code []}. In that case, the returned form depends on the third
-   * argument, initializer. If true, the then the returned declaration will have the form {@code
-   * type variable_name[]}, and otherwise it will have the form {@code type* variable_name}.
+   * the type. The result is of the form `type variable_name[size]` or `type
+   * variable_name` depending on whether the given type is an array type, unless the array type has
+   * no size (it is given as `[]`. In that case, the returned form depends on the third
+   * argument, initializer. If true, the then the returned declaration will have the form
+   * `type variable_name[]`, and otherwise it will have the form `type* variable_name`.
    *
+   * @param tpr The type-parameterized reactor.
    * @param type The type.
    * @param variableName The name of the variable.
    * @param initializer True to return a form usable in a static initializer.

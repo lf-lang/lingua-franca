@@ -22,8 +22,8 @@ reactor print {
 
   reaction(x) {=
     printf("Result is %d\n", x->value);
-    printf("Current logical time is: %lld\n", lf_time_logical_elapsed());
-    printf("Current physical time is: %lld\n", lf_time_physical_elapsed());
+    printf("Current logical time is: " PRINTF_TIME "\n", lf_time_logical_elapsed());
+    printf("Current physical time is: " PRINTF_TIME "\n", lf_time_physical_elapsed());
   =}
 }
 

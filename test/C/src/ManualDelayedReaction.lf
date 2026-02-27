@@ -40,9 +40,9 @@ reactor Sink {
     interval_t elapsed_logical = lf_time_logical_elapsed();
     interval_t logical = lf_time_logical();
     interval_t physical = lf_time_physical();
-    printf("Nanoseconds since start: %lld %lld %lld.\n", logical, physical, elapsed_logical);
+    printf("Nanoseconds since start: " PRINTF_TIME " " PRINTF_TIME " " PRINTF_TIME ".\n", logical, physical, elapsed_logical);
     if (elapsed_logical < MSEC(100)) {
-      printf("Expected %lld but got %lld.\n", MSEC(100), elapsed_logical);
+      printf("Expected " PRINTF_TIME " but got " PRINTF_TIME ".\n", MSEC(100), elapsed_logical);
       exit(1);
     }
   =} deadline(200 msec) {=  =}

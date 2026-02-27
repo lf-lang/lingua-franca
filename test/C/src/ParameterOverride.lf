@@ -1,0 +1,16 @@
+target C
+
+reactor A(x: int = 0) {
+  reaction(startup) {=
+    if (self->x != 1) {
+      lf_print_error_and_exit("x is %d. Should be 1.", self->x);
+    }
+  =}
+}
+
+reactor B(x: int = 1) extends A {
+}
+
+main reactor {
+  b = new B()
+}

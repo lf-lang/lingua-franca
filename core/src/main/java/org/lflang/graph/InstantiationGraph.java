@@ -32,6 +32,7 @@ import java.util.Set;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Instantiation;
+import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
@@ -42,12 +43,12 @@ import org.lflang.util.IteratorUtil;
  * between them. A "dependency" from reactor class A to reactor class B (A depends on B) means that
  * A instantiates within it at least one instance of B. Note that there a potentially confusing and
  * subtle distinction here between an "instantiation" and an "instance". They are not the same thing
- * at all. An "instantiation" is an AST node representing a statement like {@code a = new A();}.
+ * at all. An "instantiation" is an AST node representing a statement like `a = new A();`.
  * This can result in many instances of reactor class A (if the containing reactor class is
  * instantiated multiple times).
  *
  * <p>In addition to the graph, this class keeps track of the instantiations that induce the
- * dependencies. These can be retrieved using the method {@code getInstantiations(Reactor)}.
+ * dependencies. These can be retrieved using the method `getInstantiations(Reactor)`.
  *
  * @author Marten Lohstroh
  */
@@ -124,7 +125,7 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
    */
   public InstantiationGraph(final Model model, final boolean detectCycles) {
     for (final Reactor r : model.getReactors()) {
-      for (final Instantiation i : r.getInstantiations()) {
+      for (final Instantiation i : ASTUtils.allInstantiations(r)) {
         this.buildGraph(i, new HashSet<>());
       }
     }
@@ -151,8 +152,14 @@ public class InstantiationGraph extends PrecedenceGraph<Reactor> {
         } else {
           this.addNode(reactor);
         }
-        for (final Instantiation inst : reactor.getInstantiations()) {
+        for (final Instantiation inst : ASTUtils.allInstantiations(reactor)) {
           this.buildGraph(inst, visited);
+        }
+        // Also have to look for instantiations inside modes.
+        for (final Mode mode : reactor.getModes()) {
+          for (final Instantiation inst : mode.getInstantiations()) {
+            this.buildGraph(inst, visited);
+          }
         }
       }
     }

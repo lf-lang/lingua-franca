@@ -1,0 +1,54 @@
+target C {
+  build-type: debug,
+  timeout: 1 s
+}
+
+reactor reactor_a {
+  output test_out: int[3]
+  timer t(0, 100 ms)
+  state counter: int = 8
+
+  reaction(t) -> test_out {=
+    test_out->value[0] = self->counter;
+    test_out->value[1] = self->counter * 2;
+    test_out->value[2] = self->counter * 3;
+    self->counter++;
+    lf_set_present(test_out);
+  =}
+}
+
+reactor b_embed {
+  input test_in: int[3]
+  state counter: int = 8
+
+  reaction(test_in) {=
+    printf("%i %i %i\n", test_in->value[0], test_in->value[1], test_in->value[2]);
+    if (test_in->value[0] != self->counter || test_in->value[1] != self->counter * 2 || test_in->value[2] != self->counter * 3) {
+        lf_print_error_and_exit("Expected: %i %i %i", self->counter, self->counter * 2, self->counter * 3);
+    }
+    self->counter++;
+  =}
+}
+
+reactor reactor_b {
+  input test_in: int[3]
+  state counter: int = 8
+
+  embed = new b_embed()
+  test_in -> embed.test_in
+
+  reaction(test_in) {=
+    printf("%i %i %i\n", test_in->value[0], test_in->value[1], test_in->value[2]);
+    if (test_in->value[0] != self->counter || test_in->value[1] != self->counter * 2 || test_in->value[2] != self->counter * 3) {
+        lf_print_error_and_exit("Expected: %i %i %i", self->counter, self->counter * 2, self->counter * 3);
+    }
+    self->counter++;
+  =}
+}
+
+federated reactor {
+  a = new reactor_a()
+  b = new reactor_b()
+
+  a.test_out -> b.test_in
+}

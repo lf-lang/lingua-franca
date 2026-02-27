@@ -1,0 +1,55 @@
+// This test verifies that the "internal" connections from a contained enclave to another contained reactor
+// works
+target C {
+  timeout: 1 s
+}
+
+preamble {=
+  #include "platform.h"
+=}
+
+reactor E1 {
+  output out: instant_t
+  timer t(0, 100 msec)
+  state cnt: int = 0
+
+  reaction(t) -> out {=
+    lf_print("E1 sleep");
+    lf_sleep(MSEC(100));
+    lf_print("E1 wakeup");
+    lf_set(out, lf_time_logical_elapsed());
+  =}
+}
+
+reactor R {
+  input in1: instant_t
+
+  timer t(75 msec, 100 msec)
+  state inCnt: int = 0
+  state tCnt: int = 0
+
+  reaction(in1) {=
+    LF_TEST(in1->value == (lf_time_logical_elapsed()-MSEC(50)), "Failed in R2. Got" PRINTF_TIME " expected " PRINTF_TIME, in1->value, lf_time_logical_elapsed()-MSEC(50));
+    LF_TEST(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
+    self->inCnt++;
+  =}
+
+  reaction(t) {=
+    LF_TEST(self->inCnt == self->tCnt+1, "In1 didnt fire before timer");
+    self->tCnt++;
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->inCnt == 10, "Wrong inCnt. Got %u expected %u", self->inCnt, 10);
+    LF_TEST(self->tCnt == 10, "Wrong tCnt. Got %u expected %u", self->tCnt, 10);
+  =}
+}
+
+main reactor {
+  e1 = new E1()
+
+  @enclave
+  r = new R()
+
+  e1.out -> r.in1 after 50 msec  // This connection must be split up by the AST transformation
+}

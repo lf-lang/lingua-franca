@@ -1,0 +1,10 @@
+// This tests checks if the preamble of an imported reactor is included correctly even if the reactor is not used.
+target Cpp
+
+import PreambleFoo from "PreambleTest.lf"
+
+main reactor {
+  reaction(startup) {=
+    std::cout << foo() << std::endl;
+  =}
+}

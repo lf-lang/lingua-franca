@@ -24,13 +24,13 @@ import org.lflang.ast.MalleableString.Builder;
 import org.lflang.ast.MalleableString.Joiner;
 import org.lflang.lf.Action;
 import org.lflang.lf.Array;
-import org.lflang.lf.ArraySpec;
 import org.lflang.lf.Assignment;
 import org.lflang.lf.AttrParm;
 import org.lflang.lf.Attribute;
 import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CStyleArraySpec;
 import org.lflang.lf.Code;
 import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
@@ -56,6 +56,7 @@ import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -64,6 +65,7 @@ import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Tardy;
 import org.lflang.lf.TargetDecl;
 import org.lflang.lf.Time;
 import org.lflang.lf.Timer;
@@ -78,12 +80,13 @@ import org.lflang.lf.Watchdog;
 import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.lf.util.LfSwitch;
-import org.lflang.target.Target;
 import org.lflang.util.StringUtil;
 
 /**
  * Switch class for converting AST nodes to their textual representation as it would appear in LF
  * code.
+ *
+ * @ingroup Utilities
  */
 public class ToLf extends LfSwitch<MalleableString> {
 
@@ -96,25 +99,8 @@ public class ToLf extends LfSwitch<MalleableString> {
    */
   private final ArrayDeque<EObject> callStack = new ArrayDeque<>();
 
-  /** The target language. This is only needed when the complete program is not available. */
-  private Target optionalTarget;
-
-  /** Return the target language of the LF being generated. */
-  private Target getTarget() {
-    if (callStack.getFirst() instanceof Model model) return ASTUtils.getTarget(model);
-    else return optionalTarget;
-  }
-
-  /**
-   * Set the target language of the LF being generated. This has no effect unless the target spec is
-   * unavailable.
-   */
-  public void setTarget(Target target) {
-    optionalTarget = target;
-  }
-
   @Override
-  public MalleableString caseArraySpec(ArraySpec spec) {
+  public MalleableString caseCStyleArraySpec(CStyleArraySpec spec) {
     if (spec.isOfVariableLength()) return MalleableString.anyOf("[]");
     return list("", "[", "]", false, false, true, spec.getLength());
   }
@@ -166,7 +152,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     return super.doSwitch(eObject).addComments(allComments.stream()).setSourceEObject(eObject);
   }
 
-  /** Return all comments contained by ancestors of {@code node} that belong to said ancestors. */
+  /** Return all comments contained by ancestors of `node` that belong to said ancestors. */
   static Set<INode> getAncestorComments(INode node) {
     Set<INode> ancestorComments = new HashSet<>();
     for (ICompositeNode ancestor = node.getParent();
@@ -180,8 +166,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return the next composite sibling of {@code node}, as given by sequential application of {@code
-   * getNextSibling}.
+   * Return the next composite sibling of `node`, as given by sequential application of
+   * `getNextSibling`.
    */
   static ICompositeNode getNextCompositeSibling(INode node, Function<INode, INode> getNextSibling) {
     INode sibling = node;
@@ -193,7 +179,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return the siblings following {@code node} up to (and not including) the next non-leaf sibling.
+   * Return the siblings following `node` up to (and not including) the next non-leaf sibling.
    */
   private static Stream<INode> getFollowingNonCompositeSiblings(ICompositeNode node) {
     INode sibling = node;
@@ -205,8 +191,8 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments that follow {@code node} in the source code and that either satisfy {@code
-   * filter} or that cannot belong to any following sibling of {@code node}.
+   * Return comments that follow `node` in the source code and that either satisfy `filter`
+   * or that cannot belong to any following sibling of `node`.
    */
   private static Stream<String> getFollowingComments(
       ICompositeNode node, Predicate<INode> precedingFilter, Predicate<INode> followingFilter) {
@@ -222,7 +208,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return comments contained by {@code node} that logically belong to this node (and not to any of
+   * Return comments contained by `node` that logically belong to this node (and not to any of
    * its children).
    */
   private static List<INode> getContainedCodeComments(INode node) {
@@ -246,7 +232,7 @@ public class ToLf extends LfSwitch<MalleableString> {
   }
 
   /**
-   * Return all comments that are part of {@code node}, regardless of where they appear relative to
+   * Return all comments that are part of `node`, regardless of where they appear relative to
    * the main content of the node.
    */
   private static List<INode> getContainedComments(INode node) {
@@ -332,17 +318,27 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (name=ID '=')? value=AttrParmValue;
     var builder = new Builder();
     if (object.getName() != null) builder.append(object.getName()).append(" = ");
-    return builder.append(object.getValue()).get();
+    var value = object.getValue();
+    if (value == null) {
+      // The value is a Time.
+      return caseTime(object.getTime());
+    }
+    return builder.append(value).get();
   }
 
   @Override
   public MalleableString caseTime(Time t) {
-    // (interval=INT unit=TimeUnit)
+    // (interval=INT unit=TimeUnit) | forever=Forever | never=Never
+    if (t.getForever() != null || t.getInterval() == Long.MAX_VALUE) {
+      return MalleableString.anyOf("forever");
+    }
+    if (t.getNever() != null || t.getInterval() == Long.MIN_VALUE) {
+      return MalleableString.anyOf("never");
+    }
     final var interval = Integer.toString(t.getInterval());
-    if (t.getUnit() == null) {
+    if (t.getUnit() == null || t.getUnit().equals("")) {
       return MalleableString.anyOf(interval);
     }
-
     return MalleableString.anyOf(interval + " " + t.getUnit());
   }
 
@@ -363,7 +359,7 @@ public class ToLf extends LfSwitch<MalleableString> {
       }
       msb.append("*".repeat(type.getStars().size()));
     }
-    if (type.getArraySpec() != null) msb.append(doSwitch(type.getArraySpec()));
+    if (type.getCStyleArraySpec() != null) msb.append(doSwitch(type.getCStyleArraySpec()));
     return msb.get();
   }
 
@@ -414,9 +410,11 @@ public class ToLf extends LfSwitch<MalleableString> {
         .append("import ")
         // TODO: This is a place where we can use conditional parentheses.
         .append(list(", ", "", "", false, true, true, object.getReactorClasses()))
-        .append(" from \"")
-        .append(object.getImportURI())
-        .append("\"")
+        .append(" from ")
+        .append(
+            object.getImportURI() != null
+                ? "\"" + object.getImportURI() + "\""
+                : "<" + object.getImportPackage() + ">")
         .get();
   }
 
@@ -662,7 +660,8 @@ public class ToLf extends LfSwitch<MalleableString> {
     // ('(' (triggers+=TriggerRef (',' triggers+=TriggerRef)*)? ')')
     // (sources+=VarRef (',' sources+=VarRef)*)?
     // ('->' effects+=VarRefOrModeTransition (',' effects+=VarRefOrModeTransition)*)?
-    // ((('named' name=ID)? code=Code) | 'named' name=ID)(stp=STP)?(deadline=Deadline)?
+    // ((('named' name=ID)? code=Code) | 'named' name=ID)((stp=STP) |
+    // (tardy=Tardy))?(deadline=Deadline)?
     Builder msb = new Builder();
     addAttributes(msb, object::getAttributes);
     if (object.isMutation()) {
@@ -694,6 +693,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     }
     if (object.getCode() != null) msb.append(" ").append(doSwitch(object.getCode()));
     if (object.getStp() != null) msb.append(" ").append(doSwitch(object.getStp()));
+    if (object.getTardy() != null) msb.append(" ").append(doSwitch(object.getTardy()));
     if (object.getDeadline() != null) msb.append(" ").append(doSwitch(object.getDeadline()));
     return msb.get();
   }
@@ -754,8 +754,8 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseSTP(STP object) {
-    // 'STP' '(' value=Expression ')' code=Code
-    return handler(object, "STP", STP::getValue, STP::getCode);
+    // 'stp' '(' value=Expression ')' code=Code
+    return handler(object, "STAA", STP::getValue, STP::getCode);
   }
 
   private <T extends EObject> MalleableString handler(
@@ -766,6 +766,16 @@ public class ToLf extends LfSwitch<MalleableString> {
         .append(" ")
         .append(doSwitch(getCode.apply(object)))
         .get();
+  }
+
+  @Override
+  public MalleableString caseTardy(Tardy object) {
+    // 'tardy' code=Code
+    if (object.getCode() != null) {
+      return new Builder().append("tardy ").append(doSwitch(object.getCode())).get();
+    } else {
+      return new Builder().append("tardy").get();
+    }
   }
 
   @Override
@@ -798,6 +808,7 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseConnection(Connection object) {
+    // (attributes+=Attribute)*
     // ((leftPorts += VarRef (',' leftPorts += VarRef)*)
     //     | ( '(' leftPorts += VarRef (',' leftPorts += VarRef)* ')' iterated ?= '+'?))
     // ('->' | physical?='~>')
@@ -806,6 +817,7 @@ public class ToLf extends LfSwitch<MalleableString> {
     // (serializer=Serializer)?
     // ';'?
     Builder msb = new Builder();
+    addAttributes(msb, object::getAttributes);
     Builder left = new Builder();
     Builder right = new Builder();
     if (object.isIterated()) {
@@ -882,6 +894,14 @@ public class ToLf extends LfSwitch<MalleableString> {
     return list(", ", "[", "]", false, false, true, object.getItems());
   }
 
+  @Override
+  public MalleableString caseParenthesisListExpression(ParenthesisListExpression object) {
+    if (object.getItems().isEmpty()) {
+      return MalleableString.anyOf("()");
+    }
+    return list(", ", "(", ")", false, false, true, object.getItems());
+  }
+
   /**
    * Represent a braced list expression. Do not invoke on expressions that may have comments
    * attached.
@@ -913,15 +933,23 @@ public class ToLf extends LfSwitch<MalleableString> {
     // keyvalue=KeyValuePairs
     // | array=Array
     // | literal=Literal
-    // | (time=INT unit=TimeUnit)
+    // | Time
     // | id=Path
     if (object.getKeyvalue() != null) return doSwitch(object.getKeyvalue());
     if (object.getArray() != null) return doSwitch(object.getArray());
     if (object.getLiteral() != null) return MalleableString.anyOf(object.getLiteral());
     if (object.getId() != null) return MalleableString.anyOf(object.getId());
-    if (object.getUnit() != null)
-      return MalleableString.anyOf(String.format("%d %s", object.getTime(), object.getUnit()));
-    return MalleableString.anyOf(String.valueOf(object.getTime()));
+    if (object.getTime() != null) {
+      var time = object.getTime();
+      if (time.getForever() != null || time.getInterval() == Long.MAX_VALUE) {
+        return MalleableString.anyOf("forever");
+      }
+      if (time.getNever() != null || time.getInterval() == Long.MIN_VALUE) {
+        return MalleableString.anyOf("never");
+      }
+      return MalleableString.anyOf(String.format("%d %s", time.getInterval(), time.getUnit()));
+    }
+    return MalleableString.anyOf("ERROR");
   }
 
   @Override
@@ -951,42 +979,17 @@ public class ToLf extends LfSwitch<MalleableString> {
     return msb.get();
   }
 
-  /**
-   * Return true if the initializer should be output with an equals initializer. Old-style
-   * assignments with parentheses are also output that way to help with the transition.
-   */
-  private boolean shouldOutputAsAssignment(Initializer init) {
-    return init.isAssign()
-        || init.getExprs().size() == 1 && getTarget().mandatesEqualsInitializers();
-  }
-
   @Override
   public MalleableString caseInitializer(Initializer init) {
     if (init == null) {
       return MalleableString.anyOf("");
     }
-    var builder = new Builder().append("=", " = ");
-    if (shouldOutputAsAssignment(init)) {
-      Expression expr = ASTUtils.asSingleExpr(init);
-      Objects.requireNonNull(expr);
-      return builder.append(doSwitch(expr)).get();
+
+    var builder = new Builder();
+    if (init.isAssign()) {
+      builder.append("=", " = ");
     }
-    if (getTarget() == Target.C) {
-      // This turns C array initializers into a braced expression.
-      // C++ variants are not converted.
-      return builder.append(bracedListExpression(init.getExprs())).get();
-    }
-    String prefix;
-    String suffix;
-    if (init.isBraces()) {
-      prefix = "{";
-      suffix = "}";
-    } else {
-      assert init.isParens();
-      prefix = "(";
-      suffix = ")";
-    }
-    return list(", ", prefix, suffix, false, false, true, init.getExprs());
+    return builder.append(doSwitch(init.getExpr())).get();
   }
 
   @Override
@@ -1093,6 +1096,8 @@ public class ToLf extends LfSwitch<MalleableString> {
    * @param nothingIfEmpty Whether the result should be simplified to the empty string as opposed to
    *     just the prefix and suffix.
    * @param whitespaceRigid Whether any whitespace appearing in the
+   * @param suffixSameLine Whether the suffix should be on the same line as the last element.
+   * @param items The list of elements to convert to a string.
    */
   private <E extends EObject> MalleableString list(
       String separator,
@@ -1179,7 +1184,7 @@ public class ToLf extends LfSwitch<MalleableString> {
    * @param statementListList A list of groups of statements.
    * @param forceWhitespace Whether to force a line of vertical whitespace regardless of textual
    *     input
-   * @return A string representation of {@code statementListList}.
+   * @return A string representation of `statementListList`.
    */
   private MalleableString indentedStatements(
       List<EList<? extends EObject>> statementListList, boolean forceWhitespace) {

@@ -1,0 +1,45 @@
+/**
+ * Test using a token for setting an output and scheduling an action.
+ * @author Edward A. Lee (eal@berkeley.edu)
+ */
+target C {
+  build-type: Debug,
+  timeout: 2 ms
+}
+
+import TokenPrint from "lib/Token.lf"
+
+preamble {=
+  // NOTE: array.h will get included in the generated directories because
+  // it is in the file properties of lib/Token.lf.  However, we still need
+  // this #include for the source file for TokenSource2.
+  #include "array.h"
+=}
+
+reactor TokenSource2 {
+  output out: int_array_t*
+  state count: int = 0
+  timer t(0, 2 ms)
+  logical action a(1 ms): int_array_t*
+
+  reaction(startup) -> out {=
+    lf_set_destructor(out, int_array_destructor);
+    lf_set_copy_constructor(out, int_array_copy_constructor);
+  =}
+
+  reaction(t, a) -> out, a {=
+    int_array_t* array =  int_array_constructor(3);
+    for (size_t i = 0; i < array->length; i++) {
+      array->data[i] = self->count++;
+    }
+    lf_token_t* token = lf_new_token((lf_port_base_t*)out, array, 1);
+    lf_set_token(out, token);
+    lf_schedule_token(a, 0, token);
+  =}
+}
+
+main reactor {
+  s = new TokenSource2()
+  p = new TokenPrint()
+  s.out -> p.in
+}

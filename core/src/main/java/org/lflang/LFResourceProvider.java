@@ -8,6 +8,7 @@ import org.eclipse.emf.ecore.resource.ResourceSet;
  * Class that provides access to a resource set.
  *
  * @author Marten Lohstroh
+ * @ingroup Infrastructure
  */
 public class LFResourceProvider {
   /** Injected resource set provider. */

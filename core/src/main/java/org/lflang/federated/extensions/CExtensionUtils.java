@@ -29,11 +29,16 @@ import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOptions;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
 import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
+/**
+ * Utility class for the C extension.
+ *
+ * @author Soroush Bateni
+ * @ingroup Federated
+ */
 public class CExtensionUtils {
 
   // Regular expression pattern for shared_ptr types.
@@ -52,7 +57,7 @@ public class CExtensionUtils {
   public static String initializeTriggersForNetworkActions(
       FederateInstance federate, ReactorInstance main) {
     CodeBuilder code = new CodeBuilder();
-    if (federate.networkMessageActions.size() > 0) {
+    if (!federate.networkMessageActions.isEmpty()) {
       var actionTableCount = 0;
       var zeroDelayActionTableCount = 0;
       for (int i = 0; i < federate.networkMessageActions.size(); ++i) {
@@ -74,9 +79,12 @@ public class CExtensionUtils {
                 + "] = (lf_action_base_t*)&"
                 + trigger
                 + "; \\");
-        if (federate.zeroDelayNetworkMessageActions.contains(action)) {
+        // Set the ID of the source federate.
+        code.pr(
+            trigger + ".source_id = " + federate.networkMessageSourceFederate.get(i).id + "; \\");
+        if (federate.zeroDelayCycleNetworkMessageActions.contains(action)) {
           code.pr(
-              "_lf_zero_delay_action_table["
+              "_lf_zero_delay_cycle_action_table["
                   + zeroDelayActionTableCount++
                   + "] = (lf_action_base_t*)&"
                   + trigger
@@ -88,7 +96,7 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate C code that holds a sorted list of STP structs by time.
+   * Generate C code that holds a sorted list of STAA structs by time.
    *
    * <p>For decentralized execution, on every logical timestep, a thread will iterate through each
    * staa struct, wait for the designated offset time, and set the associated port status to absent
@@ -98,44 +106,38 @@ public class CExtensionUtils {
    */
   public static String stpStructs(FederateInstance federate) {
     CodeBuilder code = new CodeBuilder();
-    federate.staaOffsets.sort((d1, d2) -> (int) (d1.time - d2.time));
-    if (!federate.staaOffsets.isEmpty()) {
-      // Create a static array of trigger_t pointers.
-      // networkMessageActions is a list of Actions, but we
-      // need a list of trigger struct names for ActionInstances.
-      // There should be exactly one ActionInstance in the
-      // main reactor for each Action.
-      for (int i = 0; i < federate.staaOffsets.size(); ++i) {
-        // Find the corresponding ActionInstance.
-        List<Action> networkActions =
-            federate.stpToNetworkActionMap.get(federate.staaOffsets.get(i));
+    // Create a static array of trigger_t pointers.
+    // networkMessageActions is a list of Actions, but we
+    // need a list of trigger struct names for ActionInstances.
+    // There should be exactly one ActionInstance in the
+    // main reactor for each Action.
+    var i = 0;
+    for (var offset : federate.staaOffsets) {
+      // Find the corresponding ActionInstance.
+      List<Action> networkActions = federate.staToNetworkActionMap.get(offset);
 
-        code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+      code.pr("staa_lst[" + i + "] = (staa_t*) malloc(sizeof(staa_t));");
+      code.pr(
+          "staa_lst[" + i + "]->STAA = " + CTypes.getInstance().getTargetTimeExpr(offset) + ";");
+      code.pr("staa_lst[" + i + "]->num_actions = " + networkActions.size() + ";");
+      code.pr(
+          "staa_lst["
+              + i
+              + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
+              + networkActions.size()
+              + ");");
+      var tableCount = 0;
+      for (Action action : networkActions) {
         code.pr(
             "staa_lst["
                 + i
-                + "]->STAA = "
-                + CTypes.getInstance().getTargetTimeExpr(federate.staaOffsets.get(i))
-                + ";");
-        code.pr("staa_lst[" + i + "]->numActions = " + networkActions.size() + ";");
-        code.pr(
-            "staa_lst["
-                + i
-                + "]->actions = (lf_action_base_t**) malloc(sizeof(lf_action_base_t*) * "
-                + networkActions.size()
-                + ");");
-        var tableCount = 0;
-        for (Action action : networkActions) {
-          code.pr(
-              "staa_lst["
-                  + i
-                  + "]->actions["
-                  + tableCount++
-                  + "] = _lf_action_table["
-                  + federate.networkMessageActions.indexOf(action)
-                  + "];");
-        }
+                + "]->actions["
+                + tableCount++
+                + "] = _lf_action_table["
+                + federate.networkMessageActions.indexOf(action)
+                + "];");
       }
+      i++;
     }
     return code.getCode();
   }
@@ -166,8 +168,8 @@ public class CExtensionUtils {
    *
    * <p>The returned additional delay in absence of after on network connection (i.e., if delay is
    * passed as a null) is NEVER. This has a special meaning in C library functions that send network
-   * messages that carry timestamps (@see send_timed_message and send_port_absent_to_federate in
-   * lib/core/federate.c). In this case, the sender will send its current tag as the timestamp of
+   * messages that carry timestamps (@see lf_send_tagged_message and lf_send_port_absent_to_federate
+   * in lib/core/federate.c). In this case, the sender will send its current tag as the timestamp of
    * the outgoing message without adding a microstep delay. If the user has assigned an after delay
    * to the network connection (that can be zero) either as a time value (e.g., 200 msec) or as a
    * literal (e.g., a parameter), that delay in nsec will be returned.
@@ -185,7 +187,7 @@ public class CExtensionUtils {
 
   public static void handleCompileDefinitions(
       FederateInstance federate,
-      int numOfFederates,
+      List<String> federateNames,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {
 
@@ -199,8 +201,11 @@ public class CExtensionUtils {
     if (federate.targetConfig.get(AuthProperty.INSTANCE)) {
       definitions.put("FEDERATED_AUTHENTICATED", "");
     }
-    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(numOfFederates));
+    definitions.put("NUMBER_OF_FEDERATES", String.valueOf(federateNames.size()));
     definitions.put("EXECUTABLE_PREAMBLE", "");
+    definitions.put("FEDERATE_ID", String.valueOf(federate.id));
+    definitions.put(
+        "_LF_FEDERATE_NAMES_COMMA_SEPARATED", "\"" + String.join(",", federateNames) + "\"");
 
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
@@ -246,15 +251,14 @@ public class CExtensionUtils {
           messageReporter
               .nowhere()
               .info("Will collect clock sync statistics for federate " + federate.id);
-          // Add libm to the compiler flags
-          CompilerFlagsProperty.INSTANCE.update(federate.targetConfig, List.of("-lm"));
         }
         messageReporter
             .nowhere()
             .info("Runtime clock synchronization is enabled for federate " + federate.id);
       }
-
       addClockSyncCompileDefinitions(federate);
+    } else {
+      addDisableClockSyncCompileDefinitions(federate);
     }
   }
 
@@ -272,17 +276,21 @@ public class CExtensionUtils {
     ClockSyncOptions options = federate.targetConfig.get(ClockSyncOptionsProperty.INSTANCE);
     final var defs = new HashMap<String, String>();
 
+    defs.put("LF_CLOCK_SYNC", String.valueOf(mode.toInt()));
     defs.put("_LF_CLOCK_SYNC_INITIAL", "");
     defs.put("_LF_CLOCK_SYNC_PERIOD_NS", String.valueOf(options.period.toNanoSeconds()));
     defs.put("_LF_CLOCK_SYNC_EXCHANGES_PER_INTERVAL", String.valueOf(options.trials));
     defs.put("_LF_CLOCK_SYNC_ATTENUATION", String.valueOf(options.attenuation));
 
-    if (mode == ClockSyncMode.ON) {
-      defs.put("_LF_CLOCK_SYNC_ON", "");
-      if (options.collectStats) {
-        defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
-      }
+    if (options.collectStats) {
+      defs.put("_LF_CLOCK_SYNC_COLLECT_STATS", "");
     }
+    CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
+  }
+
+  public static void addDisableClockSyncCompileDefinitions(FederateInstance federate) {
+    final var defs = new HashMap<String, String>();
+    defs.put("LF_CLOCK_SYNC", String.valueOf(ClockSyncMode.OFF.toInt()));
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, defs);
   }
 
@@ -303,7 +311,9 @@ public class CExtensionUtils {
         "add_compile_definitions(LF_SOURCE_DIRECTORY=\"" + fileConfig.srcPath + "\")");
     cmakeIncludeCode.pr(
         "add_compile_definitions(LF_PACKAGE_DIRECTORY=\"" + fileConfig.srcPkgPath + "\")");
-
+    cmakeIncludeCode.pr(
+        "add_compile_definitions(LF_SOURCE_GEN_DIRECTORY=\"" + fileConfig.getSrcGenPath() + "\")");
+    cmakeIncludeCode.pr("add_compile_definitions(LF_FILE_SEPARATOR=\"" + File.separator + "\")");
     try (var srcWriter = Files.newBufferedWriter(cmakeIncludePath)) {
       srcWriter.write(cmakeIncludeCode.getCode());
     }
@@ -314,8 +324,8 @@ public class CExtensionUtils {
   }
 
   /**
-   * Generate code that sends the neighbor structure message to the RTI. See {@code
-   * MSG_TYPE_NEIGHBOR_STRUCTURE} in {@code federated/net_common.h}.
+   * Generate code that sends the neighbor structure message to the RTI. See
+   * `MSG_TYPE_NEIGHBOR_STRUCTURE` in `federated/net_common.h`.
    *
    * @param federate The federate that is sending its neighbor structure
    */
@@ -332,7 +342,7 @@ public class CExtensionUtils {
             "* information is needed for the RTI to perform the centralized coordination.",
             "* @see MSG_TYPE_NEIGHBOR_STRUCTURE in net_common.h",
             "*/",
-            "void send_neighbor_structure_to_RTI(int rti_socket) {"));
+            "void lf_send_neighbor_structure_to_RTI(int rti_socket) {"));
     code.indent();
     // Initialize the array of information about the federate's immediate upstream
     // and downstream relayed (through the RTI) logical connections, to send to the
@@ -423,8 +433,6 @@ public class CExtensionUtils {
     // Next, set up the downstream array.
     if (!federate.sendsTo.keySet().isEmpty()) {
       // Next, populate the array.
-      // Find the minimum delay in the process.
-      // FIXME: Zero delay is not really the same as a microstep delay.
       for (FederateInstance downstreamFederate : federate.sendsTo.keySet()) {
         code.pr(
             String.join(
@@ -436,10 +444,11 @@ public class CExtensionUtils {
     code.pr(
         String.join(
             "\n",
-            "write_to_socket_errexit(",
-            "    rti_socket, ",
+            "write_to_socket_fail_on_error(",
+            "    &rti_socket, ",
             "    buffer_size,",
             "    buffer_to_send,",
+            "    NULL,",
             "    \"Failed to send the neighbor structure message to the RTI.\"",
             ");"));
     code.unindent();
@@ -447,42 +456,72 @@ public class CExtensionUtils {
     return code.toString();
   }
 
+  public static String surroundWithIfElseFederated(String insideIf, String insideElse) {
+    if (insideElse == null) {
+      return surroundWithIfFederated(insideIf);
+    } else {
+      return """
+             #ifdef FEDERATED
+             %s
+             #else
+             %s
+             #endif // FEDERATED
+             """
+          .formatted(insideIf, insideElse);
+    }
+  }
+
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is
+   * Surround `code` with blocks to ensure that code only executes if the program is
    * federated.
    */
   public static String surroundWithIfFederated(String code) {
     return """
-            #ifdef FEDERATED
-            %s
-            #endif // FEDERATED
-            """
+           #ifdef FEDERATED
+           %s
+           #endif // FEDERATED
+           """
         .formatted(code);
   }
 
+  public static String surroundWithIfElseFederatedCentralized(String insideIf, String insideElse) {
+    if (insideElse == null) {
+      return surroundWithIfFederatedCentralized(insideIf);
+    } else {
+      return """
+              #ifdef FEDERATED_CENTRALIZED
+              %s
+              #else
+              %s
+              #endif // FEDERATED_CENTRALIZED
+             """
+          .formatted(insideIf, insideElse);
+    }
+  }
+
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround `code` with blocks to ensure that code only executes if the program is federated
    * and has a centralized coordination.
    */
   public static String surroundWithIfFederatedCentralized(String code) {
     return """
-            #ifdef FEDERATED_CENTRALIZED
-            %s
-            #endif // FEDERATED_CENTRALIZED
-            """
+           #ifdef FEDERATED_CENTRALIZED
+           %s
+           #endif // FEDERATED_CENTRALIZED
+           """
         .formatted(code);
   }
 
   /**
-   * Surround {@code code} with blocks to ensure that code only executes if the program is federated
+   * Surround `code` with blocks to ensure that code only executes if the program is federated
    * and has a decentralized coordination.
    */
   public static String surroundWithIfFederatedDecentralized(String code) {
     return """
-            #ifdef FEDERATED_DECENTRALIZED
-            %s
-            #endif // FEDERATED_DECENTRALIZED
-            """
+           #ifdef FEDERATED_DECENTRALIZED
+           %s
+           #endif // FEDERATED_DECENTRALIZED
+           """
         .formatted(code);
   }
 

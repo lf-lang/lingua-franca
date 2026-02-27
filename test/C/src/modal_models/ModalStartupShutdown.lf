@@ -23,7 +23,7 @@ reactor Modal {
 
   initial mode One {
     reaction(startup) -> startup1 {=
-      printf("Startup 1 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Startup 1 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(startup1, 1);
     =}
 
@@ -36,7 +36,7 @@ reactor Modal {
 
   mode Two {
     reaction(startup) -> startup2 {=
-      printf("Startup 2 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Startup 2 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(startup2, 1);
     =}
 
@@ -47,7 +47,7 @@ reactor Modal {
     =}
 
     reaction(shutdown) -> shutdown2 {=
-      printf("Shutdown 2 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Shutdown 2 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(shutdown2, 1);
     =}
   }
@@ -60,19 +60,19 @@ reactor Modal {
     =}
 
     reaction(shutdown) -> shutdown3 {=
-      printf("Shutdown 3 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Shutdown 3 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(shutdown3, 1);
     =}
   }
 
   mode Four {
     reaction(startup) -> startup4 {=
-      printf("Startup 4 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Startup 4 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(startup4, 1);
     =}
 
     reaction(reset) -> reset4 {=
-      printf("Reset 4 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Reset 4 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(reset4, 1);
     =}
 
@@ -83,7 +83,7 @@ reactor Modal {
     =}
 
     reaction(shutdown) -> shutdown4 {=
-      printf("Shutdown 4 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Shutdown 4 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(shutdown4, 1);
     =}
   }
@@ -91,17 +91,17 @@ reactor Modal {
   // Unreachable!
   mode Five {
     reaction(startup) -> startup5 {=
-      printf("Startup 5 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Startup 5 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(startup5, 1);
     =}
 
     reaction(reset) -> reset5 {=
-      printf("Reset 5 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Reset 5 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(reset5, 1);
     =}
 
     reaction(shutdown) -> shutdown5 {=
-      printf("Shutdown 5 at (%lld, %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
+      printf("Shutdown 5 at (" PRINTF_TIME ", %u).\n", lf_time_logical_elapsed(), lf_tag().microstep);
       lf_set(shutdown5, 1);
     =}
   }

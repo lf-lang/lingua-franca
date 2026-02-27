@@ -1,0 +1,57 @@
+// This tests that the AST transformation works for conneections where we have
+// multiple connections in the same statement
+// This test is failiing due to bug in the Generics support for the C target.
+target C {
+  timeout: 1 s
+}
+
+reactor E1 { 
+  output out: int
+  timer t(0, 100 msec)
+  state cnt: int = 0
+
+  reaction(t) -> out {=
+    lf_sleep(MSEC(100));
+    lf_set(out, self->cnt++);
+  =}
+}
+
+reactor R2 {
+    input in1: int
+    input in2: int
+
+    reaction(in1,in2) {=
+        LF_TEST(in1->is_present && in2->is_present, "Both in1 and in2 must be present");
+        LF_TEST(in1->value == in2->value, "in1 and in2 must be equal");
+    =}
+}
+
+reactor E2 {
+  input in: int
+  output out: int
+
+  state cnt: int = 0
+  state received: int = 0
+
+  reaction(in) -> out{=
+    LF_TEST(in->value == self->cnt, "Received %u expected %u", in->value, self->cnt);
+    self->received++;
+    lf_set(out, in->value);
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->received == 11, "Expected %u got %u", 11, self->received);
+  =}
+}
+
+main reactor {
+  @enclave 
+  e1 = new E1()
+  @enclave
+  e2 = new E2()
+
+  r2 = new R2()
+
+  e1.out -> e2.in
+  e1.out, e2.out -> r2.in1, r2.in2 // This connection must be split up by the AST transformation
+}

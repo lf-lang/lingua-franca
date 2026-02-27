@@ -1,17 +1,23 @@
 package org.lflang.federated.generator;
 
 import java.io.IOException;
+import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.ast.FormattingUtil;
 import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 
+/**
+ * Helper class to generate target code for a federate.
+ *
+ * @ingroup Federated
+ */
 public class FedTargetEmitter {
 
   String generateTarget(
       LFGeneratorContext context,
-      int numOfFederates,
+      List<String> federateNames,
       FederateInstance federate,
       FederationFileConfig fileConfig,
       MessageReporter messageReporter,
@@ -24,7 +30,7 @@ public class FedTargetEmitter {
     // See https://issues.lf-lang.org/1667
     FedTargetExtensionFactory.getExtension(federate.targetConfig.target)
         .initializeTargetConfig(
-            context, numOfFederates, federate, fileConfig, messageReporter, rtiConfig);
+            context, federateNames, federate, fileConfig, messageReporter, rtiConfig);
 
     return FormattingUtil.renderer(federate.targetConfig.target)
         .apply(federate.targetConfig.extractTargetDecl());

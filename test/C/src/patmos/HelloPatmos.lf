@@ -1,0 +1,10 @@
+target C {
+  platform: "Patmos",
+  single-threaded: true
+}
+
+main reactor {
+  reaction(startup) {=
+    printf("Hello World!\n");
+  =}
+}

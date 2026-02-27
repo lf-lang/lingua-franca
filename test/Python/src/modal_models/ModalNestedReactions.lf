@@ -9,7 +9,7 @@ reactor CounterCycle {
 
   output count
   output only_in_two
-  output never
+  output neverp
 
   initial mode One {
     reaction(next) -> count, reset(Two) {=
@@ -29,8 +29,8 @@ reactor CounterCycle {
   }
 
   mode Three {
-    reaction(next) -> never {=
-      never.set(True)
+    reaction(next) -> neverp {=
+      neverp.set(True)
     =}
   }
 }
@@ -68,7 +68,7 @@ main reactor {
       exit(3)
   =}
 
-  reaction(counter.never) {=
+  reaction(counter.neverp) {=
     sys.stderr.write("ERROR: Detected output from unreachable mode.\n")
     exit(4)
   =}

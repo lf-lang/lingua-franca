@@ -1,0 +1,63 @@
+target C {
+  timeout: 100 ms
+}
+
+reactor Base {
+  input in1: int
+  input in2: int
+  output out1: int
+  output out2: int
+}
+
+reactor Node extends Base {
+  timer t(0, 20 ms)
+  state c: int = 1
+
+  reaction(t) -> out1, out2 {=
+    if (self->c % 2 == 0) {
+      lf_set(out1, self->c);
+    } else {
+      lf_set(out2, self->c);
+    }
+    self->c++;
+  =}
+
+  reaction(in1) {=
+    lf_print("Received %d on in1", in1->value);
+    if (in1->value % 2 == 0) {
+      lf_print_error_and_exit("Expected an odd integer!");
+    }
+  =}
+
+  reaction(in2) {=
+    lf_print("Received %d on in2", in2->value);
+    if (in2->value % 2 != 0) {
+      lf_print_error_and_exit("Expected an even integer!");
+    }
+  =}
+}
+
+reactor Switch extends Base {
+  reaction(in1) -> out2 {=
+    lf_set(out2, in1->value);
+  =}
+
+  reaction(in2) -> out1 {=
+    lf_set(out1, in2->value);
+  =}
+}
+
+federated reactor(d: time = 1 ms) {
+  n1 = new Node()
+  n2 = new Node()
+  sw1 = new Switch()
+  sw2 = new Switch()
+  n1.out1 -> sw1.in2 after d
+  sw1.out2 -> n1.in1 after d
+  n1.out2 -> sw2.in1 after d
+  sw2.out1 -> n1.in2 after d
+  sw2.out2 -> n2.in1 after d
+  n2.out1 -> sw2.in2 after d
+  n2.out2 -> sw1.in1 after d
+  sw1.out1 -> n2.in2 after d
+}

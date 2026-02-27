@@ -1,42 +1,30 @@
-/*************
- * Copyright (c) 2019, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang;
+
+import org.lflang.lf.Time;
 
 /**
  * Represents an amount of time (a duration).
  *
  * @author Marten Lohstroh
  * @author Clément Fournier - TU Dresden, INSA Rennes
+ * @ingroup Utilities
  */
 public final class TimeValue implements Comparable<TimeValue> {
 
   /** The maximum value of this type. This is approximately equal to 292 years. */
   public static final TimeValue MAX_VALUE = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
+
+  /** The minimum value of this type. */
+  public static final TimeValue MIN_VALUE = new TimeValue(Long.MIN_VALUE, TimeUnit.NANO);
+
   /** A time value equal to zero. */
   public static final TimeValue ZERO = new TimeValue(0, null);
+
+  /** A time value representing NEVER, which is less than any other time value. */
+  public static final TimeValue NEVER = new TimeValue(Long.MIN_VALUE, TimeUnit.NANO);
+
+  /** A time value representing FOREVER which is greater than any other time value. */
+  public static final TimeValue FOREVER = new TimeValue(Long.MAX_VALUE, TimeUnit.NANO);
 
   /**
    * Primitive numerical representation of this time value, to be interpreted in terms the
@@ -56,7 +44,9 @@ public final class TimeValue implements Comparable<TimeValue> {
   /**
    * Create a new time value.
    *
-   * @throws IllegalArgumentException If time is non-zero and the unit is null
+   * @param time The time value.
+   * @param unit The unit of the time value.
+   * @throws IllegalArgumentException If time is non-zero and the unit is null.
    */
   public TimeValue(long time, TimeUnit unit) {
     if (unit == null && time != 0) {
@@ -66,12 +56,36 @@ public final class TimeValue implements Comparable<TimeValue> {
     this.unit = unit;
   }
 
+  /**
+   * Create a new time value.
+   *
+   * @param time The time AST node..
+   * @throws IllegalArgumentException If time is non-zero and the unit is null.
+   */
+  public TimeValue(Time time) {
+    if (time == null || time.getNever() != null) {
+      this.time = Long.MIN_VALUE;
+      this.unit = TimeUnit.NANO;
+    } else if (time.getForever() != null) {
+      this.time = Long.MAX_VALUE;
+      this.unit = TimeUnit.NANO;
+    } else {
+      this.time = time.getInterval();
+      this.unit = TimeUnit.fromName(time.getUnit());
+    }
+  }
+
   @Override
   public boolean equals(Object t1) {
     if (t1 instanceof TimeValue) {
       return this.compareTo((TimeValue) t1) == 0;
     }
     return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return (int) this.toNanoSeconds();
   }
 
   public static int compare(TimeValue t1, TimeValue t2) {
@@ -167,7 +181,9 @@ public final class TimeValue implements Comparable<TimeValue> {
 
   /** Return a string representation of this time value. */
   public String toString() {
-    return unit != null ? time + " " + unit.getCanonicalName() : Long.toString(time);
+    if (this.equals(MAX_VALUE)) return "forever";
+    if (this.equals(MIN_VALUE)) return "never";
+    return unit != null ? time + " " + unit.toString() : Long.toString(time);
   }
 
   /** Return the latest of both values. */
@@ -200,7 +216,7 @@ public final class TimeValue implements Comparable<TimeValue> {
 
     if (this.unit == null || b.unit == null) {
       // A time value with no unit is necessarily zero. So
-      // if this is null, (this + b) == b, if b is none, (this+b) == this.
+      // if this is null, (this + b) == b, if b is null, (this+b) == this.
       return b.unit == null ? this : b;
     }
     boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
@@ -208,5 +224,36 @@ public final class TimeValue implements Comparable<TimeValue> {
     // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
     var unitDivider = makeNanosecs(1, smallestUnit);
     return new TimeValue(sumOfNumbers / unitDivider, smallestUnit);
+  }
+
+  /**
+   * Return this time value minus the specified time value but no less than 0.
+   *
+   * <p>The unit of the returned TimeValue will be the minimum of the units of both operands except
+   * if only one of the units is TimeUnit.NONE. In that case, the unit of the other input is used.
+   *
+   * @param b The right operand
+   * @return A new TimeValue (the current value will not be affected)
+   */
+  public TimeValue subtract(TimeValue b) {
+    // Figure out the actual difference
+    final long differenceOfNumbers;
+    try {
+      differenceOfNumbers = Math.subtractExact(this.toNanoSeconds(), b.toNanoSeconds());
+    } catch (ArithmeticException overflow) {
+      return ZERO;
+    }
+    if (differenceOfNumbers < 0) return ZERO;
+
+    if (this.unit == null || b.unit == null) {
+      // A time value with no unit is necessarily zero. So
+      // if this is null, (this - b) == ZERO, if b is null, (this - b) == this.
+      return b.unit == null ? this : ZERO;
+    }
+    boolean isThisUnitSmallerThanBUnit = this.unit.compareTo(b.unit) <= 0;
+    TimeUnit smallestUnit = isThisUnitSmallerThanBUnit ? this.unit : b.unit;
+    // Find the appropriate divider to bring sumOfNumbers from nanoseconds to returnUnit
+    var unitDivider = makeNanosecs(1, smallestUnit);
+    return new TimeValue(differenceOfNumbers / unitDivider, smallestUnit);
   }
 }

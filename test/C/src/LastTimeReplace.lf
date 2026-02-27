@@ -1,0 +1,38 @@
+// Test for https://github.com/lf-lang/reactor-c/issues/145
+// This tests the replace policy.
+target C {
+  timeout: 1 s
+}
+
+main reactor {
+  timer t(0, 100 ms)
+  logical action a(1 ms, 300 ms, "replace"): int
+  state c: int = 0
+  state last: time = never
+
+  reaction(t) -> a {=
+    tag_t now = lf_tag();
+    instant_t start = lf_time_start();
+    lf_print("(Timer) Current: " PRINTF_TIME ", Scheduled: " PRINTF_TIME ", Count: %d",
+        now.time - start, now.time + MSEC(1) - start, self->c
+    );
+    lf_schedule_int(a, 0, self->c++);
+  =}
+
+  reaction(a) {=
+    tag_t now = lf_tag();
+    instant_t start = lf_time_start();
+    lf_print("(Action) Current: " PRINTF_TIME ", Microstep: %d, Count: %d",
+        now.time - start, now.microstep, a->value
+    );
+    // Check min_spacing.
+    if (now.time < self->last + MSEC(300)) {
+        lf_print_error_and_exit("Minimum spacing of 300ms was violated.");
+    }
+    // The value should be equal to the current state c before incrementing.
+    if (a->value != self->c - 1) {
+        lf_print_error_and_exit("Expected value %d", self->c - 1);
+    }
+    self->last = now.time;
+  =}
+}

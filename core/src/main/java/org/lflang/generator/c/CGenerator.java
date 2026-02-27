@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2019-2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.c;
 
 import static org.lflang.ast.ASTUtils.allActions;
@@ -41,31 +17,27 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
-import org.eclipse.xtext.xbase.lib.IterableExtensions;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
-import org.lflang.generator.CodeMap;
 import org.lflang.generator.DelayBodyGenerator;
-import org.lflang.generator.DockerComposeGenerator;
-import org.lflang.generator.DockerGenerator;
 import org.lflang.generator.GeneratorBase;
 import org.lflang.generator.GeneratorResult;
 import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.generator.LFResource;
 import org.lflang.generator.ParameterInstance;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
@@ -73,28 +45,37 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.TargetTypes;
 import org.lflang.generator.TimerInstance;
 import org.lflang.generator.TriggerInstance;
+import org.lflang.generator.docker.CDockerGenerator;
+import org.lflang.generator.docker.DockerGenerator;
 import org.lflang.generator.python.PythonGenerator;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
+import org.lflang.lf.Model;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.lf.WidthSpec;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
+import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
@@ -103,9 +84,9 @@ import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
-import org.lflang.target.property.type.SchedulerType.Scheduler;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
+import org.lflang.util.FlexPRETUtil;
 
 /**
  * Generator for C target. This class generates C code defining each reactor class given in the
@@ -199,11 +180,11 @@ import org.lflang.util.FileUtil;
  *       in the self struct named <code>_lf_a</code> and another named <code>_lf__a</code>. The type
  *       of the first is specific to the action and contains a <code>value</code> field with the
  *       type and value of the action (if it has a value). That struct also has a <code>has_value
- *       </code> field, an <code>is_present</code> field, and a <code>token</code> field (which is
- *       NULL if the action carries no value). The <code>_lf__a</code> field is of type trigger_t.
- *       That struct contains various things, including an array of reactions sensitive to this
- *       trigger and a lf_token_t struct containing the value of the action, if it has a value. See
- *       reactor.h in the C library for details.
+ *       </code> field, a <code>source_id</code> field, </code>an <code>is_present</code> field, and
+ *       a <code>token</code> field (which is NULL if the action carries no value). The <code>_lf__a
+ *       </code> field is of type trigger_t. That struct contains various things, including an array
+ *       of reactions sensitive to this trigger and a lf_token_t struct containing the value of the
+ *       action, if it has a value. See reactor.h in the C library for details.
  *   <li>Reactions: Each reaction will have several fields in the self struct. Each of these has a
  *       name that begins with <code>_lf__reaction_i</code>, where i is the number of the reaction,
  *       starting with 0. The fields are:
@@ -268,6 +249,7 @@ import org.lflang.util.FileUtil;
  * @author Alexander Schulz-Rosengarten
  * @author Hou Seng Wong
  * @author Anirudh Rengarajan
+ * @ingroup Generator
  */
 @SuppressWarnings("StaticPseudoFunctionalStyleMethod")
 public class CGenerator extends GeneratorBase {
@@ -306,21 +288,21 @@ public class CGenerator extends GeneratorBase {
   /** Place to collect code to execute at the start of a time step. */
   private final CodeBuilder startTimeStep = new CodeBuilder();
 
-  /**
-   * Count of the number of token pointers that need to have their reference count decremented in
-   * _lf_start_time_step().
-   */
-  private int shutdownReactionCount = 0;
-
-  private int resetReactionCount = 0;
-  private int watchdogCount = 0;
-
   // Indicate whether the generator is in Cpp mode or not
   private final boolean cppMode;
 
   private final CTypes types;
 
-  private final CCmakeGenerator cmakeGenerator;
+  protected CCmakeGenerator cmakeGenerator;
+
+  /** A code-generator for enclave-specific code, */
+  private CEnclaveGenerator enclaveGenerator;
+
+  /** Main reactor parameters that can be overridden from the command line. */
+  private List<Parameter> cliParameters = new ArrayList<>();
+
+  /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
+  private final CEnclavedReactorTransformation enclaveAST;
 
   protected CGenerator(
       LFGeneratorContext context,
@@ -333,6 +315,9 @@ public class CGenerator extends GeneratorBase {
     this.cppMode = cppMode;
     this.types = types;
     this.cmakeGenerator = cmakeGenerator;
+    this.enclaveAST = new CEnclavedReactorTransformation(fileConfig.resource, types);
+
+    registerTransformation(this.enclaveAST);
 
     registerTransformation(
         new DelayedConnectionTransformation(
@@ -410,7 +395,11 @@ public class CGenerator extends GeneratorBase {
     if (!isOSCompatible()) return; // Incompatible OS and configuration
 
     // Perform set up that does not generate code
-    setUpGeneralParameters();
+    if (!setUpGeneralParameters()) {
+      // Failure.
+      return;
+    }
+    if (!GeneratorUtils.canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return;
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSrcGenPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.binPath.toFile());
@@ -435,19 +424,18 @@ public class CGenerator extends GeneratorBase {
       throw e;
     }
 
-    // Create docker file.
-    if (targetConfig.get(DockerProperty.INSTANCE).enabled && mainDef != null) {
-      try {
-        var dockerData = getDockerGenerator(context).generateDockerData();
-        dockerData.writeDockerFile();
-        (new DockerComposeGenerator(context)).writeDockerComposeFile(List.of(dockerData));
-      } catch (IOException e) {
-        throw new RuntimeException("Error while writing Docker files", e);
-      }
-    }
+    // Inform the runtime of the number of watchdogs (needed for Zephyr support to create threads).
+    // TODO: Can we do this at a better place? We need to do it when we have the main reactor
+    // since we need main to get all enclaves.
+    var nWatchdogs =
+        enclaveGenerator.getEnclaves().stream().map(it -> it.numWatchdogs).reduce(0, Integer::sum);
+    CompileDefinitionsProperty.INSTANCE.update(
+        targetConfig, Map.of("NUMBER_OF_WATCHDOGS", String.valueOf(nWatchdogs)));
 
     var isArduino =
         targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.ARDUINO;
+    var isFlexPRET =
+        targetConfig.getOrDefault(PlatformProperty.INSTANCE).platform() == Platform.FLEXPRET;
 
     // If cmake is requested, generate the CMakeLists.txt
     if (!isArduino) {
@@ -470,7 +458,8 @@ public class CGenerator extends GeneratorBase {
       try {
         Path include = fileConfig.getSrcGenPath().resolve("include/");
         Path src = fileConfig.getSrcGenPath().resolve("src/");
-        FileUtil.arduinoDeleteHelper(src, !targetConfig.get(SingleThreadedProperty.INSTANCE));
+        FileUtil.arduinoDeleteHelper(
+            fileConfig.getSrcGenPath(), !targetConfig.get(SingleThreadedProperty.INSTANCE));
         FileUtil.relativeIncludeHelper(src, include, messageReporter);
         FileUtil.relativeIncludeHelper(include, include, messageReporter);
       } catch (IOException e) {
@@ -508,54 +497,13 @@ public class CGenerator extends GeneratorBase {
       return;
     }
 
-    // If this code generator is directly compiling the code, compile it now so that we
-    // clean it up after, removing the #line directives after errors have been reported.
-    if (!targetConfig.get(NoCompileProperty.INSTANCE)
-        && !targetConfig.get(DockerProperty.INSTANCE).enabled
-        && IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))
-        // This code is unreachable in LSP_FAST mode, so that check is omitted.
-        && context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
-      // FIXME: Currently, a lack of main is treated as a request to not produce
-      // a binary and produce a .o file instead. There should be a way to control
-      // this.
-      // Create an anonymous Runnable class and add it to the compileThreadPool
-      // so that compilation can happen in parallel.
-      var cleanCode = code.removeLines("#line");
+    var customBuildCommands = targetConfig.get(BuildCommandsProperty.INSTANCE);
+    var dockerBuild = targetConfig.get(DockerProperty.INSTANCE);
 
-      var execName = lfModuleName;
-      var threadFileConfig = fileConfig;
-      var generator =
-          this; // FIXME: currently only passed to report errors with line numbers in the Eclipse
-      // IDE
-      var CppMode = cppMode;
-      // generatingContext.reportProgress(
-      //     String.format("Generated code for %d/%d executables. Compiling...", federateCount,
-      // federates.size()),
-      //     100 * federateCount / federates.size()
-      // ); // FIXME: Move to FedGenerator
-      // Create the compiler to be used later
-
-      var cCompiler = new CCompiler(targetConfig, threadFileConfig, messageReporter, CppMode);
-      try {
-        if (!cCompiler.runCCompiler(generator, context)) {
-          // If compilation failed, remove any bin files that may have been created.
-          CUtil.deleteBinFiles(threadFileConfig);
-          // If finish has already been called, it is illegal and makes no sense. However,
-          //  if finish has already been called, then this must be a federated execution.
-          context.unsuccessfulFinish();
-        } else {
-          context.finish(GeneratorResult.Status.COMPILED, null);
-        }
-        cleanCode.writeToFile(targetFile);
-      } catch (IOException e) {
-        Exceptions.sneakyThrow(e);
-      }
-    }
-
-    // If a build directive has been given, invoke it now.
-    // Note that the code does not get cleaned in this case.
-    if (!targetConfig.get(NoCompileProperty.INSTANCE)) {
-      if (!IterableExtensions.isNullOrEmpty(targetConfig.get(BuildCommandsProperty.INSTANCE))) {
+    if (targetConfig.get(NoCompileProperty.INSTANCE)) {
+      context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
+    } else if (context.getMode() != LFGeneratorContext.Mode.LSP_MEDIUM) {
+      if (customBuildCommands != null && !customBuildCommands.isEmpty()) {
         CUtil.runBuildCommand(
             fileConfig,
             targetConfig,
@@ -564,12 +512,54 @@ public class CGenerator extends GeneratorBase {
             this::reportCommandErrors,
             context.getMode());
         context.finish(GeneratorResult.Status.COMPILED, null);
+      } else if (dockerBuild.enabled()) {
+        if (targetConfig.target != Target.Python) {
+          boolean success = buildUsingDocker();
+          if (!success) {
+            context.unsuccessfulFinish();
+          }
+        }
+      } else {
+        var cleanCode = code.removeLines("#line");
+        var cCompiler = new CCompiler(targetConfig, fileConfig, messageReporter, cppMode);
+        var success = false;
+        try {
+          success = cCompiler.runCCompiler(this, context);
+        } catch (IOException e) {
+          messageReporter.nowhere().error("Unexpected error during compilation.");
+        } finally {
+          if (!success) {
+            // If compilation failed, remove any bin files that may have been created.
+            messageReporter.nowhere().error("Compilation was unsuccessful.");
+            CUtil.deleteBinFiles(fileConfig);
+            context.unsuccessfulFinish();
+          } else {
+            try {
+              cleanCode.writeToFile(targetFile);
+            } catch (IOException e) {
+              messageReporter
+                  .nowhere()
+                  .warning("Generated code may still contain line directives.");
+            }
+            context.finish(GeneratorResult.Status.COMPILED, null);
+          }
+        }
+        if (isFlexPRET) {
+          var platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE);
+          if (platform.flash().value()) {
+            /**
+             * Flash will result in two widely different responses when board is set to `emulator`
+             * and `fpga`. For emulator, it will immediately run the emulator. For fpga, it will
+             * attempt to transfer the program to the fpga.
+             *
+             * <p>It is FlexPRET's software development kit that handles all this; we just run the
+             * script it generates.
+             */
+            FlexPRETUtil flexPRETUtil = new FlexPRETUtil(context, commandFactory, messageReporter);
+            flexPRETUtil.flashTarget(fileConfig, targetConfig);
+          }
+        }
       }
-      if (!errorsOccurred()) {
-        messageReporter.nowhere().info("Compiled binary is in " + fileConfig.binPath);
-      }
-    } else {
-      context.finish(GeneratorResult.GENERATED_NO_EXECUTABLE.apply(context, null));
     }
 
     // In case we are in Eclipse, make sure the generated code is visible.
@@ -578,17 +568,21 @@ public class CGenerator extends GeneratorBase {
 
   private void generateCodeFor(String lfModuleName) throws IOException {
     code.pr(generateDirectives());
-    code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
+    Reactor mainReactorClass =
+        mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
+    var mainFunctionGenerator = new CMainFunctionGenerator(targetConfig, mainReactorClass);
+    code.pr(mainFunctionGenerator.generateCode());
+    this.cliParameters = mainFunctionGenerator.getCliParameters();
     // Generate code for each reactor.
     generateReactorDefinitions();
+    copyUserFiles(targetConfig, fileConfig);
 
     // Generate main instance, if there is one.
     // Note that any main reactors in imported files are ignored.
     // Skip generation if there are cycles.
     if (main != null) {
-      var envFuncGen = new CEnvironmentFunctionGenerator(main, targetConfig, lfModuleName);
 
-      code.pr(envFuncGen.generateDeclarations());
+      code.pr(enclaveGenerator.generateDeclarations());
       initializeTriggerObjects.pr(
           String.join(
               "\n",
@@ -596,7 +590,12 @@ public class CGenerator extends GeneratorBase {
               "SUPPRESS_UNUSED_WARNING(bank_index);",
               "int watchdog_number = 0;",
               "SUPPRESS_UNUSED_WARNING(watchdog_number);"));
-      // Add counters for modal initialization
+
+      if (enclaveGenerator.numEnclaves() > 1) {
+        targetConfig
+            .get(CompileDefinitionsProperty.INSTANCE)
+            .put("LF_ENCLAVES", Integer.toString(enclaveGenerator.numEnclaves()));
+      }
 
       // Create an array of arrays to store all self structs.
       // This is needed because connections cannot be established until
@@ -606,7 +605,9 @@ public class CGenerator extends GeneratorBase {
       generateSelfStructs(main);
       generateReactorInstance(main);
 
-      code.pr(envFuncGen.generateDefinitions());
+      if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
+      code.pr(enclaveGenerator.generateDefinitions(targetConfig));
+      if (targetLanguageIsCpp()) code.pr("}");
 
       if (targetConfig.isSet(FedSetupProperty.INSTANCE)) {
         if (targetLanguageIsCpp()) code.pr("extern \"C\" {");
@@ -614,13 +615,16 @@ public class CGenerator extends GeneratorBase {
         if (targetLanguageIsCpp()) code.pr("}");
       }
 
-      // If there are watchdogs, create a table of triggers.
-      code.pr(CWatchdogGenerator.generateWatchdogTable(watchdogCount));
-
       // Generate function to initialize the trigger objects for all reactors.
       code.pr(
           CTriggerObjectsGenerator.generateInitializeTriggerObjects(
-              main, targetConfig, initializeTriggerObjects, startTimeStep, types, lfModuleName));
+              main,
+              enclaveGenerator.getEnclaves(),
+              targetConfig,
+              initializeTriggerObjects,
+              startTimeStep,
+              types,
+              lfModuleName));
 
       // Generate a function that will either do nothing
       // (if there is only one federate or the coordination
@@ -635,8 +639,8 @@ public class CGenerator extends GeneratorBase {
           String.join(
               "\n",
               "void logical_tag_complete(tag_t tag_to_send) {",
-              CExtensionUtils.surroundWithIfFederatedCentralized(
-                  "        _lf_logical_tag_complete(tag_to_send);"),
+              CExtensionUtils.surroundWithIfElseFederatedCentralized(
+                  "    lf_latest_tag_confirmed(tag_to_send);", "    (void) tag_to_send;"),
               "}"));
 
       // Generate an empty termination function for non-federated
@@ -645,9 +649,11 @@ public class CGenerator extends GeneratorBase {
       // from the federation and close any open sockets.
       code.pr(
           """
-                 #ifndef FEDERATED
-                 void terminate_execution(environment_t* env) {}
-                 #endif""");
+          #ifndef FEDERATED
+          void lf_terminate_execution(environment_t* env) {
+              (void) env;
+          }
+          #endif""");
     }
   }
 
@@ -658,79 +664,86 @@ public class CGenerator extends GeneratorBase {
   }
 
   @Override
-  protected String getConflictingConnectionsInModalReactorsBody(String source, String dest) {
-    return String.join(
-        "\n",
-        "// Generated forwarding reaction for connections with the same destination",
-        "// but located in mutually exclusive modes.",
-        "lf_set(" + dest + ", " + source + "->value);");
-  }
+  protected String getConflictingConnectionsInModalReactorsBody(VarRef sourceRef, VarRef destRef) {
+    Instantiation sourceContainer = sourceRef.getContainer();
+    Instantiation destContainer = destRef.getContainer();
+    Port sourceAsPort = (Port) sourceRef.getVariable();
+    Port destAsPort = (Port) destRef.getVariable();
+    WidthSpec sourceWidth = sourceAsPort.getWidthSpec();
+    WidthSpec destWidth = destAsPort.getWidthSpec();
 
-  /** Set the scheduler type in the target config as needed. */
-  private void pickScheduler() {
-    // Don't use a scheduler that does not prioritize reactions based on deadlines
-    // if the program contains a deadline (handler). Use the GEDF_NP scheduler instead.
-    if (!targetConfig.get(SchedulerProperty.INSTANCE).prioritizesDeadline()) {
-      // Check if a deadline is assigned to any reaction
-      if (hasDeadlines(reactors)) {
-        if (!targetConfig.isSet(SchedulerProperty.INSTANCE)) {
-          SchedulerProperty.INSTANCE.override(targetConfig, Scheduler.GEDF_NP);
+    // NOTE: Have to be careful with naming count variables because if the name matches
+    // that of a port, the program will fail to compile.
+
+    // If the source or dest is a port of a bank, we need to iterate over it.
+    var isBank = false;
+    Instantiation bank = null;
+    var sourceContainerRef = "";
+    if (sourceContainer != null) {
+      sourceContainerRef = sourceContainer.getName() + ".";
+      bank = sourceContainer;
+      if (bank.getWidthSpec() != null) {
+        isBank = true;
+        sourceContainerRef = sourceContainer.getName() + "[_lf_j].";
+      }
+    }
+    var sourceIndex = isBank ? "_lf_i" : "_lf_c";
+    var source =
+        sourceContainerRef
+            + sourceAsPort.getName()
+            + ((sourceWidth != null) ? "[" + sourceIndex + "]" : "");
+    var destContainerRef = "";
+    var destIndex = "_lf_c";
+    if (destContainer != null) {
+      destIndex = "_lf_i";
+      destContainerRef = destContainer.getName() + ".";
+      if (bank == null) {
+        bank = destContainer;
+        if (bank.getWidthSpec() != null) {
+          isBank = true;
+          destContainerRef = destContainer.getName() + "[_lf_j].";
         }
       }
     }
-  }
-
-  private boolean hasDeadlines(List<Reactor> reactors) {
-    for (Reactor reactor : reactors) {
-      for (Reaction reaction : allReactions(reactor)) {
-        if (reaction.getDeadline() != null) {
-          return true;
-        }
+    var dest =
+        destContainerRef
+            + destAsPort.getName()
+            + ((destWidth != null) ? "[" + destIndex + "]" : "");
+    var result = new StringBuilder();
+    result.append("{ int _lf_c = 0; SUPPRESS_UNUSED_WARNING(_lf_c); ");
+    // If either side is a bank (only one side should be), iterate over it.
+    if (isBank) {
+      var width = new StringBuilder();
+      for (var term : bank.getWidthSpec().getTerms()) {
+        if (!width.isEmpty()) width.append(" + ");
+        if (term.getCode() != null) width.append(term.getCode().getBody());
+        else if (term.getParameter() != null)
+          width.append("self->" + term.getParameter().getName());
+        else width.append(term.getWidth());
       }
+      result.append("for(int _lf_j = 0; _lf_j < " + width.toString() + "; _lf_j++) { ");
     }
-    return false;
+    // If either side is a multiport, iterate.
+    // Note that one side could be a multiport of width 1 and the other an ordinary port.
+    if (sourceWidth != null || destWidth != null) {
+      var width =
+          (sourceAsPort.getWidthSpec() != null)
+              ? sourceContainerRef + sourceAsPort.getName()
+              : destContainerRef + destAsPort.getName();
+      result.append("for(int _lf_i = 0; _lf_i < " + width + "_width; _lf_i++) { ");
+    }
+    result.append("lf_set(" + dest + ", " + source + "->value); _lf_c++; ");
+    if (sourceWidth != null || destAsPort.getWidthSpec() != null) {
+      result.append(" }");
+    }
+    if (isBank) result.append(" }");
+    result.append(" }");
+    return result.toString();
   }
 
   /**
-   * Look at the 'reactor' eResource. If it is an imported .lf file, incorporate it into the current
-   * program in the following manner:
-   *
-   * <ul>
-   *   <li>Merge its target property with {@code targetConfig}
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
-   */
-  private void inspectReactorEResource(ReactorDecl reactor) {
-    // If the reactor is imported, look at the
-    // target definition of the .lf file in which the reactor is imported from and
-    // append any cmake-include.
-    // Check if the reactor definition is imported
-    if (reactor.eResource() != mainDef.getReactorClass().eResource()) {
-      // Find the LFResource corresponding to this eResource
-      LFResource lfResource = null;
-      for (var resource : resources) {
-        if (resource.getEResource() == reactor.eResource()) {
-          lfResource = resource;
-          break;
-        }
-      }
-      // FIXME: we're doing ad-hoc merging, and no validation. This is **not** the way to do it.
-
-      if (lfResource != null) {
-        // Copy the user files and cmake-includes to the src-gen path of the main .lf file
-        copyUserFiles(lfResource.getTargetConfig(), lfResource.getFileConfig());
-        // Merge the CMake includes from the imported file into the target config
-        if (lfResource.getTargetConfig().isSet(CmakeIncludeProperty.INSTANCE)) {
-          CmakeIncludeProperty.INSTANCE.update(
-              this.targetConfig, lfResource.getTargetConfig().get(CmakeIncludeProperty.INSTANCE));
-        }
-      }
-    }
-  }
-
-  /**
-   * Copy all files or directories listed in the target property {@code files}, {@code
-   * cmake-include}, and {@code _fed_setup} into the src-gen folder of the main .lf file
+   * Copy all files or directories listed in the target property `files`, `cmake-include`,
+   * and `_fed_setup` into the src-gen folder of the main .lf file
    *
    * @param targetConfig The targetConfig to read the target properties from.
    * @param fileConfig The fileConfig used to make the copy and resolve paths.
@@ -750,6 +763,15 @@ public class CGenerator extends GeneratorBase {
           true);
     }
 
+    if (targetConfig.isSet(CmakeInitIncludeProperty.INSTANCE)) {
+      FileUtil.copyFilesOrDirectories(
+          targetConfig.get(CmakeInitIncludeProperty.INSTANCE),
+          destination,
+          fileConfig,
+          messageReporter,
+          true);
+    }
+
     try {
       var file = targetConfig.get(FedSetupProperty.INSTANCE);
       if (file != null) {
@@ -763,20 +785,12 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for defining all instantiated reactors.
-   *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner:
-   *
-   * <ul>
-   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
-   *       files.
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Generate code for defining all instantiated reactors and collect preambles and relevant target
+   * properties associated with imported reactors.
    */
   private void generateReactorDefinitions() throws IOException {
-    var generatedReactors = new LinkedHashSet<TypeParameterizedReactor>();
     if (this.main != null) {
-      generateReactorChildren(this.main, generatedReactors);
+      generateReactorChildren(this.main, new LinkedHashSet<>());
       generateReactorClass(new TypeParameterizedReactor(this.mainDef, reactors));
     }
     // do not generate code for reactors that are not instantiated
@@ -810,7 +824,7 @@ public class CGenerator extends GeneratorBase {
           (builder, rr, userFacing) -> {
             generateAuxiliaryStructs(builder, rr, userFacing);
             if (userFacing) {
-              rr.reactor().getInstantiations().stream()
+              ASTUtils.allInstantiations(rr.reactor()).stream()
                   .map(
                       it ->
                           new TypeParameterizedReactorWithDecl(
@@ -840,15 +854,8 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate code for the children of 'reactor' that belong to 'federate'. Duplicates are avoided.
-   *
-   * <p>Imported reactors' original .lf file is incorporated in the following manner:
-   *
-   * <ul>
-   *   <li>If there are any cmake-include files, add them to the current list of cmake-include
-   *       files.
-   *   <li>If there are any preambles, add them to the preambles of the reactor.
-   * </ul>
+   * Recursively generate code for the children of the given reactor and collect preambles and
+   * relevant target properties associated with imported reactors.
    *
    * @param reactor Used to extract children from
    */
@@ -860,7 +867,6 @@ public class CGenerator extends GeneratorBase {
       if (r.reactorDeclaration != null && !generatedReactors.contains(newTpr)) {
         generatedReactors.add(newTpr);
         generateReactorChildren(r, generatedReactors);
-        inspectReactorEResource(r.reactorDeclaration);
         generateReactorClass(newTpr);
       }
     }
@@ -885,12 +891,14 @@ public class CGenerator extends GeneratorBase {
   /** Copy target-specific header file to the src-gen directory. */
   protected void copyTargetFiles() throws IOException {
     Path dest = fileConfig.getSrcGenPath();
+    var arduino = false;
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
       var platform = targetConfig.get(PlatformProperty.INSTANCE).platform();
       switch (platform) {
         case ARDUINO -> {
           // For Arduino, alter the destination directory.
           dest = dest.resolve("src");
+          arduino = true;
         }
         case ZEPHYR -> {
           // For the Zephyr target, copy default config and board files.
@@ -919,8 +927,27 @@ public class CGenerator extends GeneratorBase {
       Path coreLib = Paths.get(context.getArgs().externalRuntimeUri());
       FileUtil.copyDirectoryContents(coreLib, dest, true);
     } else {
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/core", dest, true, false);
-      FileUtil.copyFromClassPath("/lib/c/reactor-c/lib", dest, true, false);
+      for (var directory : List.of("core", "lib")) {
+        FileUtil.copyFromClassPath("/lib/c/reactor-c/" + directory, dest, true, false);
+      }
+      for (var directory :
+          List.of("logging", "platform", "low_level_platform", "trace", "version", "tag")) {
+        var entry = "/lib/c/reactor-c/" + directory;
+        if (arduino) {
+          if (FileConfig.class.getResource(entry + "/api") != null) {
+            FileUtil.copyFromClassPath(
+                entry + "/api",
+                fileConfig.getSrcGenPath().resolve("include").resolve(directory),
+                true,
+                false);
+          }
+          if (FileConfig.class.getResource(entry + "/impl") != null) {
+            FileUtil.copyFromClassPath(entry + "/impl", dest.resolve(directory), true, false);
+          }
+        } else {
+          FileUtil.copyFromClassPath(entry, dest, true, false);
+        }
+      }
     }
   }
 
@@ -948,7 +975,7 @@ public class CGenerator extends GeneratorBase {
     CodeBuilder header = new CodeBuilder();
     CodeBuilder src = new CodeBuilder();
     final String headerName = CUtil.getName(tpr) + ".h";
-    var guardMacro = headerName.toUpperCase().replace(".", "_");
+    var guardMacro = CUtil.internalIncludeGuard(tpr);
     header.pr("#ifndef " + guardMacro);
     header.pr("#define " + guardMacro);
     generateReactorClassHeaders(tpr, headerName, header, src);
@@ -956,15 +983,9 @@ public class CGenerator extends GeneratorBase {
     generateUserPreamblesForReactor(tpr.reactor(), src);
     generateReactorClassBody(tpr, header, src);
     header.pr("#endif // " + guardMacro);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(header.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(headerName),
-        true);
+    header.writeToFile(fileConfig.getSrcGenPath().resolve(headerName).toString());
     var extension = CCompiler.getFileExtension(cppMode, targetConfig);
-    FileUtil.writeToFile(
-        CodeMap.fromGeneratedCode(src.toString()).getGeneratedCode(),
-        fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension),
-        true);
+    src.writeToFile(fileConfig.getSrcGenPath().resolve(CUtil.getName(tpr) + extension).toString());
   }
 
   protected void generateReactorClassHeaders(
@@ -974,8 +995,13 @@ public class CGenerator extends GeneratorBase {
       header.pr("extern \"C\" {");
     }
     header.pr("#include \"include/core/reactor.h\"");
-    src.pr("#include \"include/api/api.h\"");
-    src.pr("#include \"include/core/platform.h\"");
+    src.pr("#include \"include/api/schedule.h\"");
+    src.pr("#include <string.h>"); // For memcpy.
+    if (CPreambleGenerator.arduinoBased(targetConfig)) {
+      src.pr("#include \"include/low_level_platform/api/low_level_platform.h\"");
+    } else {
+      src.pr("#include \"low_level_platform/api/low_level_platform.h\"");
+    }
     generateIncludes(tpr);
     if (cppMode) {
       src.pr("}");
@@ -992,19 +1018,21 @@ public class CGenerator extends GeneratorBase {
     // Some of the following methods create lines of code that need to
     // go into the constructor.  Collect those lines of code here:
     var constructorCode = new CodeBuilder();
+    var suppressLineDirectives = targetConfig.get(NoSourceMappingProperty.INSTANCE);
     generateAuxiliaryStructs(header, tpr, false);
     // The following must go before the self struct so the #include watchdog.h ends up in the
     // header.
-    CWatchdogGenerator.generateWatchdogs(src, header, tpr, messageReporter);
+    CWatchdogGenerator.generateWatchdogs(src, header, tpr, suppressLineDirectives, messageReporter);
     generateSelfStruct(header, tpr, constructorCode);
     generateMethods(src, tpr);
     generateReactions(src, tpr);
     generateConstructor(src, header, tpr, constructorCode);
   }
 
-  /** Generate methods for {@code reactor}. */
+  /** Generate methods for `reactor`. */
   protected void generateMethods(CodeBuilder src, TypeParameterizedReactor tpr) {
-    CMethodGenerator.generateMethods(tpr, src, types);
+    CMethodGenerator.generateMethods(
+        tpr, src, types, this.targetConfig.get(NoSourceMappingProperty.INSTANCE));
   }
 
   /**
@@ -1015,8 +1043,10 @@ public class CGenerator extends GeneratorBase {
   protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
     for (Preamble p : ASTUtils.allPreambles(reactor)) {
       src.pr("// *********** From the preamble, verbatim:");
-      src.prSourceLineNumber(p.getCode());
+      var suppressLineDirectives = this.targetConfig.get(NoSourceMappingProperty.INSTANCE);
+      src.prSourceLineNumber(p.getCode(), suppressLineDirectives);
       src.pr(toText(p.getCode()));
+      src.prEndSourceLineNumber(suppressLineDirectives);
       src.pr("\n// *********** End of preamble.");
     }
   }
@@ -1056,13 +1086,13 @@ public class CGenerator extends GeneratorBase {
     federatedExtension.pr(
         String.format(
             """
-             #ifdef FEDERATED
-             #ifdef FEDERATED_DECENTRALIZED
-             %s intended_tag;
-             #endif
-             %s physical_time_of_arrival;
-             #endif
-             """,
+            #ifdef FEDERATED
+            #ifdef FEDERATED_DECENTRALIZED
+            %s intended_tag;
+            #endif
+            %s physical_time_of_arrival;
+            #endif
+            """,
             types.getTargetTagType(), types.getTargetTimeType()));
     for (Port p : allPorts(tpr.reactor())) {
       builder.pr(
@@ -1088,7 +1118,7 @@ public class CGenerator extends GeneratorBase {
       CodeBuilder builder, TypeParameterizedReactor tpr, CodeBuilder constructorCode) {
     var reactor = toDefinition(tpr.reactor());
     var selfType = CUtil.selfType(tpr);
-
+    var suppressLineDirectives = this.targetConfig.get(NoSourceMappingProperty.INSTANCE);
     // Construct the typedef for the "self" struct.
     // Create a type name for the self struct.
     var body = new CodeBuilder();
@@ -1097,10 +1127,10 @@ public class CGenerator extends GeneratorBase {
     generateSelfStructExtension(body, reactor, constructorCode);
 
     // Next handle parameters.
-    body.pr(CParameterGenerator.generateDeclarations(tpr, types));
+    body.pr(CParameterGenerator.generateDeclarations(tpr, types, suppressLineDirectives));
 
     // Next handle states.
-    body.pr(CStateGenerator.generateDeclarations(tpr, types));
+    body.pr(CStateGenerator.generateDeclarations(tpr, types, suppressLineDirectives));
 
     // Next handle actions.
     CActionGenerator.generateDeclarations(tpr, body, constructorCode);
@@ -1187,13 +1217,11 @@ public class CGenerator extends GeneratorBase {
           // to be malloc'd at initialization.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + " " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
@@ -1205,20 +1233,18 @@ public class CGenerator extends GeneratorBase {
           // self struct of the container.
           if (!ASTUtils.isMultiport(port)) {
             // Not a multiport.
-            body.pr(
-                port, variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
+            body.pr(variableStructType(port, containedTpr, false) + "* " + port.getName() + ";");
           } else {
             // Is a multiport.
             // Here, we will use an array of pointers.
             // Memory will be malloc'd in initialization.
             body.pr(
-                port,
                 String.join(
                     "\n",
                     variableStructType(port, containedTpr, false) + "** " + port.getName() + ";",
                     "int " + port.getName() + "_width;"));
           }
-          body.pr(port, "trigger_t " + port.getName() + "_trigger;");
+          body.pr("trigger_t " + port.getName() + "_trigger;");
           var reactorIndex = "";
           if (containedReactor.getWidthSpec() != null) {
             reactorIndex = "[reactor_index]";
@@ -1232,7 +1258,6 @@ public class CGenerator extends GeneratorBase {
               "self->_lf_" + containedReactor.getName() + reactorIndex + "." + port.getName();
 
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   portOnSelf
                       + "_trigger.intended_tag = (tag_t) { .time = NEVER, .microstep = 0u};"));
@@ -1240,12 +1265,10 @@ public class CGenerator extends GeneratorBase {
           var triggered = contained.reactionsTriggered(containedReactor, port);
           //noinspection StatementWithEmptyBody
           if (triggered.size() > 0) {
-            body.pr(
-                port, "reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
+            body.pr("reaction_t* " + port.getName() + "_reactions[" + triggered.size() + "];");
             var triggeredCount = 0;
             for (Integer index : triggered) {
               constructorCode.pr(
-                  port,
                   portOnSelf
                       + "_reactions["
                       + triggeredCount++
@@ -1253,23 +1276,20 @@ public class CGenerator extends GeneratorBase {
                       + index
                       + ";");
             }
-            constructorCode.pr(
-                port, portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
+            constructorCode.pr(portOnSelf + "_trigger.reactions = " + portOnSelf + "_reactions;");
           } else {
             // Since the self struct is created using calloc, there is no need to set
             // self->_lf_"+containedReactor.getName()+"."+port.getName()+"_trigger.reactions = NULL
           }
           // Since the self struct is created using calloc, there is no need to set falsy fields.
           constructorCode.pr(
-              port,
               String.join(
                   "\n",
-                  portOnSelf + "_trigger.last = NULL;",
+                  portOnSelf + "_trigger.last_tag = NEVER_TAG;",
                   portOnSelf + "_trigger.number_of_reactions = " + triggered.size() + ";"));
 
           // Set the physical_time_of_arrival
           constructorCode.pr(
-              port,
               CExtensionUtils.surroundWithIfFederated(
                   portOnSelf + "_trigger.physical_time_of_arrival = NEVER;"));
 
@@ -1351,9 +1371,8 @@ public class CGenerator extends GeneratorBase {
     // For each reaction instance, allocate the arrays that will be used to
     // trigger downstream reactions.
 
-    var enclaveInfo = CUtil.getClosestEnclave(instance).enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(instance);
-    var enclaveId = CUtil.getEnvironmentId(instance);
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
+    var enclaveId = instance.containingEnclaveReactor.uniqueID();
     for (ReactionInstance reaction : instance.reactions) {
       var reactor = reaction.getParent();
       var temp = new CodeBuilder();
@@ -1372,7 +1391,7 @@ public class CGenerator extends GeneratorBase {
                   + "]++] = &"
                   + reactionRef
                   + ";");
-          enclaveInfo.numStartupReactions += reactor.getTotalWidth();
+          reactor.containingEnclave.numStartupReactions += reactor.getTotalWidth();
           foundOne = true;
         } else if (trigger.isShutdown()) {
           temp.pr(
@@ -1383,18 +1402,15 @@ public class CGenerator extends GeneratorBase {
                   + reactionRef
                   + ";");
           foundOne = true;
-          enclaveInfo.numShutdownReactions += reactor.getTotalWidth();
+          reactor.containingEnclave.numShutdownReactions += reactor.getTotalWidth();
 
           if (targetConfig.get(TracingProperty.INSTANCE).isEnabled()) {
             var description = CUtil.getShortenedName(reactor);
             var reactorRef = CUtil.reactorRef(reactor);
-            var envTraceRef = CUtil.getEnvironmentStruct(reactor) + ".trace";
             temp.pr(
                 String.join(
                     "\n",
                     "_lf_register_trace_event("
-                        + envTraceRef
-                        + ","
                         + reactorRef
                         + ", &("
                         + reactorRef
@@ -1409,7 +1425,7 @@ public class CGenerator extends GeneratorBase {
                   + "]++] = &"
                   + reactionRef
                   + ";");
-          enclaveInfo.numResetReactions += reactor.getTotalWidth();
+          reactor.containingEnclave.numResetReactions += reactor.getTotalWidth();
           foundOne = true;
         }
       }
@@ -1421,18 +1437,12 @@ public class CGenerator extends GeneratorBase {
    * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
    * and mark outputs absent between time steps. This function puts the code into startTimeStep.
    */
-  /**
-   * Generate code to set up the tables used in _lf_start_time_step to decrement reference counts
-   * and mark outputs absent between time steps. This function puts the code into startTimeStep.
-   */
   private void generateStartTimeStep(ReactorInstance instance) {
     // Avoid generating dead code if nothing is relevant.
     var foundOne = false;
     var temp = new CodeBuilder();
     var containerSelfStructName = CUtil.reactorRef(instance);
-    var enclave = CUtil.getClosestEnclave(instance);
-    var enclaveInfo = enclave.enclaveInfo;
-    var enclaveStruct = CUtil.getEnvironmentStruct(enclave);
+    var enclaveStruct = CUtil.getEnvironmentStruct(instance.containingEnclave);
 
     // Handle inputs that get sent data from a reaction rather than from
     // another contained reactor and reactions that are triggered by an
@@ -1452,6 +1462,9 @@ public class CGenerator extends GeneratorBase {
 
           temp.pr("// Add port " + port.getFullName() + " to array of is_present fields.");
 
+          // We will be iterating over instance (if a bank) and the parent of the port (if a bank).
+          var width = instance.getWidth() * port.getParent().getWidth();
+
           if (!Objects.equal(port.getParent(), instance)) {
             // The port belongs to contained reactor, so we also have
             // iterate over the instance bank members.
@@ -1460,16 +1473,29 @@ public class CGenerator extends GeneratorBase {
             temp.startScopedBlock(instance);
             temp.startScopedBankChannelIteration(port, null);
           } else {
+            // This branch should not occur because if the port's parent is instance and the port
+            // is an effect of a reaction of instance, then the port must be an output, not an
+            // input.
+            // Nevertheless, leave this here in case we missed something.
             temp.startScopedBankChannelIteration(port, "count");
+            width = port.getParent().getWidth();
           }
           var portRef = CUtil.portRefNested(port);
           var con = (port.isMultiport()) ? "->" : ".";
 
+          var indexString =
+              String.valueOf(instance.containingEnclave.numIsPresentFields)
+                  + " + ("
+                  + CUtil.runtimeIndex(instance.getParent())
+                  + ") * "
+                  + width * port.getWidth()
+                  + " + count";
+
           temp.pr(
               enclaveStruct
                   + ".is_present_fields["
-                  + enclaveInfo.numIsPresentFields
-                  + " + count] = &"
+                  + indexString
+                  + "] = &"
                   + portRef
                   + con
                   + "is_present;");
@@ -1478,19 +1504,20 @@ public class CGenerator extends GeneratorBase {
               CExtensionUtils.surroundWithIfFederatedDecentralized(
                   enclaveStruct
                       + "._lf_intended_tag_fields["
-                      + enclaveInfo.numIsPresentFields
-                      + " + count] = &"
+                      + indexString
+                      + "] = &"
                       + portRef
                       + con
                       + "intended_tag;"));
 
-          enclaveInfo.numIsPresentFields += port.getWidth() * port.getParent().getTotalWidth();
+          instance.containingEnclave.numIsPresentFields +=
+              port.getParent().getTotalWidth() * port.getWidth();
 
           if (!Objects.equal(port.getParent(), instance)) {
             temp.pr("count++;");
-            temp.endScopedBlock();
-            temp.endScopedBlock();
             temp.endScopedBankChannelIteration(port, null);
+            temp.endScopedBlock();
+            temp.endScopedBlock();
           } else {
             temp.endScopedBankChannelIteration(port, "count");
           }
@@ -1503,18 +1530,29 @@ public class CGenerator extends GeneratorBase {
 
     for (ActionInstance action : instance.actions) {
       foundOne = true;
-      temp.startScopedBlock(instance);
+
+      // Build the index into `is_present_fields` for this action.
+      var indexString =
+          String.valueOf(instance.containingEnclave.numIsPresentFields)
+              + " + ("
+              + CUtil.runtimeIndex(instance.getParent())
+              + ") * "
+              + action.getParent().getWidth();
+
+      if (instance.isBank()) {
+        indexString += " +  " + CUtil.bankIndexName(instance);
+      }
 
       temp.pr(
           String.join(
               "\n",
               "// Add action " + action.getFullName() + " to array of is_present fields.",
-              enclaveStruct + ".is_present_fields[" + enclaveInfo.numIsPresentFields + "] ",
-              "        = &"
+              enclaveStruct + ".is_present_fields[" + indexString + "]",
+              "        = (bool *) &"
                   + containerSelfStructName
-                  + "->_lf_"
+                  + "->_lf__"
                   + action.getName()
-                  + ".is_present;"));
+                  + ".status;"));
 
       // Intended_tag is only applicable to actions in federated execution with decentralized
       // coordination.
@@ -1523,18 +1561,14 @@ public class CGenerator extends GeneratorBase {
               String.join(
                   "\n",
                   "// Add action " + action.getFullName() + " to array of intended_tag fields.",
-                  enclaveStruct
-                      + "._lf_intended_tag_fields["
-                      + enclaveInfo.numIsPresentFields
-                      + "] ",
+                  enclaveStruct + "._lf_intended_tag_fields[" + indexString + "]",
                   "        = &"
                       + containerSelfStructName
                       + "->_lf_"
                       + action.getName()
                       + ".intended_tag;")));
 
-      enclaveInfo.numIsPresentFields += action.getParent().getTotalWidth();
-      temp.endScopedBlock();
+      instance.containingEnclave.numIsPresentFields += action.getParent().getTotalWidth();
     }
     if (foundOne) startTimeStep.pr(temp.toString());
     temp = new CodeBuilder();
@@ -1548,17 +1582,35 @@ public class CGenerator extends GeneratorBase {
         temp.pr("int count = 0; SUPPRESS_UNUSED_WARNING(count);");
         temp.startScopedBlock(child);
 
-        var channelCount = 0;
+        // Need to find the total number of channels over all output ports of the child before
+        // generating the
+        // iteration.
+        var totalChannelCount = 0;
+        for (PortInstance output : child.outputs) {
+          if (!output.getDependsOnReactions().isEmpty()) {
+            totalChannelCount += output.getWidth();
+          }
+        }
         for (PortInstance output : child.outputs) {
           if (!output.getDependsOnReactions().isEmpty()) {
             foundOne = true;
-            temp.pr("// Add port " + output.getFullName() + " to array of is_present fields.");
+            temp.pr(
+                "// Add output port " + output.getFullName() + " to array of is_present fields.");
             temp.startChannelIteration(output);
+            var indexString =
+                "("
+                    + CUtil.runtimeIndex(instance)
+                    + ") * "
+                    + totalChannelCount * child.getWidth()
+                    + " + "
+                    + instance.containingEnclave.numIsPresentFields
+                    + " + count";
+
             temp.pr(
                 enclaveStruct
                     + ".is_present_fields["
-                    + enclaveInfo.numIsPresentFields
-                    + " + count] = &"
+                    + indexString
+                    + "] = &"
                     + CUtil.portRef(output)
                     + ".is_present;");
 
@@ -1568,22 +1620,23 @@ public class CGenerator extends GeneratorBase {
                 CExtensionUtils.surroundWithIfFederatedDecentralized(
                     String.join(
                         "\n",
-                        "// Add port " + output.getFullName() + " to array of intended_tag fields.",
+                        "// Add output port "
+                            + output.getFullName()
+                            + " to array of intended_tag fields.",
                         enclaveStruct
                             + "._lf_intended_tag_fields["
-                            + enclaveInfo.numIsPresentFields
-                            + " + count] = &"
+                            + indexString
+                            + "] = &"
                             + CUtil.portRef(output)
                             + ".intended_tag;")));
 
             temp.pr("count++;");
-            channelCount += output.getWidth();
             temp.endChannelIteration(output);
           }
         }
-        enclaveInfo.numIsPresentFields += channelCount * child.getTotalWidth();
         temp.endScopedBlock();
         temp.endScopedBlock();
+        instance.containingEnclave.numIsPresentFields += totalChannelCount * child.getTotalWidth();
       }
     }
     if (foundOne) startTimeStep.pr(temp.toString());
@@ -1601,11 +1654,21 @@ public class CGenerator extends GeneratorBase {
   private void generateTimerInitializations(ReactorInstance instance) {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
-        initializeTriggerObjects.pr(CTimerGenerator.generateInitializer(timer));
-        CUtil.getClosestEnclave(instance).enclaveInfo.numTimerTriggers +=
-            timer.getParent().getTotalWidth();
+        initializeTriggerObjects.pr(
+            CTimerGenerator.generateInitializer(
+                timer, instance.containingEnclave, supportsNativeParameterReferences()));
+        instance.containingEnclave.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
+  }
+
+  /**
+   * Return true if the generated C self struct stores parameters as native C types so that
+   * timer/deadline init code can reference them directly. The Python target stores parameters
+   * as PyObject* and must override this to return false.
+   */
+  protected boolean supportsNativeParameterReferences() {
+    return true;
   }
 
   /**
@@ -1696,8 +1759,10 @@ public class CGenerator extends GeneratorBase {
         CUtil.reactorRefName(instance)
             + "["
             + CUtil.runtimeIndex(instance)
-            + "]->base.environment = &envs["
-            + CUtil.getEnvironmentId(instance)
+            + "]->base.environment = &"
+            + CUtil.ENVIRONMENT_VARIABLE_NAME
+            + "["
+            + instance.containingEnclaveReactor.uniqueID()
             + "];");
     // Generate code to initialize the "self" struct in the
     // _lf_initialize_trigger_objects function.
@@ -1707,8 +1772,7 @@ public class CGenerator extends GeneratorBase {
     initializeOutputMultiports(instance);
     initializeInputMultiports(instance);
     recordBuiltinTriggers(instance);
-    watchdogCount +=
-        CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
+    CWatchdogGenerator.generateInitializeWatchdogs(initializeTriggerObjects, instance);
 
     // Next, initialize the "self" struct with state variables.
     // These values may be expressions that refer to the parameter values defined above.
@@ -1719,6 +1783,7 @@ public class CGenerator extends GeneratorBase {
     generateActionInitializations(instance);
     generateInitializeActionToken(instance);
     generateSetDeadline(instance);
+    initializeReactorMutex(instance);
     generateModeStructure(instance);
 
     // Recursively generate code for the children.
@@ -1757,7 +1822,8 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor.
    */
   private void generateActionInitializations(ReactorInstance instance) {
-    initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance));
+    initializeTriggerObjects.pr(
+        CActionGenerator.generateInitializers(instance, supportsNativeParameterReferences()));
   }
 
   /**
@@ -1775,7 +1841,7 @@ public class CGenerator extends GeneratorBase {
         var payloadSize = "0";
         if (!type.isUndefined()) {
           var typeStr = types.getTargetType(type);
-          if (CUtil.isTokenType(type, types)) {
+          if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
             typeStr = CUtil.rootType(typeStr);
           }
           if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {
@@ -1820,8 +1886,7 @@ public class CGenerator extends GeneratorBase {
         initializeTriggerObjects.pr(
             CStateGenerator.generateInitializer(instance, selfRef, stateVar, mode, types));
         if (mode != null && stateVar.isReset()) {
-          CUtil.getClosestEnclave(instance).enclaveInfo.numModalResetStates +=
-              instance.getTotalWidth();
+          instance.containingEnclave.numModalResetStates += instance.getTotalWidth();
         }
       }
     }
@@ -1836,12 +1901,47 @@ public class CGenerator extends GeneratorBase {
     for (ReactionInstance reaction : instance.reactions) {
       var selfRef = CUtil.reactorRef(reaction.getParent()) + "->_lf__reaction_" + reaction.index;
       if (reaction.declaredDeadline != null) {
-        var deadline = reaction.declaredDeadline.maxDelay;
-        initializeTriggerObjects.pr(
-            selfRef + ".deadline = " + types.getTargetTimeExpr(deadline) + ";");
+        var delayExpr = reaction.getDefinition().getDeadline().getDelay();
+        if (supportsNativeParameterReferences()
+            && delayExpr instanceof ParameterReference paramRef) {
+          var reactorRef = CUtil.reactorRef(reaction.getParent());
+          initializeTriggerObjects.pr(
+              selfRef
+                  + ".deadline = "
+                  + reactorRef
+                  + "->"
+                  + paramRef.getParameter().getName()
+                  + ";");
+        } else {
+          var deadline = reaction.declaredDeadline.maxDelay;
+          initializeTriggerObjects.pr(
+              selfRef + ".deadline = " + types.getTargetTimeExpr(deadline) + ";");
+        }
       } else { // No deadline.
         initializeTriggerObjects.pr(selfRef + ".deadline = NEVER;");
       }
+    }
+  }
+
+  /**
+   * Generate the code that initializes the reactor_mutex of the specified reactor instance.
+   *
+   * @param instance The reactor instance.
+   */
+  private void initializeReactorMutex(ReactorInstance instance) {
+    var selfRef = CUtil.reactorRef(instance);
+    if (this.enclaveAST.enclavedConnections.containsKey(instance.getDefinition())
+        || instance.containingEnclave.numWatchdogs > 0) {
+      initializeTriggerObjects.pr(
+          String.join(
+              "\n",
+              "// Allocate and initialize the local mutex",
+              selfRef + "->base.reactor_mutex = (void *) calloc(1, sizeof(lf_mutex_t));",
+              "lf_mutex_init((lf_mutex_t *) " + selfRef + "->base.reactor_mutex);"));
+    } else {
+      initializeTriggerObjects.pr("#if !defined LF_SINGLE_THREADED");
+      initializeTriggerObjects.pr(selfRef + "->base.reactor_mutex = NULL;");
+      initializeTriggerObjects.pr("#endif");
     }
   }
 
@@ -1853,7 +1953,7 @@ public class CGenerator extends GeneratorBase {
   private void generateModeStructure(ReactorInstance instance) {
     CModesGenerator.generateModeStructure(instance, initializeTriggerObjects);
     if (!instance.modes.isEmpty()) {
-      CUtil.getClosestEnclave(instance).enclaveInfo.numModalReactors += instance.getTotalWidth();
+      instance.containingEnclave.numModalReactors += instance.getTotalWidth();
     }
   }
 
@@ -1897,6 +1997,22 @@ public class CGenerator extends GeneratorBase {
             selfRef + "->" + parameter.getName() + " = " + initializer + ";");
       }
     }
+    // For the main reactor, override parameters with command-line values if given.
+    if (instance.isMainOrFederated() && !cliParameters.isEmpty()) {
+      for (Parameter param : cliParameters) {
+        var name = param.getName();
+        var baseType = param.getType() != null ? ASTUtils.baseType(param.getType()) : "";
+        initializeTriggerObjects.pr("if (_lf_cli_" + name + "_given) {");
+        if ("string".equals(baseType)) {
+          // CLI variable is const char*; self struct field is char* (typedef string).
+          initializeTriggerObjects.pr(
+              "    " + selfRef + "->" + name + " = (char*)_lf_cli_" + name + ";");
+        } else {
+          initializeTriggerObjects.pr("    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        }
+        initializeTriggerObjects.pr("}");
+      }
+    }
   }
 
   /**
@@ -1908,7 +2024,7 @@ public class CGenerator extends GeneratorBase {
     var reactorSelfStruct = CUtil.reactorRef(reactor);
     for (PortInstance output : reactor.outputs) {
       initializeTriggerObjects.pr(
-          CPortGenerator.initializeOutputMultiport(output, reactorSelfStruct));
+          CPortGenerator.initializeOutputMultiport(output, reactorSelfStruct, types));
     }
   }
 
@@ -1936,6 +2052,7 @@ public class CGenerator extends GeneratorBase {
    * @param context
    * @return
    */
+  @Override
   protected DockerGenerator getDockerGenerator(LFGeneratorContext context) {
     return new CDockerGenerator(context);
   }
@@ -1943,8 +2060,8 @@ public class CGenerator extends GeneratorBase {
   // //////////////////////////////////////////
   // // Protected methods.
 
-  // Perform set up that does not generate code
-  protected void setUpGeneralParameters() {
+  // Perform set up that does not generate code. Return false on failure.
+  protected boolean setUpGeneralParameters() {
     accommodatePhysicalActionsIfPresent();
     CompileDefinitionsProperty.INSTANCE.update(
         targetConfig,
@@ -1954,16 +2071,33 @@ public class CGenerator extends GeneratorBase {
     // Create the main reactor instance if there is a main reactor.
     this.main =
         ASTUtils.createMainReactorInstance(mainDef, reactors, messageReporter, targetConfig);
+    if (this.main == null) {
+      // Something went wrong (causality cycle?). Stop.
+      return false;
+    }
+
+    // Create the enclave generator. This step will also check for zero-delay cycles in the
+    // enclave graph.
+    enclaveGenerator = new CEnclaveGenerator(main, enclaveAST, fileConfig.name, messageReporter);
+
     if (hasModalReactors) {
       // So that each separate compile knows about modal reactors, do this:
       CompileDefinitionsProperty.INSTANCE.update(targetConfig, Map.of("MODAL_REACTORS", "TRUE"));
+    }
+    if (!targetConfig.get(SingleThreadedProperty.INSTANCE)) {
+      CompileDefinitionsProperty.INSTANCE.update(
+          targetConfig,
+          Map.of(
+              "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
+              "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
       final var platformOptions = targetConfig.get(PlatformProperty.INSTANCE);
       if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
           && platformOptions.platform() == Platform.ARDUINO
-          && (platformOptions.board() == null || !platformOptions.board().contains("mbed"))) {
+          && (!platformOptions.board().setByUser()
+              || !platformOptions.board().value().contains("mbed"))) {
         // non-MBED boards should not use threading
         messageReporter
             .nowhere()
@@ -1975,7 +2109,7 @@ public class CGenerator extends GeneratorBase {
 
       if (platformOptions.platform() == Platform.ARDUINO
           && !targetConfig.get(NoCompileProperty.INSTANCE)
-          && platformOptions.board() == null) {
+          && !platformOptions.board().setByUser()) {
         messageReporter
             .nowhere()
             .info(
@@ -1988,29 +2122,16 @@ public class CGenerator extends GeneratorBase {
 
       if (platformOptions.platform() == Platform.ZEPHYR
           && !targetConfig.get(SingleThreadedProperty.INSTANCE)
-          && platformOptions.userThreads() >= 0) {
+          && platformOptions.userThreads().value() >= 0) {
         targetConfig
             .get(CompileDefinitionsProperty.INSTANCE)
-            .put(PlatformOption.USER_THREADS.name(), String.valueOf(platformOptions.userThreads()));
-      } else if (platformOptions.userThreads() > 0) {
-        messageReporter
-            .nowhere()
-            .warning(
-                "Specifying user threads is only for threaded Lingua Franca on the Zephyr platform."
-                    + " This option will be ignored."); // FIXME: do this during validation instead
-      }
-
-      if (!targetConfig.get(
-          SingleThreadedProperty.INSTANCE)) { // FIXME: This logic is duplicated in CMake
-        pickScheduler();
-        // FIXME: this and pickScheduler should be combined.
-        var map = new HashMap<String, String>();
-        map.put("SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef());
-        map.put("NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE)));
-        CompileDefinitionsProperty.INSTANCE.update(targetConfig, map);
+            .put(
+                PlatformOption.USER_THREADS.name(),
+                String.valueOf(platformOptions.userThreads().value()));
       }
       pickCompilePlatform();
     }
+    return true;
   }
 
   protected void handleProtoFiles() {
@@ -2035,28 +2156,82 @@ public class CGenerator extends GeneratorBase {
 
   /** Generate top-level preamble code. */
   protected String generateTopLevelPreambles(Reactor reactor) {
+    // Reactors that are instantiated or inherited by the specified reactor need to have
+    // their file-level preambles included. Avoid including the same preamble multiple times.
+    var visited = new LinkedHashSet<EObject>();
+    return generateTopLevelPreambles(reactor, visited);
+  }
+
+  private String generateTopLevelPreambles(Reactor reactor, Set<EObject> visited) {
     CodeBuilder builder = new CodeBuilder();
-    var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
+
+    // First, generate the preambles for the base classes of the specified reactor.
+    // Use ASTUtils.superClasses to get the full resolved superclass chain, which handles
+    // imported reactors correctly. This returns classes in deepest-first order.
+    var allSuperClasses = ASTUtils.superClasses(reactor);
+    if (allSuperClasses != null) {
+      for (var superClass : allSuperClasses) {
+        generatePreambleForFile(superClass.eContainer(), visited, builder);
+      }
+    }
+
+    // Generate preamble for the current reactor's file (may have been visited via superclasses).
+    generatePreambleForFile(reactor.eContainer(), visited, builder);
+
+    // Finally, generate the preambles for all the reactors that are instantiated.
+    // This recursively collects preambles from instantiated reactors and their superclasses.
+    for (var instantiation : ASTUtils.allInstantiations(reactor)) {
+      var instantiated = toDefinition(instantiation.getReactorClass());
+      if (instantiated != null) {
+        builder.pr(generateTopLevelPreambles(instantiated, visited));
+      }
+    }
+    return builder.toString();
+  }
+
+  /**
+   * Generate guarded preamble code for the given file (Model container) if not already visited.
+   *
+   * @param fileContainer The eContainer of a reactor (the Model/file containing it).
+   * @param visited Set of already-visited containers to avoid duplicates.
+   * @param builder The CodeBuilder to append the preamble to.
+   */
+  private void generatePreambleForFile(
+      EObject fileContainer, Set<EObject> visited, CodeBuilder builder) {
+    if (visited.contains(fileContainer)) {
+      return;
+    }
+    visited.add(fileContainer);
+
+    var preambles = ((Model) fileContainer).getPreambles();
+    var hasPreamble =
+        !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
+    if (!hasPreamble) {
+      return;
+    }
+
+    var guard = "TOP_LEVEL_PREAMBLE_" + fileContainer.hashCode() + "_H";
     builder.pr("#ifndef " + guard);
     builder.pr("#define " + guard);
-    // Reactors that are instantiated by the specified reactor need to have
-    // their file-level preambles included.  This needs to also include file-level
-    // preambles of base classes of those reactors.
-    Stream.concat(Stream.of(reactor), ASTUtils.allNestedClasses(reactor))
-        .flatMap(it -> ASTUtils.allFileLevelPreambles(it).stream())
-        .collect(Collectors.toSet())
-        .forEach(it -> builder.pr(toText(it.getCode())));
+
+    for (var preamble : preambles) {
+      var code = preamble.getCode();
+      if (code != null) {
+        builder.pr(toText(code));
+      }
+    }
+
+    // Also generate includes for all the .proto files that are used.
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       var dotIndex = file.lastIndexOf(".");
       var rootFilename = file;
       if (dotIndex > 0) {
         rootFilename = file.substring(0, dotIndex);
       }
-      code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
       builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
     }
-    builder.pr("#endif");
-    return builder.toString();
+
+    builder.pr("#endif // " + guard);
   }
 
   protected boolean targetLanguageIsCpp() {
@@ -2074,7 +2249,7 @@ public class CGenerator extends GeneratorBase {
    *     if there is none), and the message (or an empty string if there is none).
    */
   @Override
-  public GeneratorBase.ErrorFileAndLine parseCommandOutput(String line) {
+  public ErrorFileAndLine parseCommandOutput(String line) {
     var matcher = compileErrorPattern.matcher(line);
     if (matcher.find()) {
       var result = new ErrorFileAndLine();

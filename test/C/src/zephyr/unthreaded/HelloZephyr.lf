@@ -1,5 +1,6 @@
 target C {
-  platform: "Zephyr"
+  platform: "Zephyr",
+  single-threaded: true
 }
 
 main reactor {

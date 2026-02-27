@@ -1,0 +1,17 @@
+/** Test if physical connections break the cycle. */
+target C
+
+reactor Foo {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=  =}
+}
+
+main reactor PhysicalConnectionCycle {
+  a = new Foo()
+  b = new Foo()
+
+  a.out ~> b.in
+  b.out -> a.in
+}

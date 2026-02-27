@@ -1,6 +1,7 @@
 package org.lflang.federated.generator;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -9,17 +10,19 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Import;
 import org.lflang.lf.Model;
+import org.lflang.util.ImportUtil;
 
 /**
  * Helper class to generate import statements for a federate.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedImportEmitter {
 
   private static final Set<Import> visitedImports = new HashSet<>();
 
-  /** Generate import statements for {@code federate}. */
+  /** Generate import statements for `federate`. */
   String generateImports(FederateInstance federate, FederationFileConfig fileConfig) {
     var imports =
         ((Model) federate.instantiation.eContainer().eContainer())
@@ -31,7 +34,15 @@ public class FedImportEmitter {
         .forEach(
             i -> {
               visitedImports.add(i);
-              Path importPath = fileConfig.srcPath.resolve(i.getImportURI()).toAbsolutePath();
+              Path importPath =
+                  fileConfig
+                      .srcPath
+                      .resolve(
+                          i.getImportURI() != null
+                              ? Paths.get(i.getImportURI())
+                              : ImportUtil.buildPackageURIfromSrc(
+                                  i.getImportPackage(), fileConfig.srcPath.toString()))
+                      .toAbsolutePath();
               i.setImportURI(
                   fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
             });

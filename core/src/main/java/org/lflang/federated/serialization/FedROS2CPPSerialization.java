@@ -1,30 +1,3 @@
-/*************
- * Copyright (c) 2021, The University of California at Berkeley.
- * Copyright (c) 2021, The University of Texas at Dallas.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.federated.serialization;
 
 import org.lflang.generator.GeneratorBase;
@@ -35,6 +8,7 @@ import org.lflang.target.property.CompilerProperty;
  * Enables support for ROS 2 serialization in C/C++ code.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedROS2CPPSerialization implements FedSerialization {
 
@@ -114,6 +88,8 @@ public class FedROS2CPPSerialization implements FedSerialization {
    * Variant of @see generateNetworkSerializerCode(String varName, String originalType) that also
    * supports shared pointer (i.e., std::shared_ptr<>) definitions of ROS port types.
    *
+   * @param varName The variable name.
+   * @param originalType The original type name.
    * @param isSharedPtrType Indicates whether the port type is a shared pointer or not.
    */
   public StringBuilder generateNetworkSerializerCode(
@@ -203,11 +179,11 @@ public class FedROS2CPPSerialization implements FedSerialization {
 
     preamble.append(
         """
-                    #include "rcutils/allocator.h"
-                    #include "rclcpp/rclcpp.hpp"
-                    #include "rclcpp/serialization.hpp"
-                    #include "rclcpp/serialized_message.hpp"
-                    """);
+        #include "rcutils/allocator.h"
+        #include "rclcpp/rclcpp.hpp"
+        #include "rclcpp/serialization.hpp"
+        #include "rclcpp/serialized_message.hpp"
+        """);
 
     return preamble;
   }
@@ -222,16 +198,16 @@ public class FedROS2CPPSerialization implements FedSerialization {
 
     cMakeExtension.append(
         """
-                    enable_language(CXX)
-                    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -O2")
+        enable_language(CXX)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-write-strings -O2")
 
-                    find_package(ament_cmake REQUIRED)
-                    find_package(rclcpp REQUIRED)
-                    find_package(rclcpp_components REQUIRED)
-                    find_package(rcutils)
-                    find_package(rmw REQUIRED)
+        find_package(ament_cmake REQUIRED)
+        find_package(rclcpp REQUIRED)
+        find_package(rclcpp_components REQUIRED)
+        find_package(rcutils)
+        find_package(rmw REQUIRED)
 
-                    ament_target_dependencies( ${LF_MAIN_TARGET} rclcpp rmw)""");
+        ament_target_dependencies(${LF_MAIN_TARGET} PUBLIC rclcpp rmw)""");
 
     return cMakeExtension;
   }

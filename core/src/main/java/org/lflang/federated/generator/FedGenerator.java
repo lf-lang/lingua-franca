@@ -1,10 +1,12 @@
 package org.lflang.federated.generator;
 
-import static org.lflang.generator.DockerGenerator.dockerGeneratorFactory;
+import static org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory;
+import static org.lflang.target.property.type.PlatformType.Platform.supportsFederated;
 
 import com.google.inject.Injector;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
@@ -31,8 +34,6 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.CodeMap;
-import org.lflang.generator.DockerData;
-import org.lflang.generator.FedDockerComposeGenerator;
 import org.lflang.generator.GeneratorArguments;
 import org.lflang.generator.GeneratorResult.Status;
 import org.lflang.generator.GeneratorUtils;
@@ -46,6 +47,9 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
+import org.lflang.generator.docker.DockerData;
+import org.lflang.generator.docker.FedDockerComposeGenerator;
+import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -55,13 +59,24 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
+import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.KeepaliveProperty;
+import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
+import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
+import org.lflang.util.FileUtil;
+import org.lflang.util.LFCommand;
 
+/**
+ * The main class for the federated code generator.
+ *
+ * @ingroup Federated
+ */
 public class FedGenerator {
 
   /** */
@@ -116,7 +131,7 @@ public class FedGenerator {
    * @return False if no errors have occurred, true otherwise.
    */
   public boolean doGenerate(Resource resource, LFGeneratorContext context) throws IOException {
-    if (!federatedExecutionIsSupported(resource)) return true;
+    if (!federatedExecutionIsSupported(resource, context)) return true;
     cleanIfNeeded(context);
 
     // In a federated execution, we need keepalive to be true,
@@ -130,15 +145,27 @@ public class FedGenerator {
     // Find the federated reactor
     Reactor federation = FedASTUtils.findFederatedReactor(resource);
 
-    // Extract some useful information about the federation
-    analyzeFederates(federation, context);
+    // Make sure the RTI host is set correctly.
+    setRTIHost(federation);
+
+    // Create the FederateInstance objects.
+    ReactorInstance main = createFederateInstances(federation, context);
+
+    // Insert reactors that split multiports into many ports.
+    insertIndexers(main, resource);
+
+    // Clear banks so that each bank member becomes a single federate.
+    for (Instantiation instantiation : ASTUtils.allInstantiations(federation)) {
+      instantiation.setWidthSpec(null);
+      instantiation.setWidthSpec(null);
+    }
 
     // Find all the connections between federates.
     // For each connection between federates, replace it in the
     // AST with an action (which inherits the delay) and three reactions.
     // The action will be physical for physical connections and logical
     // for logical connections.
-    replaceFederateConnectionsWithProxies(federation, resource);
+    replaceFederateConnectionsWithProxies(federation, main, resource);
 
     FedEmitter fedEmitter =
         new FedEmitter(
@@ -150,22 +177,28 @@ public class FedGenerator {
     // Generate LF code for each federate.
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
-      lf2lfCodeMapMap.putAll(fedEmitter.generateFederate(context, federate, federates.size()));
+      lf2lfCodeMapMap.putAll(
+          fedEmitter.generateFederate(
+              context,
+              federate,
+              federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
-    // Do not invoke target code generators if --no-compile flag is used.
-    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
-      context.finish(Status.GENERATED, lf2lfCodeMapMap);
-      return false;
-    }
+    // If a RTI docker image is to be build locally. Set it up.
+    prepareRtiDockerBuildEnvironment(context);
 
+    // Prepare the native build of an RTI for this federation by copying reactor-c into
+    // the src-gen folder.
+    prepareRtiLocalBuild(context);
+
+    var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
+
+    // Compile federates
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
             lf2lfCodeMapMap,
             subContexts -> {
-              createDockerFiles(context, subContexts);
-              generateLaunchScript();
               // If an error has occurred during codegen of any federate, report it.
               subContexts.forEach(
                   c -> {
@@ -176,10 +209,132 @@ public class FedGenerator {
                           .error("Failure during code generation of " + c.getFileConfig().srcFile);
                     }
                   });
+              if (useDocker) {
+                buildUsingDocker(context, subContexts);
+              } else {
+                generateLaunchScript();
+              }
             });
 
+    // Compile an RTI for this federation.
+    buildRtiLocally(context);
+
     context.finish(Status.COMPILED, codeMapMap);
-    return false;
+    return context.getErrorReporter().getErrorsOccurred();
+  }
+
+  /**
+   * Create Dockerfiles and docker-compose.yml, build, and create a launcher.
+   *
+   * @param context The main generator context.
+   * @param subContexts The context for the federates.
+   */
+  private void buildUsingDocker(LFGeneratorContext context, List<SubContext> subContexts) {
+    try {
+      var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
+      dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
+      dockerGen.buildIfRequested();
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Docker build failed due to invalid file system state.");
+    }
+  }
+
+  /** Compile an RTI locally for this federation using CMake. */
+  private void buildRtiLocally(LFGeneratorContext context) {
+    FederationFileConfig fileConfig = this.fileConfig;
+    Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
+    String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
+
+    var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
+    var configure =
+        LFCommand.get(
+            "cmake",
+            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
+            false,
+            fileConfig.getRtiSrcGenPath());
+    var build =
+        LFCommand.get(
+            "cmake",
+            List.of("--build", "build", "--target", "install", "--parallel", cores),
+            false,
+            fileConfig.getRtiSrcGenPath());
+
+    if (clean.run() != 0) {
+      messageReporter.nowhere().error("Could not clean the RTI build folder.");
+    }
+    if (configure.run() != 0) {
+      messageReporter.nowhere().error("Could not configure the RTI build.");
+    }
+    if (build.run() != 0) {
+      messageReporter.nowhere().error("Could not compile the RTI build.");
+    }
+  }
+
+  /**
+   * Prepare a build environment for the rti alongside the generated sources of the federates.
+   *
+   * @param context The generator context.
+   */
+  private void prepareRtiDockerBuildEnvironment(LFGeneratorContext context) {
+    var rtiImage = context.getTargetConfig().get(DockerProperty.INSTANCE).rti();
+    if (rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
+      var dest = context.getFileConfig().getSrcGenPath().resolve("rti");
+      // 1. Create the "rti" directory
+      try {
+        Files.createDirectories(dest);
+        // 2. Copy reactor-c source files into it
+        FileUtil.copyFromClassPath("/lib/c/reactor-c", dest, true, true);
+        // 3. Generate a Dockerfile for the rti
+        new RtiDockerGenerator(context).generateDockerData(dest).writeDockerFile();
+      } catch (IOException e) {
+        context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
+      }
+    }
+  }
+
+  /** Copies reactor-c to `src-gen/rti`. */
+  private void prepareRtiLocalBuild(LFGeneratorContext context) {
+    var dest = this.fileConfig.getRtiSrcGenPath();
+    // 1. Create the "RTI" directory
+    try {
+      Files.createDirectories(dest);
+      // 2. Copy the required subset of reactor-c source files into it
+      for (var directory :
+          List.of(
+              "core",
+              "include",
+              "lib",
+              "logging",
+              "platform",
+              "low_level_platform",
+              "trace",
+              "version",
+              "tag")) {
+        var entry = "/lib/c/reactor-c/" + directory;
+        FileUtil.copyFromClassPath(entry, dest, true, false);
+      }
+
+      // 3. Generate the CmakeLists.txt file
+      var rtiCMakeLists =
+          String.join(
+              "\n",
+              "cmake_minimum_required(VERSION 3.12)",
+              "project(RTI VERSION 1.0.0 LANGUAGES C)",
+              "set(LOG_LEVEL "
+                  + targetConfig.getOrDefault(LoggingProperty.INSTANCE).ordinal()
+                  + ")",
+              "set(AUTH " + (targetConfig.getOrDefault(AuthProperty.INSTANCE) ? "ON" : "OFF") + ")",
+              "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})",
+              "add_subdirectory(${CMAKE_SOURCE_DIR}/core/federated/RTI"
+                  + " ${CMAKE_BINARY_DIR}/build_RTI)");
+
+      FileUtil.writeToFile(rtiCMakeLists, dest.resolve("CMakeLists.txt"));
+    } catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while copying files: " + e.getMessage());
+    }
   }
 
   private void generateLaunchScript() {
@@ -193,29 +348,25 @@ public class FedGenerator {
    * @param context The main context in which the federation has been compiled.
    * @param subContexts The subcontexts in which the federates have been compiled.
    */
-  private void createDockerFiles(LFGeneratorContext context, List<SubContext> subContexts) {
-    if (!context.getTargetConfig().get(DockerProperty.INSTANCE).enabled) return;
+  private List<DockerData> createDockerFiles(
+      LFGeneratorContext context, List<SubContext> subContexts) {
     final List<DockerData> services = new ArrayList<>();
     // 1. create a Dockerfile for each federate
-    for (SubContext subContext : subContexts) { // Inherit Docker options from main context
-
+    for (SubContext subContext : subContexts) {
+      // Inherit Docker options from main context
       DockerProperty.INSTANCE.override(
           subContext.getTargetConfig(), context.getTargetConfig().get(DockerProperty.INSTANCE));
       var dockerGenerator = dockerGeneratorFactory(subContext);
       var dockerData = dockerGenerator.generateDockerData();
       try {
         dockerData.writeDockerFile();
+        dockerData.copyScripts(context);
       } catch (IOException e) {
         throw new RuntimeIOException(e);
       }
       services.add(dockerData);
     }
-    // 2. create a docker-compose.yml for the federation
-    try {
-      new FedDockerComposeGenerator(context, rtiConfig.getHost()).writeDockerComposeFile(services);
-    } catch (IOException e) {
-      throw new RuntimeIOException(e);
-    }
+    return services;
   }
 
   /**
@@ -233,8 +384,8 @@ public class FedGenerator {
     }
   }
 
-  /** Return whether federated execution is supported for {@code resource}. */
-  private boolean federatedExecutionIsSupported(Resource resource) {
+  /** Return whether federated execution is supported for `resource`. */
+  private boolean federatedExecutionIsSupported(Resource resource, LFGeneratorContext context) {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
@@ -249,6 +400,17 @@ public class FedGenerator {
           .at(targetDecl)
           .error("Federated LF programs with a C target are currently not supported on Windows.");
       targetOK = false;
+    }
+    if (target.equals(Target.C) || target.equals(Target.CCPP)) {
+      // Currently, only the C runtime has a platform abstraction.
+      var platform = context.getTargetConfig().get(PlatformProperty.INSTANCE).platform();
+      if (!supportsFederated(platform)) {
+        messageReporter
+            .at(targetDecl)
+            .error(
+                "Federations are not supported by the " + platform.getcMakeName() + " platform.");
+        targetOK = false;
+      }
     }
 
     return targetOK;
@@ -267,9 +429,13 @@ public class FedGenerator {
     JavaIoFileSystemAccess fsa = inj.getInstance(JavaIoFileSystemAccess.class);
     fsa.setOutputPath("DEFAULT_OUTPUT", fileConfig.getSrcGenPath().toString());
 
-    var numOfCompileThreads =
+    var numOfCompileThreads = 1;
+    /* NOTE: Used to compile in parallel using the following. This causes the compiler to
+       to nondeterministically lock up on MacOS, which causes the tests to fail after the total
+       time allowed for the test expires (currently two hours).
         Math.min(
             6, Math.min(Math.max(federates.size(), 1), Runtime.getRuntime().availableProcessors()));
+    */
     var compileThreadPool = Executors.newFixedThreadPool(numOfCompileThreads);
     messageReporter
         .nowhere()
@@ -292,11 +458,12 @@ public class FedGenerator {
             TargetConfig subConfig =
                 new TargetConfig(
                     subFileConfig.resource, GeneratorArguments.none(), subContextMessageReporter);
-            if (targetConfig.get(DockerProperty.INSTANCE).enabled
-                && targetConfig.target.buildsUsingDocker()) {
+
+            if (targetConfig.get(DockerProperty.INSTANCE).enabled() || fed.isRemote) {
               NoCompileProperty.INSTANCE.override(subConfig, true);
             }
-            subConfig.get(DockerProperty.INSTANCE).enabled = false;
+            // Disabled Docker for the federate and put federation in charge.
+            DockerProperty.INSTANCE.override(subConfig, new DockerOptions(false));
 
             SubContext subContext =
                 new SubContext(context, IntegratedBuilder.VALIDATED_PERCENT_PROGRESS, 100) {
@@ -383,30 +550,37 @@ public class FedGenerator {
   }
 
   /**
-   * Analyze the federation and record various properties of it.
+   * Make sure that if no federation RTI properties were given in the cmdline, then those specified
+   * in the lf file are not lost. Also, if the federation is dockerized, use "rti" as the hostname.
    *
-   * @param federation The federated reactor that contains all federates' instances.
+   * @param federation The top-level Reactor.
    */
-  private void analyzeFederates(Reactor federation, LFGeneratorContext context) {
-    // Create an instantiation for the fed reactor because there isn't one.
-    // Creating a definition for the main reactor because there isn't one.
-    mainDef = LfFactory.eINSTANCE.createInstantiation();
-    mainDef.setName(federation.getName());
-    mainDef.setReactorClass(federation);
-
-    // Make sure that if no federation RTI properties were given in the
-    // cmdline, then those specified in the lf file are not lost
+  private void setRTIHost(Reactor federation) {
     if (rtiConfig.getHost().equals("localhost")
         && federation.getHost() != null
         && !federation.getHost().getAddr().equals("localhost")) {
       rtiConfig.setHost(federation.getHost().getAddr());
     }
 
-    // If the federation is dockerized, use "rti" as the hostname.
     if (rtiConfig.getHost().equals("localhost")
-        && targetConfig.get(DockerProperty.INSTANCE).enabled) {
+        && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
       rtiConfig.setHost("rti");
     }
+  }
+
+  /**
+   * Create the FederateInstance objects and populate the federatesByInstantiation map. This will
+   * also create and return the ReactorInstance for the full federation.
+   *
+   * @param federation The federated reactor that contains all federates' instances.
+   * @return The top-level ReactorInstance.
+   */
+  private ReactorInstance createFederateInstances(Reactor federation, LFGeneratorContext context) {
+    // Create an instantiation for the fed reactor because there isn't one.
+    // Creating a definition for the main reactor because there isn't one.
+    mainDef = LfFactory.eINSTANCE.createInstantiation();
+    mainDef.setName(federation.getName());
+    mainDef.setReactorClass(federation);
 
     // Since federates are always within the main (federated) reactor,
     // create a list containing just that one containing instantiation.
@@ -431,10 +605,97 @@ public class FedGenerator {
       }
       federatesByInstantiation.put(instantiation, federateInstances);
     }
+
+    // Create the connections between federates.
+    // Each connection in the AST may represent more than one connection between
+    // federation instances because of banks and multiports. We need to generate communication
+    // for each of these. To do this, we create a ReactorInstance so that we don't have
+    // to duplicate the rather complicated logic in that class. We specify a depth of 1,
+    // so it only creates the reactors immediately within the top level, not reactors
+    // that those contain.
+    ReactorInstance mainInstance = new ReactorInstance(federation, messageReporter);
+
+    new ReactionInstanceGraph(mainInstance); // Constructor has side effects; its result is ignored
+
+    for (ReactorInstance child : mainInstance.children) {
+      for (PortInstance output : child.outputs) {
+        for (SendRange srcRange : output.getDependentPorts()) {
+          for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
+            MixedRadixInt srcID = srcRange.startMR();
+            MixedRadixInt dstID = dstRange.startMR();
+            int dstCount = 0;
+            int srcCount = 0;
+
+            while (dstCount++ < dstRange.width) {
+              int srcChannel = srcID.getDigits().get(0);
+              int srcBank = srcID.get(1);
+              int dstChannel = dstID.getDigits().get(0);
+              int dstBank = dstID.get(1);
+
+              FederateInstance srcFederate =
+                  federatesByInstantiation
+                      .get(srcRange.instance.getParent().getDefinition())
+                      .get(srcBank);
+              FederateInstance dstFederate =
+                  federatesByInstantiation
+                      .get(dstRange.instance.getParent().getDefinition())
+                      .get(dstBank);
+              FedConnectionInstance connection =
+                  new FedConnectionInstance(
+                      srcRange,
+                      dstRange,
+                      srcChannel,
+                      srcBank,
+                      dstChannel,
+                      dstBank,
+                      srcFederate,
+                      dstFederate,
+                      FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
+
+              // Create the maps that specify the delays (or absence of delays)
+              // on non-physical connections (for centralized coordination only).
+              if (!connection.getDefinition().isPhysical()
+                  && targetConfig.get(CoordinationProperty.INSTANCE)
+                      != CoordinationMode.DECENTRALIZED) {
+                // Map the delays on connections between federates.
+                Set<Expression> dependsOnDelays =
+                    connection.dstFederate.dependsOn.computeIfAbsent(
+                        connection.srcFederate, k -> new LinkedHashSet<>());
+                // Put the delay on the cache.
+                if (connection.getDefinition().getDelay() != null) {
+                  dependsOnDelays.add(connection.getDefinition().getDelay());
+                } else {
+                  // To indicate that at least one connection has no delay, add a null entry.
+                  dependsOnDelays.add(null);
+                }
+                // Map the connections between federates.
+                Set<Expression> sendsToDelays =
+                    connection.srcFederate.sendsTo.computeIfAbsent(
+                        connection.dstFederate, k -> new LinkedHashSet<>());
+                if (connection.getDefinition().getDelay() != null) {
+                  sendsToDelays.add(connection.getDefinition().getDelay());
+                } else {
+                  // To indicate that at least one connection has no delay, add a null entry.
+                  sendsToDelays.add(null);
+                }
+              }
+
+              dstID.increment();
+              srcID.increment();
+              srcCount++;
+              if (srcCount == srcRange.width) {
+                srcID = srcRange.startMR(); // Multicast. Start over.
+              }
+            }
+          }
+        }
+      }
+    }
+    return mainInstance;
   }
 
   /**
-   * Get federate instances for a given {@code instantiation}. A bank will result in the creation of
+   * Get federate instances for a given `instantiation`. A bank will result in the creation of
    * multiple federate instances (one for each member of the bank).
    *
    * @param instantiation An instantiation that corresponds to a federate.
@@ -483,22 +744,22 @@ public class FedGenerator {
    * @param federation Reactor class of the federation.
    * @param resource The file system resource from which the original program is derived.
    */
-  private void replaceFederateConnectionsWithProxies(Reactor federation, Resource resource) {
-    // Each connection in the AST may represent more than one connection between
-    // federation instances because of banks and multiports. We need to generate communication
-    // for each of these. To do this, we create a ReactorInstance so that we don't have
-    // to duplicate the rather complicated logic in that class. We specify a depth of 1,
-    // so it only creates the reactors immediately within the top level, not reactors
-    // that those contain.
-    ReactorInstance mainInstance = new ReactorInstance(federation, messageReporter);
+  private void replaceFederateConnectionsWithProxies(
+      Reactor federation, ReactorInstance mainInstance, Resource resource) {
 
-    new ReactionInstanceGraph(mainInstance); // Constructor has side effects; its result is ignored
-
-    insertIndexers(mainInstance, resource);
-
-    for (ReactorInstance child : mainInstance.children) {
-      for (PortInstance output : child.outputs) {
-        replaceConnectionFromOutputPort(output, resource);
+    for (var federates : federatesByInstantiation.values()) {
+      for (var federate : federates) {
+        for (var connection : federate.connections) {
+          // Connections appear in both the source and destination federate.
+          // To avoid doing this twice, do it only for the source.
+          if (federate == connection.srcFederate) {
+            FedASTUtils.makeCommunication(
+                connection,
+                resource,
+                targetConfig.get(CoordinationProperty.INSTANCE),
+                messageReporter);
+          }
+        }
       }
     }
 
@@ -517,6 +778,8 @@ public class FedGenerator {
   private void insertIndexers(ReactorInstance mainInstance, Resource resource) {
     for (ReactorInstance child : mainInstance.children) {
       for (PortInstance input : child.inputs) {
+        // If there are no dependent reactions, skip this indexer.
+        if (!FedASTUtils.hasDestinationReaction(input)) continue;
         var indexer = indexer(child, input, resource);
         var count = 0;
         for (FederateInstance federate : federatesByInstantiation.get(child.getDefinition())) {
@@ -536,7 +799,7 @@ public class FedGenerator {
   }
 
   /**
-   * Add an {@code indexer} to the model and return it. An indexer is a reactor that is an adapter
+   * Add an `indexer` to the model and return it. An indexer is a reactor that is an adapter
    * from many ports to just one port
    */
   private Reactor indexer(ReactorInstance reactorInstance, PortInstance input, Resource resource) {
@@ -568,7 +831,7 @@ public class FedGenerator {
     return indexer;
   }
 
-  /** Return a {@code VarRef} with the given name. */
+  /** Return a `VarRef` with the given name. */
   private static VarRef varRefOf(Instantiation container, String name) {
     var varRef = LfFactory.eINSTANCE.createVarRef();
     var variable = LfFactory.eINSTANCE.createVariable();
@@ -576,115 +839,5 @@ public class FedGenerator {
     varRef.setVariable(variable);
     varRef.setContainer(container);
     return varRef;
-  }
-
-  /**
-   * Replace the connections from the specified output port.
-   *
-   * @param output The output port instance.
-   * @param resource The file system resource from which the original program is derived.
-   */
-  private void replaceConnectionFromOutputPort(PortInstance output, Resource resource) {
-    // Iterate through ranges of the output port
-    for (SendRange srcRange : output.getDependentPorts()) {
-      if (srcRange.connection == null) {
-        // This should not happen.
-        messageReporter.at(output.getDefinition()).error("Cannot find output connection for port");
-        continue;
-      }
-      // Iterate through destinations
-      for (RuntimeRange<PortInstance> dstRange : srcRange.destinations) {
-        replaceOneToManyConnection(srcRange, dstRange, resource);
-      }
-    }
-  }
-
-  /**
-   * Replace (potentially multiple) connection(s) that originate from an output port to multiple
-   * destinations.
-   *
-   * @param srcRange A range of an output port that sources data for this connection.
-   * @param dstRange A range of input ports that receive the data.
-   * @param resource The file system resource from which the original program is derived.
-   */
-  private void replaceOneToManyConnection(
-      SendRange srcRange, RuntimeRange<PortInstance> dstRange, Resource resource) {
-    MixedRadixInt srcID = srcRange.startMR();
-    MixedRadixInt dstID = dstRange.startMR();
-    int dstCount = 0;
-    int srcCount = 0;
-
-    while (dstCount++ < dstRange.width) {
-      int srcChannel = srcID.getDigits().get(0);
-      int srcBank = srcID.get(1);
-      int dstChannel = dstID.getDigits().get(0);
-      int dstBank = dstID.get(1);
-
-      FederateInstance srcFederate =
-          federatesByInstantiation.get(srcRange.instance.getParent().getDefinition()).get(srcBank);
-      FederateInstance dstFederate =
-          federatesByInstantiation.get(dstRange.instance.getParent().getDefinition()).get(dstBank);
-
-      // Clear banks
-      srcFederate.instantiation.setWidthSpec(null);
-      dstFederate.instantiation.setWidthSpec(null);
-
-      FedConnectionInstance fedConnection =
-          new FedConnectionInstance(
-              srcRange,
-              dstRange,
-              srcChannel,
-              srcBank,
-              dstChannel,
-              dstBank,
-              srcFederate,
-              dstFederate,
-              FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
-
-      replaceFedConnection(fedConnection, resource);
-
-      dstID.increment();
-      srcID.increment();
-      srcCount++;
-      if (srcCount == srcRange.width) {
-        srcID = srcRange.startMR(); // Multicast. Start over.
-      }
-    }
-  }
-
-  /**
-   * Replace a one-to-one federated connection with proxies.
-   *
-   * @param connection A connection between two federates.
-   * @param resource The file system resource from which the original program is derived.
-   */
-  private void replaceFedConnection(FedConnectionInstance connection, Resource resource) {
-    if (!connection.getDefinition().isPhysical()
-        && targetConfig.get(CoordinationProperty.INSTANCE) != CoordinationMode.DECENTRALIZED) {
-      // Map the delays on connections between federates.
-      Set<Expression> dependsOnDelays =
-          connection.dstFederate.dependsOn.computeIfAbsent(
-              connection.srcFederate, k -> new LinkedHashSet<>());
-      // Put the delay on the cache.
-      if (connection.getDefinition().getDelay() != null) {
-        dependsOnDelays.add(connection.getDefinition().getDelay());
-      } else {
-        // To indicate that at least one connection has no delay, add a null entry.
-        dependsOnDelays.add(null);
-      }
-      // Map the connections between federates.
-      Set<Expression> sendsToDelays =
-          connection.srcFederate.sendsTo.computeIfAbsent(
-              connection.dstFederate, k -> new LinkedHashSet<>());
-      if (connection.getDefinition().getDelay() != null) {
-        sendsToDelays.add(connection.getDefinition().getDelay());
-      } else {
-        // To indicate that at least one connection has no delay, add a null entry.
-        sendsToDelays.add(null);
-      }
-    }
-
-    FedASTUtils.makeCommunication(
-        connection, resource, targetConfig.get(CoordinationProperty.INSTANCE), messageReporter);
   }
 }

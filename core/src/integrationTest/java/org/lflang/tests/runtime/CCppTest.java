@@ -14,6 +14,7 @@ import org.lflang.tests.TestRegistry.TestCategory;
  * <p>NOTE: This test does not inherit any tests because it directly extends TestBase.
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public class CCppTest extends TestBase {
 
@@ -48,6 +49,7 @@ public class CCppTest extends TestBase {
     excluded |= category == TestCategory.ZEPHYR_THREADED;
     excluded |= category == TestCategory.ZEPHYR_BOARDS;
     excluded |= category == TestCategory.ARDUINO;
+    excluded |= category == TestCategory.PATMOS;
     excluded |= category == TestCategory.NO_INLINING;
     excluded |= category == TestCategory.VERIFIER;
     return !excluded;

@@ -22,18 +22,18 @@ jobs:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/build.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
   # Run tests for the standalone compiler.
   cli:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/cli-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft  }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
 
   # Run language server tests.
   lsp:
     if: ${{ inputs.all || github.event.pull_request.draft }}
     uses: ./.github/workflows/lsp-tests.yml
     with:
-      all-platforms: ${{ !github.event.pull_request.draft  }}
+      all-platforms: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
