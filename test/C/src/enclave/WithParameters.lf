@@ -1,0 +1,16 @@
+target C {
+  timeout: 1 msec,
+  fast: true
+}
+
+reactor Enclave(p1: int = 0, p2: int = 0, p3: int = 0) {
+  reaction(startup) {=
+    LF_TEST(self->p1 == 42 && self->p2==43 && self->p3==44, "Parameter was not forwarded to Enclave");
+    lf_print("Check");
+  =}
+}
+
+main reactor {
+  @enclave
+  e = new Enclave(p1=42, p2=43, p3=44)
+}

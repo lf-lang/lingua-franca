@@ -20,7 +20,7 @@ federated reactor {
   preamble {=
     import sys
   =}
-  input in_;
+  input inp;
   output out;
   state successes(0);
   reaction (startup) {=
@@ -32,9 +32,9 @@ federated reactor {
     act.schedule(0);
   =}
   logical action act(0);
-  reaction (act) in_ -> out {=
+  reaction (act) inp -> out {=
     self.successes += 1;
-    if in_.is_present:
+    if inp.is_present:
       self.sys.stderr.write("Input is present in the top-level reactor!\n");
       self.sys.exit(1);
     out.set(1);
@@ -45,7 +45,7 @@ federated reactor {
 
   c = new Count();
   tc = new TestCount();
-  c.out -> tc.in_;
+  c.out -> tc.inp;
 
   reaction (shutdown) {=
     if self->successes != 3:

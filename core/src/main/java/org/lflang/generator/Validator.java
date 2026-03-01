@@ -22,11 +22,12 @@ import org.lflang.util.LFCommand;
  * Validate generated code.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public abstract class Validator {
 
   /**
-   * Files older than {@code FILE_AGE_THRESHOLD_MILLIS} may be skipped in validation on the grounds
+   * Files older than `FILE_AGE_THRESHOLD_MILLIS` may be skipped in validation on the grounds
    * that they probably have not been updated since the last validator pass.
    */
   // This will cause silent validation failures if it takes too long to write all generated code to
@@ -47,8 +48,8 @@ public abstract class Validator {
   protected final ImmutableMap<Path, CodeMap> codeMaps;
 
   /**
-   * Initialize a {@code Validator} that reports errors to {@code errorReporter} and adjusts
-   * document positions using {@code codeMaps}.
+   * Initialize a `Validator` that reports errors to `errorReporter` and adjusts
+   * document positions using `codeMaps`.
    */
   protected Validator(MessageReporter messageReporter, Map<Path, CodeMap> codeMaps) {
     this.messageReporter = messageReporter;
@@ -137,7 +138,7 @@ public abstract class Validator {
 
   /**
    * Run the given command, report any messages produced using the reporting strategies given by
-   * {@code getBuildReportingStrategies}, and return its return code.
+   * `getBuildReportingStrategies`, and return its return code.
    */
   public final int run(LFCommand command, CancelIndicator cancelIndicator) {
     final int returnCode = command.run(cancelIndicator);

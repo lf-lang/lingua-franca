@@ -9,6 +9,7 @@ import java.util.stream.StreamSupport;
  *
  * @author Marten Lohstroh
  * @author Hokeun Kim
+ * @ingroup Utilities
  */
 public final class IteratorUtil {
 

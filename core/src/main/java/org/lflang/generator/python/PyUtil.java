@@ -1,35 +1,7 @@
-/* Utilities for Python code generation. */
-
-/*************
- * Copyright (c) 2019-2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.python;
 
-import org.lflang.InferredType;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.c.CUtil;
-import org.lflang.lf.Expression;
 
 /**
  * A collection of utilities for Python code generation. This class inherits from CUtil but
@@ -38,6 +10,7 @@ import org.lflang.lf.Expression;
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
+ * @ingroup Generator
  */
 public class PyUtil extends CUtil {
 
@@ -142,15 +115,5 @@ public class PyUtil extends CUtil {
         "\n",
         "/* Release the thread. No Python API allowed beyond this point. */",
         "PyGILState_Release(gstate);");
-  }
-
-  /**
-   * Override to convert some C types to their Python equivalent. Examples: true/false -> True/False
-   *
-   * @param expr A value
-   * @return A value string in the target language
-   */
-  protected static String getPythonTargetValue(Expression expr) {
-    return PythonTypes.getInstance().getTargetExpr(expr, InferredType.undefined());
   }
 }

@@ -1,20 +1,3 @@
-/* Static information about targets. */
-/**
- * Copyright (c) 2019, The University of California at Berkeley. Redistribution and use in source
- * and binary forms, with or without modification, are permitted provided that the following
- * conditions are met: 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer. 2. Redistributions in binary form must
- * reproduce the above copyright notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution. THIS SOFTWARE IS PROVIDED BY
- * THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
- * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
- * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 package org.lflang.target;
 
 import java.util.Arrays;
@@ -26,46 +9,13 @@ import java.util.Optional;
 import java.util.Set;
 import net.jcip.annotations.Immutable;
 import org.lflang.lf.TargetDecl;
-import org.lflang.target.property.AuthProperty;
-import org.lflang.target.property.BuildCommandsProperty;
-import org.lflang.target.property.BuildTypeProperty;
-import org.lflang.target.property.CargoDependenciesProperty;
-import org.lflang.target.property.CargoFeaturesProperty;
-import org.lflang.target.property.ClockSyncModeProperty;
-import org.lflang.target.property.ClockSyncOptionsProperty;
-import org.lflang.target.property.CmakeIncludeProperty;
-import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CompilerFlagsProperty;
-import org.lflang.target.property.CompilerProperty;
-import org.lflang.target.property.CoordinationOptionsProperty;
-import org.lflang.target.property.CoordinationProperty;
-import org.lflang.target.property.DockerProperty;
-import org.lflang.target.property.ExportDependencyGraphProperty;
-import org.lflang.target.property.ExportToYamlProperty;
-import org.lflang.target.property.ExternalRuntimePathProperty;
-import org.lflang.target.property.FilesProperty;
-import org.lflang.target.property.KeepaliveProperty;
-import org.lflang.target.property.NoRuntimeValidationProperty;
-import org.lflang.target.property.NoSourceMappingProperty;
-import org.lflang.target.property.PlatformProperty;
-import org.lflang.target.property.PrintStatisticsProperty;
-import org.lflang.target.property.ProtobufsProperty;
-import org.lflang.target.property.Ros2DependenciesProperty;
-import org.lflang.target.property.Ros2Property;
-import org.lflang.target.property.RuntimeVersionProperty;
-import org.lflang.target.property.RustIncludeProperty;
-import org.lflang.target.property.SchedulerProperty;
-import org.lflang.target.property.SingleFileProjectProperty;
-import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.TracePluginProperty;
-import org.lflang.target.property.TracingProperty;
-import org.lflang.target.property.VerifyProperty;
-import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.*;
 
 /**
  * Enumeration of targets and their associated properties.
  *
  * @author Marten Lohstroh
+ * @ingroup Generator
  */
 @Immutable
 public enum Target {
@@ -384,7 +334,8 @@ public enum Target {
       // In our Rust implementation, the only reserved keywords
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
-      Arrays.asList("self", "true", "false"));
+      Arrays.asList("self", "true", "false")),
+  UC("uC", true, Target.C.keywords);
 
   /** String representation of this target. */
   private final String displayName;
@@ -423,8 +374,8 @@ public enum Target {
 
   /**
    * Return the display name of the target, as it should be written in LF code. This is hence a
-   * single identifier. Eg for {@link #CPP} returns {@code "Cpp"}, for {@link #Python} returns
-   * {@code "Python"}. Avoid using either {@link #name()} or {@link #toString()}, which have
+   * single identifier. Eg for {@link #CPP} returns `"Cpp"`, for {@link #Python} returns
+   * `"Python"`. Avoid using either `name()` or `toString()`, which have
    * unrelated contracts.
    */
   public String getDisplayName() {
@@ -432,9 +383,9 @@ public enum Target {
   }
 
   /**
-   * Returns the conventional directory name for this target. This is used to divide e.g. the {@code
-   * test} and {@code example} directories by target language. For instance, {@code test/Cpp} is the
-   * path of {@link #CPP}'s test directory, and this method returns {@code "Cpp"}.
+   * Return the conventional directory name for this target. This is used to divide e.g. the
+   * `test` and `example` directories by target language. For instance, `test/Cpp` is the
+   * path of {@link #CPP}'s test directory, and this method returns `"Cpp"`.
    */
   public String getDirectoryName() {
     return displayName;
@@ -450,9 +401,9 @@ public enum Target {
   }
 
   /**
-   * Returns whether the given identifier is invalid as the name of an LF construct. This usually
+   * Return whether the given identifier is invalid as the name of an LF construct. This usually
    * means that the identifier is a keyword in the target language. In Rust, many keywords may be
-   * escaped with the syntax {@code r#keyword}, and they are considered valid identifiers.
+   * escaped with the syntax `r#keyword`, and they are considered valid identifiers.
    */
   public boolean isReservedIdent(String ident) {
     return this.keywords.contains(ident);
@@ -461,7 +412,7 @@ public enum Target {
   /** Return true if the target supports federated execution. */
   public boolean supportsFederated() {
     return switch (this) {
-      case C, CCPP, Python, TS -> true;
+      case C, CCPP, Python, TS, UC -> true;
       default -> false;
     };
   }
@@ -491,19 +442,19 @@ public enum Target {
   }
 
   /**
-   * Return true of reaction declarations (i.e., reactions without inlined code) are supported by
+   * Return true if reaction declarations (i.e., reactions without inlined code) are supported by
    * this target.
    */
   public boolean supportsReactionDeclarations() {
     return this.equals(Target.C) || this.equals(Target.CPP);
   }
 
-  /** Return true if this code for this target should be built using Docker if Docker is used. */
-  public boolean buildsUsingDocker() {
-    return switch (this) {
-      case TS -> false;
-      case C, CCPP, CPP, Python, Rust -> true;
-    };
+  /** Return true if enclaves are supported by this target. */
+  public boolean supportsEnclaves() {
+    return this.equals(Target.C)
+        || this.equals(Target.CCPP)
+        || this.equals(Target.CPP)
+        || this.equals(Target.Python);
   }
 
   /**
@@ -515,14 +466,19 @@ public enum Target {
     return this != CPP;
   }
 
-  /** Allow expressions of the form {@code {a, b, c}}. */
+  /** Allow expressions of the form `{a, b, c`}. */
   public boolean allowsBracedListExpressions() {
     return this == C || this == CCPP || this == CPP;
   }
 
-  /** Allow expressions of the form {@code [a, b, c]}. */
+  /** Allow expressions of the form `[a, b, c]`. */
   public boolean allowsBracketListExpressions() {
     return this == Python || this == TS || this == Rust;
+  }
+
+  /** Allow expressions of the form `(a, b, c)`. */
+  public boolean allowsParenthesisListExpressions() {
+    return this == CPP;
   }
 
   /** Return a string that demarcates the beginning of a single-line comment. */
@@ -575,7 +531,7 @@ public enum Target {
    * Return the target constant corresponding to given target declaration among. Return a non-null
    * result, will throw if invalid.
    *
-   * @throws RuntimeException If no {@link TargetDecl} is present or if it is invalid.
+   * @throws RuntimeException If no target declaration ({@code TargetDecl}) is present or if it is invalid.
    */
   public static Target fromDecl(TargetDecl targetDecl) {
     String name = targetDecl.getName();
@@ -585,84 +541,94 @@ public enum Target {
 
   public void initialize(TargetConfig config) {
     switch (this) {
-      case C, CCPP -> config.register(
-          AuthProperty.INSTANCE,
-          BuildCommandsProperty.INSTANCE,
-          BuildTypeProperty.INSTANCE,
-          ClockSyncModeProperty.INSTANCE,
-          ClockSyncOptionsProperty.INSTANCE,
-          CmakeIncludeProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE,
-          CompilerFlagsProperty.INSTANCE,
-          CompilerProperty.INSTANCE,
-          CoordinationOptionsProperty.INSTANCE,
-          CoordinationProperty.INSTANCE,
-          DockerProperty.INSTANCE,
-          FilesProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          NoSourceMappingProperty.INSTANCE,
-          PlatformProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE,
-          SchedulerProperty.INSTANCE,
-          SingleThreadedProperty.INSTANCE,
-          TracingProperty.INSTANCE,
-          TracePluginProperty.INSTANCE,
-          VerifyProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case CPP -> config.register(
-          BuildTypeProperty.INSTANCE,
-          CmakeIncludeProperty.INSTANCE,
-          CompilerProperty.INSTANCE,
-          ExportDependencyGraphProperty.INSTANCE,
-          ExportToYamlProperty.INSTANCE,
-          ExternalRuntimePathProperty.INSTANCE,
-          NoRuntimeValidationProperty.INSTANCE,
-          PrintStatisticsProperty.INSTANCE,
-          Ros2DependenciesProperty.INSTANCE,
-          Ros2Property.INSTANCE,
-          RuntimeVersionProperty.INSTANCE,
-          TracingProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case Python -> config.register(
-          AuthProperty.INSTANCE,
-          BuildCommandsProperty.INSTANCE,
-          BuildTypeProperty.INSTANCE,
-          ClockSyncModeProperty.INSTANCE,
-          ClockSyncOptionsProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE,
-          CoordinationOptionsProperty.INSTANCE,
-          CoordinationProperty.INSTANCE,
-          DockerProperty.INSTANCE,
-          FilesProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          NoSourceMappingProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE,
-          SchedulerProperty.INSTANCE,
-          SingleThreadedProperty.INSTANCE,
-          TracingProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case Rust -> config.register(
-          BuildTypeProperty.INSTANCE,
-          CargoDependenciesProperty.INSTANCE,
-          CargoFeaturesProperty.INSTANCE,
-          CmakeIncludeProperty.INSTANCE,
-          CompileDefinitionsProperty.INSTANCE,
-          CompilerFlagsProperty.INSTANCE,
-          ExportDependencyGraphProperty.INSTANCE,
-          ExternalRuntimePathProperty.INSTANCE,
-          RustIncludeProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          RuntimeVersionProperty.INSTANCE,
-          SingleFileProjectProperty.INSTANCE,
-          SingleThreadedProperty.INSTANCE,
-          WorkersProperty.INSTANCE);
-      case TS -> config.register(
-          CoordinationOptionsProperty.INSTANCE,
-          CoordinationProperty.INSTANCE,
-          DockerProperty.INSTANCE,
-          KeepaliveProperty.INSTANCE,
-          ProtobufsProperty.INSTANCE,
-          RuntimeVersionProperty.INSTANCE);
+      case C, CCPP ->
+          config.register(
+              AuthProperty.INSTANCE,
+              BuildCommandsProperty.INSTANCE,
+              BuildTypeProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
+              ClockSyncOptionsProperty.INSTANCE,
+              CmakeArgsProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              CmakeInitIncludeProperty.INSTANCE,
+              CompileDefinitionsProperty.INSTANCE,
+              CompilerProperty.INSTANCE,
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              FilesProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              NoSourceMappingProperty.INSTANCE,
+              PlatformProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              SchedulerProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE,
+              TracingProperty.INSTANCE,
+              TracePluginProperty.INSTANCE,
+              VerifyProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case CPP ->
+          config.register(
+              BuildTypeProperty.INSTANCE,
+              CmakeInitIncludeProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              CompilerProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              ExportDependencyGraphProperty.INSTANCE,
+              ExternalRuntimePathProperty.INSTANCE,
+              NoRuntimeValidationProperty.INSTANCE,
+              PrintStatisticsProperty.INSTANCE,
+              Ros2DependenciesProperty.INSTANCE,
+              Ros2Property.INSTANCE,
+              RuntimeVersionProperty.INSTANCE,
+              TracingProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case Python ->
+          config.register(
+              AuthProperty.INSTANCE,
+              BuildCommandsProperty.INSTANCE,
+              BuildTypeProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
+              ClockSyncOptionsProperty.INSTANCE,
+              CmakeIncludeProperty.INSTANCE,
+              CompileDefinitionsProperty.INSTANCE,
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DNETProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              FilesProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              NoSourceMappingProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              PythonVersionProperty.INSTANCE,
+              SchedulerProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE,
+              TracingProperty.INSTANCE,
+              TracePluginProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case Rust ->
+          config.register(
+              BuildTypeProperty.INSTANCE,
+              CargoDependenciesProperty.INSTANCE,
+              CargoFeaturesProperty.INSTANCE,
+              ExportDependencyGraphProperty.INSTANCE,
+              ExternalRuntimePathProperty.INSTANCE,
+              RustIncludeProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              RuntimeVersionProperty.INSTANCE,
+              SingleFileProjectProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE,
+              WorkersProperty.INSTANCE);
+      case TS ->
+          config.register(
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              RuntimeVersionProperty.INSTANCE);
+      case UC -> config.register(ClockSyncModeProperty.INSTANCE, PlatformProperty.INSTANCE);
     }
   }
 }

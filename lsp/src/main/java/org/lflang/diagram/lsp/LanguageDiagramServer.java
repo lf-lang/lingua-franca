@@ -26,6 +26,7 @@ import org.lflang.ide.LFIdeSetup;
  * Language server with extended diagram communication.
  *
  * @author Alexander Schulz-Rosengarten
+ * @ingroup LSP
  */
 public class LanguageDiagramServer extends AbstractLanguageServer {
 
@@ -69,16 +70,16 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
 
     @Override
     public Class<? extends KGraphLanguageClient> getRemoteInterface() {
-      return KGraphLanguageClient.class;
+      return LFLanguageClient.class;
     }
 
     @Override
     public void onConnect() {
       super.onConnect();
       constraints.setClient((KGraphLanguageClient) languageClient);
-      rectPack.setClient((KGraphLanguageClient) languageClient);
+      rectPack.setClient((LFLanguageClient) languageClient);
       LanguageServerMessageReporter.setClient(languageClient);
-      lfExtension.setClient(languageClient);
+      lfExtension.setClient((LFLanguageClient) languageClient);
       // The following is needed because VS Code treats System.err like System.out and System.out
       // like a shout
       // into the void.

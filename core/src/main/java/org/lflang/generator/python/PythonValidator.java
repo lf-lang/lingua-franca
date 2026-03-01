@@ -26,19 +26,22 @@ import org.lflang.generator.ValidationStrategy;
 import org.lflang.util.LFCommand;
 
 /**
- * A validator for generated Python.
+ * A validator for generated Python code.
  *
  * @author Peter Donovan
+ * @ingroup Generator
  */
 public class PythonValidator extends org.lflang.generator.Validator {
 
   /** The pattern that diagnostics from the Python compiler typically follow. */
   private static final Pattern DIAGNOSTIC_MESSAGE_PATTERN =
       Pattern.compile("(\\*\\*\\*)?\\s*File \"(?<path>.*?\\.py)\", line (?<line>\\d+)");
+
   /**
    * The pattern typically followed by the message that typically follows the main diagnostic line.
    */
   private static final Pattern MESSAGE = Pattern.compile("\\w*Error: .*");
+
   /** An alternative pattern that at least some diagnostics from the Python compiler may follow. */
   private static final Pattern ALT_DIAGNOSTIC_MESSAGE_PATTERN =
       Pattern.compile(".*Error:.*line (?<line>\\d+)\\)");
@@ -156,8 +159,8 @@ public class PythonValidator extends org.lflang.generator.Validator {
   private final ImmutableMap<Path, CodeMap> codeMaps;
 
   /**
-   * Initialize a {@code PythonValidator} for a build process using {@code fileConfig} and report
-   * errors to {@code errorReporter}.
+   * Initialize a `PythonValidator` for a build process using `fileConfig` and report
+   * errors to `errorReporter`.
    *
    * @param fileConfig The file configuration of this build.
    * @param messageReporter The reporter to which diagnostics should be sent.
@@ -178,6 +181,11 @@ public class PythonValidator extends org.lflang.generator.Validator {
     this.protoNames = ImmutableSet.copyOf(protoNames);
   }
 
+  /**
+   * List all validation strategies that exist for the Python validator.
+   *
+   * @return A collection of validation strategies.
+   */
   @Override
   protected Collection<ValidationStrategy> getPossibleStrategies() {
     return List.of(
@@ -215,7 +223,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
            *
            * @param lines The lines of output from the compiler.
            * @param i The current index at which a message may start. Guaranteed to be less than
-           *     {@code lines.length - 3}.
+           *     `lines.length - 3`.
            * @return Whether an error message was reported.
            */
           private boolean tryReportTypical(String[] lines, int i) {
@@ -349,7 +357,7 @@ public class PythonValidator extends org.lflang.generator.Validator {
            * Return whether the given message should be ignored.
            *
            * @param message A Pylint message that is a candidate to be reported.
-           * @return whether {@code message} should be reported.
+           * @return whether `message` should be reported.
            */
           private boolean shouldIgnore(PylintMessage message) {
             // Code generation does not preserve whitespace, so this check is unreliable.

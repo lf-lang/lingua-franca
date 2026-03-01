@@ -1,12 +1,15 @@
 package org.lflang.generator.ts;
 
-import java.util.List;
 import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.TargetTypes;
-import org.lflang.generator.UnsupportedGeneratorFeatureException;
 import org.lflang.lf.StateVar;
 
+/**
+ * Type information for the Typescript target.
+ *
+ * @ingroup Generator
+ */
 public class TSTypes implements TargetTypes {
 
   private static TSTypes INSTANCE = new TSTypes();
@@ -43,6 +46,7 @@ public class TSTypes implements TargetTypes {
     return "unknown";
   }
 
+  @Override
   public String getTargetTimeExpr(TimeValue value) {
     if (value.unit != null) {
       return "TimeValue.%s(%s)".formatted(value.unit.getCanonicalName(), value.time);
@@ -50,21 +54,6 @@ public class TSTypes implements TargetTypes {
       // The value must be zero.
       return "TimeValue.zero()";
     }
-  }
-
-  @Override
-  public String getTargetFixedSizeListType(String baseType, int size) {
-    throw new UnsupportedGeneratorFeatureException(
-        "TypeScript does not support fixed-size array types.");
-  }
-
-  @Override
-  public String getTargetVariableSizeListType(String baseType) {
-    return "Array<%s>".formatted(baseType); // same as "$baseType[]"
-  }
-
-  public String getVariableSizeListInitExpression(List<String> contents, boolean withBraces) {
-    return "[" + String.join(", ", contents) + "]";
   }
 
   public static TSTypes getInstance() {

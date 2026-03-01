@@ -6,6 +6,11 @@ import org.lflang.generator.ModeInstance;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.StateVar;
 
+/**
+ * Generate code for state variables.
+ *
+ * @ingroup Generator
+ */
 public class CStateGenerator {
   /**
    * Generate code for state variables of a reactor in the form "stateVar.type stateVar.name;"
@@ -35,8 +40,10 @@ public class CStateGenerator {
    * is no way to tell whether the type of the array is a struct.
    *
    * @param instance {@link ReactorInstance}
-   * @param stateVar {@link StateVar}
+   * @param selfRef Reference to the self struct.
+   * @param stateVar The state variable ({@code StateVar})
    * @param mode {@link ModeInstance}
+   * @param types The C-specific type conversion functions.
    * @return String
    */
   public static String generateInitializer(
@@ -58,8 +65,7 @@ public class CStateGenerator {
       StateVar stateVar,
       String initExpr,
       CTypes types) {
-    if (ASTUtils.isOfTimeType(stateVar)
-        || ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
+    if (ASTUtils.isOfTimeType(stateVar) || ASTUtils.isParameterized(stateVar)) {
       return selfRef + "->" + stateVar.getName() + " = " + initExpr + ";";
     } else {
       var declaration =
@@ -91,7 +97,7 @@ public class CStateGenerator {
             + "]";
     var type = types.getTargetType(instance.tpr.resolveType(ASTUtils.getInferredType(stateVar)));
 
-    if (ASTUtils.isParameterized(stateVar) && !stateVar.getInit().getExprs().isEmpty()) {
+    if (ASTUtils.isParameterized(stateVar)) {
       return CModesGenerator.generateStateResetStructure(
           instance, modeRef, selfRef, stateVar.getName(), initExpr, type);
     } else {

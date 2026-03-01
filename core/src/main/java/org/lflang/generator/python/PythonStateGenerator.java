@@ -2,10 +2,16 @@ package org.lflang.generator.python;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.InferredType;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.StateVar;
 
+/**
+ * Generate Python code for state variables.
+ *
+ * @ingroup Generator
+ */
 public class PythonStateGenerator {
   /**
    * Generate state variable instantiations for reactor "decl"
@@ -32,8 +38,7 @@ public class PythonStateGenerator {
     if (!ASTUtils.isInitialized(state)) {
       return "None";
     }
-    List<String> list =
-        state.getInit().getExprs().stream().map(PyUtil::getPythonTargetValue).toList();
-    return list.size() > 1 ? "[" + String.join(", ", list) + "]" : list.get(0);
+    return PythonTypes.getInstance()
+        .getTargetExpr(state.getInit().getExpr(), InferredType.undefined());
   }
 }

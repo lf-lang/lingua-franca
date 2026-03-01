@@ -12,11 +12,19 @@ import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 
-/** Helper class that is used to validate a federated reactor. */
+/**
+ * Helper class that is used to validate a federated reactor.
+ *
+ * @ingroup Federated
+ */
 public class FedValidator {
 
   public static void validateFederatedReactor(Reactor reactor, MessageReporter messageReporter) {
     if (!reactor.isFederated()) return;
+
+    if (reactor.getInstantiations().size() == 0) {
+      messageReporter.at(reactor).error("The top-level reactor does not contain any federates");
+    }
 
     // Construct the set of excluded reactions for this federate.
     // If a reaction is a network reaction that belongs to this federate, we
@@ -46,8 +54,7 @@ public class FedValidator {
   }
 
   /**
-   * Check if this federate contains all the {@code varRefs}. If not, report an error using {@code
-   * errorReporter}.
+   * Check if this federate contains all the `varRefs`. If not, report an error using `errorReporter`.
    */
   private static void containsAllVarRefs(List<VarRef> varRefs, MessageReporter messageReporter) {
     var referencesFederate = false;

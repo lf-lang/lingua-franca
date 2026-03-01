@@ -1,24 +1,20 @@
 package org.lflang.generator;
 
-import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
-import org.lflang.FileConfig;
 import org.lflang.MessageReporter;
-import org.lflang.ast.ASTUtils;
 import org.lflang.generator.LFGeneratorContext.Mode;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Instantiation;
-import org.lflang.lf.KeyValuePair;
-import org.lflang.lf.KeyValuePairs;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.TargetConfig;
@@ -28,6 +24,8 @@ import org.lflang.target.property.KeepaliveProperty;
  * A helper class with functions that may be useful for code generators. This is created to ease our
  * transition from Xtend and possibly Eclipse. All functions in this class should instead be in
  * GeneratorUtils.kt, but Eclipse cannot handle Kotlin files.
+ *
+ * @ingroup Generator
  */
 public class GeneratorUtils {
 
@@ -41,11 +39,11 @@ public class GeneratorUtils {
   }
 
   /**
-   * Look for physical actions in 'resource'. If appropriate, set keepalive to true in {@code
-   * targetConfig}. This is a helper function for setTargetConfig. It should not be used elsewhere.
+   * Look for physical actions in 'resource'. If appropriate, set keepalive to true in
+   * `targetConfig`. This is a helper function for setTargetConfig. It should not be used elsewhere.
    */
   public static void accommodatePhysicalActionsIfPresent(
-      List<Resource> resources,
+      Set<Resource> resources,
       boolean setsKeepAliveOptionAutomatically,
       TargetConfig targetConfig,
       MessageReporter messageReporter) {
@@ -72,62 +70,54 @@ public class GeneratorUtils {
   }
 
   /**
-   * Return all instances of {@code eObjectType} in {@code resource}.
+   * Return all instances of `eObjectType` in `resource`.
    *
    * @param resource A resource to be searched.
    * @param nodeType The type of the desired parse tree nodes.
    * @param <T> The type of the desired parse tree nodes.
-   * @return all instances of {@code eObjectType} in {@code resource}
+   * @return all instances of `eObjectType` in `resource`
    */
   public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {
     return () -> IteratorExtensions.filter(resource.getAllContents(), nodeType);
   }
 
   /**
-   * Return the resources that provide the given reactors.
+   * Return the resources that provide the given reactors and their ancestors.
    *
    * @param reactors The reactors for which to find containing resources.
    * @return the resources that provide the given reactors.
    */
-  public static List<Resource> getResources(Iterable<Reactor> reactors) {
-    HashSet<Resource> visited = new HashSet<>();
-    List<Resource> resources = new ArrayList<>();
+  public static Set<Resource> getResources(Iterable<Reactor> reactors) {
+    Set<Resource> resources = new LinkedHashSet<>();
+    Set<Reactor> visitedReactors = new HashSet<>();
     for (Reactor r : reactors) {
-      Resource resource = r.eResource();
-      if (!visited.contains(resource)) {
-        visited.add(resource);
-        resources.add(resource);
-      }
+      addInheritedResources(r, resources, visitedReactors);
     }
     return resources;
   }
 
-  /**
-   * Return the {@code LFResource} representation of the given resource.
-   *
-   * @param resource The {@code Resource} to be represented as an {@code LFResource}
-   * @param srcGenBasePath The root directory for any generated sources associated with the
-   *     resource.
-   * @param context The generator invocation context.
-   * @param messageReporter An error message acceptor.
-   * @return the {@code LFResource} representation of the given resource.
-   */
-  public static LFResource getLFResource(
-      Resource resource,
-      Path srcGenBasePath,
-      LFGeneratorContext context,
-      MessageReporter messageReporter) {
-    var target = ASTUtils.targetDecl(resource);
-    KeyValuePairs config = target.getConfig();
-    var targetConfig = new TargetConfig(resource, context.getArgs(), messageReporter);
-    if (config != null) {
-      List<KeyValuePair> pairs = config.getPairs();
-      targetConfig.load(pairs != null ? pairs : List.of(), messageReporter);
+  /** Collect all resources associated with reactor through class inheritance. */
+  private static void addInheritedResources(
+      Reactor reactor, Set<Resource> resources, Set<Reactor> visitedReactors) {
+    // Skip if we've already processed this reactor
+    if (reactor == null || visitedReactors.contains(reactor)) {
+      return;
     }
-    FileConfig fc =
-        LFGenerator.createFileConfig(
-            resource, srcGenBasePath, context.getFileConfig().useHierarchicalBin);
-    return new LFResource(resource, fc, targetConfig);
+    visitedReactors.add(reactor);
+    resources.add(reactor.eResource());
+
+    // Process superclasses - each reactor may have different superclasses even if in the same file
+    for (var s : reactor.getSuperClasses()) {
+      Reactor superReactor = null;
+      if (s instanceof ImportedReactor i) {
+        superReactor = i.getReactorClass();
+      } else if (s instanceof Reactor r) {
+        superReactor = r;
+      }
+      if (superReactor != null) {
+        addInheritedResources(superReactor, resources, visitedReactors);
+      }
+    }
   }
 
   /**

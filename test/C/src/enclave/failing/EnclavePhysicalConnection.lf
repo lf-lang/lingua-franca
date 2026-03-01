@@ -1,0 +1,39 @@
+// This tests physical connections between enclaves. Events sent over a physical
+// connection should be inserted into the event queue of the destination with a tag
+// equal to the current physical time.
+target C;
+
+reactor E1 {  // Smoke test to verify that simple coordination is working
+  output out: instant_t
+  reaction(startup) -> out {=
+    lf_sleep(SEC(1));
+    lf_set(out, lf_time_physical());
+  =}
+}
+
+reactor E2 {
+  input in: instant_t
+  timer t(0 msec, 100 msec)
+
+  state cnt: int = 0
+  state received: int = 0
+
+  reaction(in) {=
+    LF_TEST(in->value > lf_time_logical(), "Received tag" PRINTF_TIME " @ " PRINTF_TIME , in->value, lf_time_logical());
+    LF_TEST(self->cnt > 10, "Timer only fired %u times, expected >10", self->cnt);
+    lf_request_stop();
+  =}
+
+  reaction(t) {=
+    self->cnt++;
+  =}
+}
+
+main reactor {
+  @enclave
+  e1 = new E1()
+  @enclave
+  e2 = new E2()
+  e1.out ~> e2.in
+}
+

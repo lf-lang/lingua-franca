@@ -1,0 +1,52 @@
+target C {
+  fast: true,
+  timeout: 5 sec
+}
+
+reactor Source(size: int = 10) {
+  output out: uint8_t[16]
+
+  state inputs: uint8_t[16] = {0}
+
+  timer t(0, 1 s)
+
+  reaction(startup) {=
+    for (int i = 0; i < self->size; i++) {
+      self->inputs[i] = i+1;
+    }
+  =}
+
+  reaction(t) -> out {=
+    memcpy(out->value, (uint8_t *)self->inputs , self->size);
+    lf_set_present(out);
+  =}
+}
+
+reactor Sink {
+  input inp: uint8_t[16]
+  state count: int = 0
+
+  reaction(inp) {=
+    uint64_t ts = 0;
+    lf_print("=======================");
+    for (int i = 0; i < 16; i++) {
+        lf_print("received %d-th value: %d", i, inp->value[i]);
+        if (i < 4 && inp->value[i] != i+1) {
+          lf_print_error_and_exit("Expected value %d, but got %d", i+1, inp->value[i]);
+        }
+    }
+    self->count++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->count != 5) {
+      lf_print_error_and_exit("Expected 5 inputs, but got %d", self->count);
+    }
+  =}
+}
+
+main reactor {
+  p = new Source()
+  m = new Sink()
+  p.out -> m.inp after 10 msec
+}

@@ -1,0 +1,61 @@
+/**
+ * Test that a rapidly produced logical action in an upstream federate can be properly handled in a
+ * long chain of federates.
+ */
+target C {
+  timeout: 1 msec
+}
+
+import PassThrough from "../../lib/PassThrough.lf"
+import TestCount from "../../lib/TestCount.lf"
+
+reactor WithLogicalAction {
+  output out: int
+  state thread_id: lf_thread_t = 0
+  state counter: int = 1
+  logical action act(0): int
+
+  reaction(startup, act) -> act, out {=
+    lf_set(out, self->counter);
+    lf_schedule_int(act, USEC(50), self->counter++);
+  =}
+}
+
+federated reactor {
+  a = new WithLogicalAction()
+  test = new TestCount(num_inputs=21)
+
+  passThroughs1 = new PassThrough()
+  passThroughs2 = new PassThrough()
+  passThroughs3 = new PassThrough()
+  passThroughs4 = new PassThrough()
+  passThroughs5 = new PassThrough()
+  passThroughs6 = new PassThrough()
+  passThroughs7 = new PassThrough()
+  passThroughs8 = new PassThrough()
+  passThroughs9 = new PassThrough()
+  passThroughs10 = new PassThrough()
+
+  a.out,
+  passThroughs1.out,
+  passThroughs2.out,
+  passThroughs3.out,
+  passThroughs4.out,
+  passThroughs5.out,
+  passThroughs6.out,
+  passThroughs7.out,
+  passThroughs8.out,
+  passThroughs9.out,
+  passThroughs10.out ->
+    passThroughs1.in,
+    passThroughs2.in,
+    passThroughs3.in,
+    passThroughs4.in,
+    passThroughs5.in,
+    passThroughs6.in,
+    passThroughs7.in,
+    passThroughs8.in,
+    passThroughs9.in,
+    passThroughs10.in,
+    test.in
+}

@@ -10,12 +10,17 @@ import org.lflang.ast.FormattingUtil;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 
-/** Helper class to generate a main reactor */
+/**
+ * Helper class to generate a main reactor.
+ *
+ * @ingroup Federated
+ */
 public class FedMainEmitter {
 
   /**
-   * Generate a main reactor for {@code federate}.
+   * Generate a main reactor for `federate`.
    *
+   * @param federate The federate instance.
    * @param originalMainReactor The original main reactor.
    * @param messageReporter Used to report errors.
    * @return The main reactor.
@@ -39,7 +44,8 @@ public class FedMainEmitter {
       var initializer = LfFactory.eINSTANCE.createInitializer();
       var expression = LfFactory.eINSTANCE.createLiteral();
       expression.setLiteral(String.valueOf(federate.bankIndex));
-      initializer.getExprs().add(expression);
+      initializer.setAssign(true);
+      initializer.setExpr(expression);
       assignment.setRhs(initializer);
       instantiation.getParameters().add(assignment);
     }
@@ -101,9 +107,9 @@ public class FedMainEmitter {
             .collect(Collectors.joining(",", "(", ")"));
 
     return """
-        @_fed_config()
-        main reactor %s {
-        """
+           @_fed_config()
+           main reactor %s {
+           """
         .formatted(paramList.equals("()") ? "" : paramList);
   }
 }

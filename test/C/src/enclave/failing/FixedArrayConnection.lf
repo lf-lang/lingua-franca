@@ -1,0 +1,39 @@
+target C {
+  timeout: 20 msec
+}
+
+reactor R1 {
+  output out: int[3]
+
+  timer t(10 msec)
+
+  reaction(t) -> out {=
+    out->value[0] = 1;
+    out->value[1] = 2;
+    out->value[2] = 3;
+    lf_set_present(out);
+  =}
+}
+
+
+reactor R2 {
+  input in: int[3]
+
+  reaction(in) {=
+    LF_TEST(in->value[0] == 1, "in1");
+    LF_TEST(in->value[1] == 2, "in1");
+    LF_TEST(in->value[2] == 3, "in1");
+
+  =}
+}
+
+main reactor {
+  @enclave
+  r1 = new R1()
+
+  @enclave
+  r2 = new R2()
+
+  r1.out -> r2.in after 100 msec
+
+}

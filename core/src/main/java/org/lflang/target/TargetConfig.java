@@ -24,7 +24,10 @@
  ***************/
 package org.lflang.target;
 
+import static org.lflang.ast.ASTUtils.convertToEmptyListIfNull;
+
 import com.google.gson.JsonObject;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -33,8 +36,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.lflang.MessageReporter;
@@ -48,11 +53,13 @@ import org.lflang.lf.LfPackage.Literals;
 import org.lflang.lf.TargetDecl;
 import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.FedSetupProperty;
+import org.lflang.target.property.FileListProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.TargetProperty;
 import org.lflang.target.property.TimeOutProperty;
 import org.lflang.target.property.type.TargetPropertyType;
+import org.lflang.util.FileUtil;
 
 /**
  * A class for keeping the current target configuration.
@@ -119,15 +126,32 @@ public class TargetConfig {
    * Load configuration from the given resource.
    *
    * @param resource A resource to load from.
-   * @param reporter A reporter for reporting issues.
+   * @param reporter A message reporter for reporting errors and warnings.
    */
   protected void load(Resource resource, MessageReporter reporter) {
     var targetDecl = GeneratorUtils.findTargetDecl(resource);
     var properties = targetDecl.getConfig();
+
     // Load properties from file
     if (properties != null) {
       List<KeyValuePair> pairs = properties.getPairs();
-      this.load(pairs, reporter);
+      pairs.forEach(
+          pair -> {
+            var p = forName(pair.getName());
+            if (p.isPresent()) {
+              var property = p.get();
+              // Record the pair.
+              keyValuePairs.put(property, pair);
+              // Only update the config if the pair matches the type.
+              if (property.checkType(pair, reporter)) {
+                property.update(this, pair, reporter);
+                // Ignore properties if they are imported and must not load from imports.
+              }
+            } else {
+              reportUnsupportedTargetProperty(
+                  pair.getName(), reporter.at(pair, Literals.KEY_VALUE_PAIR__NAME));
+            }
+          });
     }
   }
 
@@ -146,6 +170,73 @@ public class TargetConfig {
     load(args, reporter);
     // Validate to ensure consistency
     validate(reporter);
+  }
+
+  /**
+   * If the federate that the target configuration applies to is imported, merge target properties
+   * declared in the file that it was imported from.
+   *
+   * @param importedResource The resource in which the target configuration is to be loaded from.
+   * @param mainResource The resource in which the main reactor is specified.
+   * @param loadOrNot Predicate to determine for each target property whether it should be loaded.
+   * @param messageReporter An error reporter to use when problems are encountered.
+   */
+  public void mergeImportedConfig(
+      Resource importedResource,
+      Resource mainResource,
+      Predicate<TargetProperty> loadOrNot,
+      MessageReporter messageReporter) {
+    // If the federate is imported, then update the configuration based on target properties
+    // in the imported file.
+    if (!importedResource.equals(mainResource)) {
+      var importedTargetDecl = GeneratorUtils.findTargetDecl(importedResource);
+      var targetProperties = importedTargetDecl.getConfig();
+      if (targetProperties != null) {
+        // Merge properties
+        update(
+            this,
+            convertToEmptyListIfNull(targetProperties.getPairs()),
+            FileUtil.getRelativePath(mainResource, importedResource),
+            loadOrNot,
+            messageReporter);
+      }
+    }
+  }
+
+  /**
+   * Update the given configuration using the given target properties.
+   *
+   * @param config The configuration object to update.
+   * @param pairs AST node that holds all the target properties.
+   * @param relativePath The path from the main resource to the resource from which the new
+   *     properties originate.
+   * @param loadOrNot Predicate to determine whether a property should be loaded.
+   * @param err Message reporter for errors.
+   */
+  public void update(
+      TargetConfig config,
+      List<KeyValuePair> pairs,
+      Path relativePath,
+      Predicate<TargetProperty> loadOrNot,
+      MessageReporter err) {
+    pairs.forEach(
+        pair -> {
+          var p = config.forName(pair.getName());
+          if (p.isPresent()) {
+            var value = pair.getValue();
+            var property = p.get();
+            if (property instanceof FileListProperty fileListProperty) {
+              var files =
+                  ASTUtils.elementToListOfStrings(value).stream()
+                      .map(relativePath::resolve) // assume all paths are relative
+                      .map(Objects::toString)
+                      .toList();
+              fileListProperty.update(config, files);
+            } else if (loadOrNot.test(property)) {
+              p.get().update(this, pair, err);
+            }
+          }
+        });
   }
 
   /**
@@ -168,6 +259,11 @@ public class TargetConfig {
                 }
               });
     }
+  }
+
+  /** Return `true` if the given target property is supported, `false` otherwise. */
+  public boolean isSupported(TargetProperty p) {
+    return properties.containsKey(p);
   }
 
   /**
@@ -237,7 +333,7 @@ public class TargetConfig {
   }
 
   /**
-   * Return {@code true} if this target property has been set (past initialization), {@code false}
+   * Return `true` if this target property has been set (past initialization), `false`
    * otherwise.
    */
   public boolean isSet(TargetProperty<?, ?> property) {
@@ -250,6 +346,14 @@ public class TargetConfig {
         .map(TargetProperty::toString)
         .filter(s -> !s.startsWith("_"))
         .collect(Collectors.joining(", "));
+  }
+
+  /** Return the target properties that have been assigned a value. */
+  public List<TargetProperty<?, ?>> getAssignedProperties() {
+    return this.properties.keySet().stream()
+        .filter(this::isSet)
+        .sorted(Comparator.comparing(p -> p.getClass().getName()))
+        .collect(Collectors.toList());
   }
 
   /** Return the target properties that are currently registered. */
@@ -279,33 +383,6 @@ public class TargetConfig {
   public void load(GeneratorArguments args, MessageReporter err) {
     load(args.jsonObject(), err);
     args.overrides().forEach(a -> a.update(this, err));
-  }
-
-  /**
-   * Update the configuration using the given pairs from the AST.
-   *
-   * @param pairs AST node that holds all the target properties.
-   * @param err A message reporter for reporting errors and warnings.
-   */
-  public void load(List<KeyValuePair> pairs, MessageReporter err) {
-    if (pairs != null) {
-      pairs.forEach(
-          pair -> {
-            var p = forName(pair.getName());
-            if (p.isPresent()) {
-              var property = p.get();
-              // Record the pair.
-              keyValuePairs.put(property, pair);
-              if (property.checkType(pair, err)) {
-                // Only update the config is the pair matches the type.
-                property.update(this, pair, err);
-              }
-            } else {
-              reportUnsupportedTargetProperty(
-                  pair.getName(), err.at(pair, Literals.KEY_VALUE_PAIR__NAME));
-            }
-          });
-    }
   }
 
   /**
@@ -378,7 +455,7 @@ public class TargetConfig {
   }
 
   /**
-   * Construct a {@code TargetDecl} by extracting the fields of the given {@code TargetConfig}.
+   * Construct a `TargetDecl` by extracting the fields of the given `TargetConfig`.
    *
    * @return A generated TargetDecl.
    */

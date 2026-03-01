@@ -19,7 +19,11 @@ import org.lflang.lf.TypedVariable;
 import org.lflang.lf.VarRef;
 import org.lflang.util.FileUtil;
 
-/** Generate user-visible header files. */
+/**
+ * Generate user-visible header files.
+ *
+ * @ingroup Generator
+ */
 public class CReactorHeaderFileGenerator {
 
   /** Functional interface for generating auxiliary structs such as port structs. */
@@ -27,7 +31,7 @@ public class CReactorHeaderFileGenerator {
     void generate(CodeBuilder b, TypeParameterizedReactor r, boolean userFacing);
   }
 
-  /** Return the path to the user-visible header file that would be generated for {@code r}. */
+  /** Return the path to the user-visible header file that would be generated for `r`. */
   public static Path outputPath(TypeParameterizedReactor tpr) {
     return Path.of(
             FileUtil.toPath(tpr.reactor().eResource().getURI())
@@ -87,19 +91,23 @@ public class CReactorHeaderFileGenerator {
   private static void appendPoundIncludes(CodeBuilder builder) {
     builder.pr(
         """
-            #ifdef __cplusplus
-            extern "C" {
-            #endif
-            #include "../include/api/schedule.h"
-            #include "../include/core/reactor.h"
-            #ifdef __cplusplus
-            }
-            #endif
-            """);
+        #ifdef __cplusplus
+        extern "C" {
+        #endif
+        #include "../include/api/schedule.h"
+        #include "../include/core/reactor.h"
+        #ifdef __cplusplus
+        }
+        #endif
+        """);
   }
 
+  /**
+   * Return a String with the user facing type of TypeParameterized Reactor.
+   * `*` is replaced with `Ptr`.
+   */
   private static String userFacingSelfType(TypeParameterizedReactor tpr) {
-    return tpr.getName().toLowerCase() + "_self_t";
+    return tpr.getName().toLowerCase().replace("*", "Ptr") + "_self_t";
   }
 
   private static void appendSelfStruct(
@@ -135,7 +143,7 @@ public class CReactorHeaderFileGenerator {
     return "(" + userFacingSelfType(tpr) + "*) self";
   }
 
-  /** Generate initialization code that is needed if {@code r} is not inlined. */
+  /** Generate initialization code that is needed if `r` is not inlined. */
   public static String nonInlineInitialization(Reaction r, TypeParameterizedReactor reactor) {
     var mainDef = LfFactory.eINSTANCE.createInstantiation();
     mainDef.setName(reactor.getName());
@@ -151,15 +159,15 @@ public class CReactorHeaderFileGenerator {
                             it.getType(false), it.getAlias(), it.getType(false), it.getRvalue())
                         : String.format(
                             """
-                    %s %s[%s];
-                    for (int i = 0; i < %s; i++) {
-                        %s[i] = (%s) self->_lf_%s[i].%s;
-                    }
-                    """,
+                            %s %s[%s];
+                            for (int i = 0; i < %s; i++) {
+                                %s[i] = (%s) self->_lf_%s[i].%s;
+                            }
+                            """,
                             it.getType(true).replaceFirst("\\*", ""),
                             it.getAlias(),
                             CReactionGenerator.maxContainedReactorBankWidth(
-                                reactor.reactor().getInstantiations().stream()
+                                ASTUtils.allInstantiations(reactor.reactor()).stream()
                                     .filter(
                                         instantiation ->
                                             new TypeParameterizedReactor(instantiation, reactor)
@@ -177,7 +185,7 @@ public class CReactorHeaderFileGenerator {
         .collect(Collectors.joining("\n"));
   }
 
-  /** Return a string representation of the arguments passed to the function for {@code r}. */
+  /** Return a string representation of the arguments passed to the function for `r`. */
   public static String reactionArguments(Reaction r, TypeParameterizedReactor reactor) {
     return Stream.concat(
             Stream.of(getApiSelfStruct(reactor)),
@@ -186,7 +194,7 @@ public class CReactorHeaderFileGenerator {
         .collect(Collectors.joining(", "));
   }
 
-  /** Return a stream of all ports referenced by the signature of {@code r}. */
+  /** Return a stream of all ports referenced by the signature of `r`. */
   private static Stream<PortVariable> portVariableStream(
       Reaction r, TypeParameterizedReactor reactorOfReaction) {
     return varRefStream(r)
@@ -208,8 +216,8 @@ public class CReactorHeaderFileGenerator {
    *
    * @param tv The variable of the variable reference.
    * @param r The reactor in which the port is being used.
-   * @param container The {@code Instantiation} referenced in the obtaining of {@code tv}, if
-   *     applicable; {@code null} otherwise.
+   * @param container The `Instantiation` referenced in the obtaining of `tv`, if
+   *     applicable; `null` otherwise.
    */
   private record PortVariable(
       TypedVariable tv, TypeParameterizedReactor r, Instantiation container) {
@@ -229,20 +237,24 @@ public class CReactorHeaderFileGenerator {
                   .orElseThrow());
       return typeName + "*" + (getWidth() != null ? "*" : "") + (isMultiport ? "*" : "");
     }
+
     /** The name of the variable as it appears in the LF source. */
     String getName() {
       return tv.getName();
     }
+
     /** The alias of the variable that should be used in code generation. */
     String getAlias() {
       return getName(); // TODO: avoid naming conflicts
     }
+
     /** The width of the container, if applicable. */
     String getWidth() {
       return container == null || container.getWidthSpec() == null
           ? null
           : "self->_lf_" + r.getName() + "_width";
     }
+
     /** The representation of this port as used by the LF programmer. */
     String getRvalue() {
       return container == null ? getName() : container.getName() + "." + getName();

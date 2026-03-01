@@ -1,0 +1,38 @@
+target Python {
+  timeout: 11 msec
+}
+
+import Sender from "lib/LoopedActionSender.lf"
+
+reactor Consumer {
+  input inp
+  state success = False
+
+  reaction(inp) {=
+    current_tag = lf.tag()
+    to_compare_tag = Tag(time = MSEC(11) + lf.time.start(), microstep = 0)
+    if lf.tag_compare(current_tag, to_compare_tag) > 0:
+      sys.stderr.write(f"ERROR: Tag ({current_tag.time - lf.time.start()}, {current_tag.microstep}) received. Failed to enforce timeout.\n")
+      exit(1)
+    elif lf.tag_compare(current_tag, to_compare_tag) == 0:
+      self.success = True  # Successfully invoked the reaction at (timeout, 0)
+  =}
+
+  reaction(shutdown) {=
+    current_tag = lf.tag()
+    to_compare_tag = Tag(time = MSEC(11) + lf.time.start(), microstep = 0)
+    print(f"Shutdown invoked at tag ({current_tag.time - lf.time.start()}, {current_tag.microstep}).")
+    if lf.tag_compare(current_tag,to_compare_tag) == 0 and self.success == True:
+      print("SUCCESS: successfully enforced timeout.")
+    else:
+      sys.stderr.write(f"ERROR: Shutdown invoked at tag ({current_tag.time - lf.time.start()}, {current_tag.microstep}). Failed to enforce timeout.\n")
+      exit(1)
+  =}
+}
+
+main reactor Timeout {
+  consumer = new Consumer()
+  producer = new Sender(break_interval = 1 msec)
+
+  producer.out -> consumer.inp
+}

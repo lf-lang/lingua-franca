@@ -1,0 +1,27 @@
+/**
+ * This test checks that a timeout time without any events does not cause a federate to hang.
+ * Success is simply exiting.
+ */
+target C {
+  coordination: decentralized,
+  timeout: 7 ms
+}
+
+import Count from "../lib/Count.lf"
+
+reactor PrintLag {
+  input in: int
+
+  reaction(in) {=
+    interval_t lag = lf_time_physical() - lf_time_logical();
+    lf_print("**** Reaction to network input %d lag is " PRINTF_TIME "us at logical time " PRINTF_TIME "us, microstep %d.",
+        in->value, lag/1000, lf_time_logical_elapsed()/1000, lf_tag().microstep);
+  =}
+}
+
+federated reactor {
+  c = new Count(offset=0, period = 3 ms)
+  @maxwait(forever)
+  p = new PrintLag()
+  c.out -> p.in
+}

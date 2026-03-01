@@ -27,6 +27,8 @@
 
 package org.lflang.validation;
 
+import static org.lflang.AttributeUtils.isEnclave;
+import static org.lflang.ast.ASTUtils.allInstantiations;
 import static org.lflang.ast.ASTUtils.inferPortWidth;
 import static org.lflang.ast.ASTUtils.isGeneric;
 import static org.lflang.ast.ASTUtils.toDefinition;
@@ -63,6 +65,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.federated.validation.FedValidator;
 import org.lflang.generator.GeneratorArguments;
+import org.lflang.generator.GeneratorUtils;
 import org.lflang.generator.NamedInstance;
 import org.lflang.generator.c.TypeParameterizedReactor;
 import org.lflang.lf.Action;
@@ -73,6 +76,7 @@ import org.lflang.lf.BracedListExpression;
 import org.lflang.lf.BracketListExpression;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.CodeExpr;
 import org.lflang.lf.Connection;
 import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
@@ -94,12 +98,12 @@ import org.lflang.lf.NamedHost;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.ParenthesisListExpression;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
-import org.lflang.lf.STP;
 import org.lflang.lf.Serializer;
 import org.lflang.lf.StateVar;
 import org.lflang.lf.TargetDecl;
@@ -142,9 +146,7 @@ public class LFValidator extends BaseLFValidator {
   public void checkAction(Action action) {
     checkName(action.getName(), Literals.VARIABLE__NAME);
     if (action.getOrigin() == ActionOrigin.NONE) {
-      error(
-          "Action must have modifier {@code logical} or {@code physical}.",
-          Literals.ACTION__ORIGIN);
+      error("Action must have modifier `logical` or `physical`.", Literals.ACTION__ORIGIN);
     }
     if (action.getPolicy() != null && !SPACING_VIOLATION_POLICIES.contains(action.getPolicy())) {
       error(
@@ -161,26 +163,13 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkInitializer(Initializer init) {
-    if (init.isBraces() && target != Target.CPP) {
+    if (!init.isAssign() && target.mandatesEqualsInitializers()) {
       error(
-          "Brace initializers are only supported for the C++ target", Literals.INITIALIZER__BRACES);
-    } else if (init.isParens() && target.mandatesEqualsInitializers()) {
-      var message =
-          "This syntax is deprecated in the "
-              + target
-              + " target, use an equal sign instead of parentheses for assignment.";
-      if (init.getExprs().size() == 1) {
-        message += " (run the formatter to fix this automatically)";
-      }
-      warning(message, Literals.INITIALIZER__PARENS);
-    } else if (!init.isAssign() && init.eContainer() instanceof Assignment) {
-      var feature = init.isBraces() ? Literals.INITIALIZER__BRACES : Literals.INITIALIZER__PARENS;
-      var message =
-          "This syntax is deprecated, do not use parentheses or braces but an equal sign.";
-      if (init.getExprs().size() == 1) {
-        message += " (run the formatter to fix this automatically)";
-      }
-      warning(message, feature);
+          "The "
+              + target.getDisplayName()
+              + " target does not support brace or parenthesis based initialization. Please use the"
+              + " assignment operator '=' instead.",
+          Literals.INITIALIZER__EXPR);
     }
   }
 
@@ -189,7 +178,7 @@ public class LFValidator extends BaseLFValidator {
     if (!target.allowsBracedListExpressions()) {
       var message =
           "Braced expression lists are not a valid expression for the " + target + " target.";
-      error(message, Literals.BRACED_LIST_EXPRESSION.eContainmentFeature());
+      error(message, Literals.BRACED_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -198,7 +187,16 @@ public class LFValidator extends BaseLFValidator {
     if (!target.allowsBracketListExpressions()) {
       var message =
           "Bracketed expression lists are not a valid expression for the " + target + " target.";
-      error(message, Literals.BRACKET_LIST_EXPRESSION.eContainmentFeature());
+      error(message, Literals.BRACKET_LIST_EXPRESSION__ITEMS);
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkParenthesisExpression(ParenthesisListExpression expr) {
+    if (!target.allowsParenthesisListExpressions()) {
+      var message =
+          "Parenthesis expression lists are not a valid expression for the " + target + " target.";
+      error(message, Literals.PARENTHESIS_LIST_EXPRESSION__ITEMS);
     }
   }
 
@@ -231,7 +229,6 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkConnection(Connection connection) {
-
     // Report if connection is part of a cycle.
     Set<NamedInstance<?>> cycles = this.info.topologyCycles();
     for (VarRef lp : connection.getLeftPorts()) {
@@ -416,6 +413,169 @@ public class LFValidator extends BaseLFValidator {
     checkExpressionIsTime(deadline.getDelay(), Literals.DEADLINE__DELAY);
   }
 
+  // Check that in the C target we have no enclaves within modes.
+  @Check(CheckType.NORMAL)
+  public void checkCEnclaveNotInMode(Reactor reactor) {
+    if (isCBasedTarget() && reactor.isMain()) {
+      for (var inst : ASTUtils.allInstantiations(reactor)) {
+        boolean isInMode = inst.eContainer() instanceof Mode;
+        boolean isEnclave = isEnclave(inst);
+
+        if (isInMode && isEnclave) {
+          error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
+          return;
+        }
+
+        searchForEnclavesInModes(
+            ASTUtils.toDefinition(inst.getReactorClass()), inst.eContainer() instanceof Mode);
+      }
+    }
+  }
+
+  /**
+   * Helper function to search down the containment hierarchy for enclaves in modes.
+   *
+   * @param reactor The reactor in which to search for enclaves and modes.
+   * @param reactorIsInMode Whether this reactor itself is in a mode.
+   */
+  private void searchForEnclavesInModes(Reactor reactor, boolean reactorIsInMode) {
+    for (var inst : ASTUtils.allInstantiations(reactor)) {
+
+      boolean isInMode = inst.eContainer() instanceof Mode;
+      boolean isEnclave = isEnclave(inst);
+
+      if ((isInMode || reactorIsInMode) && isEnclave) {
+        error("Enclaves in modes not supported", Literals.WIDTH_SPEC__TERMS);
+        return;
+      }
+
+      searchForEnclavesInModes(ASTUtils.toDefinition(inst.getReactorClass()), isInMode);
+    }
+  }
+
+  @Check(CheckType.NORMAL)
+  public void checkCEnclaves(Instantiation inst) {
+    if (isCBasedTarget() && isEnclave(inst)) {
+      // 1. Disallow banks of enclaves
+      if (inst.getWidthSpec() != null) {
+        error(
+            "Banks of enclaves are not supported in the C target",
+            Literals.INSTANTIATION__WIDTH_SPEC);
+      }
+
+      // 2. Disallow multiports and array ports   on enclaves
+      Reactor encDef = ASTUtils.toDefinition(inst.getReactorClass());
+      for (Input input : encDef.getInputs()) {
+        if (input.getWidthSpec() != null) {
+          error(
+              "Enclaves with multiports not supported in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
+        }
+        if (input.getType().getCStyleArraySpec() != null) {
+          error(
+              "Enclaves do not currently support ports with array types in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
+        }
+      }
+      for (Output output : encDef.getOutputs()) {
+        if (output.getWidthSpec() != null) {
+          error(
+              "Enclaves with multiports not supported in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
+        }
+        if (output.getType().getCStyleArraySpec() != null) {
+          error(
+              "Enclaves do not currently support ports with array types in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
+        }
+      }
+
+      // 4. Disallow enclave ports as triggers, sources or effects of reactions of the parent.
+      Reactor parent = (Reactor) inst.eContainer();
+      for (Reaction r : parent.getReactions()) {
+        for (VarRef effect : r.getEffects()) {
+          if (effect.getContainer().equals(inst)) {
+            error(
+                "Enclave input ports can not be driven by reactions",
+                Literals.INSTANTIATION__REACTOR_CLASS);
+          }
+        }
+        for (VarRef source : r.getSources()) {
+          if (source.getContainer().equals(inst)) {
+            error(
+                "Enclave output ports can not be sources for reactions",
+                Literals.INSTANTIATION__REACTOR_CLASS);
+          }
+        }
+        for (TriggerRef trigger : r.getTriggers()) {
+          if (trigger instanceof VarRef) {
+            if (((VarRef) trigger).getContainer().equals(inst)) {
+              error(
+                  "Enclave output ports can not be triggers for reactions",
+                  Literals.INSTANTIATION__REACTOR_CLASS);
+            }
+          }
+        }
+      }
+
+      // 5. Disallow an enclave connected mixed with multiport and bank connection
+      // Get all connections involving this enclave
+      List<Connection> connections =
+          parent.getConnections().stream()
+              .filter(
+                  c ->
+                      Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream())
+                              .filter(port -> port.getContainer().equals(inst))
+                              .toList()
+                              .size()
+                          > 0)
+              .toList();
+      // Look for multi-connections.
+      connections.forEach(
+          c -> {
+            if (c.getRightPorts().size() > 1 || c.getLeftPorts().size() > 1) {
+              error(
+                  "Enclaves only supported with singular connections.",
+                  Literals.CONNECTION__LEFT_PORTS);
+            }
+          });
+      // Look for interleaved, multiport and bank connections inside these connections
+      connections.stream()
+          .flatMap(c -> Stream.concat(c.getLeftPorts().stream(), c.getRightPorts().stream()))
+          .forEach(
+              p -> {
+                if (p.isInterleaved()) {
+                  error(
+                      "Enclaves cannot be involved in interleaved connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+                if (((Port) p.getVariable()).getWidthSpec() != null) {
+                  error(
+                      "Enclaves cannot be involved in multiport connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+                if (p.getContainer().getWidthSpec() != null) {
+                  error(
+                      "Enclaves cannot be involved in bank connections",
+                      Literals.CONNECTION__LEFT_PORTS);
+                }
+              });
+
+      // 6. Look for zero-delay cycles between enclaves
+      //  This is done in CEnclaveGenerator.java
+    }
+  }
+
+  @Check(CheckType.FAST)
+  public void checkEnclaveOnWindows(Instantiation inst) {
+    if (isEnclave(inst) && GeneratorUtils.isHostWindows()) {
+      warning(
+          "Enclaves are not supported on Windows platforms. This may cause compilation or runtime"
+              + " errors.",
+          Literals.INSTANTIATION__REACTOR_CLASS);
+    }
+  }
+
   @Check(CheckType.FAST)
   public void checkHost(Host host) {
     String addr = host.getAddr();
@@ -506,6 +666,11 @@ public class LFValidator extends BaseLFValidator {
               + instantiation.getReactorClass().getName(),
           Literals.INSTANTIATION__REACTOR_CLASS);
     }
+    if (AttributeUtils.getEnclaveAttribute(instantiation) != null && !target.supportsEnclaves()) {
+      error(
+          "This target does not support enclaves." + instantiation.getReactorClass().getName(),
+          Literals.INSTANTIATION__REACTOR_CLASS);
+    }
 
     // Report error if this instantiation is part of a cycle.
     // FIXME: improve error message.
@@ -594,26 +759,45 @@ public class LFValidator extends BaseLFValidator {
     }
 
     if (param.getInit() != null) {
-      for (Expression expr : param.getInit().getExprs()) {
-        if (expr instanceof ParameterReference) {
-          // Initialization using parameters is forbidden.
-          error("Parameter cannot be initialized using parameter.", Literals.PARAMETER__INIT);
-        }
+      final var expr = param.getInit().getExpr();
+      if (expr instanceof ParameterReference) {
+        // Initialization using parameters is forbidden.
+        error("Parameter cannot be initialized using parameter.", Literals.PARAMETER__INIT);
       }
     }
 
     if (this.target == Target.CPP) {
       EObject container = param.eContainer();
-      Reactor reactor = (Reactor) container;
-      if (reactor.isMain()) {
-        // we need to check for the cli parameters that are always taken
-        List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
-        if (cliParams.contains(param.getName())) {
-          error(
-              "Parameter '"
-                  + param.getName()
-                  + "' is already in use as command line argument by Lingua Franca,",
-              Literals.PARAMETER__NAME);
+      if (container instanceof Reactor) {
+        Reactor reactor = (Reactor) container;
+        if (reactor.isMain()) {
+          // we need to check for the cli parameters that are always taken
+          List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
+          if (cliParams.contains(param.getName())) {
+            error(
+                "Parameter '"
+                    + param.getName()
+                    + "' is already in use as command line argument by Lingua Franca,",
+                Literals.PARAMETER__NAME);
+          }
+        }
+      }
+    }
+
+    if (isCBasedTarget()) {
+      EObject container = param.eContainer();
+      if (container instanceof Reactor) {
+        Reactor reactor = (Reactor) container;
+        if (reactor.isMain() || reactor.isFederated()) {
+          List<String> reservedNames =
+              List.of("fast", "timeout", "keepalive", "workers", "id", "rti", "help");
+          if (reservedNames.contains(param.getName())) {
+            error(
+                "Parameter '"
+                    + param.getName()
+                    + "' name conflicts with a built-in command-line option.",
+                Literals.PARAMETER__NAME);
+          }
         }
       }
     }
@@ -673,7 +857,9 @@ public class LFValidator extends BaseLFValidator {
             Literals.REACTION__CODE);
         return;
       }
-      if (reaction.getDeadline() == null && reaction.getStp() == null) {
+      if (reaction.getDeadline() == null
+          && reaction.getStp() == null
+          && reaction.getTardy() == null) {
         var text = NodeModelUtils.findActualNodeFor(reaction).getText();
         var matcher = Pattern.compile("\\)\\s*[\\n\\r]+(.*[\\n\\r])*.*->").matcher(text);
         if (matcher.find()) {
@@ -705,6 +891,14 @@ public class LFValidator extends BaseLFValidator {
             error(
                 String.format(
                     "Cannot have an output of this reactor as a trigger: %s",
+                    triggerVarRef.getVariable().getName()),
+                Literals.REACTION__TRIGGERS);
+          } else if (AttributeUtils.getEnclaveAttribute(triggerVarRef.getContainer()) != null) {
+            // Enclaves in Cpp, C, and Python
+            error(
+                String.format(
+                    "Triggering a reaction with the output of a contained enclave is not supported:"
+                        + " %s",
                     triggerVarRef.getVariable().getName()),
                 Literals.REACTION__TRIGGERS);
           }
@@ -913,6 +1107,15 @@ public class LFValidator extends BaseLFValidator {
       if (!fileName.equals("__synthetic0")) {
         checkReactorName(fileName);
       }
+
+      // We dont allow federates with enclaves inside
+      if (reactor.isFederated() && isCBasedTarget()) {
+        Set<Instantiation> enclaves = ASTUtils.getEnclaves(reactor);
+        if (!enclaves.isEmpty()) {
+          error("Enclaves not supported in federated programs", Literals.REACTOR__FEDERATED);
+        }
+      }
+
     } else {
       // Not federated or main.
       if (reactor.getName() == null) {
@@ -1009,6 +1212,10 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkSerializer(Serializer serializer) {
     boolean isValidSerializer = false;
+    if (this.target == Target.Python) {
+      // Allow any serializer package name in python
+      isValidSerializer = true;
+    }
     for (SupportedSerializers method : SupportedSerializers.values()) {
       if (method.name().equalsIgnoreCase(serializer.getType())) {
         isValidSerializer = true;
@@ -1025,31 +1232,13 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkState(StateVar stateVar) {
     checkName(stateVar.getName(), Literals.STATE_VAR__NAME);
-    if (stateVar.getInit() != null && stateVar.getInit().getExprs().size() != 0) {
+    if (stateVar.getInit() != null && stateVar.getInit().getExpr() != null) {
       typeCheck(stateVar.getInit(), ASTUtils.getInferredType(stateVar), Literals.STATE_VAR__INIT);
     }
 
     if (this.target.requiresTypes && ASTUtils.getInferredType(stateVar).isUndefined()) {
       // Report if a type is missing
       error("State must have a type.", Literals.STATE_VAR__TYPE);
-    }
-
-    if (isCBasedTarget()
-        && ASTUtils.isListInitializer(stateVar.getInit())
-        && stateVar.getInit().getExprs().stream()
-            .anyMatch(it -> it instanceof ParameterReference)) {
-      // In C, if initialization is done with a list, elements cannot
-      // refer to parameters.
-      error("List items cannot refer to a parameter.", Literals.STATE_VAR__INIT);
-    }
-  }
-
-  @Check(CheckType.FAST)
-  public void checkSTPOffset(STP stp) {
-    if (isCBasedTarget() && this.info.overflowingSTP.contains(stp)) {
-      error(
-          "STP offset exceeds the maximum of " + TimeValue.MAX_LONG_DEADLINE + " nanoseconds.",
-          Literals.STP__VALUE);
     }
   }
 
@@ -1090,10 +1279,28 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkType(Type type) {
+    if (type == null) {
+      return;
+    }
     if (this.target == Target.Python) {
-      if (type != null) {
-        error("Types are not allowed in the Python target", Literals.TYPE__ID);
+      error("Types are not allowed in the Python target", Literals.TYPE__ID);
+    }
+
+    if (type.getCStyleArraySpec() != null
+        && !List.of(Target.C, Target.CCPP, Target.TS).contains(target)) {
+      if (target == Target.CPP) {
+        error(
+            "C style array specifications are not allowed in this target. Please use std::array or"
+                + " std::vector instead.",
+            Literals.TYPE__ID);
+      } else {
+        error("C style array specifications are not allowed in this target.", Literals.TYPE__ID);
       }
+    }
+
+    if (!type.getStars().isEmpty()
+        && !List.of(Target.C, Target.CPP, Target.CCPP).contains(target)) {
+      error("Pointer types are not allowed in this target.", Literals.TYPE__ID);
     }
   }
 
@@ -1136,11 +1343,55 @@ public class LFValidator extends BaseLFValidator {
     String name = attr.getAttrName().toString();
     AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
     if (spec == null) {
-      error("Unknown attribute.", Literals.ATTRIBUTE__ATTR_NAME);
+      error("Unknown attribute: " + name, Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
+    // Above generic check is not sufficient for maxwait and absent_after.
+    if (name.equals("maxwait")) {
+      checkMaxWaitAttribute(attr);
+    } else if (name.equals("absent_after")) {
+      checkAbsentAfterAttribute(attr);
+    }
+  }
+
+  private void checkMaxWaitAttribute(Attribute attr) {
+    // Check that the attribute is at the top level.
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Connection)) {
+      warning(
+          "maxwait attribute can only be used in an instantiation or connection.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    var top = container.eContainer();
+    if (!(top instanceof Reactor) || !((Reactor) top).isFederated()) {
+      warning(
+          "maxwait attribute can only be used at the top level in a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+  }
+
+  private void checkAbsentAfterAttribute(Attribute attr) {
+    // Check that the attribute is at the top level.
+    var container = attr.eContainer();
+    if (!(container instanceof Connection)) {
+      warning(
+          "absent_after attribute can only be used in a connection.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    var top = container.eContainer();
+    if (!(top instanceof Reactor) || !((Reactor) top).isFederated()) {
+      warning(
+          "absent_after attribute can only be used at the top level in a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
   }
 
   @Check(CheckType.FAST)
@@ -1158,7 +1409,7 @@ public class LFValidator extends BaseLFValidator {
                 Literals.WIDTH_SPEC__TERMS);
           }
         } else if (term.getPort() != null) {
-          // Widths given with {@code widthof()} are not supported (yet?).
+          // Widths given with `widthof()` are not supported (yet?).
           // This feature is currently only used for after delays.
           error("widthof is not supported.", Literals.WIDTH_SPEC__TERMS);
         } else if (term.getCode() != null) {
@@ -1382,7 +1633,7 @@ public class LFValidator extends BaseLFValidator {
                 }
               }
               // continue with inner
-              for (var innerInstance : check.getInstantiations()) {
+              for (var innerInstance : allInstantiations(check)) {
                 var next = (Reactor) innerInstance.getReactorClass();
                 if (!checked.contains(next)) {
                   toCheck.push(next);
@@ -1412,7 +1663,7 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkStateResetWithoutInitialValue(StateVar state) {
-    if (state.isReset() && (state.getInit() == null || state.getInit().getExprs().isEmpty())) {
+    if (state.isReset() && (state.getInit() == null)) {
       error(
           "The state variable can not be automatically reset without an initial value.",
           state,
@@ -1456,7 +1707,7 @@ public class LFValidator extends BaseLFValidator {
                             .anyMatch(c -> c.getDelay() != null);
 
                 // continue with inner
-                for (var innerInstance : check.getInstantiations()) {
+                for (var innerInstance : ASTUtils.allInstantiations(check)) {
                   var next = (Reactor) innerInstance.getReactorClass();
                   if (!checked.contains(next)) {
                     toCheck.push(next);
@@ -1573,40 +1824,8 @@ public class LFValidator extends BaseLFValidator {
       return;
     }
 
-    // TODO:
-    //  type is list => init is list
-    //  type is fixed with size n => init is fixed with size n
-    // Specifically for C: list can only be literal or time lists
-
     if (type.isTime) {
-      if (type.isList) {
-        // list of times
-        var exprs = init.getExprs();
-        if (exprs.isEmpty()) {
-          error("Expected at least one time value.", feature);
-          return;
-        }
-        if (exprs.size() == 1 && exprs.get(0) instanceof BracedListExpression) {
-          exprs = ((BracedListExpression) exprs.get(0)).getItems();
-        }
-        for (var component : exprs) {
-          checkExpressionIsTime(component, feature);
-        }
-      } else {
-        checkExpressionIsTime(init, feature);
-      }
-    }
-  }
-
-  private void checkExpressionIsTime(Initializer init, EStructuralFeature feature) {
-    if (init == null) {
-      return;
-    }
-
-    if (init.getExprs().size() != 1) {
-      error("Expected exactly one time value.", feature);
-    } else {
-      checkExpressionIsTime(ASTUtils.asSingleExpr(init), feature);
+      checkExpressionIsTime(init.getExpr(), feature);
     }
   }
 
@@ -1625,14 +1844,30 @@ public class LFValidator extends BaseLFValidator {
       if (ASTUtils.isZero(((Literal) value).getLiteral())) {
         return;
       }
-
       if (ASTUtils.isInteger(((Literal) value).getLiteral())) {
         error("Missing time unit.", feature);
         return;
       }
-      // fallthrough
+    } else if (target == Target.CPP) {
+      if (value instanceof ParenthesisListExpression) {
+        final var exprs = ((ParenthesisListExpression) value).getItems();
+        if (exprs.size() == 1) {
+          checkExpressionIsTime(exprs.get(0), feature);
+          return;
+        }
+      } else if (value instanceof BracedListExpression) {
+        final var exprs = ((BracedListExpression) value).getItems();
+        if (exprs.size() == 1) {
+          checkExpressionIsTime(exprs.get(0), feature);
+          return;
+        }
+      } else if (value instanceof CodeExpr) {
+        // We leave checking of target code expressions to the target compiler
+        return;
+      }
     }
 
+    // fallthrough
     error("Invalid time value.", feature);
   }
 
@@ -1839,7 +2074,8 @@ public class LFValidator extends BaseLFValidator {
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
-  private static List<String> SPACING_VIOLATION_POLICIES = List.of("defer", "drop", "replace");
+  private static List<String> SPACING_VIOLATION_POLICIES =
+      List.of("defer", "drop", "replace", "update");
 
   private static String UNDERSCORE_MESSAGE =
       "Names of objects (inputs, outputs, actions, timers, parameters, "

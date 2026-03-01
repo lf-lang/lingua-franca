@@ -1,29 +1,3 @@
-/*************
- * Copyright (c) 2021, The University of Texas at Dallas.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
@@ -34,6 +8,7 @@ import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.federated.serialization.FedCustomPythonSerialization;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
@@ -48,11 +23,17 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
  * An extension class to the PythonGenerator that enables certain federated functionalities.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class PythonExtension extends CExtension {
 
   @Override
-  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig) {}
+  protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig)
+      throws IOException {
+    // Generate the CMake include file for the federate.
+    // This is needed to ensure that LF_SOURCE_DIRECTORY, etc. are defined.
+    CExtensionUtils.generateCMakeInclude(federate, fileConfig);
+  }
 
   @Override
   protected String generateSerializationIncludes(
@@ -65,6 +46,12 @@ public class PythonExtension extends CExtension {
             FedNativePythonSerialization pickler = new FedNativePythonSerialization();
             code.pr(pickler.generatePreambleForSupport().toString());
           }
+        case CUSTOM:
+          {
+            FedCustomPythonSerialization serializer =
+                new FedCustomPythonSerialization(serialization.getSerializer());
+            code.pr(serializer.generatePreambleForSupport().toString());
+          }
         case PROTO:
           {
             // Nothing needs to be done
@@ -76,6 +63,11 @@ public class PythonExtension extends CExtension {
       }
     }
     return code.getCode();
+  }
+
+  @Override
+  public String getNetworkBufferType() {
+    return "PyObject*";
   }
 
   @Override
@@ -144,10 +136,25 @@ public class PythonExtension extends CExtension {
         result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
         result.pr("lf_set_token(" + receiveRef + ", token);\n");
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
-      case ROS2 -> throw new UnsupportedOperationException(
-          "ROS2 serialization is not supported yet.");
+      case CUSTOM -> {
+        value = action.getName();
+        FedCustomPythonSerialization serializer =
+            new FedCustomPythonSerialization(connection.getSerializer().getSerializer());
+        result.pr(serializer.generateNetworkDeserializerCode(value, null));
+        // Use token to set ports and destructor
+        result.pr(
+            "lf_token_t* token = lf_new_token((void*)"
+                + receiveRef
+                + ", "
+                + FedSerialization.deserializedVarName
+                + ", 1);\n");
+        result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
+        result.pr("lf_set_token(" + receiveRef + ", token);\n");
+      }
+      case PROTO ->
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case ROS2 ->
+          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
   }
 
@@ -174,15 +181,28 @@ public class PythonExtension extends CExtension {
         // Decrease the reference count for serialized_pyobject
         result.pr("Py_XDECREF(serialized_pyobject);\n");
       }
-      case PROTO -> throw new UnsupportedOperationException(
-          "Protobuf serialization is not supported yet.");
-      case ROS2 -> throw new UnsupportedOperationException(
-          "ROS2 serialization is not supported yet.");
+      case CUSTOM -> {
+        var variableToSerialize = sendRef + "->value";
+        FedCustomPythonSerialization serializer =
+            new FedCustomPythonSerialization(connection.getSerializer().getSerializer());
+        lengthExpression = serializer.serializedBufferLength();
+        pointerExpression = serializer.serializedBufferVar();
+        result.pr(serializer.generateNetworkSerializerCode(variableToSerialize, null));
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+        // Decrease the reference count for serialized_pyobject
+        result.pr("Py_XDECREF(serialized_pyobject);\n");
+      }
+      case PROTO ->
+          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case ROS2 ->
+          throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
   }
 
   @Override
   public void annotateReaction(Reaction reaction) {
+    super.annotateReaction(reaction);
     ASTUtils.addReactionAttribute(reaction, "_c_body");
   }
 
@@ -194,11 +214,6 @@ public class PythonExtension extends CExtension {
       MessageReporter messageReporter)
       throws IOException {
     writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
-    return """
-      import gc
-      import atexit
-      gc.disable()
-      atexit.register(os._exit, 0)
-      """;
+    return "";
   }
 }

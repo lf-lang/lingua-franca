@@ -1,0 +1,15 @@
+target C {
+  timeout: 1 msec
+}
+
+import Count from "../lib/Count.lf"
+
+reactor R {
+  initial mode {
+    c = new Count()
+  }
+}
+
+federated reactor {
+  fed = new R()
+}

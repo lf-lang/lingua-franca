@@ -11,6 +11,11 @@ import org.lflang.tests.TestBase;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers;
 
+/**
+ * Collection of tests for the serialization.
+ *
+ * @ingroup Tests
+ */
 public class SerializationTest extends TestBase {
 
   protected SerializationTest() {

@@ -1,0 +1,69 @@
+// Test asynchronous callbacks that trigger a physical action with an "update" policy.
+// If the "update" policy works as expected, the program will terminate with no errors.
+// This test case assumes that the target is multithreaded. This test will not work with the unthreaded C
+// target because that target does not implement any mutex protecting the event queue.
+target C {
+  keepalive: true,
+  timeout: 2 sec
+}
+
+preamble {=
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  #include "platform.h"
+  #ifdef __cplusplus
+  }
+  #endif
+=}
+
+main reactor {
+  preamble {=
+    void callback(void* a) {
+      // Schedule twice in rapid succession (1 ms apart).
+      // The first value should be dropped because the
+      // timestamps will not be sufficiently separated.
+      // The minimum time between these is determined
+      // by the min_spacing argument in the physical action definition.
+      lf_schedule_int(a, 0, 0);
+      lf_schedule_int(a, 0, 1);
+    }
+    // Simulate time passing before a callback occurs.
+    void* take_time(void* a) {
+      instant_t sleep_time = 100000000;
+      lf_sleep(sleep_time);
+      callback(a);
+      return NULL;
+    }
+    lf_thread_t threadId;
+  =}
+  timer t(0, 200 msec)
+  state thread_id: lf_thread_t = 0
+  state expected_time: time = 100 msec  // 100 ms of min delay
+
+  // To observe a scenario when "update" is not in effect,
+  // schedule the second a with an additional delay > 100 msec,
+  // in this case, both physical action events will get onto the event queue,
+  // triggering an error in the reaction to a.
+  physical action a(100 msec, 100 msec, "update"): int
+  state i: int = 0
+
+  reaction(t) -> a {=
+    // start new thread, provide callback
+    lf_thread_create(&self->thread_id, &take_time, a);
+  =}
+
+  reaction(a) {=
+    instant_t elapsed_time = lf_time_logical_elapsed();
+    printf("Asynchronous callback %d: elapsed logical time = " PRINTF_TIME " nsec.\n", self->i++, elapsed_time);
+    if (elapsed_time <= self->expected_time) {
+      printf("ERROR: Expected logical time to be larger than " PRINTF_TIME ".\n", self->expected_time);
+      exit(1);
+    }
+    if (a->value != 1) {
+      printf("ERROR: Received: %d, expected 1 because the second event scheduled 1 ms later should have replaced the first.\n", a->value);
+      exit(2);
+    }
+    self->expected_time += 200000000LL;
+  =}
+}

@@ -8,6 +8,11 @@ import org.lflang.MessageReporter;
 import org.lflang.MessageReporterBase;
 import org.lflang.generator.Range;
 
+/**
+ * A message reporter that synchronizes access to the parent reporter.
+ *
+ * @ingroup Federated
+ */
 public class SynchronizedMessageReporter extends MessageReporterBase {
 
   private final MessageReporter parent;

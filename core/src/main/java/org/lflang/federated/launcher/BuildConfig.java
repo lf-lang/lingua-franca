@@ -4,7 +4,11 @@ import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 
-/** A collection of methods used for building target code for federates. */
+/**
+ * A collection of methods used for building target code for federates.
+ *
+ * @ingroup Federated
+ */
 public abstract class BuildConfig {
 
   /** The federate that this configuration applies to. */

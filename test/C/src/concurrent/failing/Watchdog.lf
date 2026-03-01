@@ -1,0 +1,72 @@
+/**
+ * Test watchdog. This test starts a watchdog timer of 1500ms every 1s. Half the time, it then
+ * sleeps after starting the watchdog so that the watchdog expires. There should be a total of two
+ * watchdog expirations.
+ * @author Benjamin Asch
+ * @author Edward A. Lee
+ */
+target C {
+  timeout: 11000 ms
+}
+
+reactor Watcher(timeout: time = 1500 ms) {
+  // Offset may reduce the likelihood of flakiness if long startup times occur.
+  timer t(1 s, 1 s)
+  // Period has to be smaller than watchdog timeout. Produced if the watchdog triggers.
+  output d: int
+  state count: int = 0
+
+  watchdog poodle(timeout) {=
+    instant_t p = lf_time_physical_elapsed();
+    lf_print("******** Watchdog timed out at elapsed physical time: " PRINTF_TIME, p);
+    self->count++;
+  =}
+
+  reaction(t) -> poodle, d {=
+    lf_watchdog_start(poodle, 0);
+    lf_print("Watchdog started at physical time " PRINTF_TIME, lf_time_physical_elapsed());
+    lf_print("Will expire at " PRINTF_TIME, lf_time_logical_elapsed() + self->timeout);
+    lf_set(d, 42);
+  =}
+
+  reaction(poodle) -> d {=
+    lf_print("Reaction poodle was called.");
+    lf_set(d, 1);
+  =}
+
+  reaction(shutdown) -> poodle {=
+    lf_watchdog_stop(poodle);
+    // Watchdog may expire in tests even without the sleep, but it should at least expire twice.
+    if (self->count < 2) {
+      lf_print_error_and_exit("Watchdog expired %d times. Expected at least 2.", self->count);
+    }
+  =}
+}
+
+main reactor {
+  logical action a
+  state count: int = 0
+
+  w = new Watcher()
+
+  reaction(startup) {=
+    if (NUMBER_OF_WATCHDOGS != 1) {
+      lf_print_error_and_exit("NUMBER_OF_WATCHDOGS was %d", NUMBER_OF_WATCHDOGS);
+    }
+  =}
+
+  reaction(w.d) {=
+    lf_print("Watcher reactor produced an output. %d", self->count % 2);
+    self->count++;
+    if (self->count % 4 == 0) {
+      lf_print(">>>>>> Taking a long time to process that output!");
+      lf_sleep(MSEC(1600));
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->count < 12) {
+      lf_print_error_and_exit("Watchdog produced output %d times. Expected at least 12.", self->count);
+    }
+  =}
+}

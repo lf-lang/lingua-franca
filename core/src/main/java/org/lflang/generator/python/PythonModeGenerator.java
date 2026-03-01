@@ -14,6 +14,7 @@ import org.lflang.lf.Reactor;
  * Helper class to handle modes in Python programs.
  *
  * @author Soroush Bateni
+ * @ingroup Generator
  */
 public class PythonModeGenerator {
   /**

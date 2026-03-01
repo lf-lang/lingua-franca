@@ -10,11 +10,12 @@ import org.lflang.lf.Preamble;
 import org.lflang.target.TargetConfig;
 
 /**
- * Generates user-defined preambles and #define and #include directives for the Python target.
+ * Generate user-defined preambles and `#define` and `#include` directives for the Python target.
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class PythonPreambleGenerator {
   /**
@@ -44,8 +45,8 @@ public class PythonPreambleGenerator {
   public static String generateCIncludeStatements(
       TargetConfig targetConfig, boolean CCppMode, boolean hasModalReactors) {
     CodeBuilder code = new CodeBuilder();
-    code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
     code.pr("#include \"pythontarget.h\"");
+    code.pr(CPreambleGenerator.generateIncludeStatements(targetConfig, CCppMode));
     if (hasModalReactors) {
       code.pr("#include \"include/modal_models/definitions.h\"");
     }

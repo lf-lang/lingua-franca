@@ -1,0 +1,51 @@
+// This tests that the AST transformation works for connections with multiple
+// enclave connections specified together. The AST transformation should separate
+// them out
+target C {
+  timeout: 1 s
+}
+
+preamble {=
+  #include "platform.h"
+=}
+
+reactor E1 {
+  output out: int
+  timer t(0, 100 msec)
+  state cnt: int = 0
+
+  reaction(t) -> out {=
+    lf_sleep(MSEC(100));
+    lf_set(out, self->cnt++);
+  =}
+}
+
+reactor E2 {
+  input in: int
+  output out: int
+
+  state received: int = 0
+
+  reaction(in) -> out {=
+    LF_TEST(in->value == self->received, "Received %u expected %u", in->value, self->received);
+    self->received++;
+    lf_set(out, in->value);
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->received == 10, "Expected %u got %u", 11, self->received);
+  =}
+}
+
+main reactor {
+  @enclave
+  e11 = new E1()
+  @enclave
+  e12 = new E1()
+  @enclave
+  e21 = new E2()
+  @enclave
+  e22 = new E2()
+
+  e11.out, e12.out -> e21.in, e22.in
+}

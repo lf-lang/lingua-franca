@@ -1,0 +1,73 @@
+// Variant of DecentralizedP2PComm that has STP violations.
+target C {
+  timeout: 5 sec,
+  tracing: true,
+  clock-sync: off,  // logging: log,
+  coordination: decentralized
+}
+
+reactor Platform(start: int = 0, expected_start: int = 0, period: time = 100 ms) {
+  input in: int
+  output out: int
+  timer t(period, period)
+  state count: int = start
+  state expected: int = expected_start
+
+  reaction(t) -> out {=
+    lf_set(out, self->count++);
+  =}
+
+  reaction(in) {=
+    lf_print("Received %d on time, which should be unusual.", in->value);
+    tag_t current_tag = lf_tag();
+    lf_print("********* Lag is " PRINTF_TIME, lf_time_physical() - current_tag.time);
+    if (in->value != self->expected++) {
+      lf_print_error_and_exit("Expected %d but got %d.",
+        self->expected - 1,
+        in->value
+      );
+    }
+  =} tardy {=
+    lf_print("Received %d late, as expected.", in->value);
+    tag_t current_tag = lf_tag();
+    lf_print("********* Lag is " PRINTF_TIME, lf_time_physical() - current_tag.time);
+    if (in->value != self->expected++) {
+      lf_print_error_and_exit("Expected %d but got %d.",
+        self->expected - 1,
+        in->value
+      );
+    }
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Shutdown invoked.");
+    if (self->expected == self->expected_start) {
+      lf_print_error_and_exit("Did not receive anything.");
+    }
+  =}
+}
+
+// The delay here will force STP violations in the Platform.
+reactor Delay(STP_offset: time = forever, delay: time = 250 ms) {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_sleep(self->delay);
+    lf_set(out, in->value);
+  =} tardy {=
+    // With the forever above, STP violations shouldn't occur, but we can just have the
+    // behavior be the same as when it does not occur.
+    lf_sleep(self->delay);
+    lf_set(out, in->value);
+  =}
+}
+
+federated reactor {
+  a = new Platform(period = 500 ms)
+  // Prevent advancing to the stop time prematurely.
+  @maxwait(forever)
+  d = new Delay(delay = 250 ms)
+  a.out -> d.in
+  d.out -> a.in
+}

@@ -3,11 +3,11 @@
  * purpose of this test is to check whether the functionalities pertinent to dynamic STP offset
  * adjustments are present and functioning to a degree.
  *
- * This version of the test does not use a centralized coordinator to advance tag. Therefore, the
- * receiver will rely on an STP offset (initially zero) to wait long enough for messages to arrive
- * before advancing its tag. In this test, the STP offset is initially zero and gradually raised
- * every time an STP violation is perceived until no STP violation is observed. Therefore, the exact
- * outcome of the test will depend on actual runtime timing.
+ * This version of the test does not use a centralized coordinator to advance the tag. Therefore,
+ * the receiver will rely on an STP offset (initially zero) to wait long enough for messages to
+ * arrive before advancing its tag. In this test, the STP offset is initially zero and gradually
+ * raised every time an STP violation is perceived until no STP violation is observed. Therefore,
+ * the exact outcome of the test will depend on actual runtime timing.
  *
  * @author Soroush Bateni
  */
@@ -51,7 +51,7 @@ reactor Receiver(take_a_break_after: int = 10, break_interval: time = 400 msec) 
       self->breaks++;
       self->received_messages = 0;
     }
-  =} STP(0) {=
+  =} STAA(0) {=
     // STP violation should NOT passed down to this inner reactor.
     lf_print_error_and_exit("STP violation should have been handled by the enclosing reactor and not passed down!");
   =}
@@ -83,7 +83,7 @@ reactor STPReceiver(
         current_tag.time - lf_time_start(), current_tag.microstep, in->value
     );
     lf_set(receiver.in, in->value);
-  =} STP(stp_offset) {=
+  =} STAA(stp_offset) {=
     tag_t current_tag = lf_tag();
     lf_print("At tag " PRINTF_TAG ", received %d LATE. Intended tag is " PRINTF_TAG,
         current_tag.time - lf_time_start(), current_tag.microstep,

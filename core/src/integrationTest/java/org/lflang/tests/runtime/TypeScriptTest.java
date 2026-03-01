@@ -13,6 +13,7 @@ import org.lflang.tests.RuntimeTest;
  * This is typically done by right-clicking on the name of the test method and then clicking "Run".
  *
  * @author Marten Lohstroh
+ * @ingroup Tests
  */
 public class TypeScriptTest extends RuntimeTest {
   public TypeScriptTest() {

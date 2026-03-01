@@ -1,0 +1,39 @@
+/** Test that a blocking reaction in one enclave does not block the main enclave. */
+target C {
+  keepalive: true,
+  timeout: 1 sec
+}
+
+reactor BlockingReactor {
+  output out: int
+  timer t(0, 500 msec)
+
+  reaction(t) -> out {=
+    lf_print("Blocking reactor invoked");
+    lf_sleep(MSEC(500));
+    lf_print("Blocking reactor sending output");
+    lf_set(out, 42);
+  =}
+}
+
+reactor Print {
+  input in: int
+
+  reaction(in) {=
+    lf_print("Print reactor received enclave output at tag " PRINTF_TAG, lf_time_logical_elapsed(), lf_tag().microstep);
+  =}
+}
+
+main reactor {
+  timer t(0, 100 ms)
+  @enclave
+  blocking = new BlockingReactor()
+  print = new Print()
+  blocking.out ~> print.in
+
+  reaction(t) {=
+    lf_print("Tick at tag " PRINTF_TAG, lf_time_logical_elapsed(), lf_tag().microstep);
+  =} deadline(300 ms) {=
+    lf_print_error_and_exit("Main reactor deadline was violated!");
+  =}
+}

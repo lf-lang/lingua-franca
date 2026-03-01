@@ -45,7 +45,7 @@ public enum PrimitiveType implements TargetPropertyType {
               && v.getArray() == null
               && v.getLiteral() == null
               && v.getId() == null
-              && (v.getTime() == 0 || v.getUnit() != null)),
+              && v.getTime() != null),
   STRING(
       "a string",
       v -> v.getLiteral() != null && !isCharLiteral(v.getLiteral()) || v.getId() != null),

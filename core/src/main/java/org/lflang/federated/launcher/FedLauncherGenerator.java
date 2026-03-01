@@ -1,28 +1,3 @@
-/*************
- * Copyright (c) 2019-2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.federated.launcher;
 
 import java.io.File;
@@ -40,6 +15,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.DNETProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 
@@ -48,6 +24,7 @@ import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
  *
  * @author Edward A. Lee
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
@@ -129,13 +106,22 @@ public class FedLauncherGenerator {
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
-      shCode.append(getLaunchCode(getRtiCommand(federates, false))).append("\n");
+      shCode
+          .append(
+              getLaunchCode(getRtiCommand(fileConfig.getRtiBinPath().toString(), federates, false)))
+          .append("\n");
     } else {
-      // Start the RTI on the remote machine.
+      // Copy the RTI to the remote machine and compile it there.
       // FIXME: Should $FEDERATION_ID be used to ensure unique directories, executables, on the
       // remote host?
       // Copy the source code onto the remote machine and compile it there.
       if (distCode.length() == 0) distCode.append(distHeader).append("\n");
+
+      distCode
+          .append(
+              getDistCode(
+                  rtiConfig.getDirectory(), "RTI", rtiConfig.getUser(), rtiConfig.getHost()))
+          .append("\n");
 
       String logFileName = String.format("log/%s_RTI.log", fileConfig.name);
 
@@ -154,7 +140,12 @@ public class FedLauncherGenerator {
       // the federate have had time to go out to the RTI through the socket.
 
       shCode
-          .append(getRemoteLaunchCode(host, target, logFileName, getRtiCommand(federates, true)))
+          .append(
+              getRemoteLaunchCode(
+                  host,
+                  target,
+                  logFileName,
+                  getRtiCommand(rtiConfig.getRtiBinPath(fileConfig), federates, true)))
           .append("\n");
     }
 
@@ -167,7 +158,10 @@ public class FedLauncherGenerator {
             fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
         if (distCode.isEmpty()) distCode.append(distHeader).append("\n");
         String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
-        distCode.append(getDistCode(rtiConfig.getDirectory(), federate)).append("\n");
+        distCode
+            .append(
+                getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
+            .append("\n");
         shCode
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
@@ -277,6 +271,27 @@ public class FedLauncherGenerator {
         "set -m",
         "shopt -s huponexit",
         "",
+        "# Parse launcher arguments.",
+        "LOG_TO_FILE=false",
+        "REMAINING_ARGS=()",
+        "for arg in \"$@\"; do",
+        "    if [ \"$arg\" = \"--help\" ] || [ \"$arg\" = \"-h\" ]; then",
+        "        echo \"Usage: $0 [-l] [-h|--help] [FEDERATE_ARGS...]\"",
+        "        echo \"\"",
+        "        echo \"Launcher options:\"",
+        "        echo \"  -l          Log federate output to files instead of stdout\"",
+        "        echo \"  -h, --help  Show this help message\"",
+        "        echo \"\"",
+        "        echo \"All other arguments are forwarded to each federate.\"",
+        "        echo \"For available federate parameters, run a federate binary with --help.\"",
+        "        exit 0",
+        "    elif [ \"$arg\" = \"-l\" ]; then",
+        "        LOG_TO_FILE=true",
+        "    else",
+        "        REMAINING_ARGS+=(\"$arg\")",
+        "    fi",
+        "done",
+        "",
         "# Set a trap to kill all background jobs on error or control-C",
         "# Use two distinct traps so we can see which signal causes this.",
         "cleanup() {",
@@ -310,18 +325,22 @@ public class FedLauncherGenerator {
         "# set -o posix");
   }
 
-  private String getRtiCommand(List<FederateInstance> federates, boolean isRemote) {
+  private String getRtiCommand(
+      String rtiBinPath, List<FederateInstance> federates, boolean isRemote) {
     List<String> commands = new ArrayList<>();
     if (isRemote) {
-      commands.add("RTI -i '${FEDERATION_ID}' \\");
+      commands.add(rtiBinPath + " -i '${FEDERATION_ID}' \\");
     } else {
-      commands.add("RTI -i ${FEDERATION_ID} \\");
+      commands.add(rtiBinPath + " -i ${FEDERATION_ID} \\");
     }
     if (targetConfig.getOrDefault(AuthProperty.INSTANCE)) {
       commands.add("                        -a \\");
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
+    }
+    if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
+      commands.add("                        -d \\");
     }
     commands.addAll(
         List.of(
@@ -351,20 +370,12 @@ public class FedLauncherGenerator {
     return String.join(
         "\n",
         "echo \"#### Launching the runtime infrastructure (RTI).\"",
-        "# First, check if the RTI is on the PATH",
-        "if ! command -v RTI &> /dev/null",
-        "then",
-        "    echo \"RTI could not be found.\"",
-        "    echo \"The source code can be obtained from"
-            + " https://github.com/lf-lang/reactor-c/tree/main/core/federated/RTI\"",
-        "    exit 1",
-        "fi                ",
         "# The RTI is started first to allow proper boot-up",
         "# before federates will try to connect.",
         "# The RTI will be brought back to foreground",
         "# to be responsive to user inputs after all federates",
         "# are launched.",
-        "if [ \"$1\" = \"-l\" ]; then",
+        "if [ \"$LOG_TO_FILE\" = true ]; then",
         launchCodeWithLogging,
         "else",
         launchCodeWithoutLogging,
@@ -389,7 +400,11 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
         "    date >> " + logFileName + "; \\",
-        "    echo \"Executing RTI: " + rtiLaunchString + "\" 2>&1 | tee -a " + logFileName + "; \\",
+        "    echo \"Executing RTI: "
+            + rtiLaunchString
+            + "\n\" 2>&1 | tee -a "
+            + logFileName
+            + "; \\",
         "    # First, check if the RTI is on the PATH",
         "    if ! command -v RTI &> /dev/null",
         "    then",
@@ -416,47 +431,54 @@ public class FedLauncherGenerator {
    * @param remoteBase The root directory on the remote machine.
    * @param federate The federate to distribute.
    */
-  private String getDistCode(Path remoteBase, FederateInstance federate) {
+  private String getDistCode(Path remoteBase, String name, String user, String host) {
     String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
     String logDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/log";
     String remoteBuildLogFileName = logDirectory + "/build.log";
-    String buildShellFileName = "build_" + federate.name + ".sh";
+    String buildShellFileName = "build_" + name + ".sh";
+    String tarFileName = name + ".tar.gz";
     return String.join(
         "\n",
         "echo \"Making directory "
             + remoteBase
             + " and subdirectories federate_name, bin, and log on host "
-            + getUserHost(federate.user, federate.host)
+            + getUserHost(user, host)
             + "\"",
-        "ssh " + getUserHost(federate.user, federate.host) + " '\\",
+        "ssh " + getUserHost(user, host) + " '\\",
         "    mkdir -p " + binDirectory + " " + logDirectory + "; \\",
         "    echo \"------Build of "
             + fileConfig.name
             + " "
-            + federate.name
+            + name
             + "\" >> "
             + remoteBuildLogFileName
             + "; \\",
         "    date >> " + remoteBuildLogFileName + ";",
         "'",
-        "pushd " + fileConfig.getSrcGenPath() + "/" + federate.name + " > /dev/null",
-        "echo \"**** Copying source files to host "
-            + getUserHost(federate.user, federate.host)
-            + "\"",
-        "scp -r * "
-            + getUserHost(federate.user, federate.host)
+        "pushd " + fileConfig.getSrcGenPath() + " > /dev/null",
+        "echo \"**** Bundling source files into " + tarFileName + "\"",
+        "tar -czf " + tarFileName + " --exclude build " + name,
+        "echo \"**** Copying tarfile to host " + getUserHost(user, host) + "\"",
+        "scp -r "
+            + tarFileName
+            + " "
+            + getUserHost(user, host)
             + ":"
             + remoteBase
             + "/"
             + fileConfig.name
             + "/"
-            + federate.name,
+            + tarFileName,
+        "rm " + tarFileName,
+        "ssh " + getUserHost(user, host) + " '\\",
+        "    cd ~/" + remoteBase + "/" + fileConfig.name + "; \\",
+        "    tar -xzf " + tarFileName + "; \\",
+        "    rm " + tarFileName + ";",
+        "'",
         "popd > /dev/null",
-        "echo \"**** Generating and executing compile.sh on host "
-            + getUserHost(federate.user, federate.host)
-            + "\"",
+        "echo \"**** Generating and executing compile.sh on host " + getUserHost(user, host) + "\"",
         "ssh "
-            + getUserHost(federate.user, federate.host)
+            + getUserHost(user, host)
             + " '"
             + "cd "
             + remoteBase
@@ -476,7 +498,7 @@ public class FedLauncherGenerator {
             + "echo \"# Build commands for "
             + fileConfig.name
             + " "
-            + federate.name
+            + name
             + "\" >> "
             + buildShellFileName
             + "; "
@@ -485,7 +507,7 @@ public class FedLauncherGenerator {
             + "/"
             + fileConfig.name
             + "/"
-            + federate.name
+            + name
             + "\" >> "
             + buildShellFileName
             + "; "
@@ -497,7 +519,7 @@ public class FedLauncherGenerator {
             + buildShellFileName
             + "; "
             + "echo \"mv "
-            + federate.name
+            + name
             + " "
             + binDirectory
             + "\" >>  "
@@ -507,26 +529,6 @@ public class FedLauncherGenerator {
             + "/"
             + buildShellFileName
             + "'");
-  }
-
-  /** Return the body of a shell script file to compile the specified federate. */
-  private String getCompileScript(Path remoteBase, FederateInstance federate) {
-    String baseDir = "~/" + remoteBase + "/" + fileConfig.name;
-    return String.join(
-        "\n",
-        "#!/bin/bash -l", // The -l argument makes this a login shell so PATH etc are inherited.
-        // FIXME: Put copied files in subdirectory federate.name
-        "cd " + remoteBase + "/fed-gen/" + fileConfig.name + "/src-gen/" + federate.name,
-        "rm -rf build",
-        "mkdir -p ~/" + remoteBase + "/log",
-        // >> appends stdout to the specified file, and 2>&1 appends stderr to the same file.
-        "mkdir -p build && cd build && cmake .. && make >> "
-            + baseDir
-            + "/"
-            + federate.name
-            + ".log 2>&1",
-        "mkdir -p ~/" + remoteBase + "/bin;\\",
-        "mv " + federate.name + " ~/" + remoteBase + "/bin;'");
   }
 
   private String getUserHost(Object user, Object host) {
@@ -573,10 +575,10 @@ public class FedLauncherGenerator {
     return String.join(
         "\n",
         "echo \"#### Launching the federate " + federate.name + ".\"",
-        "if [ \"$1\" = \"-l\" ]; then",
-        "    " + executeCommand + " >& " + federate.name + ".log &",
+        "if [ \"$LOG_TO_FILE\" = true ]; then",
+        "    " + executeCommand + " \"${REMAINING_ARGS[@]}\" >& " + federate.name + ".log &",
         "else",
-        "    " + executeCommand + " &",
+        "    " + executeCommand + " \"${REMAINING_ARGS[@]}\" &",
         "fi",
         "pids[" + federateIndex + "]=$!");
   }
@@ -593,7 +595,7 @@ public class FedLauncherGenerator {
       case C, CCPP -> new CBuildConfig(federate, fileConfig, messageReporter);
       case Python -> new PyBuildConfig(federate, fileConfig, messageReporter);
       case TS -> new TsBuildConfig(federate, fileConfig, messageReporter);
-      case CPP, Rust -> throw new UnsupportedOperationException();
+      case CPP, Rust, UC -> throw new UnsupportedOperationException();
     };
   }
 }

@@ -6,6 +6,7 @@ import org.lflang.target.Target;
  * Class for instantiating target extensions.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedTargetExtensionFactory {
 

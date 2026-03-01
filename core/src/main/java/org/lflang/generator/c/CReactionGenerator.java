@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -36,9 +37,15 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.NoSourceMappingProperty;
 import org.lflang.util.StringUtil;
 
+/**
+ * Generate code for reactions.
+ *
+ * @ingroup Generator
+ */
 public class CReactionGenerator {
   protected static String DISABLE_REACTION_INITIALIZATION_MARKER =
       "// **** Do not include initialization code in this reaction."; // FIXME: Such markers should
+
   // not exist (#1687)
 
   /**
@@ -51,6 +58,10 @@ public class CReactionGenerator {
    * @param tpr The reactor that has the reaction
    * @param reactionIndex The index of the reaction relative to other reactions in the reactor,
    *     starting from 0
+   * @param types The C-specific type conversion functions.
+   * @param messageReporter Used to report errors and warnings.
+   * @param mainDef The main reactor instantiation.
+   * @param requiresTypes Whether type information is required.
    */
   public static String generateInitializationForReaction(
       String body,
@@ -258,6 +269,7 @@ public class CReactionGenerator {
    * @param containedReactor The contained reactor instantiation.
    * @param breadcrumbs null on first call (non-recursive).
    * @param max 0 on first call.
+   * @param mainDef The main reactor instantiation.
    */
   public static int maxContainedReactorBankWidth(
       Instantiation containedReactor,
@@ -278,14 +290,17 @@ public class CReactionGenerator {
       nestedBreadcrumbs.add(mainDef);
     }
     int result = max;
-    Reactor parent = (Reactor) containedReactor.eContainer();
+    Reactor parent =
+        containedReactor.eContainer() instanceof Mode
+            ? (Reactor) containedReactor.eContainer().eContainer()
+            : (Reactor) containedReactor.eContainer();
     if (parent == ASTUtils.toDefinition(mainDef.getReactorClass())) {
       // The parent is main, so there can't be any other instantiations of it.
       return ASTUtils.width(containedReactor.getWidthSpec(), null);
     }
     // Search for instances of the parent within the tail of the breadcrumbs list.
     Reactor container = ASTUtils.toDefinition(nestedBreadcrumbs.get(0).getReactorClass());
-    for (Instantiation instantiation : container.getInstantiations()) {
+    for (Instantiation instantiation : ASTUtils.allInstantiations(container)) {
       // Put this new instantiation at the head of the list.
       nestedBreadcrumbs.add(0, instantiation);
       if (ASTUtils.toDefinition(instantiation.getReactorClass()) == parent) {
@@ -315,44 +330,69 @@ public class CReactionGenerator {
    * Generate code for the body of a reaction that takes an input and schedules an action with the
    * value of that input.
    *
+   * @param ref Reference to the input port.
    * @param actionName The action to schedule
+   * @param type The type of the data.
    */
-  public static String generateDelayBody(String ref, String actionName, boolean isTokenType) {
+  public static String generateDelayBody(String ref, String actionName, InferredType type) {
     // Note that the action.type set by the base class is actually
     // the port type.
-    return isTokenType
-        ? String.join(
-            "\n",
-            "if (" + ref + "->is_present) {",
-            "    // Put the whole token on the event queue, not just the payload.",
-            "    // This way, the length and element_size are transported.",
-            "    lf_schedule_token(" + actionName + ", 0, " + ref + "->token);",
-            "}")
-        : "lf_schedule_copy(" + actionName + ", 0, &" + ref + "->value, 1);  // Length is 1.";
+    if (CUtil.isTokenType(type)) {
+      return String.join(
+          "\n",
+          "if (" + ref + "->is_present) {",
+          "    // Put the whole token on the event queue, not just the payload.",
+          "    // This way, the length and element_size are transported.",
+          "    lf_schedule_token(" + actionName + ", 0, " + ref + "->token);",
+          "}");
+    } else {
+      var length = (CUtil.isFixedSizeArrayType(type)) ? CUtil.fixedSizeArrayTypeLength(type) : 1;
+      return "lf_schedule_copy(" + actionName + ", 0, &" + ref + "->value, " + length + ");";
+    }
   }
 
   public static String generateForwardBody(
-      String outputName, String targetType, String actionName, boolean isTokenType) {
-    return isTokenType
-        ? String.join(
-            "\n",
-            DISABLE_REACTION_INITIALIZATION_MARKER,
-            "lf_critical_section_enter(self->base.environment);",
-            "self->_lf_"
-                + outputName
-                + ".value = ("
-                + targetType
-                + ")self->_lf__"
-                + actionName
-                + ".tmplt.token->value;",
-            "_lf_replace_template_token((token_template_t*)&self->_lf_"
-                + outputName
-                + ", (lf_token_t*)self->_lf__"
-                + actionName
-                + ".tmplt.token);",
-            "self->_lf_" + outputName + ".is_present = true;",
-            "lf_critical_section_exit(self->base.environment);")
-        : "lf_set(" + outputName + ", " + actionName + "->value);";
+      String outputName, String targetType, String actionName, InferredType type) {
+    if (CUtil.isFixedSizeArrayType(type)) {
+      // For fixed size arrays, we need to copy the data from the action to the port.
+      String actionRef = "self->_lf__" + actionName + ".tmplt";
+      return String.join(
+          "\n",
+          DISABLE_REACTION_INITIALIZATION_MARKER,
+          "lf_critical_section_enter(self->base.environment);",
+          "memcpy(self->_lf_"
+              + outputName
+              + ".value, "
+              + actionRef
+              + ".token->value, "
+              + actionRef
+              + ".length * "
+              + actionRef
+              + ".type.element_size);",
+          "self->_lf_" + outputName + ".is_present = true;",
+          "lf_critical_section_exit(self->base.environment);");
+    } else if (CUtil.isTokenType(type)) {
+      return String.join(
+          "\n",
+          DISABLE_REACTION_INITIALIZATION_MARKER,
+          "lf_critical_section_enter(self->base.environment);",
+          "self->_lf_"
+              + outputName
+              + ".value = ("
+              + targetType
+              + ")self->_lf__"
+              + actionName
+              + ".tmplt.token->value;",
+          "_lf_replace_template_token((token_template_t*)&self->_lf_"
+              + outputName
+              + ", (lf_token_t*)self->_lf__"
+              + actionName
+              + ".tmplt.token);",
+          "self->_lf_" + outputName + ".is_present = true;",
+          "lf_critical_section_exit(self->base.environment);");
+    } else {
+      return "lf_set(" + outputName + ", " + actionName + "->value);";
+    }
   }
 
   /**
@@ -576,7 +616,7 @@ public class CReactionGenerator {
       // or a pointer (for types ending in *).
       builder.pr("if (" + action.getName() + "->has_value) {");
       builder.indent();
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         builder.pr(
             action.getName()
                 + "->value = ("
@@ -624,14 +664,10 @@ public class CReactionGenerator {
     // depending on whether the input is mutable, whether it is a multiport,
     // and whether it is a token type.
     // Easy case first.
-    if (!input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    if (!input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, primitive type.
       builder.pr(structType + "* " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (input.isMutable()
-        && !CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, primitive type.
       builder.pr(
           String.join(
@@ -640,9 +676,7 @@ public class CReactionGenerator {
               "// The input value on the struct is a copy.",
               structType + " _lf_tmp_" + inputName + " = *(self->_lf_" + inputName + ");",
               structType + "* " + inputName + " = &_lf_tmp_" + inputName + ";"));
-    } else if (!input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (!input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -660,9 +694,7 @@ public class CReactionGenerator {
               "} else {",
               "    " + inputName + "->length = 0;",
               "}"));
-    } else if (input.isMutable()
-        && CUtil.isTokenType(inputType, types)
-        && !ASTUtils.isMultiport(input)) {
+    } else if (input.isMutable() && CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Mutable, non-multiport, token type.
       builder.pr(
           String.join(
@@ -691,7 +723,7 @@ public class CReactionGenerator {
     } else if (!input.isMutable() && ASTUtils.isMultiport(input)) {
       // Non-mutable, multiport, primitive or token type.
       builder.pr(structType + "** " + inputName + " = self->_lf_" + inputName + ";");
-    } else if (CUtil.isTokenType(inputType, types)) {
+    } else if (CUtil.isTokenType(inputType)) {
       // Mutable, multiport, token type
       builder.pr(
           String.join(
@@ -769,6 +801,8 @@ public class CReactionGenerator {
    *
    * @param effect The effect declared by the reaction. This must refer to an output.
    * @param tpr The reactor containing the reaction.
+   * @param messageReporter Used to report errors and warnings.
+   * @param requiresTypes Whether type information is required.
    */
   public static String generateOutputVariablesInReaction(
       VarRef effect,
@@ -831,6 +865,7 @@ public class CReactionGenerator {
    * @param body The place to put the code for the self struct.
    * @param tpr {@link TypeParameterizedReactor}
    * @param constructorCode The place to put the constructor code.
+   * @param types The C-specific type conversion functions.
    */
   public static void generateReactionAndTriggerStructs(
       CodeBuilder body, TypeParameterizedReactor tpr, CodeBuilder constructorCode, CTypes types) {
@@ -896,16 +931,27 @@ public class CReactionGenerator {
 
       // Assign the STP handler
       var STPFunctionPointer = "NULL";
-      if (reaction.getStp() != null) {
-        // The following has to match the name chosen in generateReactions
-        var STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+      // First check for an tardy handler.
+      if (reaction.getTardy() != null) {
+        String STPFunctionName;
+        if (reaction.getTardy().getCode() != null) {
+          // There is an STP handler.
+          // The following has to match the name chosen in generateReactions
+          STPFunctionName = generateStpFunctionName(tpr, reactionCount);
+        } else {
+          // There is no STP handler body. Invoke the ordinary reaction.
+          STPFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         STPFunctionPointer = "&" + STPFunctionName;
+      } else if (reaction.getStp() != null) {
+        // There is an STP handler. Handle it for backward compatibility.
+        // The following has to match the name chosen in generateReactions
+        STPFunctionPointer = "&" + generateStpFunctionName(tpr, reactionCount);
       }
 
       // Set the defaults of the reaction_t struct in the constructor.
       // Since the self struct is allocated using calloc, there is no need to set:
       // self->_lf__reaction_"+reactionCount+".index = 0;
-      // self->_lf__reaction_"+reactionCount+".chain_id = 0;
       // self->_lf__reaction_"+reactionCount+".pos = 0;
       // self->_lf__reaction_"+reactionCount+".status = inactive;
       // self->_lf__reaction_"+reactionCount+".deadline = 0LL;
@@ -934,6 +980,11 @@ public class CReactionGenerator {
                       + tpr.reactor().getModes().indexOf((Mode) reaction.eContainer())
                       + "];"
                   : "self->_lf__reaction_" + reactionCount + ".mode = NULL;"));
+      // If the reactor is a network receiver, then set the is_an_input_reaction to true.
+      if (AttributeUtils.findAttributeByName(tpr.reactor(), "_network_receiver") != null) {
+        constructorCode.pr(
+            "self->_lf__reaction_" + reactionCount + ".is_an_input_reaction = true;");
+      }
       // Increment the reactionCount even if the reaction is not in the federate
       // so that reaction indices are consistent across federates.
       reactionCount++;
@@ -991,6 +1042,14 @@ public class CReactionGenerator {
               // Need to set the element_size in the trigger_t and the action struct.
               "self->_lf__" + action.getName() + ".tmplt.type.element_size = " + elementSize + ";",
               "self->_lf_" + action.getName() + ".type.element_size = " + elementSize + ";"));
+      // Set the length field to the default 1 (for non-arrays or variable-size arrays) or,
+      // for fixed-length arrays, the actual length.
+      var arrayLength = CUtil.fixedSizeArrayTypeLength(ASTUtils.getInferredType(action));
+      constructorCode.pr(
+          String.join(
+              "\n",
+              "self->_lf__" + action.getName() + ".tmplt.length = " + arrayLength + ";",
+              "self->_lf_" + action.getName() + ".length = " + arrayLength + ";"));
     }
 
     // Next handle inputs.
@@ -1111,6 +1170,11 @@ public class CReactionGenerator {
    * @param reaction The reaction.
    * @param tpr The reactor.
    * @param reactionIndex The position of the reaction within the reactor.
+   * @param mainDef The main reactor instantiation.
+   * @param messageReporter Used to report errors and warnings.
+   * @param types The C-specific type conversion functions.
+   * @param targetConfig The target configuration.
+   * @param requiresType Whether type information is required.
    */
   public static String generateReaction(
       Reaction reaction,
@@ -1140,7 +1204,17 @@ public class CReactionGenerator {
     // Now generate code for the late function, if there is one
     // Note that this function can only be defined on reactions
     // in federates that have inputs from a logical connection.
-    if (reaction.getStp() != null) {
+    if (reaction.getTardy() != null) {
+      if (reaction.getTardy().getCode() != null) {
+        code.pr(
+            generateFunction(
+                generateStpFunctionHeader(tpr, reactionIndex),
+                init,
+                reaction.getTardy().getCode(),
+                suppressLineDirectives));
+      }
+    } else if (reaction.getStp() != null) {
+      // Handle STAA or STP for backward compatibility.
       code.pr(
           generateFunction(
               generateStpFunctionHeader(tpr, reactionIndex),
@@ -1256,7 +1330,7 @@ public class CReactionGenerator {
   }
 
   /**
-   * Return the start of a function declaration for a function that takes a {@code void*} argument
+   * Return the start of a function declaration for a function that takes a `void*` argument
    * and returns void.
    *
    * @param functionName

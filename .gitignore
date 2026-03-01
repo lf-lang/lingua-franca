@@ -42,6 +42,11 @@ local.properties
 # PyDev specific (Python IDE for Eclipse)
 *.pydevproject
 
+## Python specific
+*.pyc
+**.egg-info
+__pycache__
+
 # CDT-specific (C/C++ Development Tooling)
 .cproject
 
@@ -164,4 +169,7 @@ gradle-app.setting
 ### xtext artifaccts
 *.jar
 core/model/
+
+# Exclude all build directories except test/Python/build for testing purposes
+!test/Python/build/
 

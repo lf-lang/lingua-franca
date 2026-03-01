@@ -1,57 +1,31 @@
-/*************
- * Copyright (c) 2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.NavigableMap;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
+import org.lflang.AttributeUtils;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
 import org.lflang.lf.Variable;
 
 /**
- * This class analyzes the dependencies between reaction runtime instances. For each
- * ReactionInstance, there may be more than one runtime instance because the ReactionInstance may be
- * nested within one or more banks. In the worst case, of these runtime instances may have distinct
- * dependencies, and hence distinct levels in the graph. Moreover, some of these instances may be
- * involved in cycles while others are not.
+ * Analyze dependencies between reaction runtime instances.
  *
- * <p>Upon construction of this class, the runtime instances are created if necessary, stored each
- * ReactionInstance, and assigned levels (maximum number of upstream reaction instances), deadlines,
- * and single dominating reactions.
+ * <p>For each ReactionInstance, there may be more than one runtime instance because the
+ * ReactionInstance may be nested within one or more banks. In the worst case, of these runtime
+ * instances may have distinct dependencies, and hence distinct levels in the graph. Moreover, some
+ * of these instances may be involved in cycles while others are not.
+ *
+ * <p>Upon construction of this class, the runtime instances are created if necessary, stored in
+ * each ReactionInstance, and assigned levels (maximum number of upstream reaction instances),
+ * deadlines, and single dominating reactions.
  *
  * <p>After creation, the resulting graph will be empty unless there are causality cycles, in which
  * case, the resulting graph is a graph of runtime reaction instances that form cycles.
  *
  * @author Marten Lohstroh
  * @author Edward A. Lee
+ * @ingroup Instances
  */
 public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runtime> {
 
@@ -70,48 +44,63 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   /** The main reactor instance that this graph is associated with. */
   public final ReactorInstance main;
 
-  ///////////////////////////////////////////////////////////
-  //// Public methods
-
   /**
    * Rebuild this graph by clearing and repeating the traversal that adds all the nodes and edges.
+   * Note that after this executes, the graph is empty unless it has causality cycles, in which case
+   * it contains only those causality cycles.
    */
-  public void rebuild() {
+  private void rebuild() {
     this.clear();
     addNodesAndEdges(main);
     addEdgesForTpoLevels(main);
-
-    // FIXME: Use {@link TargetProperty#EXPORT_DEPENDENCY_GRAPH}.
+    assignInferredDeadlines();
 
     // Assign a level to each reaction.
     // If there are cycles present in the graph, it will be detected here.
+    // This will destroy the graph, leaving only nodes in cycles.
     assignLevels();
     // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
 
-  /** This function rebuilds the graph and propagates and assigns deadlines to all reactions. */
+  /**
+   * @brief Rebuild the graph and propagate and assign deadlines to all reactions.
+   */
   public void rebuildAndAssignDeadlines() {
     this.clear();
     addNodesAndEdges(main);
-    //    addDependentNetworkEdges(main);
     assignInferredDeadlines();
     this.clear();
   }
 
-  /*
-   * Get an array of non-negative integers representing the number of reactions
-   * per each level, where levels are indices of the array.
+  /**
+   * @brief Get an array of non-negative integers representing the number of reactions per each
+   *     level, where levels are indices of the array.
+   * @param enclave The enclave to get the number of reactions for.
+   * @return An array of non-negative integers representing the number of reactions per each level,
+   *     where levels are indices of the array, or an empty array if the enclave has no reactions.
    */
-  public Integer[] getNumReactionsPerLevel() {
-    return numReactionsPerLevel.toArray(new Integer[0]);
+  public Integer[] getNumReactionsPerLevel(ReactorInstance enclave) {
+    List<Integer> res = numReactionsPerEnclavePerLevel.get(enclave);
+    if (res == null) {
+      res = new ArrayList<>();
+      numReactionsPerEnclavePerLevel.put(enclave, res);
+    }
+    return res.toArray(new Integer[0]);
   }
 
-  /** Return the max breadth of the reaction dependency graph */
-  public int getBreadth() {
+  /**
+   * @brief Return the max breadth of the reaction dependency graph.
+   * @param enclave The enclave to get the breadth for.
+   * @return The max breadth of the reaction dependency graph.
+   */
+  public int getBreadth(ReactorInstance enclave) {
     var maxBreadth = 0;
-    for (Integer breadth : numReactionsPerLevel) {
-      if (breadth > maxBreadth) {
-        maxBreadth = breadth;
+    var numReactionsPerLevel = numReactionsPerEnclavePerLevel.get(enclave);
+    if (numReactionsPerLevel != null) {
+      for (var breadth : numReactionsPerLevel) {
+        if (breadth > maxBreadth) {
+          maxBreadth = breadth;
+        }
       }
     }
     return maxBreadth;
@@ -220,7 +209,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
           }
         }
       }
-      previousReaction = reaction;
+      // Enclave connections are special. There is no need for dependencies between reactions.
+      if (AttributeUtils.findAttributeByName(reactor.reactorDefinition, "_enclave_connection")
+          == null) {
+        previousReaction = reaction;
+      }
 
       // Add downstream reactions. Note that this is sufficient.
       // We don't need to also add upstream reactions because this reaction
@@ -238,7 +231,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     registerPortInstances(reactor);
   }
 
-  /** Add edges that encode the precedence relations induced by the TPO levels. */
+  /**
+   * Add edges that encode the precedence relations induced by the TPO levels. TPO is total port
+   * order. See
+   * https://github.com/icyphy/lf-pubs/blob/54af48a97cc95058dbfb3333b427efb70294f66c/federated/TOMACS/paper.tex#L1353
+   */
   private void addEdgesForTpoLevels(ReactorInstance main) {
     var constrainedReactions = getConstrainedReactions(main);
     for (var i : constrainedReactions.keySet()) {
@@ -253,7 +250,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Get those reactions contained directly or transitively by the children of {@code main} whose
+   * Get those reactions contained directly or transitively by the children of `main` whose
    * TPO levels are specified.
    *
    * @return A map from TPO levels to reactions that are constrained to have the TPO levels.
@@ -271,7 +268,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     return constrainedReactions;
   }
 
-  /** Add all reactions contained directly or transitively by {@code r}. */
+  /** Add all reactions contained directly or transitively by `r`. */
   private void getAllContainedReactions(List<Runtime> runtimeReactions, ReactorInstance r) {
     for (var reaction : r.reactions) {
       runtimeReactions.addAll(reaction.getRuntimeInstances());
@@ -283,10 +280,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   //// Private fields
 
   /**
-   * Number of reactions per level, represented as a list of integers where the indices are the
-   * levels.
+   * Map from an enclave to a list of number of reactions per level, where the level is the list
+   * index.
    */
-  private final List<Integer> numReactionsPerLevel = new ArrayList<>(List.of(0));
+  private Map<ReactorInstance, List<Integer>> numReactionsPerEnclavePerLevel =
+      new LinkedHashMap<>();
 
   ///////////////////////////////////////////////////////////
   //// Private methods
@@ -295,8 +293,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   public record MriPortPair(MixedRadixInt index, PortInstance port) {}
 
   /**
-   * For each port in {@code reactor}, add that port to its downstream reactions, together with the
-   * {@code MixedRadixInt} that is the index of the downstream reaction relative to the port and the
+   * For each port in `reactor`, add that port to its downstream reactions, together with the
+   * `MixedRadixInt` that is the index of the downstream reaction relative to the port and the
    * intervening ports.
    */
   private void registerPortInstances(ReactorInstance reactor) {
@@ -367,7 +365,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         toRemove.add(effect);
 
         // Update level of downstream node.
-        effect.level = origin.level + 1;
+        if (effect.level <= origin.level) {
+          effect.level = origin.level + 1;
+        }
       }
       // Remove visited edges.
       for (Runtime effect : toRemove) {
@@ -383,75 +383,76 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
       removeNode(origin);
       assignPortLevel(origin);
 
+      // Update the number of reactions per level for the enclave that contains the origin reaction.
+      ReactionInstance reaction = origin.getReaction();
+      ReactorInstance enclaveTop = reaction.getContainingEnclaveReactor();
       // Update numReactionsPerLevel info
-      incrementNumReactionsPerLevel(origin.level);
+      adjustNumReactionsPerLevel(origin.level, enclaveTop);
     }
   }
 
   /**
-   * Update the level of the source ports of {@code current} to be at most that of {@code current}.
+   * Update the level of the source ports of `current` to be at most that of `current`.
    */
   private void assignPortLevel(Runtime current) {
     for (var sp : current.sourcePorts) {
-      sp.port().hasDependentReactionWithLevel(sp.index(), current.level);
+      sp.port().recordIndexForPortChannel(sp.index(), current.level);
     }
   }
 
   /**
    * This function assigns inferred deadlines to all the reactions in the graph. It is modeled after
-   * {@code assignLevels} but it starts at the leaf nodes and uses Kahns algorithm to build a
-   * reverse topologically sorted graph
+   * `assignLevels` but it starts at the leaf nodes, but it does not destroy the graph.
    */
   private void assignInferredDeadlines() {
-    List<ReactionInstance.Runtime> start = new ArrayList<>(leafNodes());
+    List<Runtime> start = new ArrayList<>(leafNodes());
+    Set<Runtime> visited = new HashSet<>();
 
     // All leaf nodes have deadline initialized to their declared deadline or MAX_VALUE
     while (!start.isEmpty()) {
       Runtime origin = start.remove(0);
-      Set<Runtime> toRemove = new LinkedHashSet<>();
+      visited.add(origin);
       Set<Runtime> upstreamAdjacentNodes = getUpstreamAdjacentNodes(origin);
 
-      // Visit effect nodes.
+      // Visit upstream nodes.
       for (Runtime upstream : upstreamAdjacentNodes) {
-        // Stage edge between origin and upstream for removal.
-        toRemove.add(upstream);
-
+        // If the upstream node has been visited, then we have a cycle, which will be
+        // an error condition. Skip it.
+        if (visited.contains(upstream)) continue;
         // Update deadline of upstream node if origins deadline is earlier.
         if (origin.deadline.isEarlierThan(upstream.deadline)) {
           upstream.deadline = origin.deadline;
         }
-      }
-      // Remove visited edges.
-      for (Runtime upstream : toRemove) {
-        removeEdge(origin, upstream);
-        // If the upstream node has no more outgoing edges,
-        // then move it in the start set.
-        if (getDownstreamAdjacentNodes(upstream).size() == 0) {
-          start.add(upstream);
+        // Determine whether the upstream node is now a leaf node.
+        var isLeaf = true;
+        for (Runtime downstream : getDownstreamAdjacentNodes(upstream)) {
+          if (!visited.contains(downstream)) isLeaf = false;
         }
+        if (isLeaf) start.add(upstream);
       }
-
-      // Remove visited origin.
-      removeNode(origin);
     }
   }
 
   /**
-   * Adjust {@link #numReactionsPerLevel} at index <code>level<code> by
-   * adding to the previously recorded number <code>valueToAdd<code>.
-   * If there is no previously recorded number for this level, then
-   * create one with index <code>level</code> and value <code>valueToAdd</code>.
+   * Adjust {@link #numReactionsPerEnclavePerLevel} at index <code>level</code> by adding one to the
+   * previously recorded number. If there is no previously recorded number for this level, then
+   * create one with index <code>level</code> and value 1.
+   *
    * @param level The level.
+   * @param enclave The enclave with which to increment the level count.
    */
-  private void incrementNumReactionsPerLevel(int level) {
-    if (numReactionsPerLevel.size() > level) {
-      numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + 1);
-    } else {
-      while (numReactionsPerLevel.size() < level) {
-        numReactionsPerLevel.add(0);
-      }
-      numReactionsPerLevel.add(1);
+  private void adjustNumReactionsPerLevel(int level, ReactorInstance enclave) {
+    List<Integer> numReactionsPerLevel = numReactionsPerEnclavePerLevel.get(enclave);
+    if (numReactionsPerLevel == null) {
+      numReactionsPerLevel = new ArrayList<>();
+      numReactionsPerEnclavePerLevel.put(enclave, numReactionsPerLevel);
     }
+    while (numReactionsPerLevel.size() <= level) {
+      numReactionsPerLevel.add(0);
+    }
+    // numReactionsPerLevel is now assured of having an entry at index level.
+    // Add one to that entry.
+    numReactionsPerLevel.set(level, numReactionsPerLevel.get(level) + 1);
   }
 
   /** Return the DOT (GraphViz) representation of the graph. */

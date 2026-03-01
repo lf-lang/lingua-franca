@@ -1,0 +1,61 @@
+// This tests shutdown through coordination (request)
+target C
+
+preamble {=
+  #include "platform.h"
+=}
+
+reactor E1 {
+  state cnt: int = 0
+
+  timer t(0, 100 msec)
+  output out: instant_t
+
+  reaction(t) -> out {=
+    lf_print("E1 timer trigger @ " PRINTF_TIME, lf_time_logical_elapsed());
+    self->cnt++;
+    lf_set(out, lf_time_logical_elapsed());
+
+    if (self->cnt == 5) {
+        lf_print("E1 request stop");
+        lf_request_stop();
+    }
+  =}
+
+  reaction(shutdown) {=
+    lf_print("E1 shutdown @ " PRINTF_TIME, lf_time_logical_elapsed());
+    LF_TEST(self->cnt == 5, "E1 shutdown prematurely");
+  =}
+}
+
+reactor E2 {
+  state cnt: int = 0
+
+  input in: instant_t
+
+  timer t(50 msec, 100 msec)
+
+  reaction(in) {=
+    lf_print("E2 triggered @ " PRINTF_TIME, lf_time_logical_elapsed());
+  =}
+
+  reaction(t) {=
+    lf_print("E2 triggered @ " PRINTF_TIME, lf_time_logical_elapsed());
+    self->cnt++;
+  =}
+
+  reaction(shutdown) {=
+    lf_print("E2 shutdown @ " PRINTF_TIME, lf_time_logical_elapsed());
+    LF_TEST(self->cnt == 4, "E2 shutdown prematurely");
+  =}
+}
+
+main reactor {
+  @enclave
+  e1 = new E1()
+
+  @enclave
+  e2 = new E2()
+
+  e1.out -> e2.in
+}

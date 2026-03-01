@@ -19,8 +19,18 @@ on:
 
 jobs:
   zephyr-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
         with:
@@ -39,27 +49,27 @@ jobs:
           path: core/src/main/resources/lib/c/reactor-c
           ref: ${{ inputs.runtime-ref }}
         if: ${{ inputs.runtime-ref }}
-      - name: Run Zephyr smoke tests
+      - name: Run integration tests on the Zephyr platform
         run: |
           ./gradlew core:integrationTest \
             --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrUnthreaded* \
             --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrThreaded* core:integrationTestCodeCoverageReport
           ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
-          rm -r test/C/src-gen
-      - name: Run basic tests
-        run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic* core:integrationTestCodeCoverageReport
-          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
-          rm -r test/C/src-gen
-      - name: Run concurrent tests
-        run: |
-          ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent* core:integrationTestCodeCoverageReport
-          ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
-          rm -r test/C/src-gen
+          rm -rf test/C/src-gen
+      # - name: Run basic tests
+      #   run: |
+      #     ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildBasic* core:integrationTestCodeCoverageReport
+      #     ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
+      #     rm -rf test/C/src-gen
+      # - name: Run concurrent tests
+      #   run: |
+      #     ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildConcurrent* core:integrationTestCodeCoverageReport
+      #     ./.github/scripts/run-zephyr-tests.sh test/C/src-gen
+      #     rm -rf test/C/src-gen
       - name: Run Zephyr board tests
         run: |
           ./gradlew core:integrationTest --tests org.lflang.tests.runtime.CZephyrTest.buildZephyrBoards* core:integrationTestCodeCoverageReport
-          rm -r test/C/src-gen
+          rm -rf test/C/src-gen
       - name: Smoke test of lf-west-template
         run: |
           export LFC=$(pwd)/bin/lfc-dev

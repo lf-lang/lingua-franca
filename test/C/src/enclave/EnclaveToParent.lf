@@ -1,0 +1,19 @@
+// This test verifies that the "internal" connections from a contained enclave to another contained reactor
+// works
+target C {
+  timeout: 1 s,
+  fast: true
+}
+
+import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
+
+main reactor {
+  @enclave
+  e1 = new EnclaveSource()
+
+  r1 = new EnclaveSink()
+  r3 = new EnclaveSink()
+
+  e1.out -> r1.in after 50 msec  // This connection must be split up by the AST transformation
+  e1.out -> r3.in after 50 msec  // This connection must be split up by the AST transformation
+}

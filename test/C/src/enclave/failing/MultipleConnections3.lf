@@ -1,0 +1,19 @@
+// This tests that the AST transformation works for conneections where we have
+// multiple connections in the same statement
+target C {
+  timeout: 1 s
+}
+
+import EnclaveSink, EnclaveSource from "lib/SimpleEnclave.lf"
+
+main reactor {
+  @enclave
+  e1 = new EnclaveSource()
+  @enclave
+  e2 = new EnclaveSink()
+
+  r2 = new EnclaveSink()
+
+  // This connection must be split up by the AST transformation
+  e1.out, e1.out -> e2.in, r2.in after 50 msec
+}

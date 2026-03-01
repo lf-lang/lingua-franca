@@ -7,6 +7,12 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.VarRef;
 
+/**
+ * Generate code for the bodies of reactions that handle connections with logical delays specified
+ * with the `after` keyword.
+ *
+ * @ingroup Generator
+ */
 public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
 
   public PythonDelayBodyGenerator(PythonTypes types) {
@@ -22,7 +28,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
    */
   @Override
   public String generateDelayBody(Action action, VarRef port) {
-    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(action), types);
+    boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(action));
     String ref = ASTUtils.generateVarRef(port);
     // Note that the action.type set by the base class is actually
     // the port type.
@@ -69,7 +75,7 @@ public class PythonDelayBodyGenerator extends CDelayBodyGenerator {
   @Override
   public String generateForwardBody(Action action, VarRef port) {
     String outputName = ASTUtils.generateVarRef(port);
-    if (CUtil.isTokenType(ASTUtils.getInferredType(action), types)) {
+    if (CUtil.isTokenType(ASTUtils.getInferredType(action))) {
       return super.generateForwardBody(action, port);
     } else {
       return "lf_set(" + outputName + ", " + action.getName() + "->token->value);";

@@ -28,9 +28,9 @@ import org.lflang.InferredType
 import org.lflang.TimeUnit
 import org.lflang.TimeValue
 import org.lflang.generator.TargetTypes
-import org.lflang.joinWithCommas
 import org.lflang.lf.Initializer
 import org.lflang.lf.ParameterReference
+import org.lflang.lf.ParenthesisListExpression
 
 object CppTypes : TargetTypes {
 
@@ -38,10 +38,6 @@ object CppTypes : TargetTypes {
 
     override fun getTargetTimeType() = "reactor::Duration"
     override fun getTargetTagType() = "reactor::Tag"
-
-    override fun getTargetFixedSizeListType(baseType: String, size: Int) = "std::array<$baseType, $size>"
-    override fun getTargetVariableSizeListType(baseType: String) = "std::vector<$baseType>"
-
     override fun getTargetUndefinedType() = "void"
 
     override fun getTargetTimeExpr(timeValue: TimeValue): String =
@@ -80,16 +76,14 @@ fun CppTypes.getCppInitializer(
 ): String =
     if (init == null) {
         "/*uninitialized*/"
-    } else if (init.isAssign && !disableEquals) {
-        val e = init.exprs.single()
-        " = " + getTargetExpr(e, inferredType)
-    } else if (init.isParens && typeAlias != null && !disableEquals) {
-        " = $typeAlias" + init.exprs.joinWithCommas("(", ")", trailing = false) {
-            getTargetExpr(it, inferredType.componentType)
+    } else if (init.isAssign) {
+        if (disableEquals) {
+            "(" + getTargetExpr(init.expr, inferredType) + ")"
+        } else {
+            " = " + getTargetExpr(init.expr, inferredType)
         }
+    } else if (init.expr is ParenthesisListExpression && typeAlias != null && !disableEquals) {
+        " = $typeAlias" + getTargetExpr(init.expr, inferredType)
     } else {
-        val (prefix, postfix) = if (init.isBraces) Pair("{", "}") else Pair("(", ")")
-        init.exprs.joinWithCommas(prefix, postfix, trailing = false) {
-            getTargetExpr(it, inferredType.componentType)
-        }
+        getTargetExpr(init.expr, inferredType)
     }

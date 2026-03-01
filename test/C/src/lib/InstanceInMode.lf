@@ -1,0 +1,14 @@
+// Define a reactor that is only instantiated inside a mode.
+target C
+
+reactor U {
+  reaction(startup) {=  =}
+}
+
+reactor B {
+  reaction(startup) {=  =}
+
+  initial mode A {
+    u = new U()
+  }
+}

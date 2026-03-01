@@ -1,12 +1,12 @@
 target Python
 
 reactor InternalDelay(delay = 10 msec) {
-  input in_
+  input inp
   output out
   logical action d
 
-  reaction(in_) -> d {=
-    d.schedule(self.delay, in_.value)
+  reaction(inp) -> d {=
+    d.schedule(self.delay, inp.value)
   =}
 
   reaction(d) -> out {=

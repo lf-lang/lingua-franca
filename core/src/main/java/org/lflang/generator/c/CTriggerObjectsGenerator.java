@@ -12,6 +12,7 @@ import static org.lflang.util.StringUtil.joinObjects;
 import com.google.common.collect.Iterables;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
@@ -19,6 +20,7 @@ import org.lflang.federated.extensions.CExtensionUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.ReactionInstanceGraph;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
@@ -33,11 +35,13 @@ import org.lflang.target.property.type.LoggingType.LogLevel;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CTriggerObjectsGenerator {
   /** Generate the _lf_initialize_trigger_objects function for 'federate'. */
   public static String generateInitializeTriggerObjects(
       ReactorInstance main,
+      Set<CEnclaveInstance> enclaves,
       TargetConfig targetConfig,
       CodeBuilder initializeTriggerObjects,
       CodeBuilder startTimeStep,
@@ -52,19 +56,33 @@ public class CTriggerObjectsGenerator {
     code.pr(
         String.join(
             "\n",
-            "int startup_reaction_count[_num_enclaves] = {0};"
+            "int startup_reaction_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(startup_reaction_count);",
-            "int shutdown_reaction_count[_num_enclaves] = {0};"
+            "int shutdown_reaction_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(shutdown_reaction_count);",
-            "int reset_reaction_count[_num_enclaves] = {0};"
+            "int reset_reaction_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(reset_reaction_count);",
-            "int timer_triggers_count[_num_enclaves] = {0};"
+            "int timer_triggers_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(timer_triggers_count);",
-            "int modal_state_reset_count[_num_enclaves] = {0};"
+            "int modal_state_reset_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_state_reset_count);",
-            "int modal_reactor_count[_num_enclaves] = {0};"
+            "int modal_reactor_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(modal_reactor_count);",
-            "int watchdog_count[_num_enclaves] = {0};"
+            "int watchdog_count["
+                + CUtil.NUM_ENVIRONMENT_VARIABLE_NAME
+                + "] = {0};"
                 + " SUPPRESS_UNUSED_WARNING(watchdog_count);"));
 
     // Create the table to initialize intended tag fields to 0 between time
@@ -83,13 +101,13 @@ public class CTriggerObjectsGenerator {
     // between inputs and outputs.
     code.pr(startTimeStep.toString());
     code.pr(setReactionPriorities(main));
-    code.pr(generateSchedulerInitializerMain(main, targetConfig));
+    code.pr(generateSchedulerInitializerMain(main, enclaves, targetConfig));
 
     // FIXME: This is a little hack since we know top-level/main is always first (has index 0)
     code.pr(
         """
         #ifdef EXECUTABLE_PREAMBLE
-        _lf_executable_preamble(&envs[0]);
+        _lf_executable_preamble(&environments[0]);
         #endif
         """);
 
@@ -101,45 +119,71 @@ public class CTriggerObjectsGenerator {
     return code.toString();
   }
 
-  /** Generate code to initialize the scheduler for the threaded C runtime. */
+  /** Generate code to initialize the scheduler(s) for the threaded C runtime. */
   public static String generateSchedulerInitializerMain(
-      ReactorInstance main, TargetConfig targetConfig) {
+      ReactorInstance main, Set<CEnclaveInstance> enclaves, TargetConfig targetConfig) {
     if (targetConfig.get(SingleThreadedProperty.INSTANCE)) {
       return "";
     }
+    var reactionInstanceGraph = main.assignLevels();
     var code = new CodeBuilder();
-    var numReactionsPerLevel = main.assignLevels().getNumReactionsPerLevel();
-    var numReactionsPerLevelJoined =
-        Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
-    // FIXME: We want to calculate levels for each enclave independently
-    code.pr(
-        String.join(
-            "\n",
-            "// Initialize the scheduler",
-            "size_t num_reactions_per_level[" + numReactionsPerLevel.length + "] = ",
-            "    {" + numReactionsPerLevelJoined + "};",
-            "sched_params_t sched_params = (sched_params_t) {",
-            "                        .num_reactions_per_level = &num_reactions_per_level[0],",
-            "                        .num_reactions_per_level_size = (size_t) "
-                + numReactionsPerLevel.length
-                + "};"));
-
-    for (ReactorInstance enclave : CUtil.getEnclaves(main)) {
-      code.pr(generateSchedulerInitializerEnclave(enclave, targetConfig));
+    for (CEnclaveInstance enclave : enclaves) {
+      code.pr(generateSchedulerInitializerEnclave(enclave, reactionInstanceGraph));
     }
 
     return code.toString();
   }
 
+  /**
+   * Generate code to initialize the scheduler for a particular enclave. The main reactor is by
+   * convention an enclave.
+   *
+   * @param enclave enclave instance
+   * @param reactionInstanceGraph The reaction instance graph
+   * @return Code to initialize the scheduler.
+   */
   public static String generateSchedulerInitializerEnclave(
-      ReactorInstance enclave, TargetConfig targetConfig) {
-    return String.join(
-        "\n",
-        "lf_sched_init(",
-        "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
-        "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
-        "    &sched_params",
-        ");");
+      CEnclaveInstance enclave, ReactionInstanceGraph reactionInstanceGraph) {
+    var code = new CodeBuilder();
+    var numReactionsPerLevel =
+        reactionInstanceGraph.getNumReactionsPerLevel(enclave.getReactorInstance());
+    var numReactionsPerLevelJoined =
+        Arrays.stream(numReactionsPerLevel).map(String::valueOf).collect(Collectors.joining(", "));
+    code.pr(
+        "// Initialize the scheduler for enclave `"
+            + enclave.getReactorInstance().uniqueID()
+            + "` in a private scope");
+    // Do it in a scoped block so we can use the same name for `sched_params` etc.
+    code.pr("{");
+    if (numReactionsPerLevel.length > 0) {
+      code.indent();
+      code.pr(
+          "size_t num_reactions_per_level["
+              + numReactionsPerLevel.length
+              + "] = {"
+              + numReactionsPerLevelJoined
+              + "};");
+      code.pr("sched_params_t sched_params = (sched_params_t) {");
+      code.indent();
+      code.pr(".num_reactions_per_level = &num_reactions_per_level[0],");
+      code.pr(".num_reactions_per_level_size = (size_t) " + numReactionsPerLevel.length);
+      code.unindent();
+      code.pr("};");
+    } else {
+      code.pr("sched_params_t sched_params = (sched_params_t) {0,0};");
+    }
+    // Init scheduler
+    code.pr(
+        String.join(
+            "\n",
+            "lf_sched_init(",
+            "    &" + CUtil.getEnvironmentStruct(enclave) + ",",
+            "    " + CUtil.getEnvironmentStruct(enclave) + ".num_workers,",
+            "    &sched_params",
+            ");"));
+    code.unindent();
+    code.pr("}");
+    return code.toString();
   }
 
   /**
@@ -230,15 +274,16 @@ public class CTriggerObjectsGenerator {
 
       if (levelSet.size() == 1 && deadlineSet.size() == 1) {
         // Scenario (1)
-
-        var indexValue = inferredDeadline.toNanoSeconds() << 16 | level;
-
-        var reactionIndex = "0x" + Long.toUnsignedString(indexValue, 16) + "LL";
+        var reactionIndex =
+            "lf_combine_deadline_and_level("
+                + inferredDeadline.toNanoSeconds()
+                + ", "
+                + level
+                + ")";
 
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of level " + level + " and ",
                 "// deadline " + inferredDeadline.toNanoSeconds() + " shifted left 16 bits.",
                 CUtil.reactionRef(r) + ".index = " + reactionIndex + ";"));
@@ -247,53 +292,50 @@ public class CTriggerObjectsGenerator {
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + level
-                    + ";"));
+                    + ");"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() == 1) {
         // Scenarion (3)
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = lf_combine_deadline_and_level("
                     + inferredDeadline.toNanoSeconds()
-                    + " << 16) | "
+                    + ", "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
 
       } else if (levelSet.size() > 1 && deadlineSet.size() > 1) {
         // Scenario (4)
         temp.pr(
             String.join(
                 "\n",
-                CUtil.reactionRef(r) + ".chain_id = " + r.chainID + ";",
                 "// index is the OR of levels[" + runtimeIdx + "] and ",
                 "// deadlines[" + runtimeIdx + "] shifted left 16 bits.",
                 CUtil.reactionRef(r)
-                    + ".index = ("
+                    + ".index = inferredDeadline.toNanoSeconds("
                     + r.uniqueID()
                     + "_inferred_deadlines["
                     + runtimeIdx
-                    + "] << 16) | "
+                    + "], "
                     + r.uniqueID()
                     + "_levels["
                     + runtimeIdx
-                    + "];"));
+                    + "]);"));
       }
     }
     for (ReactorInstance child : reactor.children) {
@@ -724,7 +766,7 @@ public class CTriggerObjectsGenerator {
 
             // Initialize token types.
             var type = ASTUtils.getInferredType(port.getDefinition());
-            if (CUtil.isTokenType(type, types)) {
+            if (CUtil.isTokenType(type)) {
               // Create the template token that goes in the port struct.
               var rootType = CUtil.rootType(types.getTargetType(type));
               // If the rootType is 'void', we need to avoid generating the code
@@ -853,7 +895,7 @@ public class CTriggerObjectsGenerator {
     // Look for outputs with token types.
     for (PortInstance output : reactor.outputs) {
       var type = ASTUtils.getInferredType(output.getDefinition());
-      if (CUtil.isTokenType(type, types)) {
+      if (CUtil.isTokenType(type)) {
         // Create the template token that goes in the trigger struct.
         // Its reference count is zero, enabling it to be used immediately.
         var rootType = CUtil.rootType(types.getTargetType(type));
@@ -912,6 +954,9 @@ public class CTriggerObjectsGenerator {
       // Create the entry in the output_produced array for this port.
       // If the port is a multiport, then we need to create an entry for each
       // individual channel.
+
+      // If this port does not have any destinations, do not generate code for it.
+      if (effect.eventualDestinations().isEmpty()) continue;
 
       // If the port is an input of a contained reactor, then, if that
       // contained reactor is a bank, we will have to iterate over bank
@@ -1043,7 +1088,7 @@ public class CTriggerObjectsGenerator {
   /**
    * If any reaction of the specified reactor provides input to a contained reactor, then generate
    * code to allocate memory to store the data produced by those reactions. The allocated memory is
-   * pointed to by a field called {@code _lf_containername.portname} on the self struct of the
+   * pointed to by a field called `_lf_containername.portname` on the self struct of the
    * reactor.
    *
    * @param reactor The reactor.
@@ -1087,6 +1132,60 @@ public class CTriggerObjectsGenerator {
   }
 
   /**
+   * Set the parent pointer and reactor name. If the reactor is in a bank, the name will be the
+   * instance name with [index] appended.
+   *
+   * @param reactor The reactor instance.
+   */
+  private static String deferredSetParentAndName(ReactorInstance reactor) {
+    var code = new CodeBuilder();
+    if (reactor.isBank()) {
+      // First, generate code to determine the size of the memory needed for the name.
+      code.pr("char* format = \"%s[%d]\";");
+      code.pr(
+          "int length = snprintf(NULL, 0, format, \""
+              + reactor.getName()
+              + "\", "
+              + CUtil.bankIndexName(reactor)
+              + ");\n");
+      code.pr(
+          CUtil.reactorRef(reactor)
+              + "->base.name = (char*)lf_allocate(length + 1, sizeof(char),"
+              + " (allocation_record_t**)&((self_base_t*)"
+              + CUtil.reactorRef(reactor)
+              + ")->allocations);");
+      code.pr(
+          "if("
+              + CUtil.reactorRef(reactor)
+              + "->base.name != NULL) {"); // Will be NULL if lf_allocate fails.
+      code.indent();
+      code.pr(
+          "snprintf("
+              + CUtil.reactorRef(reactor)
+              + "->base.name, length + 1, format, \""
+              + reactor.getName()
+              + "\", "
+              + CUtil.bankIndexName(reactor)
+              + ");");
+      code.unindent();
+      code.pr("}");
+    } else {
+      code.pr(CUtil.reactorRef(reactor) + "->base.name = \"" + reactor.getName() + "\";");
+    }
+    ReactorInstance parent = reactor.getParent();
+    if (parent == null) {
+      code.pr(CUtil.reactorRef(reactor) + "->base.parent = (self_base_t*)NULL;");
+    } else {
+      code.pr(
+          CUtil.reactorRef(reactor)
+              + "->base.parent = (self_base_t*)"
+              + CUtil.reactorRef(parent)
+              + ";");
+    }
+    return code.toString();
+  }
+
+  /**
    * Perform initialization functions that must be performed after all reactor runtime instances
    * have been created. This function creates nested loops over nested banks.
    *
@@ -1102,6 +1201,9 @@ public class CTriggerObjectsGenerator {
     // First batch of initializations is within a for loop iterating
     // over bank members for the reactor's parent.
     code.startScopedBlock(reactor);
+
+    // Set the parent pointer and name for the reactor.
+    code.pr(deferredSetParentAndName(reactor));
 
     // If the child has a multiport that is an effect of some reaction in its container,
     // then we have to generate code to allocate memory for arrays pointing to

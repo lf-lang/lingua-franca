@@ -1,30 +1,3 @@
-/*************
- * Copyright (c) 2021, The University of California at Berkeley.
- * Copyright (c) 2021, The University of Texas at Dallas.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.federated.generator;
 
 import com.google.common.collect.Iterators;
@@ -43,6 +16,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.eclipse.xtext.xbase.lib.IteratorExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
@@ -67,9 +41,11 @@ import org.lflang.lf.Output;
 import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
+import org.lflang.lf.StateVar;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
+import org.lflang.target.Target;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
@@ -77,6 +53,7 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
  *
  * @author Soroush Bateni
  * @author Edward A. Lee
+ * @ingroup Federated
  */
 public class FedASTUtils {
 
@@ -126,7 +103,54 @@ public class FedASTUtils {
   }
 
   /**
-   * Replace the specified connection with communication between federates.
+   * Return true if the given port has at least one source reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasSourceReaction(PortInstance port) {
+    var eventualSources = port.eventualSources();
+    for (var source : eventualSources) {
+      if (!source.instance.getDependsOnReactions().isEmpty()) {
+        // There is at least one source reaction.
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the given port has at least one destination reaction.
+   *
+   * @param port The port instance.
+   */
+  public static boolean hasDestinationReaction(PortInstance port) {
+    var eventualDestinations = port.eventualDestinations();
+    for (var destination : eventualDestinations) {
+      for (var eventual : destination.destinations) {
+        if (!eventual.instance.getDependentReactions().isEmpty()) {
+          // There is at least one destination.
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Return true if the specified connection has at least one source reaction that can send data
+   * through the connection and at least one destination reaction that is triggered by or uses the
+   * data sent through the connection.
+   *
+   * @param connection The connection
+   */
+  private static boolean isConnectionLive(FedConnectionInstance connection) {
+    return hasSourceReaction(connection.getSourcePortInstance())
+        && hasDestinationReaction(connection.getDestinationPortInstance());
+  }
+
+  /**
+   * Replace the specified connection with communication between federates. If the connection has no
+   * source reactions or no destination reactions, then return without doing anything.
    *
    * @param connection Network connection between two federates.
    * @param resource The resource from which the ECore model was derived.
@@ -138,6 +162,10 @@ public class FedASTUtils {
       Resource resource,
       CoordinationMode coordination,
       MessageReporter messageReporter) {
+
+    if (!isConnectionLive(connection)) {
+      return;
+    }
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
@@ -243,20 +271,19 @@ public class FedASTUtils {
             .getParent()
             .reactorDefinition; // Top-level reactor.
 
-    // Add the attribute "_networkReactor" for the network receiver.
+    // Add the attribute "_network_receiver" for the network receiver.
     var a = factory.createAttribute();
-    a.setAttrName("_networkReactor");
-    var e = factory.createAttrParm();
-    e.setValue("\"receiver\"");
-    a.getAttrParms().add(e);
+    a.setAttrName("_network_receiver");
     receiver.getAttributes().add(a);
-
-    receiver
-        .getReactions()
-        .add(getInitializationReaction(extension, extension.inputInitializationBody()));
 
     receiver.getReactions().add(networkReceiverReaction);
     receiver.getOutputs().add(out);
+
+    if (connection.dstFederate.targetConfig.target == Target.Python) {
+      StateVar serializer = factory.createStateVar();
+      serializer.setName("custom_serializer");
+      receiver.getStateVars().add(serializer);
+    }
 
     addLevelAttribute(
         networkInstance,
@@ -276,36 +303,25 @@ public class FedASTUtils {
 
     // Keep track of this action in the destination federate.
     connection.dstFederate.networkMessageActions.add(networkAction);
+    connection.dstFederate.networkMessageSourceFederate.add(connection.srcFederate);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
     if (connection.srcFederate.isInZeroDelayCycle()
         && connection.getDefinition().getDelay() == null)
       connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
 
     // Get the largest STAA for any reaction triggered by the destination port.
-    TimeValue maxSTP = findMaxSTP(connection, coordination);
+    TimeValue maxSTAA = findMaxSTAA(connection, coordination);
 
-    // Adjust this down by the delay on the connection, but do not go below zero.
-    TimeValue adjusted = maxSTP;
-    TimeValue delay = ASTUtils.getLiteralTimeValue(connection.getDefinition().getDelay());
-    if (delay != null) {
-      adjusted = maxSTP.subtract(delay);
+    // Add the maxSTAA to the sorted set of federate STAA offsets.
+    connection.dstFederate.staaOffsets.add(maxSTAA);
+
+    // Identify the networkActions associated with this maxSTAA.
+    var networkActions = connection.dstFederate.staToNetworkActionMap.get(maxSTAA);
+    if (networkActions == null) {
+      networkActions = new ArrayList<Action>();
+      connection.dstFederate.staToNetworkActionMap.put(maxSTAA, networkActions);
     }
-
-    if (!connection.dstFederate.currentSTPOffsets.contains(adjusted.time)) {
-      connection.dstFederate.currentSTPOffsets.add(adjusted.time);
-      connection.dstFederate.staaOffsets.add(adjusted);
-      connection.dstFederate.stpToNetworkActionMap.put(adjusted, new ArrayList<>());
-    } else {
-      // TODO: Find more efficient way to reuse timevalues
-      for (var offset : connection.dstFederate.staaOffsets) {
-        if (maxSTP.time == offset.time) {
-          maxSTP = offset;
-          break;
-        }
-      }
-    }
-
-    connection.dstFederate.stpToNetworkActionMap.get(adjusted).add(networkAction);
+    networkActions.add(networkAction);
 
     // Add the action definition to the parent reactor.
     receiver.getActions().add(networkAction);
@@ -314,7 +330,6 @@ public class FedASTUtils {
     // these reactions to appear only in the federate whose bank ID matches.
     setReactionBankIndex(networkReceiverReaction, connection.getDstBank());
 
-    // FIXME: do not create a new extension every time it is used
     extension.annotateReaction(networkReceiverReaction);
 
     // The connection is 'physical' if it uses the ~> notation.
@@ -408,13 +423,19 @@ public class FedASTUtils {
     // that it is connected to, which both have the same downstream reaction, have the correct
     // ordering wrt each other.
     var ub = p.getLevelUpperBound(index);
-    e.setValue(String.valueOf(p.isInput() ? 2 * ub : 2 * ub - 1));
+    // Adjust the level so that input levels are even and output levels are odd, unless the level is
+    // Integer.MAX_VALUE, which occurs if a port has no dependent reactions.
+    int level = Integer.MAX_VALUE;
+    if (ub < Integer.MAX_VALUE / 2) {
+      level = p.isInput() ? 2 * ub : 2 * ub - 1;
+    }
+    e.setValue(String.valueOf(level));
     a.getAttrParms().add(e);
     instantiation.getAttributes().add(a);
   }
 
   /**
-   * Go upstream from input port {@code port} until we reach one or more output ports that belong to
+   * Go upstream from input port `port` until we reach one or more output ports that belong to
    * the same federate.
    *
    * <p>Along the path, we follow direct connections, as well as reactions, as long as there is no
@@ -505,16 +526,32 @@ public class FedASTUtils {
   }
 
   /**
-   * Find the maximum STP offset for the given 'port'.
-   *
-   * <p>An STP offset predicate can be nested in contained reactors in the federate.
-   *
-   * @param connection The connection to find the max STP offset for.
+   * Return the `absent_after` for the destination port of the given connection.
+   * If the coordination is not decentralized, return TimeValue.ZERO.
+   * Otherwise, if the connection has an `absent_after` attribute, return it.
+   * If the connection does not have an `absent_after` attribute, find the maximum STP
+   * or STAA for the reactions that react to the destination port (for backward compatibility).
+   * This maximum may be nested in contained reactors in the federate.
+   * This method returns TimeValue.ZERO if there are no `absent_after` offsets for the port.
+   * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
-   * @return The maximum STP as a TimeValue
    */
-  private static TimeValue findMaxSTP(
+  private static TimeValue findMaxSTAA(
       FedConnectionInstance connection, CoordinationMode coordination) {
+    if (coordination != CoordinationMode.DECENTRALIZED) {
+      return TimeValue.ZERO;
+    }
+
+    // Start by checking for an `absent_after` attribute on the connection.
+    Connection conn = connection.getDefinition();
+    // If the connection has an `absent_after` attribute, return it.
+    var absentAfter = AttributeUtils.getAbsentAfter(conn);
+    if (absentAfter != TimeValue.ZERO) {
+      return absentAfter;
+    }
+
+    // For backward compatibility, check for STP offsets on the reactions that
+    // react to the destination port.
     Variable port = connection.getDestinationPortInstance().getDefinition();
     FederateInstance instance = connection.dstFederate;
     Reactor reactor = connection.getDestinationPortInstance().getParent().reactorDefinition;
@@ -554,59 +591,56 @@ public class FedASTUtils {
             .collect(Collectors.toList());
 
     // Find a list of STP offsets (if any exists)
-    if (coordination == CoordinationMode.DECENTRALIZED) {
-      for (Reaction r : safe(reactionsWithPort)) {
+    for (Reaction r : safe(reactionsWithPort)) {
+      // If STP offset is determined, add it
+      // If not, assume it is zero
+      if (r.getStp() != null) {
+        if (r.getStp().getValue() instanceof ParameterReference) {
+          List<Instantiation> instantList = new ArrayList<>();
+          instantList.add(instance.instantiation);
+          final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
+          STPList.add(ASTUtils.initialValue(param, instantList));
+        } else {
+          STPList.add(r.getStp().getValue());
+        }
+      }
+    }
+    // Check the children for STPs as well
+    for (Connection c : safe(connectionsWithPort)) {
+      VarRef childPort = c.getRightPorts().get(0);
+      Reactor childReactor = (Reactor) childPort.getVariable().eContainer();
+      // Find the list of reactions that have the port as trigger or
+      // source (could be a variable name)
+      List<Reaction> childReactionsWithPort =
+          ASTUtils.allReactions(childReactor).stream()
+              .filter(
+                  r ->
+                      r.getTriggers().stream()
+                              .anyMatch(
+                                  t -> {
+                                    if (t instanceof VarRef) {
+                                      // Check if the variables match
+                                      return ((VarRef) t).getVariable() == childPort.getVariable();
+                                    } else {
+                                      // Not a network port (startup or shutdown)
+                                      return false;
+                                    }
+                                  })
+                          || r.getSources().stream()
+                              .anyMatch(s -> s.getVariable() == childPort.getVariable()))
+              .collect(Collectors.toList());
+
+      for (Reaction r : safe(childReactionsWithPort)) {
         // If STP offset is determined, add it
         // If not, assume it is zero
         if (r.getStp() != null) {
           if (r.getStp().getValue() instanceof ParameterReference) {
             List<Instantiation> instantList = new ArrayList<>();
-            instantList.add(instance.instantiation);
+            instantList.add(childPort.getContainer());
             final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
-            STPList.addAll(ASTUtils.initialValue(param, instantList));
+            STPList.add(ASTUtils.initialValue(param, instantList));
           } else {
             STPList.add(r.getStp().getValue());
-          }
-        }
-      }
-      // Check the children for STPs as well
-      for (Connection c : safe(connectionsWithPort)) {
-        VarRef childPort = c.getRightPorts().get(0);
-        Reactor childReactor = (Reactor) childPort.getVariable().eContainer();
-        // Find the list of reactions that have the port as trigger or
-        // source (could be a variable name)
-        List<Reaction> childReactionsWithPort =
-            ASTUtils.allReactions(childReactor).stream()
-                .filter(
-                    r ->
-                        r.getTriggers().stream()
-                                .anyMatch(
-                                    t -> {
-                                      if (t instanceof VarRef) {
-                                        // Check if the variables match
-                                        return ((VarRef) t).getVariable()
-                                            == childPort.getVariable();
-                                      } else {
-                                        // Not a network port (startup or shutdown)
-                                        return false;
-                                      }
-                                    })
-                            || r.getSources().stream()
-                                .anyMatch(s -> s.getVariable() == childPort.getVariable()))
-                .collect(Collectors.toList());
-
-        for (Reaction r : safe(childReactionsWithPort)) {
-          // If STP offset is determined, add it
-          // If not, assume it is zero
-          if (r.getStp() != null) {
-            if (r.getStp().getValue() instanceof ParameterReference) {
-              List<Instantiation> instantList = new ArrayList<>();
-              instantList.add(childPort.getContainer());
-              final var param = ((ParameterReference) r.getStp().getValue()).getParameter();
-              STPList.addAll(ASTUtils.initialValue(param, instantList));
-            } else {
-              STPList.add(r.getStp().getValue());
-            }
           }
         }
       }
@@ -660,12 +694,9 @@ public class FedASTUtils {
     // Initialize Reactor and Reaction AST Nodes
     Reactor sender = factory.createReactor();
 
-    // Add the attribute "_networkReactor" for the network sender.
+    // Add the attribute "_network_sender" for the network sender.
     var a = factory.createAttribute();
-    a.setAttrName("_networkReactor");
-    var e = factory.createAttrParm();
-    e.setValue("\"sender\"");
-    a.getAttrParms().add(e);
+    a.setAttrName("_network_sender");
     sender.getAttributes().add(a);
 
     Input in = factory.createInput();
@@ -681,6 +712,12 @@ public class FedASTUtils {
     widthSpec.getTerms().add(widthTerm);
     in.setWidthSpec(widthSpec);
     inRef.setVariable(in);
+
+    if (connection.getSrcFederate().targetConfig.target == Target.Python) {
+      StateVar serializer = factory.createStateVar();
+      serializer.setName("custom_serializer");
+      sender.getStateVars().add(serializer);
+    }
 
     destRef.setContainer(connection.getDestinationPortInstance().getParent().getDefinition());
     destRef.setVariable(connection.getDestinationPortInstance().getDefinition());
@@ -747,7 +784,7 @@ public class FedASTUtils {
   }
 
   /**
-   * Return the reaction that initializes the containing network sender reactor on {@code startup}.
+   * Return the reaction that initializes the containing network sender reactor on `startup`.
    */
   private static Reaction getInitializationReaction(FedTargetExtension extension, String body) {
     var initializationReaction = LfFactory.eINSTANCE.createReaction();

@@ -7,11 +7,13 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Method;
 import org.lflang.lf.Reactor;
+import org.lflang.util.StringUtil;
 
 /**
  * Collection of functions to generate C code to declare methods.
  *
  * @author Edward A. Lee
+ * @ingroup Generator
  */
 public class CMethodGenerator {
 
@@ -60,6 +62,8 @@ public class CMethodGenerator {
     var body = ASTUtils.toText(method.getCode());
 
     code.prSourceLineNumber(method, suppressLineDirectives);
+    // Define macros for functions such as lf_tag(), lf_time_logical(), lf_set(), etc.
+    code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetHeader()));
 
     code.prComment("Implementation of method " + method.getName() + "()");
     code.pr(generateMethodSignature(method, tpr, types) + " {");
@@ -83,6 +87,7 @@ public class CMethodGenerator {
     code.pr(body);
     code.unindent();
     code.pr("}");
+    code.pr("#include " + StringUtil.addDoubleQuotes(CCoreFilesUtils.getCTargetSetUndefHeader()));
     code.prEndSourceLineNumber(suppressLineDirectives);
     return code.toString();
   }
@@ -118,6 +123,7 @@ public class CMethodGenerator {
    * themselves) regardless of the order of definition.
    *
    * @param tpr The reactor declaration.
+   * @param body The code builder for the body.
    * @param types The C-specific type conversion functions.
    */
   public static void signatures(TypeParameterizedReactor tpr, CodeBuilder body, CTypes types) {

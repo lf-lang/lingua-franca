@@ -5,11 +5,11 @@ target Python {
 
 reactor SenderAndReceiver {
   output out
-  input[2] in_
+  input[2] inp
   state received = False
 
   r = new Receiver()
-  in_ -> r.in_
+  inp -> r.inp
 
   reaction(startup) -> out {=
     out.set(42)
@@ -20,11 +20,11 @@ reactor Receiver {
   preamble {=
     import sys
   =}
-  input[2] in_
+  input[2] inp
   state received = False
 
-  reaction(in_) {=
-    if in_[0].is_present and in_[1].is_present and in_[0].value == 42 and in_[1].value == 42:
+  reaction(inp) {=
+    if inp[0].is_present and inp[1].is_present and inp[0].value == 42 and inp[1].value == 42:
       print("SUCCESS")
       self.received = True
   =}
@@ -38,5 +38,5 @@ reactor Receiver {
 
 federated reactor {
   s = new[2] SenderAndReceiver()
-  (s.out)+ -> s.in_
+  (s.out)+ -> s.inp
 }

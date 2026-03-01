@@ -4,11 +4,13 @@ package org.lflang.federated.serialization;
  * The supported serializers.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public enum SupportedSerializers {
   NATIVE("native"), // Dangerous: just copies the memory layout of the sender
   ROS2("ros2"),
-  PROTO("proto");
+  PROTO("proto"),
+  CUSTOM("");
 
   private String serializer;
 
@@ -22,5 +24,10 @@ public enum SupportedSerializers {
 
   public void setSerializer(String serializer) {
     this.serializer = serializer;
+  }
+
+  public static SupportedSerializers fromCustomString(String serializer) {
+    CUSTOM.setSerializer(serializer);
+    return CUSTOM;
   }
 }

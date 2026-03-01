@@ -1,0 +1,64 @@
+target C {
+  coordination: decentralized  // logging: debug
+}
+
+reactor Client(STP_offset: time = 1 day) {
+  input server_message: int
+  output client_message: int
+
+  reaction(startup) {=
+    lf_print("Client Startup!");
+  =}
+
+  reaction(server_message) -> client_message {=
+    int val = server_message->value + 1;
+    lf_sleep(MSEC(100));
+    lf_print("client: %d", val);
+    if (val == 9) {
+      lf_print("client requesting stop");
+      lf_request_stop();
+    }
+    lf_set(client_message, val);
+  =} tardy {=
+    lf_print_error_and_exit("Client STP Violated!");
+  =}
+}
+
+reactor Server {
+  output server_message: int
+  input client_message1: int
+  input client_message2: int
+
+  reaction(startup) -> server_message {=
+    lf_print("Server Startup!");
+    lf_set(server_message, 0);
+  =}
+
+  reaction(client_message1, client_message2) -> server_message {=
+    int val = client_message1->value;
+    if (val < client_message2->value) val = client_message2->value;
+    lf_sleep(MSEC(100));
+    val += 1;
+    lf_print("server: %d", val);
+    if (val == 8) {
+      lf_print("server requesting stop");
+      lf_set(server_message, val);
+      lf_request_stop();
+    }
+    lf_set(server_message, val);
+  =} tardy {=
+    // This should not occur.
+    lf_print_error_and_exit("Server STP Violated!");
+  =}
+}
+
+federated reactor {
+  client1 = new Client()
+  client2 = new Client()
+  @maxwait(forever)
+  server = new Server()
+  server.server_message -> client1.server_message
+  client1.client_message -> server.client_message1 after 0
+  server.server_message -> client2.server_message
+  client2.client_message -> server.client_message2 after 0
+}

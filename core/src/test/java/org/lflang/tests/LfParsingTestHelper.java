@@ -9,6 +9,7 @@ import org.lflang.lf.Model;
  * injection takes a lot of time.
  *
  * @author Clément Fournier
+ * @ingroup Tests
  */
 public class LfParsingTestHelper {
 

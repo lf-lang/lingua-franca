@@ -1,0 +1,57 @@
+target C
+
+preamble {=
+  #include "platform.h"
+=}
+
+reactor EnclaveSink(
+    afterDelay: time = 50 msec,
+    timerPeriod: time = 100 msec,
+    timerOffset: time = 75 msec,
+    expectedInputs: int = 10,
+    inputPeriod: time = 100 msec,
+    duration: time = 1 sec) {
+  input in: instant_t
+
+  timer t(timerOffset, timerPeriod)
+  state inCnt: int = 0
+  state tCnt: int = 0
+
+  reaction(in) {=
+    lf_print("EnclaveSink received " PRINTF_TIME " at tag " PRINTF_TAG, in->value,
+        lf_time_logical_elapsed(), lf_tag().microstep);
+    instant_t expected_in = lf_time_logical_elapsed() - self->afterDelay;
+    LF_TEST(in->value == (expected_in), "EnclaveSink failed. Got: " PRINTF_TIME " expected: " PRINTF_TIME, in->value, expected_in);
+    LF_TEST(self->inCnt == self->tCnt, "Expected inCnt and tCnt equal got %u and %u", self->inCnt, self->tCnt);
+    self->inCnt++;
+  =}
+
+  reaction(t) {=
+    LF_TEST(self->inCnt == self->tCnt+1, "In didnt fire before timer");
+    self->tCnt++;
+  =}
+
+  reaction(shutdown) {=
+    int expected_tCnt = (self->duration - self->timerOffset)/self->timerPeriod + 1;
+    LF_TEST(self->inCnt == self->expectedInputs, "Wrong inCnt. Got %u expected %u", self->inCnt, self->expectedInputs);
+    LF_TEST(self->tCnt == expected_tCnt, "Wrong tCnt. Got %u expected %u", self->tCnt, expected_tCnt);
+  =}
+}
+
+reactor EnclaveSource(timerPeriod: time = 100 msec, timerOffset: time = 0 msec) {
+  output out: instant_t
+  timer t(timerOffset, timerPeriod)
+
+  reaction(t) -> out {=
+    lf_set(out, lf_time_logical_elapsed());
+  =}
+}
+
+reactor EnclavePassthru {
+  input in: instant_t
+  output out: instant_t
+
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
+}

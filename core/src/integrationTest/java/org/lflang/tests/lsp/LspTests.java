@@ -28,6 +28,7 @@ import org.lflang.tests.lsp.ErrorInserter.AlteredTest;
  * Test the code generator features that are required by the language server.
  *
  * @author Peter Donovan
+ * @ingroup Tests
  */
 class LspTests extends LfInjectedTestBase {
 
@@ -42,13 +43,14 @@ class LspTests extends LfInjectedTestBase {
       diagnosticsHaveKeyword("libprotoc")
           .or(diagnosticsHaveKeyword("protoc-c"))
           .or(diagnosticsIncludeText("could not be found"));
+
   /**
    * The number of samples to take from each test category (with replacement) when doing validation
    * tests.
    */
   private static final int SAMPLES_PER_CATEGORY_VALIDATION_TESTS = 3;
 
-  /** The {@code IntegratedBuilder} instance whose behavior is to be tested. */
+  /** The `IntegratedBuilder` instance whose behavior is to be tested. */
   @Inject private IntegratedBuilder builder;
 
   @Inject private TestRegistry testRegistry;
@@ -132,15 +134,15 @@ class LspTests extends LfInjectedTestBase {
   }
 
   /**
-   * Verify that the diagnostics that result from fully validating tests associated with {@code
-   * target} satisfy {@code requirementGetter}.
+   * Verify that the diagnostics that result from fully validating tests associated with
+   * `target` satisfy `requirementGetter`.
    *
    * @param target Any target language.
    * @param requirementGetter A map from altered tests to the requirements that diagnostics
    *     regarding those tests must meet.
-   * @param alterer The means of inserting problems into the tests, or {@code null} if problems are
+   * @param alterer The means of inserting problems into the tests, or `null` if problems are
    *     not to be inserted.
-   * @param random The {@code Random} instance that determines which tests are selected.
+   * @param random The `Random` instance that determines which tests are selected.
    * @throws IOException upon failure to write an altered copy of some test to storage.
    */
   private void checkDiagnostics(
@@ -170,7 +172,7 @@ class LspTests extends LfInjectedTestBase {
    * Select a test from each test category.
    *
    * @param target The target language of the desired tests.
-   * @param random The {@code Random} instance that determines which tests are selected.
+   * @param random The `Random` instance that determines which tests are selected.
    * @return A sample of one integration test per target, per category.
    */
   private Set<LFTest> selectTests(Target target, Random random) {
@@ -201,7 +203,7 @@ class LspTests extends LfInjectedTestBase {
    * Return the predicate that a list of diagnostics contains the given keyword.
    *
    * @param keyword A keyword that a list of diagnostics should be searched for.
-   * @return The predicate, "X mentions {@code keyword}."
+   * @return The predicate, "X mentions `keyword`."
    */
   private static Predicate<List<Diagnostic>> diagnosticsHaveKeyword(String keyword) {
     return diagnostics ->
@@ -214,7 +216,7 @@ class LspTests extends LfInjectedTestBase {
    * Return the predicate that a list of diagnostics contains the given text.
    *
    * @param requiredText A keyword that a list of diagnostics should be searched for.
-   * @return The predicate, "X includes {@code requiredText}."
+   * @return The predicate, "X includes `requiredText`."
    */
   private static Predicate<List<Diagnostic>> diagnosticsIncludeText(
       @SuppressWarnings("SameParameterValue") String requiredText) {
@@ -229,8 +231,9 @@ class LspTests extends LfInjectedTestBase {
    */
   private void runTest(Path test) {
     MockReportProgress reportProgress = new MockReportProgress();
+    MockCancelIndicator cancelIndicator = new MockCancelIndicator();
     try {
-      builder.run(URI.createFileURI(test.toString()), false, reportProgress, () -> false);
+      builder.run(URI.createFileURI(test.toString()), "", false, reportProgress, cancelIndicator);
     } catch (Exception e) {
       e.printStackTrace();
       throw e;

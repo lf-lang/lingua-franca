@@ -1,0 +1,48 @@
+// This tests that we detect "unintended cycles through a parent".
+// In this example. 
+target C;
+
+reactor R1 {
+    output out: int
+}
+reactor C1 {
+    output out: int
+    @enclave
+    r1 = new R1()
+    r1.out -> out
+}
+
+reactor R2 {
+    input in: int
+    output out: int
+}
+reactor C2 {
+    input in: int
+    output out: int
+    @enclave
+    r2 = new R2()
+    in -> r2.in
+    r2.out -> out
+}
+
+reactor R3 {
+    input in: int
+}
+reactor C3 {
+    input in: int
+    @enclave
+    r3 = new R3()
+    in -> r3.in
+}
+
+main reactor {
+
+    r1 = new C1()
+    r2 = new C2()
+    r3 = new C3()
+
+    r1.out -> r2.in
+    r2.out -> r3.in
+
+
+}

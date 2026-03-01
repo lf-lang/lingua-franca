@@ -85,22 +85,14 @@ class CppInstanceGenerator(
 
     private fun Instantiation.getParameterStruct(): String {
         val assignments = parameters.mapNotNull {
-            when {
-                it.rhs.isParens || it.rhs.isBraces -> {
-                    messageReporter.at(it).error("Parenthesis based initialization is not allowed here!")
-                    null
-                }
-
-                it.rhs.exprs.size != 1             -> {
-                    messageReporter.at(it).error("Expected exactly one expression.")
-                    null
-                }
-
-                else                               -> Pair(
-                    it.lhs.name,
-                    CppTypes.getTargetExpr(it.rhs.exprs[0], it.lhs.inferredType)
-                )
+            if (!it.rhs.isAssign) {
+                messageReporter.at(it).error("Parenthesis or brace based initialization is not allowed here! Please use the '=' assignment operator")
+                null
             }
+            else Pair(
+                it.lhs.name,
+                CppTypes.getTargetExpr(it.rhs.expr, it.lhs.inferredType)
+            )
         }.toMap().toMutableMap()
 
         // If this is a bank instantiation and the instantiated reactor defines a "bank_index" parameter, we have to set
@@ -111,7 +103,7 @@ class CppInstanceGenerator(
         // by iterating over the reactor parameters we make sure that the parameters are assigned in declaration order
         return reactor.parameters.mapNotNull {
             if (it.name in assignments) ".${it.name} = ${assignments[it.name]}" else null
-        }.joinToString(", ", "$reactorType::Parameters{", "}")
+        }.joinToString(", ", "typename $reactorType::Parameters{", "}")
     }
 
     private fun generateInitializer(inst: Instantiation): String? = with(inst) {

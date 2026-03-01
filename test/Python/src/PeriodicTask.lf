@@ -1,0 +1,49 @@
+target Python {
+  timeout: 200 ms,
+  scheduler: GEDF_NP,
+  workers: 1
+}
+
+reactor Periodic(period = 50 ms, name="Unnamed") {
+  timer trigger(0, period)
+
+  output t
+
+  reaction(trigger) -> t {=
+    start_time = lf.time.physical_elapsed()
+    t.set(start_time)
+    print(f"{self.name} started at physical time: {start_time}")
+  =}
+}
+
+reactor Probe(dl = 2 ms, name="Unnamed") {
+  input i
+  output t
+
+  reaction(i) -> t {=
+    start_time = lf.time.physical_elapsed()
+    t.set(start_time)
+    print(f"{self.name} started at physical time: {start_time}")
+  =} deadline(dl) {=
+    start_time = lf.time.physical_elapsed()
+    t.set(start_time)
+    print(f"{self.name} VIOLATED DEADLINE at physical time: {start_time}")
+  =}
+}
+
+main reactor {
+  task1 = new Periodic(period = 50 ms, name="task1")
+  detector1 = new Probe(dl = 50 ms, name="detector1")
+
+  task1.t -> detector1.i
+  task2 = new Periodic(period = 50 ms, name="task2")
+  detector2 = new Probe(dl = 25 ms, name="detector2")
+
+  task2.t -> detector2.i
+
+  reaction(task1.t, detector2.t) {=
+    if (task1.t.is_present and detector2.t.is_present and task1.t.value < detector2.t.value):
+      print("EDF policy violated. detector2 should execute before task1 when both are triggered.")  # lf_print_error
+      sys.exit(1)  # and_exit
+  =}
+}

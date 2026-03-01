@@ -111,7 +111,7 @@ main reactor {
   timer stepper(500 msec, 500 msec)
 
   modal = new Modal()
-  test = new TraceTesting(events_size = 11, trace = (  // keep-format
+  test = new TraceTesting(events_size = 11, trace = [  // keep-format
     0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     500000000,1,2,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,2,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -123,7 +123,7 @@ main reactor {
     500000000,1,4,0,1,0,1,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,
     0,0,4,0,1,0,1,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,
     500000000,1,4,0,1,0,1,1,1,1,1,0,1,0,1,1,1,0,0,0,0,0,0
-  ), training = False)
+  ], training = False)
 
   modal.mode_switch,
   modal.startup1,

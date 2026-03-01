@@ -2,7 +2,7 @@ package org.lflang.cli;
 
 import de.cau.cs.kieler.klighd.Klighd;
 import de.cau.cs.kieler.klighd.LightDiagramServices;
-import de.cau.cs.kieler.klighd.standalone.KlighdStandaloneSetup;
+import de.cau.cs.kieler.klighd.setup.KlighdStandaloneSetup;
 import java.nio.file.Path;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -14,6 +14,7 @@ import picocli.CommandLine.Command;
  * Command lin tool for generating diagrams from Lingua Franca programs.
  *
  * @author Christian Menard
+ * @ingroup CLI
  */
 @Command(
     name = "lfd",
