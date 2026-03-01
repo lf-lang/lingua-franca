@@ -497,8 +497,7 @@ public class CExtension implements FedTargetExtension {
       throws IOException {
     String cPreamble = makePreamble(federate, rtiConfig, messageReporter);
     String relPath = getPreamblePath(federate);
-    Path fedPreamblePath =
-        fileConfig.getSrcGenPath().resolve(federate.name).resolve(relPath);
+    Path fedPreamblePath = fileConfig.getSrcGenPath().resolve(federate.name).resolve(relPath);
     Files.createDirectories(fedPreamblePath.getParent());
     try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
       writer.write(cPreamble);
