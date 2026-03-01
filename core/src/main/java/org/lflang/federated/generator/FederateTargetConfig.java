@@ -11,6 +11,7 @@ import org.lflang.target.TargetConfig;
  * federates.
  *
  * @author Marten Lohstroh
+ * @ingroup Federated
  */
 public class FederateTargetConfig extends TargetConfig {
 

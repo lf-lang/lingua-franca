@@ -2,6 +2,10 @@ package org.lflang.util;
 
 import java.io.IOException;
 
+/**
+ * Exception thrown when a required resource could not be found on the classpath or is an empty directory.
+ * @ingroup Utilities
+ */
 public class TargetResourceNotFoundException extends IOException {
   public TargetResourceNotFoundException(String resourcePath) {
     super(

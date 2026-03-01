@@ -1,0 +1,44 @@
+target C
+
+preamble {=
+  #include "platform.h"
+=}
+
+reactor Src {
+  output out: int
+
+  timer t(1 msec)
+
+  reaction(t) -> out {=
+    tag_t tag = lf_tag();
+    lf_print("Source writing to port at tag: " PRINTF_TAG, lf_time_logical_elapsed(), tag.microstep);
+    lf_set(out, 42);
+  =}
+}
+
+reactor Sink {
+  input in: int
+
+  state check: bool = false
+
+  reaction(in) {=
+    LF_TEST(in->value == 42, "Expected 42");
+    tag_t tag = lf_tag();
+    lf_print("Sink received value at tag: " PRINTF_TAG, lf_time_logical_elapsed(), tag.microstep);
+    LF_TEST(tag.microstep == 0, "Expected microstep 0");
+    self->check=true;
+  =}
+
+  reaction(shutdown) {=
+    LF_TEST(self->check, "Test did not run properly");
+  =}
+}
+
+main reactor {
+  @enclave
+  src = new Src()
+
+  sink = new Sink()
+
+  src.out -> sink.in
+}

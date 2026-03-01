@@ -13,6 +13,7 @@ import org.lflang.lf.Parameter;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CParameterGenerator {
   /**

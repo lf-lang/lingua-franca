@@ -10,6 +10,7 @@ import org.lflang.target.property.TracingProperty;
  * A docker-compose configuration generator for a federated program.
  *
  * @author Marten Lohstroh
+ * @ingroup Docker
  */
 public class FedDockerComposeGenerator extends DockerComposeGenerator {
 

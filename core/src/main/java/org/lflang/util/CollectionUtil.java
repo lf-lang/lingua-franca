@@ -20,6 +20,8 @@ import java.util.function.Function;
  * take a collection parameter as input to produce a new one with a transformation require the input
  * collection to have been obtained from one of the utility functions of this class in the first
  * place.
+ *
+ * @ingroup Utilities
  */
 public class CollectionUtil {
 
@@ -65,7 +67,7 @@ public class CollectionUtil {
 
   /**
    * Remove the given value from all the sets that are values in the given map. Use this if the
-   * values of the map (the sets) were build with {@link #plus(Set, Object)}.
+   * values of the map (the sets) were build with {@link #plus}.
    *
    * <p>In {@link org.lflang.graph.DirectedGraph}, this is used to properly remove nodes from a
    * graph. There, we use maps to represent edges, where a value in a map is a set of nodes adjacent
@@ -117,7 +119,7 @@ public class CollectionUtil {
   }
 
   /**
-   * Returns a map that is identical to the original map, except the value for key {@code k} is
+   * Returns a map that is identical to the original map, except the value for key `k` is
    * transformed using the given function. The transformation function takes the key and current
    * value (null if the key is not present) as inputs, and returns the new value to associate to the
    * key (null if the mapping should be removed).
@@ -157,7 +159,7 @@ public class CollectionUtil {
 
   /**
    * Returns an immutable Set that contains all argument values. Duplicate elements are removed
-   * without error (contrary to {@link Set#of()} and friends).
+   * without error (contrary to `Set.of()` and friends).
    */
   @SafeVarargs
   public static <T> Set<T> immutableSetOf(T first, T... rest) {

@@ -9,7 +9,7 @@ target C {
 
 import Count from "../lib/Count.lf"
 
-reactor PrintLag(STA: time = 100 weeks) {
+reactor PrintLag {
   input in: int
 
   reaction(in) {=
@@ -21,6 +21,7 @@ reactor PrintLag(STA: time = 100 weeks) {
 
 federated reactor {
   c = new Count(offset=0, period = 3 ms)
+  @maxwait(forever)
   p = new PrintLag()
   c.out -> p.in
 }

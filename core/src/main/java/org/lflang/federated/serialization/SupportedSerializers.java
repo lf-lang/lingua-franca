@@ -4,6 +4,7 @@ package org.lflang.federated.serialization;
  * The supported serializers.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public enum SupportedSerializers {
   NATIVE("native"), // Dangerous: just copies the memory layout of the sender

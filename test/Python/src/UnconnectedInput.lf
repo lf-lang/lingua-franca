@@ -31,12 +31,12 @@ reactor Add {
 }
 
 reactor Print {
-  input _in
+  input inp
   state expected = 1
 
-  reaction(_in) {=
-    print("Received: ", _in.value)
-    if _in.value != self.expected:
+  reaction(inp) {=
+    print("Received: ", inp.value)
+    if inp.value != self.expected:
       sys.stderr.write("ERROR: Expected {:d}.\n".format(self.expected))
       exit(1)
 
@@ -49,5 +49,5 @@ main reactor UnconnectedInput {
   add = new Add()
   print = new Print()
   source.out -> add.in2
-  add.out -> print._in
+  add.out -> print.inp
 }

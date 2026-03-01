@@ -7,6 +7,9 @@ on:
   workflow_dispatch:
   workflow_call:
     inputs:
+      compiler-ref:
+        required: false
+        type: string
       all-platforms:
         required: false
         default: true
@@ -47,7 +50,7 @@ jobs:
       - name: Install pnpm
         run: npm i -g pnpm
       - name: Cache .pnpm-store
-        uses: actions/cache@v3.2.5
+        uses: actions/cache@v4
         with:
           path: ~/.pnpm-store
           key: ${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('core/src/main/resources/lib/ts/package.json') }}

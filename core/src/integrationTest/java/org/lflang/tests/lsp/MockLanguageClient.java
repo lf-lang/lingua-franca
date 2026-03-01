@@ -13,9 +13,10 @@ import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 
 /**
- * A {@code MockLanguageClient} is a language client that should be used in language server tests.
+ * A `MockLanguageClient` is a language client that should be used in language server tests.
  *
  * @author Peter Donovan
+ * @ingroup Tests
  */
 public class MockLanguageClient implements LanguageClient {
 
@@ -59,12 +60,12 @@ public class MockLanguageClient implements LanguageClient {
     showMessage(message);
   }
 
-  /** Return the diagnostics that {@code this} has received. */
+  /** Return the diagnostics that `this` has received. */
   public List<Diagnostic> getReceivedDiagnostics() {
     return Collections.unmodifiableList(receivedDiagnostics);
   }
 
-  /** Clear the diagnostics recorded by {@code this}. */
+  /** Clear the diagnostics recorded by `this`. */
   public void clearDiagnostics() {
     receivedDiagnostics.clear();
   }

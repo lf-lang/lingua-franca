@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2020, Kiel University.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.diagram.synthesis.styles;
 
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.LEFT;
@@ -73,6 +49,7 @@ import org.eclipse.xtext.xbase.lib.Extension;
 import org.eclipse.xtext.xbase.lib.Functions.Function1;
 import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
+import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.diagram.synthesis.AbstractSynthesisExtensions;
 import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
@@ -87,9 +64,14 @@ import org.lflang.lf.StateVar;
  * Extension class that provides shapes and figures for the Lingua Franca diagram synthesis.
  *
  * @author Alexander Schulz-Rosengarten
+ * @ingroup Diagram
  */
 @ViewSynthesisShared
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
+
+  public static final Colors ENCLAVE_BORDER_COLOR = Colors.CORAL_3;
+  public static final Colors DEADLINE_COLOR = Colors.WHITE; // Formerly Colors.BROWN
+  public static final Colors CODE_COLOR = Colors.BLACK;
 
   public static final float REACTION_POINTINESS = 6; // arrow point length
   // Property for marking the KContainterRendering in Reactor figures that is supposed to hold the
@@ -180,10 +162,15 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       KNode node, ReactorInstance reactorInstance, String text) {
     int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
 
+    var color =
+        AttributeUtils.isEnclave(reactorInstance.getDefinition())
+            ? ENCLAVE_BORDER_COLOR
+            : Colors.GRAY;
+
     Function1<KRoundedRectangle, KRendering> style =
         r -> {
           _kRenderingExtensions.setLineWidth(r, 1);
-          _kRenderingExtensions.setForeground(r, Colors.GRAY);
+          _kRenderingExtensions.setForeground(r, color);
           _kRenderingExtensions.setBackground(r, Colors.GRAY_95);
           return _linguaFrancaStyleExtensions.boldLineSelectionStyle(r);
         };
@@ -444,6 +431,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
               contentContainer, _utilityExtensions.trimCode(reaction.getDefinition().getCode()));
       associateWith(hasCodeText, reaction);
       _kRenderingExtensions.setFontSize(hasCodeText, 6);
+      _kRenderingExtensions.setForeground(hasCodeText, CODE_COLOR);
       _kRenderingExtensions.setFontName(hasCodeText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
       _linguaFrancaStyleExtensions.noSelectionStyle(hasCodeText);
       _kRenderingExtensions.setHorizontalAlignment(hasCodeText, HorizontalAlignment.LEFT);
@@ -514,7 +502,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
           _kContainerRenderingExtensions.addText(
               labelContainer, reaction.declaredDeadline.maxDelay.toString());
       associateWith(stopWatchText, reaction.getDefinition().getDeadline().getDelay());
-      _kRenderingExtensions.setForeground(stopWatchText, Colors.BROWN);
+      _kRenderingExtensions.setForeground(stopWatchText, DEADLINE_COLOR);
       _kRenderingExtensions.setFontBold(stopWatchText, true);
       _kRenderingExtensions.setFontSize(stopWatchText, 7);
       _linguaFrancaStyleExtensions.underlineSelectionStyle(stopWatchText);
@@ -527,7 +515,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
                 contentContainer,
                 _utilityExtensions.trimCode(reaction.getDefinition().getDeadline().getCode()));
         associateWith(contentContainerText, reaction.declaredDeadline);
-        _kRenderingExtensions.setForeground(contentContainerText, Colors.BROWN);
+        _kRenderingExtensions.setForeground(contentContainerText, CODE_COLOR);
         _kRenderingExtensions.setFontSize(contentContainerText, 6);
         _kRenderingExtensions.setFontName(
             contentContainerText, KlighdConstants.DEFAULT_MONOSPACE_FONT_NAME);
@@ -581,7 +569,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 3, 0.5f, TOP, (-2), 0),
                 _kRenderingExtensions.createKPosition(LEFT, (-3), 0.5f, TOP, (-2), 0)));
-    _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+    _kRenderingExtensions.setForeground(polyline, DEADLINE_COLOR);
 
     polyline =
         _kContainerRenderingExtensions.addPolyline(
@@ -590,11 +578,11 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
             List.of(
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, (-2), 0),
                 _kRenderingExtensions.createKPosition(LEFT, 0, 0.5f, TOP, 1, 0)));
-    _kRenderingExtensions.setForeground(polyline, Colors.BROWN);
+    _kRenderingExtensions.setForeground(polyline, DEADLINE_COLOR);
 
     KEllipse body = _kContainerRenderingExtensions.addEllipse(container);
     _kRenderingExtensions.setLineWidth(body, 1);
-    _kRenderingExtensions.setForeground(body, Colors.BROWN);
+    _kRenderingExtensions.setForeground(body, DEADLINE_COLOR);
     _kRenderingExtensions.<KEllipse>setPointPlacementData(
         body,
         _kRenderingExtensions.LEFT,
@@ -616,7 +604,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     arc.setArcAngle(110);
     arc.setArcType(Arc.PIE);
     _kRenderingExtensions.setLineWidth(arc, 0);
-    _kRenderingExtensions.setBackground(arc, Colors.BROWN);
+    _kRenderingExtensions.setBackground(arc, DEADLINE_COLOR);
     _kRenderingExtensions.setPointPlacementData(
         arc,
         _kRenderingExtensions.LEFT,

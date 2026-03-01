@@ -1,5 +1,6 @@
 package org.lflang.generator;
 
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.eclipse.core.resources.IResource;
@@ -23,6 +24,8 @@ import org.lflang.target.property.KeepaliveProperty;
  * A helper class with functions that may be useful for code generators. This is created to ease our
  * transition from Xtend and possibly Eclipse. All functions in this class should instead be in
  * GeneratorUtils.kt, but Eclipse cannot handle Kotlin files.
+ *
+ * @ingroup Generator
  */
 public class GeneratorUtils {
 
@@ -36,8 +39,8 @@ public class GeneratorUtils {
   }
 
   /**
-   * Look for physical actions in 'resource'. If appropriate, set keepalive to true in {@code
-   * targetConfig}. This is a helper function for setTargetConfig. It should not be used elsewhere.
+   * Look for physical actions in 'resource'. If appropriate, set keepalive to true in
+   * `targetConfig`. This is a helper function for setTargetConfig. It should not be used elsewhere.
    */
   public static void accommodatePhysicalActionsIfPresent(
       Set<Resource> resources,
@@ -67,12 +70,12 @@ public class GeneratorUtils {
   }
 
   /**
-   * Return all instances of {@code eObjectType} in {@code resource}.
+   * Return all instances of `eObjectType` in `resource`.
    *
    * @param resource A resource to be searched.
    * @param nodeType The type of the desired parse tree nodes.
    * @param <T> The type of the desired parse tree nodes.
-   * @return all instances of {@code eObjectType} in {@code resource}
+   * @return all instances of `eObjectType` in `resource`
    */
   public static <T> Iterable<T> findAll(Resource resource, Class<T> nodeType) {
     return () -> IteratorExtensions.filter(resource.getAllContents(), nodeType);
@@ -85,25 +88,34 @@ public class GeneratorUtils {
    * @return the resources that provide the given reactors.
    */
   public static Set<Resource> getResources(Iterable<Reactor> reactors) {
-    Set<Resource> visited = new LinkedHashSet<>();
+    Set<Resource> resources = new LinkedHashSet<>();
+    Set<Reactor> visitedReactors = new HashSet<>();
     for (Reactor r : reactors) {
-      if (!visited.contains(r.eResource())) {
-        addInheritedResources(r, visited);
-      }
+      addInheritedResources(r, resources, visitedReactors);
     }
-    return visited;
+    return resources;
   }
 
   /** Collect all resources associated with reactor through class inheritance. */
-  private static void addInheritedResources(Reactor reactor, Set<Resource> resources) {
+  private static void addInheritedResources(
+      Reactor reactor, Set<Resource> resources, Set<Reactor> visitedReactors) {
+    // Skip if we've already processed this reactor
+    if (reactor == null || visitedReactors.contains(reactor)) {
+      return;
+    }
+    visitedReactors.add(reactor);
     resources.add(reactor.eResource());
+
+    // Process superclasses - each reactor may have different superclasses even if in the same file
     for (var s : reactor.getSuperClasses()) {
-      if (!resources.contains(s)) {
-        if (s instanceof ImportedReactor i) {
-          addInheritedResources(i.getReactorClass(), resources);
-        } else if (s instanceof Reactor r) {
-          addInheritedResources(r, resources);
-        }
+      Reactor superReactor = null;
+      if (s instanceof ImportedReactor i) {
+        superReactor = i.getReactorClass();
+      } else if (s instanceof Reactor r) {
+        superReactor = r;
+      }
+      if (superReactor != null) {
+        addInheritedResources(superReactor, resources, visitedReactors);
       }
     }
   }

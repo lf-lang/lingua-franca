@@ -6,6 +6,7 @@ import org.eclipse.xtext.util.CancelIndicator;
  * Mock the CancelIndicator interface for testing.
  *
  * @author Erling Jellum
+ * @ingroup Tests
  */
 public class MockCancelIndicator implements CancelIndicator {
   @Override

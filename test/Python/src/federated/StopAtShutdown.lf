@@ -10,13 +10,13 @@ target Python {
 }
 
 reactor A {
-  input in_
+  input inp
 
   reaction(startup) {=
     print("Hello World!")
   =}
 
-  reaction(in_) {=
+  reaction(inp) {=
     print("Got it")
   =}
 
@@ -41,5 +41,5 @@ reactor B {
 federated reactor {
   a = new A()
   b = new B()
-  b.out -> a.in_
+  b.out -> a.inp
 }

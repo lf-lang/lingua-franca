@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2020, Kiel University.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.diagram.synthesis.styles;
 
 import static de.cau.cs.kieler.klighd.krendering.extensions.PositionReferenceX.*;
@@ -64,6 +40,7 @@ import org.lflang.diagram.synthesis.LinguaFrancaSynthesis;
  * Extension class that provides styles and coloring for the Lingua Franca diagram synthesis.
  *
  * @author Alexander Schulz-Rosengarten
+ * @ingroup Diagram
  */
 @ViewSynthesisShared
 public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
@@ -127,13 +104,27 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
   }
 
   public void commentStyle(KRendering r) {
-    _kRenderingExtensions.setForeground(r, Colors.LIGHT_GOLDENROD);
-    _kRenderingExtensions.setBackground(r, Colors.PALE_GOLDENROD);
+    _kRenderingExtensions.setForeground(r, Colors.GOLDENROD); // Formerly LIGHT_GOLDENROD
+    _kRenderingExtensions.setBackground(r, Colors.WHITE); // Formerly PALE_GOLDENROD
     _kRenderingExtensions.setLineWidth(r, 1);
     _kRenderingExtensions.setSelectionLineWidth(r, 2);
 
     if (r.eContainer() instanceof KEdge) { // also color potential arrow heads
       _kRenderingExtensions.setBackground(r, Colors.LIGHT_GOLDENROD);
+      _kRenderingExtensions.getBackground(r).setPropagateToChildren(true);
+      _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
+      _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
+    }
+  }
+
+  public void maxWaitCommentStyle(KRendering r) {
+    _kRenderingExtensions.setForeground(r, Colors.BLUE);
+    _kRenderingExtensions.setBackground(r, Colors.WHITE);
+    _kRenderingExtensions.setLineWidth(r, 1);
+    _kRenderingExtensions.setSelectionLineWidth(r, 2);
+
+    if (r.eContainer() instanceof KEdge) { // also color potential arrow heads
+      _kRenderingExtensions.setBackground(r, Colors.LIGHT_BLUE);
       _kRenderingExtensions.getBackground(r).setPropagateToChildren(true);
       _kRenderingExtensions.getForeground(r).setPropagateToChildren(true);
       _kRenderingExtensions.getLineWidth(r).setPropagateToChildren(true);
@@ -480,6 +471,132 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     }
     label.setProperty(LABEL_PARENT_BACKGROUND, parentBackgroundColor);
     _onEdgePysicalLabelConfigurator.applyTo(label);
+  }
+
+  private static LabelDecorationConfigurator
+      _onEdgeLabelStyleConfigurator; // ONLY for use in applyOnEdgeLabelStyle
+
+  public void applyOnEdgeLabelStyle(KLabel label) {
+    if (_onEdgeLabelStyleConfigurator == null) {
+      LabelDecorationConfigurator configurator =
+          LabelDecorationConfigurator.create().withInlineLabels(true);
+      configurator =
+          configurator.withLabelTextRenderingProvider(
+              (KContainerRendering container, KLabel klabel) -> {
+                KText kText = _kRenderingFactory.createKText();
+                _kRenderingExtensions.setFontSize(kText, 8);
+                _kRenderingExtensions.setForeground(kText, Colors.GOLDENROD);
+                boldTextSelectionStyle(kText);
+                kText.setProperty(
+                    KlighdInternalProperties.MODEL_ELEMEMT,
+                    klabel.getProperty(KlighdInternalProperties.MODEL_ELEMEMT));
+                container.getChildren().add(kText);
+                return kText;
+              });
+      configurator =
+          configurator.addDecoratorRenderingProvider(
+              new IDecoratorRenderingProvider() {
+                @Override
+                public ElkPadding createDecoratorRendering(
+                    KContainerRendering container,
+                    KLabel label,
+                    LabelDecorationConfigurator.LayoutMode layoutMode) {
+                  ElkPadding padding = new ElkPadding();
+                  padding.top = 1;
+                  padding.bottom = 1;
+                  padding.left = 2;
+                  padding.right = 2;
+
+                  KPolygon polygon = _kRenderingFactory.createKPolygon();
+                  _kRenderingExtensions.from(polygon, LEFT, (-2), 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.to(polygon, LEFT, 2, 0, TOP, 0, 0);
+                  _kRenderingExtensions.to(polygon, RIGHT, (-2), 0, TOP, 0, 0);
+                  _kRenderingExtensions.to(polygon, RIGHT, 2, 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.setBackground(polygon, Colors.WHITE);
+                  _kRenderingExtensions.setForeground(polygon, Colors.GOLDENROD);
+                  container.getChildren().add(polygon);
+
+                  KPolyline polyline = _kRenderingFactory.createKPolyline();
+                  _kRenderingExtensions.from(polyline, LEFT, (-2), 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.to(polyline, LEFT, 2, 0, TOP, 0, 0);
+                  _kRenderingExtensions.setForeground(polyline, Colors.GOLDENROD);
+                  container.getChildren().add(polyline);
+
+                  polyline = _kRenderingFactory.createKPolyline();
+                  _kRenderingExtensions.from(polyline, RIGHT, 2, 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.to(polyline, RIGHT, (-2), 0, TOP, 0, 0);
+                  _kRenderingExtensions.setForeground(polyline, Colors.GOLDENROD);
+                  container.getChildren().add(polyline);
+
+                  return padding;
+                }
+              });
+      _onEdgeLabelStyleConfigurator = configurator;
+    }
+    _onEdgeLabelStyleConfigurator.applyTo(label);
+  }
+
+  private static LabelDecorationConfigurator
+      _onEdgeAbsentAfterStyleConfigurator; // ONLY for use in applyOnEdgeAbsentAfterStyle
+
+  public void applyOnEdgeAbsentAfterStyle(KLabel label) {
+    if (_onEdgeAbsentAfterStyleConfigurator == null) {
+      LabelDecorationConfigurator configurator =
+          LabelDecorationConfigurator.create().withInlineLabels(true);
+      configurator =
+          configurator.withLabelTextRenderingProvider(
+              (KContainerRendering container, KLabel klabel) -> {
+                KText kText = _kRenderingFactory.createKText();
+                _kRenderingExtensions.setFontSize(kText, 6);
+                // Text color defaults to black, matching comment box text style
+                boldTextSelectionStyle(kText);
+                kText.setProperty(
+                    KlighdInternalProperties.MODEL_ELEMEMT,
+                    klabel.getProperty(KlighdInternalProperties.MODEL_ELEMEMT));
+                container.getChildren().add(kText);
+                return kText;
+              });
+      configurator =
+          configurator.addDecoratorRenderingProvider(
+              new IDecoratorRenderingProvider() {
+                @Override
+                public ElkPadding createDecoratorRendering(
+                    KContainerRendering container,
+                    KLabel label,
+                    LabelDecorationConfigurator.LayoutMode layoutMode) {
+                  ElkPadding padding = new ElkPadding();
+                  padding.top = 1;
+                  padding.bottom = 1;
+                  padding.left = 2;
+                  padding.right = 2;
+
+                  KPolygon polygon = _kRenderingFactory.createKPolygon();
+                  _kRenderingExtensions.from(polygon, LEFT, (-2), 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.to(polygon, LEFT, 2, 0, TOP, 0, 0);
+                  _kRenderingExtensions.to(polygon, RIGHT, (-2), 0, TOP, 0, 0);
+                  _kRenderingExtensions.to(polygon, RIGHT, 2, 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.setBackground(polygon, Colors.WHITE);
+                  _kRenderingExtensions.setForeground(polygon, Colors.BLUE);
+                  container.getChildren().add(polygon);
+
+                  KPolyline polyline = _kRenderingFactory.createKPolyline();
+                  _kRenderingExtensions.from(polyline, LEFT, (-2), 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.to(polyline, LEFT, 2, 0, TOP, 0, 0);
+                  _kRenderingExtensions.setForeground(polyline, Colors.BLUE);
+                  container.getChildren().add(polyline);
+
+                  polyline = _kRenderingFactory.createKPolyline();
+                  _kRenderingExtensions.from(polyline, RIGHT, 2, 0, BOTTOM, 0, 0);
+                  _kRenderingExtensions.to(polyline, RIGHT, (-2), 0, TOP, 0, 0);
+                  _kRenderingExtensions.setForeground(polyline, Colors.BLUE);
+                  container.getChildren().add(polyline);
+
+                  return padding;
+                }
+              });
+      _onEdgeAbsentAfterStyleConfigurator = configurator;
+    }
+    _onEdgeAbsentAfterStyleConfigurator.applyTo(label);
   }
 
   public KRendering addFixedTailArrowDecorator(KPolyline pl) {

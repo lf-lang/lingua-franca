@@ -1,0 +1,25 @@
+target Python
+
+reactor Source {
+  output out
+
+  reaction(startup) -> out {=
+    file_path = f"{lf.source_directory()}/lib/FileReader.txt"
+
+    with open(file_path, "r") as file:
+        buffer = file.read()
+
+    out.set(buffer)
+  =}
+}
+
+main reactor {
+  s = new Source()
+
+  reaction(s.out) {=
+    print("Received: ", s.out.value)
+    if s.out.value != "Hello World":
+      print("Expected 'Hello World'")  # lf_print_error
+      sys.exit(1)  # and_exit
+  =}
+}

@@ -1,32 +1,4 @@
-/* Utilities for C code generation. */
-
-/*************
- * Copyright (c) 2019-2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.c;
-
-import static org.lflang.AttributeUtils.isEnclave;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,7 +6,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Queue;
 import java.util.stream.Collectors;
 import org.lflang.FileConfig;
 import org.lflang.InferredType;
@@ -63,6 +34,7 @@ import org.lflang.util.LFCommand;
  * the C target code generator. I.e., it defines how variables are named and referenced.
  *
  * @author Edward A. Lee
+ * @ingroup Generator
  */
 public class CUtil {
 
@@ -77,6 +49,9 @@ public class CUtil {
    * corresponding distribution script.
    */
   public static final String RTI_DISTRIBUTION_SCRIPT_SUFFIX = "_distribute.sh";
+
+  public static final String ENVIRONMENT_VARIABLE_NAME = "environments";
+  public static final String NUM_ENVIRONMENT_VARIABLE_NAME = "num_environments";
 
   //////////////////////////////////////////////////////
   //// Public methods.
@@ -137,7 +112,7 @@ public class CUtil {
   }
 
   /**
-   * Return the name of the reactor. A {@code _main} is appended to the name if the reactor is main
+   * Return the name of the reactor. A `_main` is appended to the name if the reactor is main
    * (to allow for instantiations that have the same name as the main reactor or the .lf file).
    */
   public static String getName(TypeParameterizedReactor reactor) {
@@ -160,21 +135,21 @@ public class CUtil {
    * <p>The returned string will have one of the following forms:
    *
    * <ul>
-   *   <li>{@code selfStructs[k]->_lf_portName}
-   *   <li>{@code selfStructs[k]->_lf_portName}
-   *   <li>{@code selfStructs[k]->_lf_portName[i]}
-   *   <li>{@code selfStructs[k]->_lf_parent.portName}
-   *   <li>{@code selfStructs[k]->_lf_parent.portName[i]}
-   *   <li>{@code selfStructs[k]->_lf_parent[j].portName}
-   *   <li>{@code selfStructs[k]->_lf_parent[j].portName[i]}
+   *   <li>`selfStructs[k]->_lf_portName`
+   *   <li>`selfStructs[k]->_lf_portName`
+   *   <li>`selfStructs[k]->_lf_portName[i]`
+   *   <li>`selfStructs[k]->_lf_parent.portName`
+   *   <li>`selfStructs[k]->_lf_parent.portName[i]`
+   *   <li>`selfStructs[k]->_lf_parent[j].portName`
+   *   <li>`selfStructs[k]->_lf_parent[j].portName[i]`
    * </ul>
    *
-   * where {@code k} is the runtime index of either the port's parent or the port's parent's parent,
-   * the latter when isNested is {@code true}. The index {@code j} is present if the parent is a
-   * bank, and the index {@code i} is present if the port is a multiport.
+   * where `k` is the runtime index of either the port's parent or the port's parent's parent,
+   * the latter when isNested is `true`. The index `j` is present if the parent is a
+   * bank, and the index `i` is present if the port is a multiport.
    *
    * <p>The first two forms are used if isNested is false, and the remaining four are used if
-   * isNested is true. Set {@code isNested} to {@code true} when referencing a port belonging to a
+   * isNested is true. Set `isNested` to `true` when referencing a port belonging to a
    * contained reactor.
    *
    * @param port The port.
@@ -213,8 +188,8 @@ public class CUtil {
   /**
    * Return a reference to the port on the self struct of the port's parent. This is used when an
    * input port triggers a reaction in the port's parent or when an output port is written to by a
-   * reaction in the port's parent. This is equivalent to calling {@code portRef(port, false, true,
-   * null, null)}.
+   * reaction in the port's parent. This is equivalent to calling `portRef(port, false, true,
+   * null, null)`.
    *
    * @param port An instance of the port to be referenced.
    */
@@ -226,7 +201,7 @@ public class CUtil {
    * Return a reference to the port on the self struct of the port's parent using the specified
    * index variables. This is used when an input port triggers a reaction in the port's parent or
    * when an output port is written to by a reaction in the port's parent. This is equivalent to
-   * calling {@code portRef(port, false, true, bankIndex, channelIndex)}.
+   * calling `portRef(port, false, true, bankIndex, channelIndex)`.
    *
    * @param port An instance of the port to be referenced.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
@@ -272,7 +247,7 @@ public class CUtil {
    * Return a port reference to a port on the self struct of the parent of the port's parent. This
    * is used when an input port is written to by a reaction in the parent of the port's parent, or
    * when an output port triggers a reaction in the parent of the port's parent. This is equivalent
-   * to calling {@code portRef(port, true, true, null, null, null)}.
+   * to calling `portRef(port, true, true, null, null, null)`.
    *
    * @param port The port.
    */
@@ -284,7 +259,7 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent. This is
    * used when an input port is written to by a reaction in the parent of the port's parent, or when
    * an output port triggers a reaction in the parent of the port's parent. This is equivalent to
-   * calling {@code portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)}.
+   * calling `portRef(port, true, true, runtimeIndex, bankIndex, channelIndex)`.
    *
    * @param port The port.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
@@ -303,8 +278,8 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent, but
    * without the channel indexing, even if it is a multiport. This is used when an input port is
    * written to by a reaction in the parent of the port's parent, or when an output port triggers a
-   * reaction in the parent of the port's parent. This is equivalent to calling {@code portRef(port,
-   * true, false, null, null, null)}.
+   * reaction in the parent of the port's parent. This is equivalent to calling `portRef(port,
+   * true, false, null, null, null)`.
    *
    * @param port The port.
    */
@@ -316,8 +291,8 @@ public class CUtil {
    * Return a reference to the port on the self struct of the parent of the port's parent, but
    * without the channel indexing, even if it is a multiport. This is used when an input port is
    * written to by a reaction in the parent of the port's parent, or when an output port triggers a
-   * reaction in the parent of the port's parent. This is equivalent to calling {@code
-   * portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)}.
+   * reaction in the parent of the port's parent. This is equivalent to calling
+   * `portRefNested(port, true, false, runtimeIndex, bankIndex, channelIndex)`.
    *
    * @param port The port.
    * @param runtimeIndex A variable name to use to index the runtime instance or null to use the
@@ -580,7 +555,7 @@ public class CUtil {
 
   //////////////////////////////////////////////////////
   //// FIXME: Not clear what the strategy is with the following inner interface.
-  // The {@code ReportCommandErrors} interface allows the
+  // The `ReportCommandErrors` interface allows the
   // method runBuildCommand to call a protected
   // method from the CGenerator if that method is passed
   // using a method reference. The method that is passed
@@ -591,7 +566,7 @@ public class CUtil {
   // might seem to be tightly coupled. FIXME: Delete this comment
 
   /**
-   * A {@code ReportCommandErrors} is a way to analyze command output and report any errors that it
+   * A `ReportCommandErrors` is a way to analyze command output and report any errors that it
    * describes. FIXME: If the VSCode branch passes code review without significant revision, this
    * mechanism will probably be replaced.
    */
@@ -606,11 +581,11 @@ public class CUtil {
    * <p>The following environment variables will be available to the command:
    *
    * <ul>
-   *   <li>{@code: LF_CURRENT_WORKING_DIRECTORY}: The directory in which the command is invoked.
-   *   <li>{@code:LF_SOURCE_DIRECTORY}: The directory containing the .lf file being compiled.
-   *   <li>{@code:LF_PACKAGE_DIRECTORY}: The directory that is the root of the package.
-   *   <li>{@code:LF_SOURCE_GEN_DIRECTORY}: The directory in which generated files are placed.
-   *   <li>{@code:LF_BIN_DIRECTORY}: The directory into which to put binaries.
+   *   <li>`LF_CURRENT_WORKING_DIRECTORY`: The directory in which the command is invoked.
+   *   <li>`LF_SOURCE_DIRECTORY`: The directory containing the .lf file being compiled.
+   *   <li>`LF_PACKAGE_DIRECTORY`: The directory that is the root of the package.
+   *   <li>`LF_SOURCE_GEN_DIRECTORY`: The directory in which generated files are placed.
+   *   <li>`LF_BIN_DIRECTORY`: The directory into which to put binaries.
    * </ul>
    */
   public static void runBuildCommand(
@@ -669,7 +644,7 @@ public class CUtil {
             node -> {
               if (node instanceof Reactor r) {
                 if (r.isFederated()) {
-                  r.getInstantiations().forEach(inst -> federateNames.add(inst.getName()));
+                  ASTUtils.allInstantiations(r).forEach(inst -> federateNames.add(inst.getName()));
                 }
               }
             });
@@ -717,7 +692,7 @@ public class CUtil {
    * @param commands A list of commands as strings.
    * @param factory A command factory.
    * @param dir The directory in which the commands should be executed.
-   * @return The LFCommand representations of the given commands, where {@code null} is a
+   * @return The LFCommand representations of the given commands, where `null` is a
    *     placeholder for commands that cannot be executed.
    */
   private static List<LFCommand> getCommands(
@@ -784,12 +759,42 @@ public class CUtil {
                 && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
   }
 
+  /**
+   * Given a type for an input or output, return true if it is a fixed-size array (declared with
+   * `type[int]`). For such types, the memory is allocated in the output struct.
+   *
+   * @param type The type specification.
+   */
+  public static boolean isFixedSizeArrayType(InferredType type) {
+    if (type.isUndefined()) return false;
+    return type.astType != null
+        && (type.astType.getCStyleArraySpec() != null
+            && !type.astType.getCStyleArraySpec().isOfVariableLength());
+  }
+
+  /**
+   * Given a type for an input or output, if it is a fixed-size array (declared with `type[int]`),
+   * then return the `int` and otherwise return 1, which is the default length for non-arrays and
+   * variable-size arrays.
+   *
+   * @param type The type specification
+   */
+  public static int fixedSizeArrayTypeLength(InferredType type) {
+    if (type.isUndefined()
+        || type.astType == null
+        || type.astType.getCStyleArraySpec() == null
+        || type.astType.getCStyleArraySpec().isOfVariableLength()) {
+      return 1;
+    }
+    return type.astType.getCStyleArraySpec().getLength();
+  }
+
   public static String generateWidthVariable(String var) {
     return var + "_width";
   }
 
   /**
-   * If the type specification of the form {@code type[]}, {@code type*}, or {@code type}, return
+   * If the type specification of the form `type[]`, `type*`, or `type`, return
    * the type.
    *
    * @param type A string describing the type.
@@ -822,67 +827,20 @@ public class CUtil {
   }
 
   /**
-   * Returns the ReactorInstance of the closest enclave in the containment hierarchy.
-   *
-   * @param inst The instance
+   * @brief Return a string representing a global C variable that is the struct of the environment
+   *     of the specified enclave.
+   * @param inst The enclave instance.
    */
-  public static ReactorInstance getClosestEnclave(ReactorInstance inst) {
-    if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-      return inst;
-    }
-    return getClosestEnclave(inst.getParent());
+  public static String getEnvironmentStruct(CEnclaveInstance inst) {
+    return ENVIRONMENT_VARIABLE_NAME + "[" + inst.getReactorInstance().uniqueID() + "]";
   }
 
   /**
-   * Returns the unique ID of the environment. This ID is a global variable in the generated C file.
-   *
-   * @param inst The instance
+   * @brief Return a string representing a pointer to the C variable that is the struct of the
+   *     environment of the specified enclave.
+   * @param inst The enclave instance.
    */
-  public static String getEnvironmentId(ReactorInstance inst) {
-    ReactorInstance enclave = getClosestEnclave(inst);
-    return enclave.uniqueID();
-  }
-
-  /**
-   * Returns a string which represents a C variable which points to the struct of the environment of
-   * the ReactorInstance inst.
-   *
-   * @param inst The instance
-   */
-  public static String getEnvironmentStruct(ReactorInstance inst) {
-    return "envs[" + getEnvironmentId(inst) + "]";
-  }
-
-  /**
-   * Returns the name of the environment which `inst` is in
-   *
-   * @param inst The instance
-   */
-  public static String getEnvironmentName(ReactorInstance inst) {
-    ReactorInstance enclave = getClosestEnclave(inst);
-    return enclave.getName();
-  }
-
-  /**
-   * Given an instance, e.g. the main reactor, return a list of all enclaves in the program
-   *
-   * @param inst The instance
-   */
-  public static List<ReactorInstance> getEnclaves(ReactorInstance root) {
-    List<ReactorInstance> enclaves = new ArrayList<>();
-    Queue<ReactorInstance> queue = new LinkedList<>();
-    queue.add(root);
-
-    while (!queue.isEmpty()) {
-      ReactorInstance inst = queue.poll();
-      if (inst.isMainOrFederated() || isEnclave(inst.getDefinition())) {
-        enclaves.add(inst);
-      }
-
-      for (ReactorInstance child : inst.children) {
-        queue.add(child);
-      }
-    }
-    return enclaves;
+  public static String getEnvironmentStructPtr(ReactorInstance inst) {
+    return "&" + ENVIRONMENT_VARIABLE_NAME + "[" + inst.containingEnclaveReactor.uniqueID() + "]";
   }
 }

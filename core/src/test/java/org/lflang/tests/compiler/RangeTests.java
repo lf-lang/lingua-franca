@@ -14,6 +14,10 @@ import org.lflang.lf.LfFactory;
 import org.lflang.lf.Port;
 import org.lflang.lf.Reactor;
 
+/**
+ * Test the Range class.
+ * @ingroup Tests
+ */
 public class RangeTests {
 
   private MessageReporter reporter = new DefaultMessageReporter();

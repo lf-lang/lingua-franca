@@ -19,8 +19,10 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.util.FileUtil;
 
 /**
- * Encapsulates data about the correspondence between ranges of generated code and ranges of a
- * Lingua Franca file.
+ * Encapsulate data about the correspondence between ranges of generated code and ranges of a Lingua
+ * Franca file.
+ *
+ * @ingroup Utilities
  */
 public class CodeMap {
 
@@ -45,12 +47,12 @@ public class CodeMap {
     private final boolean verbatim;
 
     /**
-     * Instantiates a Correspondence between {@code lfRange} at {@code path} and {@code
-     * generatedRange} in the generated file associated with this Correspondence.
+     * Instantiates a Correspondence between `lfRange` at `path` and `generatedRange` in the
+     * generated file associated with this Correspondence.
      *
      * @param path a path to an LF source file
      * @param lfRange a range in the given LF file
-     * @param generatedRange the range of generated code associated with {@code lfRange}
+     * @param generatedRange the range of generated code associated with `lfRange`
      */
     private Correspondence(Path path, Range lfRange, Range generatedRange, boolean verbatim) {
       this.path = path;
@@ -94,12 +96,12 @@ public class CodeMap {
     }
 
     /**
-     * Returns the Correspondence represented by {@code s}.
+     * Returns the Correspondence represented by `s`.
      *
      * @param s a String that represents a Correspondence, formatted like the output of
      *     Correspondence::toString
      * @param relativeTo the offset relative to which the offsets given are given
-     * @return the Correspondence represented by {@code s}
+     * @return the Correspondence represented by `s`
      */
     public static Correspondence fromString(String s, Position relativeTo) {
       Matcher matcher = PATTERN.matcher(s);
@@ -117,15 +119,15 @@ public class CodeMap {
     }
 
     /**
-     * Returns {@code representation}, tagged with a Correspondence to the source code associated
-     * with {@code astNode}.
+     * Returns `representation`, tagged with a Correspondence to the source code associated
+     * with `astNode`.
      *
      * @param astNode an arbitrary AST node
      * @param representation the code generated from that AST node
-     * @param verbatim whether {@code representation} is copied verbatim from the part of the source
-     *     code associated with {@code astNode}
-     * @return {@code representation}, tagged with a Correspondence to the source code associated
-     *     with {@code astNode}
+     * @param verbatim whether `representation` is copied verbatim from the part of the source
+     *     code associated with `astNode`
+     * @return `representation`, tagged with a Correspondence to the source code associated
+     *     with `astNode`
      */
     public static String tag(EObject astNode, String representation, boolean verbatim) {
       final INode node = NodeModelUtils.getNode(astNode);
@@ -155,7 +157,7 @@ public class CodeMap {
     }
 
     /**
-     * Return the {@code eResource} associated with the given AST node. This is a dangerous
+     * Return the `eResource` associated with the given AST node. This is a dangerous
      * operation which can cause an unrecoverable error.
      */
     private static Resource bestEffortGetEResource(EObject astNode) {
@@ -167,11 +169,11 @@ public class CodeMap {
 
     /**
      * Make a best-effort attempt to find the index of a near substring whose first line is expected
-     * to be an exact substring of {@code s}. Return 0 upon failure.
+     * to be an exact substring of `s`. Return 0 upon failure.
      *
      * @param s an arbitrary string
-     * @param imperfectSubstring an approximate substring of {@code s}
-     * @return the index of {@code imperfectSubstring} within {@code s}
+     * @param imperfectSubstring an approximate substring of `s`
+     * @return the index of `imperfectSubstring` within `s`
      */
     private static int indexOf(String s, String imperfectSubstring) {
       String firstLine = imperfectSubstring.lines().findFirst().orElse("");
@@ -197,9 +199,9 @@ public class CodeMap {
   /* ------------------------- PUBLIC METHODS -------------------------- */
 
   /**
-   * Instantiates a {@code CodeMap} from {@code internalGeneratedCode}. {@code
-   * internalGeneratedCode} may be invalid code that is different from the final generated code
-   * because it should contain deserializable representations of {@code Correspondences}.
+   * Instantiate a `CodeMap` from `internalGeneratedCode`. `internalGeneratedCode` may be
+   * invalid code that is different from the final generated code because it should contain
+   * deserializable representations of `Correspondences`.
    *
    * @param internalGeneratedCode code from a code generator that contains serialized
    *     Correspondences
@@ -238,12 +240,12 @@ public class CodeMap {
   }
 
   /**
-   * Returns the position in {@code lfFile} corresponding to {@code generatedFilePosition} if such a
+   * Returns the position in `lfFile` corresponding to `generatedFilePosition` if such a
    * position is known, or the zero Position otherwise.
    *
    * @param lfFile the path to an arbitrary Lingua Franca source file
    * @param generatedFilePosition a position in a generated file
-   * @return the position in {@code lfFile} corresponding to {@code generatedFilePosition}
+   * @return the position in `lfFile` corresponding to `generatedFilePosition`
    */
   public Position adjusted(Path lfFile, Position generatedFilePosition) {
     NavigableMap<Range, Range> mapOfInterest = map.get(lfFile);
@@ -264,12 +266,12 @@ public class CodeMap {
   }
 
   /**
-   * Returns the range in {@code lfFile} corresponding to {@code generatedFileRange} if such a range
+   * Returns the range in `lfFile` corresponding to `generatedFileRange` if such a range
    * is known, or a degenerate Range otherwise.
    *
    * @param lfFile the path to an arbitrary Lingua Franca source file
    * @param generatedFileRange a position in a generated file
-   * @return the range in {@code lfFile} corresponding to {@code generatedFileRange}
+   * @return the range in `lfFile` corresponding to `generatedFileRange`
    */
   public Range adjusted(Path lfFile, Range generatedFileRange) {
     final Position start = adjusted(lfFile, generatedFileRange.getStartInclusive());
@@ -293,7 +295,7 @@ public class CodeMap {
   }
 
   /**
-   * Removes serialized Correspondences from {@code line} and updates {@code map} according to those
+   * Removes serialized Correspondences from `line` and updates `map` according to those
    * Correspondences.
    *
    * @param line a line of generated code

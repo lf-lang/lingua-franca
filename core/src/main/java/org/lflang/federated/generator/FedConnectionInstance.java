@@ -13,6 +13,7 @@ import org.lflang.lf.Connection;
  * merely serves as a record, presumably to make it easier to pass around information around.
  *
  * @author Soroush Bateni
+ * @ingroup Federated
  */
 public class FedConnectionInstance {
 

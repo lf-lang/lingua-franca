@@ -1,0 +1,35 @@
+// This tests shutdown through starvation where one enclave is starved before the other
+target C
+
+reactor E(id: int = 0) {
+  logical action a(1 sec): int
+
+  state cnt: int = 0
+
+  reaction(startup) -> a {=
+    lf_print("Enclave %u started", self->id);
+    if (self->id == 0) {
+        lf_schedule(a, 0);
+    }
+  =}
+
+  reaction(a) {=
+    lf_print("Enclave %u triggered", self->id);
+    self->cnt++;
+  =}
+
+  reaction(shutdown) {=
+    lf_print("Enclave %u shut down", self->id);
+    if (self->cnt == 0) {
+        LF_TEST(self->cnt == 0, "Enclave shutdown prematurely");
+    }
+  =}
+}
+
+main reactor {
+  @enclave
+  e1 = new E(id=0)
+
+  @enclave
+  e2 = new E(id=1)
+}

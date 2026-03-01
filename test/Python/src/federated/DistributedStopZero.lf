@@ -48,17 +48,17 @@ reactor Sender {
 }
 
 reactor Receiver {
-  input in_
+  input inp
   state startup_logical_time
 
   reaction(startup) {=
     self.startup_logical_time = lf.time.logical()
   =}
 
-  reaction(in_) {=
+  reaction(inp) {=
     tag = lf.tag()
     print("Received {} at ({}, {}).\n".format(
-           in_.value,
+           inp.value,
            tag.time,
            tag.microstep))
     zero = Tag(time=self.startup_logical_time, microstep=0)
@@ -90,5 +90,5 @@ federated reactor {
   sender = new Sender()
   receiver = new Receiver()
 
-  sender.out -> receiver.in_
+  sender.out -> receiver.inp
 }

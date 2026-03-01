@@ -16,6 +16,12 @@ import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
+/**
+ * Interface for federated target extensions.
+ *
+ * @author Soroush Bateni
+ * @ingroup Federated
+ */
 public interface FedTargetExtension {
 
   /**
@@ -24,8 +30,9 @@ public interface FedTargetExtension {
    * @param context The context of the original code generation process.
    * @param federateNames The names of all the federates in the program.
    * @param federate The federate instance.
-   * @param fileConfig An instance of {@code FedFileConfig}.
+   * @param fileConfig An instance of `FedFileConfig`.
    * @param messageReporter Used to report errors.
+   * @param rtiConfig The RTI configuration settings.
    */
   void initializeTargetConfig(
       LFGeneratorContext context,
@@ -46,6 +53,7 @@ public interface FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
    * @param coordinationMode The coordination type
+   * @param messageReporter Used to report errors and warnings.
    */
   String generateNetworkReceiverBody(
       Action action,
@@ -59,13 +67,10 @@ public interface FedTargetExtension {
   /** Generate code for initializing a network output reactor from its startup reaction. */
   String outputInitializationBody();
 
-  /** Generate code for initializing a network input reactor from its startup reaction. */
-  String inputInitializationBody();
-
   /** Generate code for the parameter that specifies the sender index. */
   void addSenderIndexParameter(Reactor sender);
 
-  /** Generate code for the sender index argument of {@code instantiation}. */
+  /** Generate code for the sender index argument of `instantiation`. */
   void supplySenderIndexParameter(Instantiation inst, int idx);
 
   /**
@@ -77,6 +82,7 @@ public interface FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data being sent over the connection.
    * @param coordinationMode Whether the federated program is centralized or decentralized.
+   * @param messageReporter Used to report errors and warnings.
    */
   String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -99,7 +105,7 @@ public interface FedTargetExtension {
   default void annotateReaction(Reaction reaction) {}
 
   /**
-   * Return the type for the raw network buffer in the target language (e.g., {@code uint_8} in C).
+   * Return the type for the raw network buffer in the target language (e.g., `uint_8` in C).
    * This would be the type of the network messages after serialization and before deserialization.
    * It is primarily used to determine the type for the network action at the receiver.
    */
@@ -109,7 +115,9 @@ public interface FedTargetExtension {
    * Add preamble to the source to set up federated execution.
    *
    * @param federate The federate to which the generated setup code will correspond.
+   * @param fileConfig The federation file configuration.
    * @param rtiConfig The settings of the RTI.
+   * @param messageReporter Used to report errors and warnings.
    */
   String generatePreamble(
       FederateInstance federate,

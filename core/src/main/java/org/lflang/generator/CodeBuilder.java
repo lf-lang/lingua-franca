@@ -19,6 +19,7 @@ import org.lflang.util.FileUtil;
  *
  * @author Edward A. Lee
  * @author Peter Donovan
+ * @ingroup Utilities
  */
 public class CodeBuilder {
 
@@ -78,7 +79,7 @@ public class CodeBuilder {
   /**
    * Append the specified text plus a final newline.
    *
-   * @param format A format string to be used by {@code String.format} or the text to append if no
+   * @param format A format string to be used by `String.format` or the text to append if no
    *     further arguments are given.
    * @param args Additional arguments to pass to the formatter.
    */
@@ -96,7 +97,7 @@ public class CodeBuilder {
   }
 
   /**
-   * Print the #line compiler directive with the line number of the specified object.
+   * Print the `#line` compiler directive with the line number of the specified object.
    *
    * @param eObject The node.
    * @param suppress Do nothing if true.
@@ -259,7 +260,7 @@ public class CodeBuilder {
   /**
    * Start a scoped block that iterates over the specified range of port channels.
    *
-   * <p>This must be followed by a call to {@link #endScopedRangeBlock(RuntimeRange)}.
+   * <p>This must be followed by a call to {@link #endScopedRangeBlock}.
    *
    * <p>This block should NOT be nested, where each block is put within a similar block for the
    * reactor's parent. Within the created block, every use of {@link
@@ -387,7 +388,7 @@ public class CodeBuilder {
    * CUtil#reactorRef(ReactorInstance, String)} and related functions must provide the above
    * variable names.
    *
-   * <p>This must be followed by a call to {@link #endScopedRangeBlock(SendRange, RuntimeRange)}.x
+   * <p>This must be followed by a call to {@link #endScopedRangeBlock}.
    *
    * @param srcRange The send range.
    * @param dstRange The destination range.

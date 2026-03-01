@@ -14,6 +14,7 @@ import org.lflang.generator.TimerInstance;
  * @author Edward A. Lee
  * @author Soroush Bateni
  * @author Hou Seng Wong
+ * @ingroup Generator
  */
 public class CTracingGenerator {
   /**

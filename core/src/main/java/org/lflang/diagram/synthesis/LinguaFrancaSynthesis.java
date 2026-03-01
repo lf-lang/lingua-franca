@@ -1,27 +1,3 @@
-/*************
- * Copyright (c) 2020, Kiel University.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.diagram.synthesis;
 
 import com.google.common.collect.HashBasedTable;
@@ -100,6 +76,7 @@ import org.eclipse.xtext.xbase.lib.Pair;
 import org.eclipse.xtext.xbase.lib.StringExtensions;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.ToLf;
 import org.lflang.diagram.synthesis.action.CollapseAllReactorsAction;
@@ -141,6 +118,7 @@ import org.lflang.util.FileUtil;
  * Diagram synthesis for Lingua Franca programs.
  *
  * @author Alexander Schulz-Rosengarten
+ * @ingroup Diagram
  */
 @ViewSynthesisShared
 public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
@@ -501,6 +479,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                     reactorInstance, new HashMap<>(), new HashMap<>(), allReactorNodes));
       }
       Iterables.addAll(nodes, createUserComments(reactor, node));
+      Iterables.addAll(nodes, createMaxWaitComment(reactorInstance.getDefinition(), node));
       configureReactorNodeLayout(node, true);
       _layoutPostProcessing.configureMainReactor(node);
       setAnnotatedLayoutOptions(reactor, node);
@@ -733,14 +712,22 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       }
 
       if (!_utilityExtensions.isRoot(instance)) {
-        // If all reactors are being shown, then only put the label on
+        // If all reactors are being shown, then only put any reactor definition label on
         // the reactor definition, not on its instances. Otherwise,
         // add the annotation now.
         if (!getBooleanValue(SHOW_ALL_REACTORS)) {
           Iterables.addAll(nodes, createUserComments(reactor, node));
         }
+        // Also add any labels put on the instantiation.
+        Iterables.addAll(nodes, createUserComments(reactorInstance.getDefinition(), node));
+        // Also add any maxwait annotations put on the instantiation.
+        Iterables.addAll(nodes, createMaxWaitComment(reactorInstance.getDefinition(), node));
       } else {
         Iterables.addAll(nodes, createUserComments(reactor, node));
+        // Also add any labels put on the instantiation.
+        Iterables.addAll(nodes, createUserComments(reactorInstance.getDefinition(), node));
+        // Also add any maxwait annotations put on the instantiation.
+        Iterables.addAll(nodes, createMaxWaitComment(reactorInstance.getDefinition(), node));
       }
       configureReactorNodeLayout(node, false);
       _layoutPostProcessing.configureReactor(node);
@@ -1339,6 +1326,24 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                   physicalConnectionLabel,
                   reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
             }
+            // Add label annotation if present
+            if (getBooleanValue(SHOW_USER_LABELS)) {
+              String labelText = AttributeUtils.getLabel(connection);
+              if (!StringExtensions.isNullOrEmpty(labelText)) {
+                KLabel connectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, labelText);
+                associateWith(connectionLabel, connection);
+                _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
+              }
+              // Add absent_after annotation if present
+              TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
+              if (!absentAfter.equals(TimeValue.ZERO)) {
+                KLabel absentAfterLabel =
+                    _kLabelExtensions.addCenterEdgeLabel(
+                        edge, "absent_after: " + absentAfter.toString());
+                associateWith(absentAfterLabel, connection);
+                _linguaFrancaStyleExtensions.applyOnEdgeAbsentAfterStyle(absentAfterLabel);
+              }
+            }
             if (source != null && target != null) {
               // check for inside loop (direct in -> out connection with delay)
               if (parentInputPorts.values().contains(source)
@@ -1381,16 +1386,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       setLayoutOption(startupNode, LayeredOptions.POSITION, new KVector(0, 0));
       setLayoutOption(startupNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
       _layoutPostProcessing.configureAction(startupNode);
-
-      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) {
-        KPort port = addInvisiblePort(startupNode);
-        startupNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
     }
     if (shutdown != null) {
       _linguaFrancaShapeExtensions.addShutdownFigure(shutdownNode);
@@ -1404,16 +1399,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           shutdownNode,
           LayeredOptions.POSITION,
           new KVector(0, reactorInstance.reactions.size() + 1));
-
-      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
-        KPort port = addInvisiblePort(shutdownNode);
-        shutdownNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
     }
     if (reset != null) {
       _linguaFrancaShapeExtensions.addResetFigure(resetNode);
@@ -1424,29 +1409,6 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
       // try to order with reactions vertically if in one layer
       setLayoutOption(resetNode, LayeredOptions.POSITION, new KVector(0, 0.5));
       setLayoutOption(resetNode, LayeredOptions.LAYERING_LAYER_CONSTRAINT, LayerConstraint.FIRST);
-
-      if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
-        KPort port = addInvisiblePort(resetNode);
-        resetNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
-    }
-
-    // Postprocess timer nodes
-    if (getBooleanValue(REACTIONS_USE_HYPEREDGES)) { // connect all edges to one port
-      for (KNode timerNode : timerNodes.values()) {
-        KPort port = addInvisiblePort(timerNode);
-        timerNode
-            .getOutgoingEdges()
-            .forEach(
-                it -> {
-                  it.setSourcePort(port);
-                });
-      }
     }
 
     // Add reaction order edges (add last to have them on top of other edges)
@@ -1540,7 +1502,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     b.append(param.getName());
     String t = param.type.toOriginalText();
     if (!StringExtensions.isNullOrEmpty(t)) {
-      b.append(":").append(t);
+      b.append(" : ").append(t);
     }
     var init = param.getActualValue();
     if (init != null) {
@@ -1779,6 +1741,31 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
         edge.setSource(comment);
         edge.setTarget(targetNode);
         _linguaFrancaStyleExtensions.commentStyle(
+            _linguaFrancaShapeExtensions.addCommentPolyline(edge));
+
+        return List.of(comment);
+      }
+    }
+    return List.of();
+  }
+
+  private Iterable<KNode> createMaxWaitComment(EObject element, KNode targetNode) {
+    if (getBooleanValue(SHOW_USER_LABELS)) {
+      TimeValue maxWait = AttributeUtils.getMaxWait(element);
+
+      if (!maxWait.equals(TimeValue.ZERO)) {
+        KNode comment = _kNodeExtensions.createNode();
+        setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+        String commentText = "maxwait: " + maxWait.toString();
+        KRoundedRectangle commentFigure =
+            _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
+        _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
+
+        // connect
+        KEdge edge = _kEdgeExtensions.createEdge();
+        edge.setSource(comment);
+        edge.setTarget(targetNode);
+        _linguaFrancaStyleExtensions.maxWaitCommentStyle(
             _linguaFrancaShapeExtensions.addCommentPolyline(edge));
 
         return List.of(comment);

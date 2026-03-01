@@ -6,6 +6,8 @@ import java.util.List;
 /**
  * Represents a Lingua Franca (LF) file. This file can contain multiple ReactorNode elements, with
  * each node potentially having zero or more of these reactors.
+ *
+ * @ingroup LSP
  */
 public class LibraryFile {
   private String label; // The label (name) associated with the LF file.

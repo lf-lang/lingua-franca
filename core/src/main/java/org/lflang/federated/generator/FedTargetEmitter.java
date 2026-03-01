@@ -8,6 +8,11 @@ import org.lflang.federated.extensions.FedTargetExtensionFactory;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 
+/**
+ * Helper class to generate target code for a federate.
+ *
+ * @ingroup Federated
+ */
 public class FedTargetEmitter {
 
   String generateTarget(

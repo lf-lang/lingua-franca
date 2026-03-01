@@ -13,6 +13,7 @@ import org.lflang.MessageReporter;
  * An error reporting strategy that parses human-readable output.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public class HumanReadableReportingStrategy implements DiagnosticReporting.Strategy {
 
@@ -25,12 +26,12 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
   /** The path against which any paths should be resolved. */
   private final Path relativeTo;
 
-  /** The next line to be processed, or {@code null}. */
+  /** The next line to be processed, or `null`. */
   private String bufferedLine;
 
   /**
-   * Instantiate a reporting strategy for lines of validator output that match {@code
-   * diagnosticMessagePattern}.
+   * Instantiate a reporting strategy for lines of validator output that match
+   * `diagnosticMessagePattern`.
    *
    * @param diagnosticMessagePattern A pattern that matches lines that should be reported via this
    *     strategy. This pattern must contain named capturing groups called "path", "line", "column",
@@ -44,8 +45,8 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
   }
 
   /**
-   * Instantiate a reporting strategy for lines of validator output that match {@code
-   * diagnosticMessagePattern}.
+   * Instantiate a reporting strategy for lines of validator output that match
+   * `diagnosticMessagePattern`.
    *
    * @param diagnosticMessagePattern a pattern that matches lines that should be reported via this
    *     strategy. This pattern must contain named capturing groups called "path", "line", "column",
@@ -124,7 +125,7 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
   }
 
   /**
-   * Find the appropriate range to {@code report}.
+   * Find the appropriate range to `report`.
    *
    * @param lfFilePosition The point about which the relevant range is anchored.
    * @param it An iterator over the lines immediately following a diagnostic message.
@@ -150,10 +151,10 @@ public class HumanReadableReportingStrategy implements DiagnosticReporting.Strat
   }
 
   /**
-   * Strip the ANSI escape sequences from {@code s}.
+   * Strip the ANSI escape sequences from `s`.
    *
    * @param s Any string.
-   * @return {@code s}, with any escape sequences removed.
+   * @return `s`, with any escape sequences removed.
    */
   private static String stripEscaped(String s) {
     return s.replaceAll("\u001B\\[[;\\d]*[ -/]*[@-~]", "");

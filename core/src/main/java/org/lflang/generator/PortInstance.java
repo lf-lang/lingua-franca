@@ -1,36 +1,14 @@
-/** A data structure for a port instance. */
-
-/*************
- * Copyright (c) 2019-2022, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
 package org.lflang.generator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import org.lflang.MessageReporter;
+import org.lflang.TimeValue;
+import org.lflang.lf.Connection;
 import org.lflang.lf.Input;
 import org.lflang.lf.Output;
 import org.lflang.lf.Parameter;
@@ -51,6 +29,7 @@ import org.lflang.lf.WidthTerm;
  *
  * @author Marten Lohstroh
  * @author Edward A. Lee
+ * @ingroup Instances
  */
 public class PortInstance extends TriggerInstance<Port> {
 
@@ -128,10 +107,10 @@ public class PortInstance extends TriggerInstance<Port> {
    * <p>Each item in the returned list has the following fields:
    *
    * <ul>
-   *   <li>{@code startRange}: The starting channel index of this port.
-   *   <li>{@code rangeWidth}: The number of channels sent to the destinations.
-   *   <li>{@code destinations}: A list of port ranges for destination ports, each of which has the
-   *       same width as {@code rangeWidth}.
+   *   <li>`startRange`: The starting channel index of this port.
+   *   <li>`rangeWidth`: The number of channels sent to the destinations.
+   *   <li>`destinations`: A list of port ranges for destination ports, each of which has the
+   *       same width as `rangeWidth`.
    * </ul>
    *
    * Each item also has a method, {@link SendRange#getNumberOfDestinationReactors()}, that returns
@@ -152,7 +131,7 @@ public class PortInstance extends TriggerInstance<Port> {
 
   /**
    * Return a list of ranges of ports that send data to this port. If this port is directly written
-   * to by one more more reactions, then it is its own eventual source and only this port will be
+   * to by one or more reactions, then it is its own eventual source and only this port will be
    * represented in the result.
    *
    * <p>If this is not a multiport and is not within a bank, then the list will have only one item
@@ -177,12 +156,66 @@ public class PortInstance extends TriggerInstance<Port> {
   }
 
   /**
+   * For the given downstream port (the instance of a range returned by getDependentPorts()), return
+   * a list of connections to that port or null if there are no connections to that port.
+   *
+   * @param downstreamPort The downstream port.
+   */
+  public List<Connection> connectionsTo(PortInstance downstreamPort) {
+    return downstreamConnections.get(downstreamPort);
+  }
+
+  /**
    * Return the list of upstream ports that are connected to this port, or an empty set if there are
    * none. For an ordinary port, this list will have length 0 or 1. For a multiport, it can have a
    * larger size.
    */
   public List<RuntimeRange<PortInstance>> getDependsOnPorts() {
     return dependsOnPorts;
+  }
+
+  /**
+   * For the given upstream port (the instance of a range returned by getDependsOnPorts()), return a
+   * list of connections from that port or null if there are no connections from that port.
+   *
+   * @param upstreamPort The upstream port.
+   */
+  public List<Connection> connectionsFrom(PortInstance upstreamPort) {
+    return upstreamConnections.get(upstreamPort);
+  }
+
+  /**
+   * For the given upstream port (the instance of a range returned by getDependsOnPorts()), return
+   * the minimum of the `after` delays on connections from that port. This will be TimeValue.ZERO if
+   * there are no `after` delays or if the `after` delays are zero, and it will be
+   * TimeValue.MAX_VALUE if there are no connections from the port.
+   *
+   * @param upstreamPort The upstream port.
+   */
+  public TimeValue minDelayFrom(PortInstance upstreamPort) {
+    TimeValue result = TimeValue.MAX_VALUE;
+    var connections = connectionsFrom(upstreamPort);
+    if (connections == null) return result;
+    for (var connection : connections) {
+      var delay = connection.getDelay();
+      if (delay != null) {
+        // The delay may reference a parameter defined in the parent of the connection,
+        // which may not be the same as the parent of the port, so resolve the delay using that
+        // parent.
+        var parent = upstreamPort.parent;
+        if (!parent.getDefinition().equals(connection.eContainer())) {
+          parent = upstreamPort.parent.parent;
+        }
+        var delayValue = parent.getTimeValue(delay);
+        if (delayValue != null && delayValue.isEarlierThan(result)) {
+          result = delayValue;
+        }
+      } else {
+        // There is no delay on the connection.
+        result = TimeValue.ZERO;
+      }
+    }
+    return result;
   }
 
   /** Return true if the port is an input. */
@@ -206,18 +239,20 @@ public class PortInstance extends TriggerInstance<Port> {
   }
 
   /**
-   * Record that the {@code index}th sub-port of this has a dependent reaction of level {@code
-   * level}.
+   * Record that the `index`th sub-port of this has a dependent reaction of level `level`.
    */
-  public void hasDependentReactionWithLevel(MixedRadixInt index, int level) {
+  public void recordIndexForPortChannel(MixedRadixInt index, int level) {
     levelUpperBounds.put(
         index, Math.min(levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE), level));
   }
 
-  /** Return the minimum of the levels of the reactions that are downstream of this port. */
+  /**
+   * Return the minimum of the levels of the reactions that are downstream of this port. If there
+   * are no reactions downstream of this port, this returns Integer.MAX_VALUE.
+   */
   public int getLevelUpperBound(MixedRadixInt index) {
-    // It should be uncommon for Integer.MAX_VALUE to be used and using it can mask bugs.
-    // It makes sense when there is no downstream reaction.
+    // Normally, this function will not be used if there are no downstream reactions
+    // because the connection gets optimized away.
     return levelUpperBounds.getOrDefault(index, Integer.MAX_VALUE);
   }
 
@@ -235,12 +270,18 @@ public class PortInstance extends TriggerInstance<Port> {
    */
   List<SendRange> dependentPorts = new ArrayList<>();
 
+  /** Map from the ports listed in dependentPorts to the connection(s) to those ports. */
+  Map<PortInstance, List<Connection>> downstreamConnections = new LinkedHashMap<>(1);
+
   /**
    * Upstream ports that are connected directly to this port, if there are any. For an ordinary
    * port, this set will have size 0 or 1. For a multiport, it can have a larger size. This
    * initially has capacity 1 because that is by far the most common case.
    */
   List<RuntimeRange<PortInstance>> dependsOnPorts = new ArrayList<>(1);
+
+  /** Map from the ports listed in dependsOnPorts to the connection(s) from those ports. */
+  Map<PortInstance, List<Connection>> upstreamConnections = new LinkedHashMap<>(1);
 
   /** Indicator of whether this is a multiport. */
   boolean isMultiport = false;

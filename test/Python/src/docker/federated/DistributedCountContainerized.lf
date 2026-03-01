@@ -19,5 +19,5 @@ import Print from "../../federated/DistributedCount.lf"
 federated reactor DistributedCountContainerized(offset = 200 msec) at rti {
   c = new Count()
   p = new Print()
-  c.out -> p.in_ after offset
+  c.out -> p.inp after offset
 }

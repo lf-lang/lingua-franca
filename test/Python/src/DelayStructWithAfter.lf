@@ -17,11 +17,11 @@ reactor Source {
 
 # expected parameter is for testing.
 reactor Print(expected=42) {
-  input _in
+  input inp
 
-  reaction(_in) {=
-    print("Received: name = {:s}, value = {:d}".format(_in.value.name, _in.value.value))
-    if _in.value.value != self.expected:
+  reaction(inp) {=
+    print("Received: name = {:s}, value = {:d}".format(inp.value.name, inp.value.value))
+    if inp.value.value != self.expected:
       sys.stderr.write("ERROR: Expected value to be {:d}.\n".format(self.expected))
       exit(1)
   =}
@@ -30,5 +30,5 @@ reactor Print(expected=42) {
 main reactor DelayStructWithAfter {
   s = new Source()
   p = new Print()
-  s.out -> p._in after 100 msec
+  s.out -> p.inp after 100 msec
 }

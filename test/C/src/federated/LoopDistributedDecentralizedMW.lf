@@ -1,0 +1,99 @@
+/**
+ * This tests a feedback loop with physical actions and decentralized coordination. NOTE: This test
+ * is flaky. It fails occasionally in CI.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+  coordination: decentralized,
+  timeout: 5 sec
+}
+
+preamble {=
+  #include <unistd.h> // Defines sleep()
+  extern bool stop;
+  void* ping(void* actionref);
+=}
+
+reactor Looper(incr: int = 1, delay: time = 0 msec) {
+  preamble {=
+    bool stop = false;
+    int count = 0;
+    // Thread to trigger an action once every second.
+    void* ping(void* actionref) {
+      // Give time for the execution to start to avoid flaky error with an event scheduled
+      // before the start time.
+      lf_sleep(MSEC(100));
+      while(!stop && count++ < 30) {
+        lf_print("Scheduling action.");
+        lf_schedule(actionref, 0);
+        sleep(1);
+      }
+      if (count >= 30) {
+        // shutdown reaction failed to be invoked.
+        lf_print_error_and_exit("Shutdown failed to be invoked in time.");
+      }
+      return NULL;
+    }
+  =}
+  input in: int
+  output out: int
+  physical action a
+  state count: int = 0
+  state inputs: int = 0
+
+  reaction(startup) -> a {=
+    // Start the thread that listens for Enter or Return.
+    lf_thread_t thread_id;
+    lf_print("Starting thread.");
+    lf_thread_create(&thread_id, &ping, a);
+  =}
+
+  reaction(a) -> out {=
+    lf_print("Setting out.");
+    lf_set(out, self->count);
+    self->count += self->incr;
+  =}
+
+  reaction(in) {=
+    self->inputs++;
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+    lf_comma_separated_time(time_buffer, time_lag);
+    lf_print("Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+  =} tardy {=
+    self->inputs++;
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+    lf_comma_separated_time(time_buffer, time_lag);
+    lf_print("Input received late. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+  =} deadline(10 msec) {=
+    // Note: Could conceivably get both an STP violation and a deadline violation,
+    // which will result in double counting this input. This is OK, though.
+    self->inputs++;
+    instant_t time_lag = lf_time_physical() - lf_time_logical();
+    char time_buffer[28]; // 28 bytes is enough for the largest 64 bit number: 9,223,372,036,854,775,807
+    lf_comma_separated_time(time_buffer, time_lag);
+    lf_print("Deadline miss. Received %d. Logical time is behind physical time by %s nsec.", in->value, time_buffer);
+  =}
+
+  reaction(shutdown) {=
+    lf_print("******* Shutdown invoked.");
+    // Stop the thread that is scheduling actions.
+    stop = true;
+    // Don't require receiving all five inputs because that creates flakiness.
+    // Requiring two leaves a lot of headroom.
+    if (self->inputs < 2) {
+      lf_print_error_and_exit("Received only %d inputs.", self->count);
+    }
+  =}
+}
+
+federated reactor {
+  left = new Looper()
+  right = new Looper(incr=-1)
+  @absent_after(100 ms)
+  left.out -> right.in
+  @absent_after(100 ms)
+  right.out -> left.in
+}

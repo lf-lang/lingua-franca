@@ -13,12 +13,14 @@ import org.lflang.target.property.PlatformProperty;
 /**
  * Utilities for Building using Arduino CLI.
  *
- * <p>We take in a Generator Context, Command Factory, and Error Reporter and make subsequent calls
+ * We take in a Generator Context, Command Factory, and Error Reporter and make subsequent calls
  * to arduino-cli given a FileConfig and TargetConfig.
  *
- * <p>This should be used immediately after CodeGen to compile if the user provides a board type
+ * This should be used immediately after CodeGen to compile if the user provides a board type
  * within their LF file. If the user also provides a port with flash enabled, we will also attempt
  * to upload the compiled sketch directly to the board.
+ *
+ * @ingroup Utilities
  */
 public class ArduinoUtil {
 

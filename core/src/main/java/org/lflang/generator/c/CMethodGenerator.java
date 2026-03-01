@@ -13,6 +13,7 @@ import org.lflang.util.StringUtil;
  * Collection of functions to generate C code to declare methods.
  *
  * @author Edward A. Lee
+ * @ingroup Generator
  */
 public class CMethodGenerator {
 
@@ -122,6 +123,7 @@ public class CMethodGenerator {
    * themselves) regardless of the order of definition.
    *
    * @param tpr The reactor declaration.
+   * @param body The code builder for the body.
    * @param types The C-specific type conversion functions.
    */
   public static void signatures(TypeParameterizedReactor tpr, CodeBuilder body, CTypes types) {

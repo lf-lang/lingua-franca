@@ -9,7 +9,11 @@ import org.eclipse.xtext.validation.EObjectDiagnosticImpl;
 import org.eclipse.xtext.validation.ValidationMessageAcceptor;
 import org.lflang.util.FileUtil;
 
-/** */
+/**
+ * Collects issues from the code generator and reports them to the user.
+ *
+ * @ingroup CLI
+ */
 public class StandaloneIssueAcceptor implements ValidationMessageAcceptor {
 
   @Inject private IssueCollector collector;

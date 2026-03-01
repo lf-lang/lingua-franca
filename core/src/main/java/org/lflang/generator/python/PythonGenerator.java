@@ -1,24 +1,3 @@
-/*************
- * Copyright (c) 2022, The University of California at Berkeley.
- * Copyright (c) 2022, The University of Texas at Dallas.
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
- * THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.generator.python;
 
 import java.io.File;
@@ -82,6 +61,7 @@ import org.lflang.util.LFCommand;
  * functions.
  *
  * @author Soroush Bateni
+ * @ingroup Generator
  */
 public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUpMainTarget {
 
@@ -197,7 +177,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
         "# so that these names will be assumed present without having to compile and install.",
         "# pylint: disable=no-name-in-module, import-error",
         "from " + pyModuleName + " import (",
-        "    Tag, action_capsule_t, port_capsule, request_stop, schedule_copy, start",
+        "    Tag, action_capsule_t, port_capsule, request_stop, start",
         ")",
         "# pylint: disable=c-extension-no-member",
         "import " + pyModuleName + " as lf",
@@ -208,7 +188,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
             + " USEC,",
         "        USECS, WEEK, WEEKS",
         "    )",
-        "    from LinguaFrancaBase.classes import Make",
+        "    from LinguaFrancaBase.classes import Make, ReactorBase",
         "except ModuleNotFoundError:",
         "    print(\"No module named 'LinguaFrancaBase'. \"",
         "          \"Install using \\\"pip3 install LinguaFrancaBase\\\".\")",
@@ -242,8 +222,8 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   }
 
   /**
-   * Generate code that needs to appear at the top of the generated C file, such as #define and
-   * #include statements.
+   * Generate code that needs to appear at the top of the generated C file, such as `#define` and
+   * `#include` statements.
    */
   @Override
   public String generateDirectives() {
@@ -330,7 +310,9 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    * Generate the aliases for inputs, outputs, and struct type definitions for actions of the
    * specified reactor in the specified federate.
    *
+   * @param builder The code builder.
    * @param tpr The concrete reactor class.
+   * @param userFacing Whether this is user-facing code.
    */
   @Override
   public void generateAuxiliaryStructs(
@@ -433,6 +415,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    * is a void* pointing to a struct that contains parameters, state variables, inputs (triggering
    * or not), actions (triggering or produced), and outputs.
    *
+   * @param src The code builder.
    * @param reaction The reaction.
    * @param tpr The reactor.
    * @param reactionIndex The position of the reaction within the reactor.
@@ -442,7 +425,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
       CodeBuilder src, Reaction reaction, TypeParameterizedReactor tpr, int reactionIndex) {
     Reactor reactor = ASTUtils.toDefinition(tpr.reactor());
 
-    // Reactions marked with a {@code @_c_body} attribute are generated in C
+    // Reactions marked with a `@_c_body` attribute are generated in C
     if (AttributeUtils.hasCBody(reaction)) {
       super.generateReaction(src, reaction, tpr, reactionIndex);
       return;
@@ -465,14 +448,25 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   }
 
   /**
-   * Generate runtime initialization code in C for parameters of a given reactor instance
+   * Generate runtime initialization code in C for parameters of a given reactor instance.
+   * In Python, parameters are initialized in Python and stored as PyObject* on the C self
+   * struct, so no C-side initialization is needed.
    *
    * @param instance The reactor instance.
    */
   @Override
   protected void generateParameterInitialization(ReactorInstance instance) {
-    // Do nothing
-    // Parameters are initialized in Python
+    // Do nothing. Parameters are initialized in Python.
+  }
+
+  /**
+   * Return false because the Python C self struct stores parameters as PyObject*, not native
+   * C types. Timer and deadline init code must use resolved literal values instead of
+   * parameter references.
+   */
+  @Override
+  protected boolean supportsNativeParameterReferences() {
+    return false;
   }
 
   /**
@@ -488,6 +482,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    * preambles written in C, this function is overridden and does nothing.
    *
    * @param reactor The given reactor
+   * @param src The code builder.
    */
   @Override
   protected void generateUserPreamblesForReactor(Reactor reactor, CodeBuilder src) {
@@ -510,6 +505,21 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   protected void generateReactorInstanceExtension(ReactorInstance instance) {
     initializeTriggerObjects.pr(
         PythonReactionGenerator.generateCPythonReactionLinkers(instance, mainDef));
+    String nameOfSelfStruct = CUtil.reactorRef(instance);
+    // Create a field in the Python object for the reactor called "lf_self" that contains the
+    // C pointer to the C self struct.
+    initializeTriggerObjects.pr(
+        String.join(
+            "\n",
+            "if (set_python_field_to_c_pointer(\"__main__\",",
+            "    " + nameOfSelfStruct + "->_lf_name,",
+            "    " + CUtil.runtimeIndex(instance) + ",",
+            "    \"lf_self\",",
+            "    " + nameOfSelfStruct + ")) {",
+            "  lf_print_error_and_exit(\"Could not set lf_self pointer "
+                + instance.getName()
+                + "\");",
+            "}"));
   }
 
   /**
@@ -532,7 +542,8 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
           "PyObject* "
               + PythonReactionGenerator.generateCPythonReactionFunctionName(reactionIndex)
               + ";");
-      if (reaction.getStp() != null) {
+      if ((reaction.getTardy() != null && reaction.getTardy().getCode() != null)
+          || reaction.getStp() != null) {
         selfStructBody.pr(
             "PyObject* "
                 + PythonReactionGenerator.generateCPythonSTPFunctionName(reactionIndex)
@@ -723,7 +734,7 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
   /**
    * Generate the name of the python module.
    *
-   * <p>Ideally, this function would belong in a class like {@code PyFileConfig} that specifies all
+   * <p>Ideally, this function would belong in a class like `PyFileConfig` that specifies all
    * the paths to the generated code.
    *
    * @param lfModuleName The name of the LF module.
@@ -734,9 +745,9 @@ target_compile_definitions(${LF_MAIN_TARGET} PUBLIC MODULE_NAME=<pyModuleName>)
   }
 
   /**
-   * Generate the python file name given an {@code lfModuleName}.
+   * Generate the python file name given an `lfModuleName`.
    *
-   * <p>Ideally, this function would belong in a class like {@code PyFileConfig} that specifies all
+   * <p>Ideally, this function would belong in a class like `PyFileConfig` that specifies all
    * the paths to the generated code.
    *
    * @param lfModuleName The name of the LF module

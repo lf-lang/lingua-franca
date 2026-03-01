@@ -1,5 +1,265 @@
 # Changelog
 
+## [v0.11.0](https://github.com/lf-lang/lingua-franca/tree/v0.11.0) (2025-12-05)
+
+**Highlights**
+
+This release of Lingua Franca features changes to federated execution with the C and Python targets, emphasizing the decentralized coordinator. The obscure terminology of STA and STAA has been replaced by `maxwait` and `absent_after`. These are now specified as attributes on instantiations and connections, making it possible for libraries of reactors to be agnostic about whether the reactors are instantiated as federates or within a federate. In addition, the code docs for the code generator have been greatly improved and deployed at [https://lf-lang.org/lingua-franca](https://lf-lang.org/lingua-franca).
+
+This release also makes a number of improvements to the reactor-c runtime, including the ability to set and change deadlines at runtime, support for after delays with fixed-size array types, better support for variable-size arrays in Windows, and a number of bug fixes.
+
+This release also brings syntax and semantics of federated execution into compliance with the new (still preliminary) [`reactor-uc` runtime system and code generator](https://github.com/lf-lang/reactor-uc) that is particularly tuned for embedded platforms.
+
+**🚀 New Features**
+
+- Add `DeadlineUpdateDecrease.lf` & `DeadlineUpdateIncrease.lf` as an example of the new API function updating the deadline. [\#2531](https://github.com/lf-lang/lingua-franca/pull/2531) (@Jakio815)
+
+**✨ Enhancements**
+
+- Remove merged input ports for triggers [\#2540](https://github.com/lf-lang/lingua-franca/pull/2540) (@soerendomroes)
+- Allow maxwait in place of STA and STAA [\#2541](https://github.com/lf-lang/lingua-franca/pull/2541) (@edwardalee)
+- Added target uC for LSP support [\#2556](https://github.com/lf-lang/lingua-franca/pull/2556) (@edwardalee)
+- New syntax for maxwait, absent_after, and tardy, replacing STA and STAA [\#2564](https://github.com/lf-lang/lingua-franca/pull/2564) (@edwardalee)
+
+**🔧 Fixes**
+
+- Made injector singleton and register the ide module an startup of LS [\#2539](https://github.com/lf-lang/lingua-franca/pull/2539) (@soerendomroes)
+- Patch for Windows with gcc [\#2553](https://github.com/lf-lang/lingua-franca/pull/2553) (@edwardalee)
+- Fix so that coral outline is used only for enclaves and align reactor-c [\#2554](https://github.com/lf-lang/lingua-franca/pull/2554) (@edwardalee)
+- More doxygen warnings [\#2552](https://github.com/lf-lang/lingua-franca/pull/2552) (@edwardalee)
+- Avoid copying type for Python [\#2557](https://github.com/lf-lang/lingua-franca/pull/2557) (@edwardalee)
+- Use same list for length and access [\#2558](https://github.com/lf-lang/lingua-franca/pull/2558) (@edwardalee)
+- Fix error when reporting errors on line 0 [\#2563](https://github.com/lf-lang/lingua-franca/pull/2563) (@edwardalee)
+- Support delays of fixed-size arrays for C target [\#2567](https://github.com/lf-lang/lingua-franca/pull/2567) (@edwardalee)
+
+**🚧 Maintenance and Refactoring**
+
+- Docs cleanup 1 [\#2545](https://github.com/lf-lang/lingua-franca/pull/2545) (@edwardalee)
+- Docs cleanup 2 [\#2546](https://github.com/lf-lang/lingua-franca/pull/2546) (@edwardalee)
+- Docs cleanup 3 [\#2547](https://github.com/lf-lang/lingua-franca/pull/2547) (@edwardalee)
+- Docs cleanup 4 [\#2548](https://github.com/lf-lang/lingua-franca/pull/2548) (@edwardalee)
+- Doxygen warnings [\#2550](https://github.com/lf-lang/lingua-franca/pull/2550) (@edwardalee)
+- Replace javadoc @code with backticks [\#2551](https://github.com/lf-lang/lingua-franca/pull/2551) (@edwardalee)
+- Time syntax [\#2555](https://github.com/lf-lang/lingua-franca/pull/2555) (@edwardalee)
+- Removed enclave tests for Python [\#2561](https://github.com/lf-lang/lingua-franca/pull/2561) (@edwardalee)
+- Replace STA with maxwait, mark old versions deprecated [\#2568](https://github.com/lf-lang/lingua-franca/pull/2568) (@edwardalee)
+
+**📖 Documentation**
+
+- Docs cleanup 1 [\#2545](https://github.com/lf-lang/lingua-franca/pull/2545) (@edwardalee)
+- Docs cleanup 2 [\#2546](https://github.com/lf-lang/lingua-franca/pull/2546) (@edwardalee)
+- Docs cleanup 3 [\#2547](https://github.com/lf-lang/lingua-franca/pull/2547) (@edwardalee)
+- Docs cleanup 4 [\#2548](https://github.com/lf-lang/lingua-franca/pull/2548) (@edwardalee)
+- Use Doxygen to generate code documentation [\#2544](https://github.com/lf-lang/lingua-franca/pull/2544) (@edwardalee)
+- Doxygen warnings [\#2550](https://github.com/lf-lang/lingua-franca/pull/2550) (@edwardalee)
+- Replace javadoc @code with backticks [\#2551](https://github.com/lf-lang/lingua-franca/pull/2551) (@edwardalee)
+- More doxygen warnings [\#2552](https://github.com/lf-lang/lingua-franca/pull/2552) (@edwardalee)
+- Fix doxygen warnings and add doxygen check to CI [\#2569](https://github.com/lf-lang/lingua-franca/pull/2569) (@lsk567)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- Addition of API of dynamically updating deadline of reaction. [\#538](https://github.com/lf-lang/reactor-c/pull/538) (@Jakio815)
+
+**🔧 Fixes**
+
+- Avoid variable size array on stack for Windows [\#541](https://github.com/lf-lang/reactor-c/pull/541) (@edwardalee)
+- Patch for Windows with gcc [\#544](https://github.com/lf-lang/reactor-c/pull/544) (@edwardalee)
+- Improve support for maxwait and tweak scheduling of physical actions [\#547](https://github.com/lf-lang/reactor-c/pull/547) (@edwardalee)
+
+**🚧 Maintenance and Refactoring**
+
+- Update checkout action to v4 [\#545](https://github.com/lf-lang/reactor-c/pull/545) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
+## [v0.10.1](https://github.com/lf-lang/lingua-franca/tree/v0.10.1) (2025-08-03)
+
+**Highlights**
+
+This patch release includes two key changes:
+
+* A fix for an occasional segfault that could occur in federated execution during shutdown.
+* A change in the default Docker configuration to build the RTI by default rather than to import it from DockerHub.
+
+There are also a few other minor fixes, some of which are steps towards support for scheduling enclaves, which is still quite incomplete.
+
+**✨ Enhancements**
+
+- Make local build of the RTI the default [\#2530](https://github.com/lf-lang/lingua-franca/pull/2530) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**✨ Enhancements**
+
+- Preliminary support for enclaves in the C target [\#308](https://github.com/lf-lang/reactor-c/pull/308) (@erlingrj)
+
+**🔧 Fixes**
+
+- Fix for race condition creating a possible segfault [\#540](https://github.com/lf-lang/reactor-c/pull/540) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
+## [v0.10.0](https://github.com/lf-lang/lingua-franca/tree/v0.10.0) (2025-07-21)
+
+**Highlights**
+
+This release of Lingua Franca offers significant improvements to federated execution with the reactor-c and python targets, including now generating an RTI implementation with each federation, a number of improvements to the decentralized coordinator, an optimization for the centralized coordinator (DNET, downstream next-event tag), and support for sending statically allocated datatypes (strings and arrays) across federations.  This release also supports specifying a particular version of Python for the python target, provides support for more recent versions of Python, and fills in missing API functions for the python target.
+
+This release also makes a number of improvements to the reactor-c runtime, including greatly improved [documentation](https://lf-lang.org/reactor-c), a new `update` policy for actions with colliding tags, making API macros available in methods, making reactor names available at runtime, federated improvements (described above), and a number of bug fixes. Note that there is a new (still preliminary) [`reactor-uc` runtime system and code generator](https://github.com/lf-lang/reactor-uc) that is particularly tuned for embedded platforms.
+
+**🚀 New Features**
+
+- Make macros available in methods [\#2437](https://github.com/lf-lang/lingua-franca/pull/2437) (@edwardalee)
+- A target property for handling `downstream next event tag` (`DNET`) signal [\#2400](https://github.com/lf-lang/lingua-franca/pull/2400) (@byeonggiljun)
+- Minimal changes to allow lff and lfd to run with reactor-uc [\#2485](https://github.com/lf-lang/lingua-franca/pull/2485) (@erlingrj)
+
+**✨ Enhancements**
+
+- Cleaner source directories copied to remote hosts [\#2440](https://github.com/lf-lang/lingua-franca/pull/2440) (@edwardalee)
+- Use the NP scheduler when deadlines are present [\#2442](https://github.com/lf-lang/lingua-franca/pull/2442) (@lsk567)
+- Make reactor names available at runtime [\#2450](https://github.com/lf-lang/lingua-franca/pull/2450) (@edwardalee)
+- Allow derived classes to override parameter default values [\#2452](https://github.com/lf-lang/lingua-franca/pull/2452) (@edwardalee)
+- CMake: Dont clear executable runtime path when installing [\#2454](https://github.com/lf-lang/lingua-franca/pull/2454) (@erlingrj)
+- A target property for handling `downstream next event tag` (`DNET`) signal [\#2400](https://github.com/lf-lang/lingua-franca/pull/2400) (@byeonggiljun)
+- Fed decentralized improvements [\#2482](https://github.com/lf-lang/lingua-franca/pull/2482) (@edwardalee)
+- Do not subtract network delays from STAA and refactor code [\#2487](https://github.com/lf-lang/lingua-franca/pull/2487) (@edwardalee)
+- Compile RTI for each federation [\#2492](https://github.com/lf-lang/lingua-franca/pull/2492) (@erlingrj)
+- Tuned colors and validation for enclaves and deadlines [\#2495](https://github.com/lf-lang/lingua-franca/pull/2495) (@edwardalee)
+- Show forever, never, and SI units in toString() [\#2498](https://github.com/lf-lang/lingua-franca/pull/2498) (@edwardalee)
+- New `update` policy [\#2499](https://github.com/lf-lang/lingua-franca/pull/2499) (@lsk567)
+- Fill in missing Python API functions [\#2512](https://github.com/lf-lang/lingua-franca/pull/2512) (@edwardalee)
+- Upgrade to ROS2 0.7.13 [\#2513](https://github.com/lf-lang/lingua-franca/pull/2513) (@tanneberger)
+- Add cmake-init-include target property [\#2432](https://github.com/lf-lang/lingua-franca/pull/2432) (@erlingrj)
+- Support federated messages that are static strings and fixed-sized arrays [\#2525](https://github.com/lf-lang/lingua-franca/pull/2525) (@edwardalee)
+
+**🔧 Fixes**
+
+- Repaired export-dependency-graph property and dropped unsupported export-to-yaml property [\#2436](https://github.com/lf-lang/lingua-franca/pull/2436) (@cmnrd)
+- Avoid unsupported -O3 option for the Patmos platform [\#2435](https://github.com/lf-lang/lingua-franca/pull/2435) (@EhsanKhodadad)
+- Define LF_FILE_SEPARATOR in CMake [\#2438](https://github.com/lf-lang/lingua-franca/pull/2438) (@edwardalee)
+- Patmos: better compiler flags [\#2444](https://github.com/lf-lang/lingua-franca/pull/2444) (@schoeberl)
+- Python 11 and 12 support [\#2441](https://github.com/lf-lang/lingua-franca/pull/2441) (@edwardalee)
+- Do not exit if there is no timeout, fast is true, and keepalive is true [\#2448](https://github.com/lf-lang/lingua-franca/pull/2448) (@edwardalee)
+- Fix federated ZDC detection algorithm [\#2477](https://github.com/lf-lang/lingua-franca/pull/2477) (@erlingrj)
+- Fed decentralized improvements [\#2482](https://github.com/lf-lang/lingua-franca/pull/2482) (@edwardalee)
+- Do not subtract network delays from STAA and refactor code [\#2487](https://github.com/lf-lang/lingua-franca/pull/2487) (@edwardalee)
+- Remove federate connections that have no effect [\#2491](https://github.com/lf-lang/lingua-franca/pull/2491) (@edwardalee)
+- Fix cycle checking when calculating min delay from nearest physical action [\#2459](https://github.com/lf-lang/lingua-franca/pull/2459) (@lsk567)
+- Fix issues with inheritance [\#2500](https://github.com/lf-lang/lingua-franca/pull/2500) (@edwardalee)
+- Upgrade spotless and fix spotless hang [\#2504](https://github.com/lf-lang/lingua-franca/pull/2504) (@lsk567)
+- Fix scope provider for parameter references. [\#2505](https://github.com/lf-lang/lingua-franca/pull/2505) (@edwardalee)
+- Update async callback tests [\#2503](https://github.com/lf-lang/lingua-franca/pull/2503) (@lsk567)
+- Fill in missing Python API functions [\#2512](https://github.com/lf-lang/lingua-franca/pull/2512) (@edwardalee)
+- Make lf.source_directory() work for federated [\#2515](https://github.com/lf-lang/lingua-franca/pull/2515) (@edwardalee)
+- Do not register atexit to mask errors [\#2518](https://github.com/lf-lang/lingua-franca/pull/2518) (@edwardalee)
+- Address issue #2496 with space after {= [\#2524](https://github.com/lf-lang/lingua-franca/pull/2524) (@edwardalee)
+- Fix preamble inheritance for instantiated reactors [\#2497](https://github.com/lf-lang/lingua-franca/pull/2497) (@Jakio815)
+- Handle min_spacing of zero correctly [\#2527](https://github.com/lf-lang/lingua-franca/pull/2527) (@edwardalee)
+- Upgrade regression tests to compile and run PATMOS tests [\#2471](https://github.com/lf-lang/lingua-franca/pull/2471) (@EhsanKhodadad)
+
+**🚧 Maintenance and Refactoring**
+
+- Cleaner source directories copied to remote hosts [\#2440](https://github.com/lf-lang/lingua-franca/pull/2440) (@edwardalee)
+- Refactoring of socket communications. [\#2449](https://github.com/lf-lang/lingua-franca/pull/2449) (@Jakio815)
+- Add `shutdown_mutex` to be initialized by code generator. [\#2474](https://github.com/lf-lang/lingua-franca/pull/2474) (@Jakio815)
+- Do not subtract network delays from STAA and refactor code [\#2487](https://github.com/lf-lang/lingua-franca/pull/2487) (@edwardalee)
+
+**📖 Documentation**
+
+- Update contributing instructions [\#2509](https://github.com/lf-lang/lingua-franca/pull/2509) (@edwardalee)
+
+**⬆️ Updated Dependencies**
+
+- Bumping up reactor-ts package version. [\#2484](https://github.com/lf-lang/lingua-franca/pull/2484) (@hokeun)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- Downstream next event tag (DNET), a new signal for more efficient centralized federated execution [\#349](https://github.com/lf-lang/reactor-c/pull/349) (@byeonggiljun)
+- Add option for providing an external implementation of clock functions [\#516](https://github.com/lf-lang/reactor-c/pull/516) (@erlingrj)
+
+**✨ Enhancements**
+
+- Python 3.11, 3.12, and 3.13 support [\#501](https://github.com/lf-lang/reactor-c/pull/501) (@edwardalee)
+- Make reactor names available at runtime [\#507](https://github.com/lf-lang/reactor-c/pull/507) (@edwardalee)
+- Downstream next event tag (DNET), a new signal for more efficient centralized federated execution [\#349](https://github.com/lf-lang/reactor-c/pull/349) (@byeonggiljun)
+- Fed decentralized improvements [\#519](https://github.com/lf-lang/reactor-c/pull/519) (@edwardalee)
+- Handle STP violation over deadline when both occur [\#520](https://github.com/lf-lang/reactor-c/pull/520) (@edwardalee)
+- Add semantic versioning of the RTI [\#521](https://github.com/lf-lang/reactor-c/pull/521) (@erlingrj)
+- Renamed API function and allow zero argument [\#524](https://github.com/lf-lang/reactor-c/pull/524) (@edwardalee)
+- New `update` policy [\#528](https://github.com/lf-lang/reactor-c/pull/528) (@lsk567)
+- Fill in missing Python API functions [\#530](https://github.com/lf-lang/reactor-c/pull/530) (@edwardalee)
+- Stringify CMake command-line arguments before they are added as compile definitions [\#494](https://github.com/lf-lang/reactor-c/pull/494) (@erlingrj)
+
+**🔧 Fixes**
+
+- Update trace_impl.c [\#498](https://github.com/lf-lang/reactor-c/pull/498) (@MoezBHH)
+- Python 3.11, 3.12, and 3.13 support [\#501](https://github.com/lf-lang/reactor-c/pull/501) (@edwardalee)
+- Usage of 'fixed-size' integer types in RTI code [\#453](https://github.com/lf-lang/reactor-c/pull/453) (@Jakio815)
+- Fix lingua-franca-ref [\#510](https://github.com/lf-lang/reactor-c/pull/510) (@ChadliaJerad)
+- Perform busy waiting when the wait duration is less than `MIN_SLEEP_DURATION` [\#514](https://github.com/lf-lang/reactor-c/pull/514) (@byeonggiljun)
+- Fix memory bug when obtaining a port number [\#518](https://github.com/lf-lang/reactor-c/pull/518) (@erlingrj)
+- Avoid a double join on the sensor_simulator output thread [\#517](https://github.com/lf-lang/reactor-c/pull/517) (@erlingrj)
+- Fed decentralized improvements [\#519](https://github.com/lf-lang/reactor-c/pull/519) (@edwardalee)
+- Handle STP violation over deadline when both occur [\#520](https://github.com/lf-lang/reactor-c/pull/520) (@edwardalee)
+- Fill in missing Python API functions [\#530](https://github.com/lf-lang/reactor-c/pull/530) (@edwardalee)
+- Don't print spurious warning [\#534](https://github.com/lf-lang/reactor-c/pull/534) (@edwardalee)
+- Fix memory leaks [\#535](https://github.com/lf-lang/reactor-c/pull/535) (@edwardalee)
+- Handle min_spacing of zero correctly [\#536](https://github.com/lf-lang/reactor-c/pull/536) (@edwardalee)
+
+**🚧 Maintenance and Refactoring**
+
+- Subtract time with care for overflow [\#492](https://github.com/lf-lang/reactor-c/pull/492) (@edwardalee)
+- Refactoring of socket related functions to a separate socket_common.c [\#505](https://github.com/lf-lang/reactor-c/pull/505) (@Jakio815)
+- Add `shutdown_socket()` function for follow up of #505 [\#506](https://github.com/lf-lang/reactor-c/pull/506) (@Jakio815)
+- Compile RTI for each federation [\#523](https://github.com/lf-lang/reactor-c/pull/523) (@erlingrj)
+- Use of snprintf instead of vulerable sprintf for code security best practices. [\#533](https://github.com/lf-lang/reactor-c/pull/533) (@hokeun)
+
+**📖 Documentation**
+
+- Clean up Doxygen documentation generation [\#529](https://github.com/lf-lang/reactor-c/pull/529) (@edwardalee)
+- Fix the documentation about localy building docs [\#532](https://github.com/lf-lang/reactor-c/pull/532) (@ChadliaJerad)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+**✨ Enhancements**
+
+- Update to ubuntu 24.04 [\#76](https://github.com/lf-lang/reactor-cpp/pull/76) (@erlingrj)
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- Fix all warnings for Rust 1.84.0 [\#51](https://github.com/lf-lang/reactor-rs/pull/51) (@oowekyala)
+- Compat with rust 1.89 nightly [\#53](https://github.com/lf-lang/reactor-rs/pull/53) (@oowekyala)
+
+
 ## [v0.9.0](https://github.com/lf-lang/lingua-franca/tree/v0.9.0) (2024-10-31)
 
 **Highlights**

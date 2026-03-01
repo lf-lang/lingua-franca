@@ -1,29 +1,3 @@
-/*************
- * Copyright (c) 2021, The University of California at Berkeley.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- ***************/
-
 package org.lflang.federated.extensions;
 
 import static org.lflang.util.StringUtil.addDoubleQuotes;
@@ -33,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.TimeValue;
@@ -70,9 +45,10 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 /**
  * An extension class to the CGenerator that enables certain federated functionalities.
  *
- * @author {Soroush Bateni <soroush@berkeley.edu>}
- * @author {Hou Seng Wong <housengw@berkeley.edu>}
- * @author {Billy Bao <billybao@berkeley.edu>}
+ * @author Soroush Bateni
+ * @author Hou Seng Wong
+ * @author Billy Bao
+ * @ingroup Federated
  */
 public class CExtension implements FedTargetExtension {
 
@@ -102,7 +78,7 @@ public class CExtension implements FedTargetExtension {
     FedSetupProperty.INSTANCE.override(federate.targetConfig, getPreamblePath(federate));
   }
 
-  /** Generate a cmake-include file for {@code federate} if needed. */
+  /** Generate a cmake-include file for `federate` if needed. */
   protected void generateCMakeInclude(FederateInstance federate, FederationFileConfig fileConfig)
       throws IOException {
     CExtensionUtils.generateCMakeInclude(federate, fileConfig);
@@ -118,6 +94,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the port.
    * @param coordinationMode The coordination type
+   * @param messageReporter Used to report errors and warnings.
    */
   public String generateNetworkReceiverBody(
       Action action,
@@ -150,7 +127,7 @@ public class CExtension implements FedTargetExtension {
   /**
    * Generate code to deserialize a message received over the network.
    *
-   * @param action The network action that is mapped to the {@code receivingPort}
+   * @param action The network action that is mapped to the `receivingPort`
    * @param receivingPort The receiving port
    * @param connection The connection used to receive the message
    * @param type Type for the port
@@ -172,7 +149,9 @@ public class CExtension implements FedTargetExtension {
     // This string is dynamically allocated, and type 'string' is to be
     // used only for statically allocated strings. This would force the
     // CGenerator to treat the port and action as token types.
-    if (types.getTargetType(action).equals("string")) {
+    var targetType = types.getTargetType(action);
+    var isString = targetType.equals("string");
+    if (isString) {
       action.getType().setCode(null);
       action.getType().setId("char*");
     }
@@ -186,10 +165,27 @@ public class CExtension implements FedTargetExtension {
         // NOTE: Docs say that malloc'd char* is freed on conclusion of the time step.
         // So passing it downstream should be OK.
         value = action.getName() + "->value";
-        if (CUtil.isTokenType(type)) {
+        if (CUtil.isTokenType(type) || isString) {
           result.pr("lf_set_token(" + receiveRef + ", " + action.getName() + "->token);");
         } else {
-          result.pr("lf_set(" + receiveRef + ", " + value + ");");
+          // Fixed size arrays need to be handled specially because the memory is allocated in the
+          // output port.
+          if (CUtil.isFixedSizeArrayType(type)) {
+            // For fixed size arrays, we need to copy the data from the action to the port.
+            result.pr(
+                "memcpy("
+                    + receiveRef
+                    + "->value, "
+                    + action.getName()
+                    + "->token->value, "
+                    + action.getName()
+                    + "->length * "
+                    + action.getName()
+                    + "->type.element_size);");
+            result.pr("lf_set_present(" + receiveRef + ");");
+          } else {
+            result.pr("lf_set(" + receiveRef + ", " + value + ");");
+          }
         }
       }
       case PROTO ->
@@ -234,11 +230,6 @@ public class CExtension implements FedTargetExtension {
   }
 
   @Override
-  public String inputInitializationBody() {
-    return "self->_lf__reaction_1.is_an_input_reaction = true;\n";
-  }
-
-  @Override
   public void addSenderIndexParameter(Reactor sender) {
     var tp = LfFactory.eINSTANCE.createTypeParm();
     tp.setLiteral("SENDERINDEXPARAMETER");
@@ -263,6 +254,7 @@ public class CExtension implements FedTargetExtension {
    * @param connection The federated connection being lowered.
    * @param type The type of the data conveyed by the connection.
    * @param coordinationMode Centralized or decentralized.
+   * @param messageReporter Used to report errors and warnings.
    */
   public String generateNetworkSenderBody(
       VarRef sendingPort,
@@ -364,8 +356,9 @@ public class CExtension implements FedTargetExtension {
    * @param sendRef C code representing a reference to the data to be sent.
    * @param result An accumulator of the generated code.
    * @param sendingFunction The name of the function that sends the serialized data.
-   * @param commonArgs Arguments passed to {@code sendingFunction} regardless of serialization
+   * @param commonArgs Arguments passed to `sendingFunction` regardless of serialization
    *     method.
+   * @param messageReporter Used to report errors and warnings.
    */
   protected void serializeAndSend(
       FedConnectionInstance connection,
@@ -383,15 +376,23 @@ public class CExtension implements FedTargetExtension {
         // Handle native types.
         if (CUtil.isTokenType(type)) {
           // NOTE: Transporting token types this way is likely to only work if the sender and
-          // receiver
-          // both have the same endianness. Otherwise, you have to use protobufs or some other
-          // serialization scheme.
+          // receiver both have the same endianness. Otherwise, you have to use protobufs or some
+          // other serialization scheme.
           result.pr(
               "size_t _lf_message_length = "
                   + sendRef
                   + "->length * "
                   + sendRef
                   + "->token->type->element_size;");
+          result.pr(
+              sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
+        } else if (CUtil.isFixedSizeArrayType(type)) {
+          result.pr(
+              "size_t _lf_message_length = "
+                  + CUtil.fixedSizeArrayTypeLength(type)
+                  + " * "
+                  + sendRef
+                  + "->type.element_size;");
           result.pr(
               sendingFunction + "(" + commonArgs + ", (unsigned char*) " + sendRef + "->value);");
         } else {
@@ -415,9 +416,9 @@ public class CExtension implements FedTargetExtension {
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
-        if (CUtil.isTokenType(type)) {
+        if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
           throw new UnsupportedOperationException(
-              "Cannot handle ROS serialization when ports are pointers.");
+              "Cannot handle ROS serialization when ports are pointers or arrays.");
         } else if (CExtensionUtils.isSharedPtrType(type, types)) {
           var matcher = CExtensionUtils.sharedPointerVariable.matcher(typeStr);
           if (matcher.find()) {
@@ -485,7 +486,7 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
-  /** Put the C preamble in a {@code include/_federate.name + _preamble.h} file. */
+  /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
   protected final void writePreambleFile(
       FederateInstance federate,
       FederationFileConfig fileConfig,
@@ -503,7 +504,7 @@ public class CExtension implements FedTargetExtension {
 
   /**
    * Add preamble to a separate file to set up federated execution. Return an a string containing
-   * the #includes that are needed by the federate.
+   * the `#include` directives that are needed by the federate.
    */
   @Override
   public String generatePreamble(
@@ -691,7 +692,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code to initialize the {@code federate}.
+   * Generate code to initialize the `federate`.
    *
    * @param rtiConfig Information about the RTI's deployment.
    * @return The generated code
@@ -705,15 +706,15 @@ public class CExtension implements FedTargetExtension {
             "\n",
             "// Initialize the socket mutexes",
             "lf_mutex_init(&lf_outbound_socket_mutex);",
-            "lf_mutex_init(&socket_mutex);",
+            "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
-    // Find the STA (A.K.A. the global STP offset) for this federate.
+    // Find the maxwait (A.K.A. STA, the global STP offset) for this federate.
     if (federate.targetConfig.get(CoordinationProperty.INSTANCE)
         == CoordinationMode.DECENTRALIZED) {
       var reactor = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var stpParam =
-          reactor.getParameters().stream()
+          ASTUtils.allParameters(reactor).stream()
               .filter(
                   param ->
                       (param.getName().equalsIgnoreCase("STP_offset")
@@ -730,6 +731,12 @@ public class CExtension implements FedTargetExtension {
         else if (globalSTP instanceof CodeExprImpl)
           code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
         else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
+      } else {
+        // Check for an annotation on the federate instantiation.
+        var maxwait = AttributeUtils.getMaxWait(federate.instantiation);
+        if (maxwait != TimeValue.ZERO) {
+          code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(maxwait) + ");");
+        }
       }
     }
 
@@ -824,7 +831,7 @@ public class CExtension implements FedTargetExtension {
   }
 
   /**
-   * Generate code to handle physical actions in the {@code federate}.
+   * Generate code to handle physical actions in the `federate`.
    *
    * @param messageReporter Used to report errors.
    * @return Generated code.
@@ -838,13 +845,15 @@ public class CExtension implements FedTargetExtension {
       // If this program uses centralized coordination then check
       // for outputs that depend on physical actions so that null messages can be
       // sent to the RTI.
-      var federateClass = ASTUtils.toDefinition(federate.instantiation.getReactorClass());
       var main =
           new ReactorInstance(
               FedASTUtils.findFederatedReactor(federate.instantiation.eResource()),
               messageReporter,
               1);
-      var instance = new ReactorInstance(federateClass, main, messageReporter);
+      // Use the instantiation to create a new ReactorInstance so that it gets the parameters of the
+      // original.
+      var instance =
+          new ReactorInstance(federate.instantiation, main, messageReporter, -1, List.of());
       var outputDelayMap = federate.findOutputsConnectedToPhysicalActions(instance);
       var minDelay = TimeValue.MAX_VALUE;
       Output outputFound = null;

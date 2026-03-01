@@ -7,6 +7,10 @@ import org.lflang.generator.GeneratorCommandFactory;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.TargetConfig;
 
+/**
+ * Utilities for FlexPRET.
+ * @ingroup Utilities
+ */
 public class FlexPRETUtil {
   private LFGeneratorContext context;
   private GeneratorCommandFactory commandFactory;

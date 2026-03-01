@@ -28,6 +28,7 @@ package org.lflang.scoping;
 import static java.util.Collections.emptyList;
 import static org.lflang.ast.ASTUtils.allActions;
 import static org.lflang.ast.ASTUtils.allInputs;
+import static org.lflang.ast.ASTUtils.allInstantiations;
 import static org.lflang.ast.ASTUtils.allOutputs;
 import static org.lflang.ast.ASTUtils.allParameters;
 import static org.lflang.ast.ASTUtils.allTimers;
@@ -51,11 +52,13 @@ import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfPackage;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.ReactorDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Watchdog;
+import org.lflang.lf.WidthTerm;
 import org.lflang.util.ImportUtil;
 
 /**
@@ -102,6 +105,10 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       return getScopeForReactorDecl(context, reference);
     } else if (context instanceof ImportedReactor) {
       return getScopeForImportedReactor((ImportedReactor) context, reference);
+    } else if (context instanceof WidthTerm) {
+      return getScopeForWidthTerm((WidthTerm) context, reference);
+    } else if (context instanceof ParameterReference) {
+      return getScopeForParameterReference((ParameterReference) context, reference);
     }
     return super.getScope(context, reference);
   }
@@ -136,14 +143,7 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
   protected IScope getScopeForReactorDecl(EObject obj, EReference reference) {
 
     // Find the local Model
-    Model model = null;
-    EObject container = obj;
-    while (model == null && container != null) {
-      container = container.eContainer();
-      if (container instanceof Model) {
-        model = (Model) container;
-      }
-    }
+    Model model = enclosingModel(obj);
     if (model == null) {
       return Scopes.scopeFor(emptyList());
     }
@@ -165,6 +165,25 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     return Scopes.scopeFor(locals);
   }
 
+  protected IScope getScopeForWidthTerm(WidthTerm term, EReference reference) {
+    // Find the nearest containing reactor. A WidthTerm is within a WidthSpec,
+    // which is within a Port or an Instantiation.  So the nearest possibility
+    // is three levels up.
+    EObject reactor = enclosingReactor(term);
+    if (reactor == null) {
+      return Scopes.scopeFor(emptyList());
+    }
+    return Scopes.scopeFor(allParameters((Reactor) reactor));
+  }
+
+  protected IScope getScopeForParameterReference(ParameterReference term, EReference reference) {
+    EObject reactor = enclosingReactor(term);
+    if (reactor == null) {
+      return Scopes.scopeFor(emptyList());
+    }
+    return Scopes.scopeFor(allParameters((Reactor) reactor));
+  }
+
   protected IScope getScopeForAssignment(Assignment assignment, EReference reference) {
 
     if (reference == LfPackage.Literals.ASSIGNMENT__LHS) {
@@ -174,30 +193,26 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       }
     }
     if (reference == LfPackage.Literals.ASSIGNMENT__RHS) {
-      return Scopes.scopeFor(((Reactor) assignment.eContainer().eContainer()).getParameters());
+      Reactor reactor = enclosingReactor(assignment);
+      return Scopes.scopeFor(allParameters(reactor));
     }
     return Scopes.scopeFor(emptyList());
   }
 
   protected IScope getScopeForVarRef(VarRef variable, EReference reference) {
-    if (reference == LfPackage.Literals.VAR_REF__VARIABLE) {
-      // Resolve hierarchical reference
-      Reactor reactor;
-      Mode mode = null;
-      if (variable.eContainer().eContainer() instanceof Reactor) {
-        reactor = (Reactor) variable.eContainer().eContainer();
-      } else if (variable.eContainer().eContainer() instanceof Mode) {
-        mode = (Mode) variable.eContainer().eContainer();
-        reactor = (Reactor) variable.eContainer().eContainer().eContainer();
-      } else {
-        return Scopes.scopeFor(emptyList());
-      }
+    Reactor reactor = enclosingReactor(variable);
+    Mode mode = enclosingMode(variable);
+    if (reactor == null) {
+      return Scopes.scopeFor(emptyList());
+    }
 
+    if (reference == LfPackage.Literals.VAR_REF__VARIABLE) {
+      // Resolve variable reference
       RefType type = getRefType(variable);
 
       if (variable.getContainer() != null) { // Resolve hierarchical port reference
         var instanceName = nameProvider.getFullyQualifiedName(variable.getContainer());
-        var instances = new ArrayList<Instantiation>(reactor.getInstantiations());
+        var instances = new ArrayList<Instantiation>(allInstantiations(reactor));
         if (mode != null) {
           instances.addAll(mode.getInstantiations());
         }
@@ -261,6 +276,8 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
             return Scopes.scopeFor(emptyList());
         }
       }
+    } else if (reference == LfPackage.Literals.VAR_REF__CONTAINER) {
+      return Scopes.scopeFor(allInstantiations(reactor));
     } else { // Resolve instance
       return super.getScope(variable, reference);
     }
@@ -292,5 +309,46 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
       }
     }
     return RefType.NULL;
+  }
+
+  /**
+   * Return the nearest enclosing reactor or null if one is not found.
+   *
+   * @param term A term in the abstract syntax tree.
+   */
+  private Reactor enclosingReactor(EObject term) {
+    EObject reactor = term.eContainer();
+    while (reactor != null && !(reactor instanceof Reactor)) {
+      reactor = reactor.eContainer();
+    }
+    return (Reactor) reactor;
+  }
+
+  /**
+   * If the term is within a Mode before it is within a Reactor, then return that mode. Otherwise,
+   * return null.
+   *
+   * @param term A term in the abstract syntax tree.
+   */
+  private Mode enclosingMode(EObject term) {
+    EObject mode = term.eContainer();
+    while (mode != null && !(mode instanceof Mode)) {
+      if (mode instanceof Reactor) return null;
+      mode = mode.eContainer();
+    }
+    return (Mode) mode;
+  }
+
+  /**
+   * Return the enclosing Model or null if one is not found.
+   *
+   * @param term A term in the abstract syntax tree.
+   */
+  private Model enclosingModel(EObject term) {
+    EObject model = term.eContainer();
+    while (model != null && !(model instanceof Model)) {
+      model = model.eContainer();
+    }
+    return (Model) model;
   }
 }

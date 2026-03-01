@@ -13,6 +13,7 @@ import org.lflang.util.FileUtil;
  * Build configuration of a docker service.
  *
  * @author Marten Lohstroh
+ * @ingroup Docker
  */
 public class DockerData {
   /** The absolute path to the docker file. */

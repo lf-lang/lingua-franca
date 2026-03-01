@@ -1,0 +1,31 @@
+// Verify that deadline decreases from 100 ms to 50 ms works.
+// Also, test if the decreased deadline works when reaction is triggered again.
+target C {
+  timeout: 50 msec
+}
+
+reactor DecreaseDeadline {
+  state deadline_decreased: bool = false
+  timer t(0, 50 msec)
+
+  reaction(t) {=
+    if (!self->deadline_decreased) {
+        lf_update_deadline(self, MSEC(50));
+        lf_sleep(MSEC(60));
+        if (!lf_check_deadline(self, true)) {
+            lf_print_error_and_exit("Deadline update failed. Deadline handler was not invoked on lag of 50 msec.");
+        }
+        self->deadline_decreased = true;
+    } else {
+        lf_print_error_and_exit("Deadline not updated correctly.");
+    }
+  =} deadline(100 msec) {=
+    lf_print("Deadline violation detected as expected at Logical time: %lld msecs. Physical time: %lld msecs.", lf_time_logical_elapsed() / MSEC(1), lf_time_physical_elapsed() / MSEC(1));
+    // When the next reaction is invoked on logical time 50 msec, the deadline handler will be invoked because lf_sleep() here.
+    lf_sleep(MSEC(60));
+  =}
+}
+
+main reactor {
+  decreaseDeadline = new DecreaseDeadline()
+}

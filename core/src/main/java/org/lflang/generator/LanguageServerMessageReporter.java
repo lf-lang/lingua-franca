@@ -22,6 +22,7 @@ import org.lflang.util.FileUtil;
  * Report diagnostics to the language client.
  *
  * @author Peter Donovan
+ * @ingroup Validation
  */
 public class LanguageServerMessageReporter extends MessageReporterBase {
 
@@ -38,8 +39,7 @@ public class LanguageServerMessageReporter extends MessageReporterBase {
   private final Map<Path, List<Diagnostic>> diagnostics;
 
   /**
-   * Initialize a {@code DiagnosticAcceptor} for the document whose parse tree root node is {@code
-   * parseRoot}.
+   * Initialize a `DiagnosticAcceptor` for the document whose parse tree root node is `parseRoot`.
    *
    * @param parseRoot the root of the AST of the document for which this is an error reporter
    */
@@ -141,21 +141,24 @@ public class LanguageServerMessageReporter extends MessageReporterBase {
   }
 
   /**
-   * Return the line at index {@code line} in the document for which this is an error reporter.
+   * Return the line at index `line` in the document for which this is an error reporter.
    *
    * @param line the zero-based line index
    * @return the line located at the given index
    */
   private Optional<String> getLine(int line) {
+    if (line < 0) {
+      line = 0;
+    }
     return getText().lines().skip(line).findFirst();
   }
 
   /**
-   * Return the Range that starts at {@code p0} and ends at {@code p1}.
+   * Return the Range that starts at `p0` and ends at `p1`.
    *
    * @param p0 an arbitrary Position
-   * @param p1 a Position that is greater than {@code p0}
-   * @return the Range that starts at {@code p0} and ends at {@code p1}
+   * @param p1 a Position that is greater than `p0`
+   * @return the Range that starts at `p0` and ends at `p1`
    */
   private Range toRange(Position p0, Position p1) {
     return new Range(

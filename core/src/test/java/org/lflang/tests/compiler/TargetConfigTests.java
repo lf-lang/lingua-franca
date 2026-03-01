@@ -22,10 +22,12 @@ import org.lflang.generator.MainContext;
 import org.lflang.lf.Model;
 import org.lflang.tests.LFInjectorProvider;
 
+/**
+ * Tests for checking that target properties adequately translate into the target configuration.
+ * @ingroup Tests
+ */
 @ExtendWith(InjectionExtension.class)
 @InjectWith(LFInjectorProvider.class)
-
-/** Tests for checking that target properties adequately translate into the target configuration. */
 class TargetConfigTests {
 
   @Inject ParseHelper<Model> parser;

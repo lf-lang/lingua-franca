@@ -12,7 +12,11 @@ import org.lflang.generator.CodeMap;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.lf.Reactor;
 
-/** Helper class to generate code for federates. */
+/**
+ * Helper class to generate code for federates.
+ *
+ * @ingroup Federated
+ */
 public class FedEmitter {
 
   private final FederationFileConfig fileConfig;
@@ -31,7 +35,7 @@ public class FedEmitter {
     this.rtiConfig = rtiConfig;
   }
 
-  /** Generate a .lf file for federate {@code federate}. */
+  /** Generate a .lf file for federate `federate`. */
   Map<Path, CodeMap> generateFederate(
       LFGeneratorContext context, FederateInstance federate, List<String> federateNames)
       throws IOException {

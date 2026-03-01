@@ -3,19 +3,22 @@ package org.lflang.util;
 import java.util.Arrays;
 import org.eclipse.xtext.xbase.lib.Procedures.Procedure1;
 
-/** Average asynchronously reported numbers and do something with them. */
+/**
+ * Average asynchronously reported numbers and do something with them.
+ * @ingroup Utilities
+ */
 public class Averager {
   private final int n;
   private final int[] reports;
 
-  /** Create an averager of reports from {@code n} processes. */
+  /** Create an averager of reports from `n` processes. */
   public Averager(int n) {
     this.n = n;
     reports = new int[n];
   }
 
   /**
-   * Receive {@code x} from process {@code id} and invoke {@code callback} on the mean of the
+   * Receive `x` from process `id` and invoke `callback` on the mean of the
    * numbers most recently reported by the processes.
    */
   public synchronized void report(int id, int x, Procedure1<Integer> callback) {

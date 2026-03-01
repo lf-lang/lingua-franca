@@ -22,6 +22,8 @@ import org.lflang.util.StringUtil;
 /**
  * Switch class for converting AST nodes to some textual representation that seems likely to be
  * useful for as many code generators as possible.
+ *
+ * @ingroup Utilities
  */
 public class ToText extends LfSwitch<String> {
 
@@ -50,13 +52,21 @@ public class ToText extends LfSwitch<String> {
       StringBuilder builder = new StringBuilder(Math.max(node.getTotalLength(), 1));
       boolean started = false;
       for (ILeafNode leaf : node.getLeafNodes()) {
-        if (!leaf.getText().equals("{=") && !leaf.getText().equals("=}")) {
-          var nothing = leaf.getText().isBlank() || ASTUtils.isSingleLineComment(leaf);
-          if (!nothing
-              || started
-              || leaf.getText().startsWith("\n")
-              || leaf.getText().startsWith("\r")) builder.append(leaf.getText());
-          if ((leaf.getText().contains("\n") || (!nothing))) {
+        var leafText = leaf.getText();
+        if (!leafText.equals("{=") && !leafText.equals("=}")) {
+          var nothing = leafText.isBlank() || ASTUtils.isSingleLineComment(leaf);
+          if (!nothing || started || leafText.startsWith("\n") || leafText.startsWith("\r")) {
+            builder.append(leafText);
+          } else if (nothing && !started) {
+            // Check for spaces after the opening {=.
+            // See https://github.com/lf-lang/lingua-franca/issues/2496
+            var trim = leafText.indexOf('\n');
+            // Preserve any indentation after the \n.
+            if (trim > 0) {
+              builder.append(leafText.substring(trim));
+            }
+          }
+          if ((leafText.contains("\n") || (!nothing))) {
             started = true;
           }
         }

@@ -29,6 +29,11 @@ import org.lflang.target.property.CoordinationOptionsProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
+/**
+ * An extension class to the TSGenerator that enables certain federated functionalities.
+ *
+ * @ingroup Federated
+ */
 public class TSExtension implements FedTargetExtension {
   @Override
   public void initializeTargetConfig(
@@ -65,11 +70,6 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public String outputInitializationBody() {
     return ""; // TODO
-  }
-
-  @Override
-  public String inputInitializationBody() {
-    return "";
   }
 
   @Override
