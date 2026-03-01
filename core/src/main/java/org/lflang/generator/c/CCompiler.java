@@ -87,9 +87,9 @@ public class CCompiler {
     // avoid any error residue that can occur in CMake from
     // a previous build.
     // FIXME: This is slow and only needed if an error
-    //  has previously occurred. Deleting the build directory
-    //  if no prior errors have occurred can prolong the compilation
-    //  substantially. See #1416 for discussion.
+    // has previously occurred. Deleting the build directory
+    // if no prior errors have occurred can prolong the compilation
+    // substantially. See #1416 for discussion.
     FileUtil.deleteDirectory(buildPath);
     // Make sure the build directory exists
     Files.createDirectories(buildPath);
@@ -218,14 +218,15 @@ public class CCompiler {
                 + FileUtil.toUnixString(fileConfig.getOutPath().relativize(fileConfig.binPath)),
             "-DLF_FILE_SEPARATOR='" + quote + separator + quote + "'"));
     // Add #define for source file directory.
-    // Do not do this for federated programs because for those, the definition is put
-    // into the cmake file (and fileConfig.srcPath is the wrong directory anyway).
+    // Do not do this for federated programs because for those, the definition is
+    // put into the cmake file (and fileConfig.srcPath is the wrong directory
+    // anyway).
     if (!fileConfig.srcPath.toString().contains("fed-gen")) {
-      // Do not convert to Unix path
+      // Do not convert to Unix path. Do not add quotes here; CMake defineString() adds them.
       arguments.add("-DLF_SOURCE_DIRECTORY=" + srcPath);
       arguments.add("-DLF_PACKAGE_DIRECTORY=" + rootPath);
-      arguments.add("-DLF_SOURCE_GEN_DIRECTORY=" + srcGenPath);
     }
+    arguments.add("-DLF_SOURCE_GEN_DIRECTORY=" + srcGenPath);
 
     // Append user-provided CMake configure definitions. These come after built-ins so they can
     // override defaults (e.g., CMAKE_BUILD_TYPE).
