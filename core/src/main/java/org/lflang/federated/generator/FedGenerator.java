@@ -244,6 +244,10 @@ public class FedGenerator {
 
   /** Compile an RTI locally for this federation using CMake. */
   private void buildRtiLocally(LFGeneratorContext context) {
+    if (context.getTargetConfig().get(NoCompileProperty.INSTANCE)) {
+      return;
+    }
+
     FederationFileConfig fileConfig = this.fileConfig;
     Path rtiSrcPath = fileConfig.getRtiSrcGenPath().resolve("core/federated/RTI");
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
