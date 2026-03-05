@@ -1,0 +1,76 @@
+// Version of ThreadedThreaded used to test tracing functions.
+target Python {
+  timeout: 2 sec,
+  tracing: true,
+}
+
+reactor Source {
+  timer t(0, 200 msec)
+  output out
+  state s = 0
+
+  reaction(t) -> out {=
+    out.set(self.s)
+    self.s += 1
+  =}
+}
+
+reactor TakeTime(bank_index = 0) {
+  input inp
+  output out
+  state handle = 0
+
+  reaction(startup) {=
+    # Construct an id string for a user trace event.
+    event_name = f"Count completed by reactor {self.bank_index}."
+
+    # Register the user trace event.
+    self.handle = self.register_user_trace_event(event_name)
+    if self.handle == 0:
+      raise Exception("Failed to register trace event.")
+  =}
+
+  reaction(inp) -> out {=
+    offset = 0
+    for i in range(2000000):
+      offset += 1
+    print(f"-------------- handle {self.handle} --------------")
+    self.tracepoint_user_event(self.handle)
+    out.set(inp.value + offset)
+  =}
+}
+
+reactor Destination(width = 4) {
+  state s = 8000000
+  state count = 0
+  input[width] inp
+
+  reaction(startup) {=
+    # Register the user value event.
+    self.handle = self.register_user_trace_event("Number of Destination invocations")
+    if self.handle == 0:
+      print("ERROR: Failed to register trace event.")
+      exit(1)
+  =}
+
+  reaction(inp) {=
+    self.count += 1
+    self.tracepoint_user_value(self.handle, self.count)
+    sum = 0
+    for i in range(self.width):
+      sum += inp[i].value
+    print(f"Sum of received: {sum}.")
+    if sum != self.s:
+      print(f"ERROR: Expected {self.s}.")
+      exit(1)
+    self.s += self.width
+  =}
+}
+
+main reactor(width = 4) {
+  a = new Source()
+  t = new[width] TakeTime()
+  (a.out)+ -> t.inp
+  b = new Destination(width=width)
+  t.out -> b.inp
+}
