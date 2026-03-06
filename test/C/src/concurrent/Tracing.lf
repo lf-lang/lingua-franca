@@ -1,7 +1,7 @@
 // Version of ThreadedThreaded used to test tracing functions.
 target C {
   timeout: 2 sec,
-  tracing: true,
+  tracing: true
 }
 
 preamble {=

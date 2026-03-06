@@ -1,7 +1,7 @@
-// Version of ThreadedThreaded used to test tracing functions.
+# Version of ThreadedThreaded used to test tracing functions.
 target Python {
   timeout: 2 sec,
-  tracing: true,
+  tracing: true
 }
 
 reactor Source {
@@ -15,7 +15,7 @@ reactor Source {
   =}
 }
 
-reactor TakeTime(bank_index = 0) {
+reactor TakeTime(bank_index=0) {
   input inp
   output out
   state handle = 0
@@ -40,7 +40,7 @@ reactor TakeTime(bank_index = 0) {
   =}
 }
 
-reactor Destination(width = 4) {
+reactor Destination(width=4) {
   state s = 8000000
   state count = 0
   input[width] inp
@@ -69,7 +69,7 @@ reactor Destination(width = 4) {
   =}
 }
 
-main reactor(width = 4) {
+main reactor(width=4) {
   a = new Source()
   t = new[width] TakeTime()
   (a.out)+ -> t.inp
