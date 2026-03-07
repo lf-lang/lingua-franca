@@ -15,7 +15,9 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Instantiation;
 import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
@@ -68,6 +70,16 @@ public class PythonExtension extends CExtension {
   @Override
   public String getNetworkBufferType() {
     return "PyObject*";
+  }
+
+  @Override
+  public void addSenderIndexParameter(Reactor sender) {
+    // Python does not support type annotations.
+  }
+
+  @Override
+  public void supplySenderIndexParameter(Instantiation inst, int idx) {
+    // Python does not support type annotations.
   }
 
   @Override
