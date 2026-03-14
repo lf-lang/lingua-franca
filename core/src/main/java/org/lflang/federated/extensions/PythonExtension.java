@@ -81,9 +81,10 @@ void lf_enqueue_port_absent_reactions(environment_t*);
 LF_PRINT_DEBUG("Adding network port absent reaction to table.");
 static long _lf_sender_idx = -1;
 if (_lf_sender_idx < 0) {
-  _lf_sender_idx = lf_py_get_parameter_as_long("__main__", self->_lf_name, 0, "sender_index");
+  // This is never instantiated in a bank, hence the instance_id is 0.
+  _lf_sender_idx = lf_py_get_nonnegative_integer_parameter("__main__", self->_lf_name, 0, "sender_index");
   if (_lf_sender_idx < 0) {
-    lf_print_error_and_exit("Failed to read sender_index parameter for network sender.");
+    lf_print_error_and_exit("Failed to read sender_index parameter for network sender. Should never happen.");
   }
 }
 port_absent_reaction[_lf_sender_idx] = &self->_lf__reaction_2;
