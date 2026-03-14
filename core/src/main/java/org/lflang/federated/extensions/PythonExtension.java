@@ -15,7 +15,10 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
+import org.lflang.lf.Instantiation;
+import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reaction;
+import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
@@ -68,6 +71,55 @@ public class PythonExtension extends CExtension {
   @Override
   public String getNetworkBufferType() {
     return "PyObject*";
+  }
+
+  @Override
+  public String outputInitializationBody() {
+    return """
+extern reaction_t* port_absent_reaction[];
+void lf_enqueue_port_absent_reactions(environment_t*);
+LF_PRINT_DEBUG("Adding network port absent reaction to table.");
+static long _lf_sender_idx = -1;
+if (_lf_sender_idx < 0) {
+  // This is never instantiated in a bank, hence the instance_id is 0.
+  _lf_sender_idx = lf_py_get_nonnegative_integer_parameter("__main__", self->_lf_name, 0, "sender_index");
+  if (_lf_sender_idx < 0) {
+    lf_print_error_and_exit("Failed to read sender_index parameter for network sender. Should never happen.");
+  }
+}
+port_absent_reaction[_lf_sender_idx] = &self->_lf__reaction_2;
+LF_PRINT_DEBUG("Added network output control reaction to table. Enqueueing it...");
+lf_enqueue_port_absent_reactions(self->base.environment);
+""";
+  }
+
+  @Override
+  public void addSenderIndexParameter(Reactor sender) {
+    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
+    senderIndexParameter.setName("sender_index");
+    var senderIndexParameterInit = LfFactory.eINSTANCE.createInitializer();
+    var senderIndexParameterInitExpr = LfFactory.eINSTANCE.createLiteral();
+    senderIndexParameterInitExpr.setLiteral("0");
+    senderIndexParameterInit.setAssign(true);
+    senderIndexParameterInit.setExpr(senderIndexParameterInitExpr);
+    senderIndexParameter.setInit(senderIndexParameterInit);
+    sender.getParameters().add(senderIndexParameter);
+  }
+
+  @Override
+  public void supplySenderIndexParameter(Instantiation inst, int idx) {
+    var senderIndex = LfFactory.eINSTANCE.createAssignment();
+    var senderIndexParameter = LfFactory.eINSTANCE.createParameter();
+    senderIndexParameter.setName("sender_index");
+    senderIndex.setLhs(senderIndexParameter);
+    var senderIndexInitializer = LfFactory.eINSTANCE.createInitializer();
+    senderIndexInitializer.setAssign(true);
+    var senderIndexInitializerExpression = LfFactory.eINSTANCE.createLiteral();
+    senderIndexInitializerExpression.setLiteral(String.valueOf(idx));
+    senderIndexInitializer.setAssign(true);
+    senderIndexInitializer.setExpr(senderIndexInitializerExpression);
+    senderIndex.setRhs(senderIndexInitializer);
+    inst.getParameters().add(senderIndex);
   }
 
   @Override
