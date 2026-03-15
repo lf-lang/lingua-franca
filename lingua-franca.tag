@@ -11205,8 +11205,8 @@
     <member kind="function">
       <type>void</type>
       <name>addSenderIndexParameter</name>
-      <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</anchorfile>
-      <anchor>a2eed694b91480e7bd8ed78962da923f2</anchor>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</anchorfile>
+      <anchor>a1c9098ad84417f2f220a48fcb1228ec1</anchor>
       <arglist>(Reactor sender)</arglist>
     </member>
     <member kind="function">
@@ -11261,15 +11261,15 @@
     <member kind="function">
       <type>String</type>
       <name>outputInitializationBody</name>
-      <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</anchorfile>
-      <anchor>a7ed73d694cd735fffd2b558758c28138</anchor>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</anchorfile>
+      <anchor>a0701cf024a6d795bc56df2855670ebf6</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
       <type>void</type>
       <name>supplySenderIndexParameter</name>
-      <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</anchorfile>
-      <anchor>a89d64b10567428d49f62326b87b6d70e</anchor>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</anchorfile>
+      <anchor>af383be034468fb6a8bab93f6c19dd166</anchor>
       <arglist>(Instantiation inst, int idx)</arglist>
     </member>
     <member kind="function" protection="protected">

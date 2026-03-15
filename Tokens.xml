@@ -6073,6 +6073,17 @@
       <Name>addSenderIndexParameter</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.federated.extensions.PythonExtension</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
+    <Anchor>a1c9098ad84417f2f220a48fcb1228ec1</Anchor>
+    <DeclaredIn>PythonExtension.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>addSenderIndexParameter</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.federated.extensions.TSExtension</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html</Path>
@@ -35950,6 +35961,17 @@
       <Name>outputInitializationBody</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.federated.extensions.PythonExtension</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
+    <Anchor>a0701cf024a6d795bc56df2855670ebf6</Anchor>
+    <DeclaredIn>PythonExtension.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>outputInitializationBody</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.federated.extensions.TSExtension</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html</Path>
@@ -42896,6 +42918,17 @@
     <Path>interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html</Path>
     <Anchor>a4d58fdc60b08933210faa1c798fad274</Anchor>
     <DeclaredIn>FedTargetExtension.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>supplySenderIndexParameter</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.extensions.PythonExtension</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
+    <Anchor>af383be034468fb6a8bab93f6c19dd166</Anchor>
+    <DeclaredIn>PythonExtension.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
