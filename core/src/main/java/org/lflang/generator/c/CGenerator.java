@@ -775,7 +775,18 @@ public class CGenerator extends GeneratorBase {
     try {
       var file = targetConfig.get(FedSetupProperty.INSTANCE);
       if (file != null) {
-        FileUtil.copyFile(fileConfig.srcFile.getParent().resolve(file), destination.resolve(file));
+        // Federated preamble is written under src-gen (e.g. src-gen/federate__c/include/...).
+        Path source = fileConfig.getSrcGenPath().resolve(file);
+        if (!source.toFile().exists()) {
+          source = fileConfig.srcFile.getParent().resolve(file);
+        }
+        Path dest = destination.resolve(file);
+        if (!source.toFile().exists()) {
+          throw new IOException("Preamble file not found: " + source);
+        }
+        if (!source.equals(dest)) {
+          FileUtil.copyFile(source, dest);
+        }
       }
     } catch (IOException e) {
       messageReporter
@@ -812,7 +823,11 @@ public class CGenerator extends GeneratorBase {
 
   /** Generate user-visible header files for all reactors instantiated. */
   private void generateHeaders() throws IOException {
-    FileUtil.deleteDirectory(fileConfig.getIncludePath());
+    // Do not wipe the include directory for federates: it contains the federated preamble
+    // (e.g. include/_federate__p_preamble.h) written by CExtension.writePreambleFile.
+    if (!targetConfig.isSet(FedSetupProperty.INSTANCE)) {
+      FileUtil.deleteDirectory(fileConfig.getIncludePath());
+    }
     FileUtil.copyFromClassPath(
         fileConfig.getRuntimeIncludePath(), fileConfig.getIncludePath(), false, true);
     for (TypeParameterizedReactor tpr :
@@ -849,8 +864,6 @@ public class CGenerator extends GeneratorBase {
           },
           this::generateTopLevelPreambles);
     }
-    FileUtil.copyDirectoryContents(
-        fileConfig.getIncludePath(), fileConfig.getSrcGenPath().resolve("include"), false);
   }
 
   /**

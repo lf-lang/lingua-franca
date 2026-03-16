@@ -486,7 +486,9 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
-  /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
+  /** Put the C preamble in a `include/_federate.name + _preamble.h` file under the federate's
+   *  src-gen directory so that the generated .c file (in src-gen/federate_name/) can find it
+   *  via #include "include/...". */
   protected final void writePreambleFile(
       FederateInstance federate,
       FederationFileConfig fileConfig,
@@ -495,7 +497,7 @@ public class CExtension implements FedTargetExtension {
       throws IOException {
     String cPreamble = makePreamble(federate, rtiConfig, messageReporter);
     String relPath = getPreamblePath(federate);
-    Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
+    Path fedPreamblePath = fileConfig.getSrcGenPath().resolve(federate.name).resolve(relPath);
     Files.createDirectories(fedPreamblePath.getParent());
     try (var writer = Files.newBufferedWriter(fedPreamblePath)) {
       writer.write(cPreamble);
