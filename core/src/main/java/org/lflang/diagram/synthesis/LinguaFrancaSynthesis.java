@@ -1671,7 +1671,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
     // If fixed port sides are active and the port is put on the opposite side, reverse it
     var reverse = getBooleanValue(FIXED_PORT_SIDE) && input != (side == PortSide.WEST);
-    _linguaFrancaShapeExtensions.addTrianglePort(port, multiport, reverse);
+    _linguaFrancaShapeExtensions.addTrianglePort(port, multiport, reverse, side);
 
     String label = lfPort.getName();
     if (!getBooleanValue(SHOW_PORT_NAMES)) {
