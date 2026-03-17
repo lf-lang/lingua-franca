@@ -53,30 +53,56 @@ dependencies {
 
 configurations {
     mwe2
-    antlrPatch
 }
 
 dependencies {
     mwe2 "org.eclipse.emf:org.eclipse.emf.mwe2.launch:$mwe2LaunchVersion"
     mwe2 "org.eclipse.xtext:org.eclipse.xtext.common.types:$xtextVersion"
     mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:$xtextVersion"
-
-    // Resolve the patched ANTLR 3.2 generator from Maven Central so that
-    // the MWE2 workflow finds it locally and never hits the unreliable
-    // download.itemis.com URLs hardcoded in Xtext's AntlrToolFacade.
-    antlrPatch('org.xtext:antlr-generator:3.2.1') { transitive = false }
 }
 
+// Ensure the patched ANTLR 3.2 jar that Xtext's AntlrToolFacade expects is
+// present before the MWE2 workflow runs, avoiding the unreliable download from
+// download.itemis.com.  Lookup order:
+//   1. Already at core/.antlr-generator-3.2.0-patch.jar (previous build / CI cache)
+//   2. Committed copy at gradle/antlr-generator-3.2.0-patch.jar
+//   3. Download from itemis (and cache for next time)
 tasks.register('provideAntlrPatchJar') {
-    inputs.files configurations.antlrPatch
     def targetFile = file('.antlr-generator-3.2.0-patch.jar')
+    def cachedFile = rootProject.file('gradle/antlr-generator-3.2.0-patch.jar')
     outputs.file targetFile
     doLast {
-        copy {
-            from configurations.antlrPatch.singleFile
-            into projectDir
-            rename { '.antlr-generator-3.2.0-patch.jar' }
+        if (targetFile.exists()) return
+        if (cachedFile.exists()) {
+            copy {
+                from cachedFile
+                into projectDir
+                rename { '.antlr-generator-3.2.0-patch.jar' }
+            }
+            return
         }
+        def urls = [
+            'https://download.itemis.com/antlr-generator-3.2.0-patch.jar',
+            'http://download.itemis.com/antlr-generator-3.2.0-patch.jar'
+        ]
+        for (url in urls) {
+            try {
+                ant.get(src: url, dest: targetFile, verbose: true)
+                copy {
+                    from targetFile
+                    into cachedFile.parentFile
+                    rename { cachedFile.name }
+                }
+                return
+            } catch (Exception e) {
+                logger.warn("Failed to download from ${url}: ${e.message}")
+            }
+        }
+        throw new GradleException(
+            "Could not obtain antlr-generator-3.2.0-patch.jar.\n" +
+            "Download it manually from https://download.itemis.com/antlr-generator-3.2.0-patch.jar\n" +
+            "and place it at ${cachedFile.absolutePath}"
+        )
     }
 }
 
