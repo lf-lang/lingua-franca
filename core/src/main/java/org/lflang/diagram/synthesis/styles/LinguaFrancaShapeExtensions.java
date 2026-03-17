@@ -829,8 +829,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
   }
 
   /** Creates the visual representation of a reactor port, rotated for the given side. */
-  public KPolygon addTrianglePort(
-      KPort port, boolean multiport, boolean reverse, PortSide side) {
+  public KPolygon addTrianglePort(KPort port, boolean multiport, boolean reverse, PortSide side) {
     port.setSize(8, 8);
 
     // Create triangle port
@@ -858,12 +857,10 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       } else {
         pointsToAdd =
             List.of(
-                _kRenderingExtensions.createKPosition(
-                    LEFT, 0, 0, pointDown ? TOP : BOTTOM, 0, 0),
+                _kRenderingExtensions.createKPosition(LEFT, 0, 0, pointDown ? TOP : BOTTOM, 0, 0),
                 _kRenderingExtensions.createKPosition(
                     LEFT, 0, 0.5f, pointDown ? BOTTOM : TOP, 0, 0),
-                _kRenderingExtensions.createKPosition(
-                    RIGHT, 0, 0, pointDown ? TOP : BOTTOM, 0, 0));
+                _kRenderingExtensions.createKPosition(RIGHT, 0, 0, pointDown ? TOP : BOTTOM, 0, 0));
       }
     } else {
       if (multiport) {
@@ -872,8 +869,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
         // between parallel connections
         pointsToAdd =
             List.of(
-                _kRenderingExtensions.createKPosition(
-                    reverse ? RIGHT : LEFT, 0, 0, TOP, 0.6f, 0),
+                _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0.6f, 0),
                 _kRenderingExtensions.createKPosition(
                     reverse ? LEFT : RIGHT, 1.2f, 0, TOP, 0, 0.5f),
                 _kRenderingExtensions.createKPosition(
@@ -881,12 +877,9 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       } else {
         pointsToAdd =
             List.of(
-                _kRenderingExtensions.createKPosition(
-                    reverse ? RIGHT : LEFT, 0, 0, TOP, 0, 0),
-                _kRenderingExtensions.createKPosition(
-                    reverse ? LEFT : RIGHT, 0, 0, TOP, 0, 0.5f),
-                _kRenderingExtensions.createKPosition(
-                    reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0, 0));
+                _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0, 0),
+                _kRenderingExtensions.createKPosition(reverse ? LEFT : RIGHT, 0, 0, TOP, 0, 0.5f),
+                _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0, 0));
       }
     }
     trianglePort.getPoints().addAll(pointsToAdd);
