@@ -64,7 +64,7 @@ dependencies {
     // Resolve the patched ANTLR 3.2 generator from Maven Central so that
     // the MWE2 workflow finds it locally and never hits the unreliable
     // download.itemis.com URLs hardcoded in Xtext's AntlrToolFacade.
-    antlrPatch 'org.xtext:antlr-generator:3.2.1'
+    antlrPatch('org.xtext:antlr-generator:3.2.1') { transitive = false }
 }
 
 tasks.register('provideAntlrPatchJar') {
