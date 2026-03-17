@@ -825,6 +825,11 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
   /** Creates the visual representation of a reactor port. */
   public KPolygon addTrianglePort(KPort port, boolean multiport, boolean reverse) {
+    return addTrianglePort(port, multiport, reverse, null);
+  }
+
+  /** Creates the visual representation of a reactor port, rotated for the given side. */
+  public KPolygon addTrianglePort(KPort port, boolean multiport, boolean reverse, PortSide side) {
     port.setSize(8, 8);
 
     // Create triangle port
@@ -838,21 +843,44 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     _kRenderingExtensions.setBackground(trianglePort, background);
 
     List<KPosition> pointsToAdd;
-    if (multiport) {
-      // Compensate for line width by making triangle smaller
-      // Do not adjust by port size because this will affect port distribution and cause offsets
-      // between parallel connections
-      pointsToAdd =
-          List.of(
-              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0.6f, 0),
-              _kRenderingExtensions.createKPosition(reverse ? LEFT : RIGHT, 1.2f, 0, TOP, 0, 0.5f),
-              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0.6f, 0));
+    if (side == PortSide.NORTH || side == PortSide.SOUTH) {
+      boolean pointDown = (side == PortSide.SOUTH) != reverse;
+      if (multiport) {
+        pointsToAdd =
+            List.of(
+                _kRenderingExtensions.createKPosition(
+                    LEFT, 0.6f, 0, pointDown ? TOP : BOTTOM, 0, 0),
+                _kRenderingExtensions.createKPosition(
+                    LEFT, 0, 0.5f, pointDown ? BOTTOM : TOP, 1.2f, 0),
+                _kRenderingExtensions.createKPosition(
+                    RIGHT, 0.6f, 0, pointDown ? TOP : BOTTOM, 0, 0));
+      } else {
+        pointsToAdd =
+            List.of(
+                _kRenderingExtensions.createKPosition(LEFT, 0, 0, pointDown ? TOP : BOTTOM, 0, 0),
+                _kRenderingExtensions.createKPosition(
+                    LEFT, 0, 0.5f, pointDown ? BOTTOM : TOP, 0, 0),
+                _kRenderingExtensions.createKPosition(RIGHT, 0, 0, pointDown ? TOP : BOTTOM, 0, 0));
+      }
     } else {
-      pointsToAdd =
-          List.of(
-              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0, 0),
-              _kRenderingExtensions.createKPosition(reverse ? LEFT : RIGHT, 0, 0, TOP, 0, 0.5f),
-              _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0, 0));
+      if (multiport) {
+        // Compensate for line width by making triangle smaller
+        // Do not adjust by port size because this will affect port distribution and cause offsets
+        // between parallel connections
+        pointsToAdd =
+            List.of(
+                _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0.6f, 0),
+                _kRenderingExtensions.createKPosition(
+                    reverse ? LEFT : RIGHT, 1.2f, 0, TOP, 0, 0.5f),
+                _kRenderingExtensions.createKPosition(
+                    reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0.6f, 0));
+      } else {
+        pointsToAdd =
+            List.of(
+                _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, TOP, 0, 0),
+                _kRenderingExtensions.createKPosition(reverse ? LEFT : RIGHT, 0, 0, TOP, 0, 0.5f),
+                _kRenderingExtensions.createKPosition(reverse ? RIGHT : LEFT, 0, 0, BOTTOM, 0, 0));
+      }
     }
     trianglePort.getPoints().addAll(pointsToAdd);
     return trianglePort;

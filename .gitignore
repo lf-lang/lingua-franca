@@ -168,6 +168,8 @@ gradle-app.setting
 
 ### xtext artifaccts
 *.jar
+# Allow the committed copy of the Xtext ANTLR patch jar (see core/build.gradle)
+!gradle/antlr-generator-3.2.0-patch.jar
 core/model/
 
 # Exclude all build directories except test/Python/build for testing purposes
