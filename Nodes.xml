@@ -1528,6 +1528,11 @@
               <Anchor>a5d9d5439819231a1db21e90020907a8d</Anchor>
              </Node>
              <Node>
+              <Name>addTrianglePort</Name>
+              <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
+              <Anchor>aa1593c947da2e20c267aa88ba23bfe0f</Anchor>
+             </Node>
+             <Node>
               <Name>addWatchdogFigureAndPorts</Name>
               <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
               <Anchor>a927195e0fd7d7922ef1ad4c5365bfece</Anchor>
@@ -26878,6 +26883,11 @@
                         <Name>addTrianglePort</Name>
                         <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
                         <Anchor>a5d9d5439819231a1db21e90020907a8d</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>addTrianglePort</Name>
+                        <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
+                        <Anchor>aa1593c947da2e20c267aa88ba23bfe0f</Anchor>
                        </Node>
                        <Node>
                         <Name>addWatchdogFigureAndPorts</Name>

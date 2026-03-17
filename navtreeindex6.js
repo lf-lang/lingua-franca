@@ -1,5 +1,6 @@
 var NAVTREEINDEX6 =
 {
+"classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#adcee3dc326f697516160c848c3732a5f":[4,1,11,25],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#adfe6453339f346604a253fad4c9d1ed6":[4,1,11,10],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html":[4,1,12],
 "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a0058591976e037cc881a3ab17c028e7e":[4,1,12,6],
@@ -248,6 +249,5 @@ var NAVTREEINDEX6 =
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FedUtils.html#ae2f67501c67bc18077b9d6d652144a26":[4,3,18,0],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html":[4,3,9],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a040083692a690e2a5bddf771a7b1129a":[4,3,9,37],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a05f0aa5951980e38175fe14e789758e6":[4,3,9,2],
-"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f119bf8898184d899461ea0c62116bd":[4,3,9,32]
+"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a05f0aa5951980e38175fe14e789758e6":[4,3,9,2]
 };

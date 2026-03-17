@@ -9897,6 +9897,13 @@
       <arglist>(KPort port, boolean multiport, boolean reverse)</arglist>
     </member>
     <member kind="function">
+      <type>KPolygon</type>
+      <name>addTrianglePort</name>
+      <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</anchorfile>
+      <anchor>aa1593c947da2e20c267aa88ba23bfe0f</anchor>
+      <arglist>(KPort port, boolean multiport, boolean reverse, PortSide side)</arglist>
+    </member>
+    <member kind="function">
       <type>Pair&lt; KPort, KPort &gt;</type>
       <name>addWatchdogFigureAndPorts</name>
       <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</anchorfile>

@@ -133,6 +133,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:a5df5097216fe5391bc1ec60d4bdd0a07"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates the visual representation of a timer node.  <br /></td></tr>
 <tr class="memitem:a5d9d5439819231a1db21e90020907a8d" id="r_a5d9d5439819231a1db21e90020907a8d"><td class="memItemLeft">KPolygon&#160;</td><td class="memItemRight"><a class="el" href="#a5d9d5439819231a1db21e90020907a8d">addTrianglePort</a> (KPort port, boolean multiport, boolean reverse)</td></tr>
 <tr class="memdesc:a5d9d5439819231a1db21e90020907a8d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates the visual representation of a reactor port.  <br /></td></tr>
+<tr class="memitem:aa1593c947da2e20c267aa88ba23bfe0f" id="r_aa1593c947da2e20c267aa88ba23bfe0f"><td class="memItemLeft">KPolygon&#160;</td><td class="memItemRight"><a class="el" href="#aa1593c947da2e20c267aa88ba23bfe0f">addTrianglePort</a> (KPort port, boolean multiport, boolean reverse, PortSide side)</td></tr>
+<tr class="memdesc:aa1593c947da2e20c267aa88ba23bfe0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates the visual representation of a reactor port, rotated for the given side.  <br /></td></tr>
 <tr class="memitem:a927195e0fd7d7922ef1ad4c5365bfece" id="r_a927195e0fd7d7922ef1ad4c5365bfece"><td class="memItemLeft">Pair&lt; KPort, KPort &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a927195e0fd7d7922ef1ad4c5365bfece">addWatchdogFigureAndPorts</a> (KNode node)</td></tr>
 <tr class="memdesc:a927195e0fd7d7922ef1ad4c5365bfece"><td class="mdescLeft">&#160;</td><td class="mdescRight">Creates the rectangular node with text and ports.  <br /></td></tr>
 <tr class="memitem:a5661b8e2f017ad87ecf1a4fa87295fcf" id="r_a5661b8e2f017ad87ecf1a4fa87295fcf"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1diagram_1_1synthesis_1_1AbstractSynthesisExtensions.html#a5661b8e2f017ad87ecf1a4fa87295fcf">getBooleanValue</a> (SynthesisOption option)</td></tr>
@@ -506,7 +508,7 @@ Package Functions</h2></td></tr>
 </div>
 </div>
 <a id="a5d9d5439819231a1db21e90020907a8d" name="a5d9d5439819231a1db21e90020907a8d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d9d5439819231a1db21e90020907a8d">&#9670;&#160;</a></span>addTrianglePort()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a5d9d5439819231a1db21e90020907a8d">&#9670;&#160;</a></span>addTrianglePort() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -530,6 +532,39 @@ Package Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Creates the visual representation of a reactor port. </p>
+
+</div>
+</div>
+<a id="aa1593c947da2e20c267aa88ba23bfe0f" name="aa1593c947da2e20c267aa88ba23bfe0f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa1593c947da2e20c267aa88ba23bfe0f">&#9670;&#160;</a></span>addTrianglePort() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">KPolygon org.lflang.diagram.synthesis.styles.LinguaFrancaShapeExtensions.addTrianglePort </td>
+          <td>(</td>
+          <td class="paramtype">KPort</td>          <td class="paramname"><span class="paramname"><em>port</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>multiport</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>reverse</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">PortSide</td>          <td class="paramname"><span class="paramname"><em>side</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Creates the visual representation of a reactor port, rotated for the given side. </p>
 
 </div>
 </div>

@@ -1,5 +1,6 @@
 var NAVTREEINDEX22 =
 {
+"classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#a27377b800bc57a612c04de9868d27b67":[4,8,36,17],
 "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#a28c9f1fdc57f9826c56b1bb335516259":[4,8,36,27],
 "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#a349bc196ce85c7b24927a28b0db751b0":[4,8,36,6],
 "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#a38341fb78c02a6b7f767be18683fc4ce":[4,8,36,15],
@@ -248,6 +249,5 @@ var NAVTREEINDEX22 =
 "enumorg_1_1lflang_1_1TimeUnit.html#a6adbf99de329a4baff886bd3328703e1":[5,0,0,0,28,2],
 "enumorg_1_1lflang_1_1TimeUnit.html#a718f1b5cdb649b473e3c2d88b7c5cd5b":[5,0,0,0,28,3],
 "enumorg_1_1lflang_1_1TimeUnit.html#a7e916b0d93a24a38257cdda4bd4f02c5":[5,0,0,0,28,10],
-"enumorg_1_1lflang_1_1TimeUnit.html#a8a139d13b63c5ab2fc6d7a9441d07259":[5,0,0,0,28,15],
-"enumorg_1_1lflang_1_1TimeUnit.html#aa615232fbbd2595277da3546a07af58f":[5,0,0,0,28,8]
+"enumorg_1_1lflang_1_1TimeUnit.html#a8a139d13b63c5ab2fc6d7a9441d07259":[5,0,0,0,28,15]
 };

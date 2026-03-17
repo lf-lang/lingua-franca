@@ -1,5 +1,6 @@
 var NAVTREEINDEX7 =
 {
+"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f119bf8898184d899461ea0c62116bd":[4,3,9,32],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f800b9c19e9a05c6666e9d09547a50a":[4,3,9,21],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a1823e46b5758701c421f719ee9ac5b40":[4,3,9,24],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a241c0d4aa022944a3bbf5b15de8b36c1":[4,3,9,23],
@@ -248,6 +249,5 @@ var NAVTREEINDEX7 =
 "classorg_1_1lflang_1_1generator_1_1ActionInstance.html#ac3f6ecf720f118e6a7fd6eac7d78ceb0":[4,6,0,9],
 "classorg_1_1lflang_1_1generator_1_1ActionInstance.html#af2c6562e37e416db19d4aaba524620dc":[4,6,0,0],
 "classorg_1_1lflang_1_1generator_1_1ActionInstance.html#afe6d1d1335550edf242f39f976353787":[4,6,0,2],
-"classorg_1_1lflang_1_1generator_1_1Argument.html":[4,4,0],
-"classorg_1_1lflang_1_1generator_1_1Argument.html#a404f9d87d34be5688399b628dfaaf8a8":[4,4,0,0]
+"classorg_1_1lflang_1_1generator_1_1Argument.html":[4,4,0]
 };

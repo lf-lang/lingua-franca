@@ -152,6 +152,7 @@ var group__Diagram =
       [ "addTextButton", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a76aa2ba4012be90aa4f7438a35044e25", null ],
       [ "addTimerFigure", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a5df5097216fe5391bc1ec60d4bdd0a07", null ],
       [ "addTrianglePort", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a5d9d5439819231a1db21e90020907a8d", null ],
+      [ "addTrianglePort", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#aa1593c947da2e20c267aa88ba23bfe0f", null ],
       [ "addWatchdogFigureAndPorts", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a927195e0fd7d7922ef1ad4c5365bfece", null ],
       [ "associateWith", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a5ad42c0b0087e4e49fd41619417235d4", null ],
       [ "getBooleanValue", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a5661b8e2f017ad87ecf1a4fa87295fcf", null ],

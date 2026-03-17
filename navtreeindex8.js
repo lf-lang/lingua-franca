@@ -1,5 +1,6 @@
 var NAVTREEINDEX8 =
 {
+"classorg_1_1lflang_1_1generator_1_1Argument.html#a404f9d87d34be5688399b628dfaaf8a8":[4,4,0,0],
 "classorg_1_1lflang_1_1generator_1_1Argument.html#a5abdf7ecf22c22ea6bb3dca40a913f0f":[4,4,0,1],
 "classorg_1_1lflang_1_1generator_1_1CodeBuilder.html":[4,9,12],
 "classorg_1_1lflang_1_1generator_1_1CodeBuilder.html#a17edb043707364e33c97b96539e478b5":[4,9,12,4],
@@ -248,6 +249,5 @@ var NAVTREEINDEX8 =
 "classorg_1_1lflang_1_1generator_1_1ModeInstance.html#ab29bfc4f3c55758936059ba704ed5271":[4,6,2,11],
 "classorg_1_1lflang_1_1generator_1_1ModeInstance.html#ab31ab42c92d481cdad2473f044dbc400":[4,6,2,27],
 "classorg_1_1lflang_1_1generator_1_1ModeInstance.html#abec9d7ed1ff90854920739f7cc0598c6":[4,6,2,12],
-"classorg_1_1lflang_1_1generator_1_1ModeInstance.html#ac04ad303921e771e9f09615137b2608f":[4,6,2,21],
-"classorg_1_1lflang_1_1generator_1_1ModeInstance.html#ac379d6bf5321bb1fa1cbc1e8db1f4009":[4,6,2,22]
+"classorg_1_1lflang_1_1generator_1_1ModeInstance.html#ac04ad303921e771e9f09615137b2608f":[4,6,2,21]
 };
