@@ -67,10 +67,17 @@ dependencies {
     antlrPatch 'org.xtext:antlr-generator:3.2.1'
 }
 
-tasks.register('provideAntlrPatchJar', Copy) {
-    from configurations.antlrPatch
-    into projectDir
-    rename { '.antlr-generator-3.2.0-patch.jar' }
+tasks.register('provideAntlrPatchJar') {
+    inputs.files configurations.antlrPatch
+    def targetFile = file('.antlr-generator-3.2.0-patch.jar')
+    outputs.file targetFile
+    doLast {
+        copy {
+            from configurations.antlrPatch.singleFile
+            into projectDir
+            rename { '.antlr-generator-3.2.0-patch.jar' }
+        }
+    }
 }
 
 tasks.register('generateXtextLanguage', JavaExec) {
