@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
@@ -489,11 +490,12 @@ public class CExtension implements FedTargetExtension {
   /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
   protected final void writePreambleFile(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
-    String cPreamble = makePreamble(federate, rtiConfig, messageReporter);
+    String cPreamble = makePreamble(federate, allFederates, rtiConfig, messageReporter);
     String relPath = getPreamblePath(federate);
     Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
     Files.createDirectories(fedPreamblePath.getParent());
@@ -509,11 +511,12 @@ public class CExtension implements FedTargetExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
-    writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
+    writePreambleFile(federate, allFederates, fileConfig, rtiConfig, messageReporter);
     var includes = new CodeBuilder();
     includes.pr(
         """
@@ -539,7 +542,10 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate the preamble to setup federated execution in C. */
   protected String makePreamble(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
 
     var code = new CodeBuilder();
 
@@ -609,7 +615,7 @@ public class CExtension implements FedTargetExtension {
             """
                 .formatted(numOfSTAAOffsets)));
 
-    code.pr(generateExecutablePreamble(federate, rtiConfig, messageReporter));
+    code.pr(generateExecutablePreamble(federate, allFederates, rtiConfig, messageReporter));
 
     code.pr(generateSTAAInitialization(federate));
 
@@ -663,12 +669,15 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate code for an executed preamble. */
   private String generateExecutablePreamble(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
 
     code.pr(generateCodeForPhysicalActions(federate, messageReporter));
 
-    code.pr(generateCodeToInitializeFederate(federate, rtiConfig, messageReporter));
+    code.pr(generateCodeToInitializeFederate(federate, allFederates, rtiConfig, messageReporter));
     return """
            void _lf_executable_preamble(environment_t* env) {
            %s
@@ -698,7 +707,10 @@ public class CExtension implements FedTargetExtension {
    * @return The generated code
    */
   private String generateCodeToInitializeFederate(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// ***** Start initializing the federated execution. */");
     code.pr(
@@ -778,6 +790,14 @@ public class CExtension implements FedTargetExtension {
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
             "}"));
+    
+    var transientLines = new ArrayList<String>();
+    transientLines.add("// Initialize the transients array: true if transient, false otherwise.");
+    for (var fed : allFederates) {
+      transientLines.add("_fed.transients[" + fed.id + "] = " + fed.isTransient + ";");
+    }
+    code.pr(String.join("\n", transientLines));
+    
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
     if (clockSyncOptions.testOffset != null) {
