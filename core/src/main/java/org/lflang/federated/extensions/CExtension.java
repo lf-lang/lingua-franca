@@ -824,9 +824,18 @@ public class CExtension implements FedTargetExtension {
                   + " lf_handle_p2p_connections_from_federates, env);"));
     }
 
+    code.pr("// Connect to persistent federates only");
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-      code.pr("lf_connect_to_federate(" + remoteFederate.id + ");");
+      if (!remoteFederate.isTransient)
+        code.pr("lf_connect_to_federate(" + remoteFederate.id + ");");
     }
+    code.pr("// Register Address Request of transients");
+    // for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
+    //   if (remoteFederate.isTransient) {
+    //     ...
+    //   }
+    // }
+
     return code.getCode();
   }
 
