@@ -770,12 +770,20 @@ public class CExtension implements FedTargetExtension {
     // thread without requiring a mutex lock.
     var numberOfInboundConnections = federate.inboundP2PConnections.size();
     var numberOfOutboundConnections = federate.outboundP2PConnections.size();
+    var numberOfInboundConnectionsToTransients =
+        (int) federate.inboundP2PConnections.stream().filter(f -> f.isTransient).count();
+    var numberOfOutboundConnectionsToTransients =
+        (int) federate.outboundP2PConnections.stream().filter(f -> f.isTransient).count();
 
     code.pr(
         String.join(
             "\n",
             "_fed.number_of_inbound_p2p_connections = " + numberOfInboundConnections + ";",
-            "_fed.number_of_outbound_p2p_connections = " + numberOfOutboundConnections + ";"));
+            "_fed.number_of_outbound_p2p_connections = " + numberOfOutboundConnections + ";",
+            "_fed.number_of_inbound_p2p_connections_to_transients = "
+                + numberOfInboundConnectionsToTransients + ";",
+            "_fed.number_of_outbound_p2p_connections_to_transients = "
+                + numberOfOutboundConnectionsToTransients + ";"));
     code.pr(
         String.join(
             "\n",
@@ -837,24 +845,27 @@ public class CExtension implements FedTargetExtension {
               "// Connect to remote federates for each physical connection or decentralized"
                   + " connection.",
               "// This is done in a separate thread because this thread will call",
-              "// lf_connect_to_federate for each outbound connection at the same",
+              "// lf_connect_to_federate for each outbound persistent connection at the same",
               "// time that the new thread is listening for such connections for inbound",
-              "// connections. The thread will live until all connections have been established.",
-              "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
-                  + " lf_handle_p2p_connections_from_federates, env);"));
+              "// connections. The thread will start with persistent connections. In case of",
+              "// inbound connections to transients, the thread will stay alive until the end.",
+              "lf_thread_create(&_fed.inbound_p2p_handling_thread_id," 
+                  + " lf_handle_p2p_connections_from_federates, env);"
+          ));
     }
-
+   
     code.pr("// Connect to persistent federates only");
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
       if (!remoteFederate.isTransient)
         code.pr("lf_connect_to_federate(" + remoteFederate.id + ");");
     }
-    code.pr("// Register Address Request of transients");
-    // for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-    //   if (remoteFederate.isTransient) {
-    //     ...
-    //   }
-    // }
+
+    if (numberOfOutboundConnectionsToTransients > 0) {
+      code.pr("// Register Address Request of transients");
+      code.pr("// Create the thread that will manage outbound connections to transients");
+      code.pr("lf_thread_create(&_fed.outbound_p2p_transients_handling_thread_id,"
+                  + " lf_handle_p2p_connections_to_transients, env);");
+    }
 
     return code.getCode();
   }
