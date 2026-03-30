@@ -419,6 +419,22 @@ public class FedLauncherGenerator {
 
       commands.add("                        -tls " + certPath + " " + keyPath + " \\");
     }
+
+    // Adds the -tf argument to the RTI command followed by the transient_federates.config file that lists
+    // all the transient federates in the federation
+    if (transientFederatesNumber > 0) {
+      String transientConfigPath;
+      if (isRemote) {
+        transientConfigPath =
+            SSTGenerator.getRemoteBasePath(fileConfig, "RTI") + "/transient_federates.config";
+      } else {
+        transientConfigPath =
+            fileConfig.getRtiSrcGenPath().resolve("transient_federates.config").toString();
+      }
+
+      commands.add("                        -tf " + transientConfigPath + " \\");
+    }
+
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
     }

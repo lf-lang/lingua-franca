@@ -162,6 +162,9 @@ public class FedGenerator {
       instantiation.setWidthSpec(null);
     }
 
+    // Create a mapping of port names to the IDs of transient downstream federates connected to them.
+    createPortToDstTransientFederateMapping();
+    
     // Find all the connections between federates.
     // For each connection between federates, replace it in the
     // AST with an action (which inherits the delay) and three reactions.
@@ -229,6 +232,9 @@ public class FedGenerator {
         == CommunicationMode.TLS) {
       TLSGenerator.setupTLS(fileConfig, federates, messageReporter, context);
     }
+
+    // Generate the transient config file that lists all transient federates in this federation.
+    SSTGenerator.generateTransientFederateConfig(fileConfig, federates);
 
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
@@ -758,6 +764,24 @@ public class FedGenerator {
       }
     }
     return federateInstances;
+  }
+  /**
+   * Populate each federate's {@code portNameTransientFedIdsMapping}: a map from output port name to
+   * the list of IDs of transient downstream federates connected to that port. This mapping is used
+   * during code generation to emit the per-federate transient-destination tables.
+   */
+  private void createPortToDstTransientFederateMapping() {
+    for (var federates : federatesByInstantiation.values()) {
+      for (var federate : federates) {
+        for ( var connection: federate.connections) {
+          if (federate == connection.getSrcFederate() && connection.getDstFederate().isTransient) {
+            var portName = connection.getSourcePortInstance().getName();
+            var dstFedId = connection.dstFederate.id;
+            federate.portNameTransientFedIdsMapping.computeIfAbsent(portName, k-> new ArrayList<>()).add(dstFedId);
+          }
+        }
+      }
+    }
   }
 
   /**

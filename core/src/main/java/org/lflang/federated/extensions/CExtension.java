@@ -753,6 +753,23 @@ public class CExtension implements FedTargetExtension {
     // Set indicator variable that specifies whether the federate is transient or not.
     code.pr("_fed.is_transient = " + federate.isTransient + ";");
 
+    // Emit initialization code for _fed.port_to_transient_feds_mapping: for each output port,
+    // record the IDs of transient downstream federates so the runtime can look them up. 
+    int keyCount = 0;
+    for (String portName: federate.portNameTransientFedIdsMapping.keySet()) {
+      code.pr(String.format("_fed.port_to_transient_feds_mapping[%d].port_name = \"%s\" ;", keyCount, portName));
+      int numTransients = federate.portNameTransientFedIdsMapping.get(portName).size();
+      code.pr(String.format("_fed.port_to_transient_feds_mapping[%d].transient_fed_id = (uint16_t*)malloc(sizeof(uint16_t) * %d);", keyCount, numTransients));
+      int idCount = 0;
+      for(int fedId: federate.portNameTransientFedIdsMapping.get(portName)) {
+        code.pr(String.format("_fed.port_to_transient_feds_mapping[%d].transient_fed_id[%d] = %d;", keyCount, idCount, fedId));
+        idCount += 1;
+      }
+      code.pr(String.format("_fed.port_to_transient_feds_mapping[%d].num_of_transients = %d;", keyCount, idCount));
+      keyCount += 1;
+    }
+    code.pr(String.format("_fed.port_map_size = %d;",keyCount));
+
     // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic
     // to be processed in a separate
     // thread without requiring a mutex lock.

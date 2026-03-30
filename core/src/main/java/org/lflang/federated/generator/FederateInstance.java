@@ -266,6 +266,9 @@ public class FederateInstance {
   /** Keep a map of network actions to their associated instantiations */
   public HashMap<Action, Instantiation> networkActionToInstantiation = new HashMap<>();
 
+  /** Map from each output port name to the IDs of transient downstream federates connected to it. */
+  public HashMap<String, List<Integer>> portNameTransientFedIdsMapping = new HashMap<>();
+
   /** An message reporter */
   private final MessageReporter messageReporter;
 
