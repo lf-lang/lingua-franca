@@ -304,6 +304,10 @@ public class FedLauncherGenerator {
             + " tmux: 2)\"",
         "        echo \"  -h, --help      Show this help message\"",
         "        echo \"\"",
+        "        echo \"tmux: This launcher enables mouse mode (pane focus, resize, scroll).\"",
+        "        echo \"      To copy text to the clipboard, hold Shift or Function while dragging to select\"",
+        "        echo \"      (most terminals), or press Ctrl+b then [ to enter copy mode.\"",
+        "        echo \"\"",
         "        echo \"All other arguments are forwarded to each federate.\"",
         "        echo \"For available federate parameters, run a federate binary with --help.\"",
         "        exit 0",
@@ -798,7 +802,7 @@ public class FedLauncherGenerator {
     // Assign pane titles. The RTI title doubles as an instruction banner.
     lines.add(
         "    tmux select-pane -t \"$RTI_PANE\" -T"
-            + " \"RTI — Ctrl+C to stop | Ctrl+B d to detach and kill\"");
+            + " \"RTI — Ctrl+C stop | C-b d detach | Shift or Fn+drag: copy\"");
     for (int i = 0; i < numFeds; i++) {
       lines.add(
           "    tmux select-pane -t \"$FED_PANE_" + i + "\" -T \"" + federates.get(i).name + "\"");
@@ -833,6 +837,14 @@ public class FedLauncherGenerator {
       }
       lines.add("    tmux send-keys -t \"$FED_PANE_" + i + "\" \"" + fedCmd + "\" C-m");
     }
+    lines.add("");
+
+    // Mouse mode is enabled above so tmux handles the mouse; Shift+drag (or copy mode) is needed
+    // for system clipboard selection in most terminals.
+    lines.add("    echo \"\"");
+    lines.add(
+        "    echo \"tmux: Hold Shift or Function while dragging to select text for the clipboard, or Ctrl+b"
+            + " [ for copy mode.\"");
     lines.add("");
 
     // Focus the RTI pane and attach to the session.
