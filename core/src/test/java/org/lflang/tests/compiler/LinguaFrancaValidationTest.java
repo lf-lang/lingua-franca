@@ -1085,14 +1085,14 @@ public class LinguaFrancaValidationTest {
     Model model =
         parseWithoutError(
             """
-                target C
-                reactor Foo {}
-                federated reactor {
-                  @transient
-                  foo = new Foo()
-                  bar = new Foo()
-                }
-                """);
+            target C
+            reactor Foo {}
+            federated reactor {
+              @transient
+              foo = new Foo()
+              bar = new Foo()
+            }
+            """);
     validator.assertNoIssues(model);
   }
 
@@ -1101,10 +1101,10 @@ public class LinguaFrancaValidationTest {
     Model model =
         parseWithoutError(
             """
-                target C
-                @transient
-                main reactor {}
-                """);
+            target C
+            @transient
+            main reactor {}
+            """);
     validator.assertError(
         model,
         LfPackage.eINSTANCE.getAttribute(),
@@ -1117,13 +1117,13 @@ public class LinguaFrancaValidationTest {
     Model model =
         parseWithoutError(
             """
-                target C
-                reactor R {
-                  @transient
-                  input x: int
-                }
-                main reactor {}
-                """);
+            target C
+            reactor R {
+              @transient
+              input x: int
+            }
+            main reactor {}
+            """);
     validator.assertError(
         model,
         LfPackage.eINSTANCE.getAttribute(),
