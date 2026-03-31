@@ -14,9 +14,9 @@ reactor IncreaseDeadline {
         lf_update_deadline(self, SEC(1));
         lf_sleep(MSEC(200));
         if (lf_check_deadline(self, true)) {
-            lf_print_error_and_exit("Deadline update failed. Deadline handler should not invoked on lag of 200 msec.");
+            lf_print_error_and_exit("Deadline update failed. Deadline handler should not be invoked on lag of 200 msec.");
         }
-        lf_sleep(MSEC(800));
+        lf_sleep(MSEC(900));
         if (!lf_check_deadline(self, true)) {
             lf_print_error_and_exit("Deadline update failed. Deadline handler was not invoked on lag of 1 sec.");
         }

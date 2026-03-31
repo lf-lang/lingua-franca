@@ -416,11 +416,9 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
     } catch (RuntimeException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
       throw e;
     }
 
@@ -564,6 +562,11 @@ public class CGenerator extends GeneratorBase {
 
     // In case we are in Eclipse, make sure the generated code is visible.
     GeneratorUtils.refreshProject(resource, context.getMode());
+  }
+
+  private static String formatExceptionMessage(Throwable e) {
+    String message = e.getMessage();
+    return message == null || message.isBlank() ? e.getClass().getName() : message;
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {

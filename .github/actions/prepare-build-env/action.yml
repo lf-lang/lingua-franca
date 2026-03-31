@@ -13,6 +13,11 @@ runs:
       with:
         distribution: temurin
         java-version: 17
+    - name: Cache Xtext ANTLR generator
+      uses: actions/cache@v4
+      with:
+        path: core/.antlr-generator-3.2.0-patch.jar
+        key: antlr-generator-3.2.0-patch
     - name: Gradle Build Action
       uses: gradle/gradle-build-action@v2.8.0
       with:
