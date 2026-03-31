@@ -699,19 +699,6 @@ public class LFValidator extends BaseLFValidator {
         error("Variable-width banks are not supported.", Literals.INSTANTIATION__WIDTH_SPEC);
       }
     }
-
-    // If the Instantiation is annotated as '@transient', then:
-    // - The container has to be a federated reactor,
-    // - The coordination is centralized,
-    // - And the target is C.
-    if (AttributeUtils.isTransient(instantiation)) {
-      Reactor container = (Reactor) instantiation.eContainer();
-      if (!container.isFederated()) {
-        error(
-            "Only federates can be transients: " + instantiation.getReactorClass().getName(),
-            Literals.INSTANTIATION__REACTOR_CLASS);
-      }
-    }
   }
 
   @Check(CheckType.FAST)
@@ -1366,6 +1353,8 @@ public class LFValidator extends BaseLFValidator {
       checkMaxWaitAttribute(attr);
     } else if (name.equals("absent_after")) {
       checkAbsentAfterAttribute(attr);
+    } else if (name.equals("transient")) {
+      checkTransientAttribute(attr);
     }
   }
 
@@ -1404,6 +1393,25 @@ public class LFValidator extends BaseLFValidator {
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
+    }
+  }
+
+  /** @transient marks a federate instantiation as transient (join/leave during execution). */
+  private void checkTransientAttribute(Attribute attr) {
+    EObject container = attr.eContainer();
+    if (!(container instanceof Instantiation)) {
+      error(
+          "The @transient attribute can only be applied to a federate instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    EObject parent = container.eContainer();
+    if (!(parent instanceof Reactor reactor) || !reactor.isFederated()) {
+      error(
+          "The @transient attribute can only be applied inside a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
     }
   }
 
