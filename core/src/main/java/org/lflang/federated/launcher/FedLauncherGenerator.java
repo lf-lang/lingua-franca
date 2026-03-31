@@ -30,6 +30,10 @@ public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
   protected FederationFileConfig fileConfig;
   protected MessageReporter messageReporter;
+  private static final String ANSI_INFO = "\033[36m";
+  private static final String ANSI_ERROR = "\033[31m";
+  private static final String ANSI_RESET = "\033[0m";
+  private static final String TMUX_TITLE_BG_COLOR = "colour25";
 
   /**
    * @param targetConfig The current target configuration.
@@ -173,22 +177,30 @@ public class FedLauncherGenerator {
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // Local PID managements
       shCode.append(
-          "echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
-      shCode.append("fg %1" + "\n");
+          "echo \""
+              + ANSI_INFO
+              + "#### Bringing the RTI back to foreground so it can receive Control-C."
+              + "\""
+              + "\n");
+      shCode.append("fg %1\n");
     }
     // Wait for launched processes to finish
     shCode
         .append(
             String.join(
                 "\n",
-                "echo \"RTI has exited. Wait for federates to exit.\"",
+                "echo \""
+                    + ANSI_INFO
+                    + "RTI has exited. Wait for federates to exit."
+                    + ANSI_RESET
+                    + "\"",
                 "# Wait for launched processes to finish.",
                 "# The errors are handled separately via trap.",
                 "for pid in \"${pids[@]}\"",
                 "do",
                 "    wait $pid || exit $?",
                 "done",
-                "echo \"All done.\"",
+                "echo \"" + ANSI_INFO + "All done." + ANSI_RESET + "\"",
                 "EXITED_SUCCESSFULLY=true"))
         .append("\n");
 
@@ -326,8 +338,13 @@ public class FedLauncherGenerator {
         "# Create a random 48-byte text ID for this federation.",
         "# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).",
         "FEDERATION_ID=`openssl rand -hex 24`",
-        "echo \"Federate " + fileConfig.name + " in Federation ID '$FEDERATION_ID'\"",
-        "# Launch the federates:");
+        "echo \""
+            + ANSI_INFO
+            + "Federation "
+            + fileConfig.name
+            + " with Federation ID '$FEDERATION_ID'."
+            + ANSI_RESET
+            + "\"");
   }
 
   private String getDistHeader() {
@@ -383,7 +400,11 @@ public class FedLauncherGenerator {
     String launchCodeWithoutLogging = String.join(" ", rtiLaunchCode, "&");
     return String.join(
         "\n",
-        "echo \"#### Launching the runtime infrastructure (RTI).\"",
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the runtime infrastructure (RTI)."
+            + ANSI_RESET
+            + "\"",
         "# The RTI is started first to allow proper boot-up",
         "# before federates will try to connect.",
         "# The RTI will be brought back to foreground",
@@ -406,24 +427,44 @@ public class FedLauncherGenerator {
       Object host, Object target, String logFileName, String rtiLaunchString) {
     return String.join(
         "\n",
-        "echo \"#### Launching the runtime infrastructure (RTI) on remote host " + host + ".\"",
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the runtime infrastructure (RTI) on remote host "
+            + host
+            + "."
+            + ANSI_RESET
+            + "\"",
         "# FIXME: Killing this ssh does not kill the remote process.",
         "# A double -t -t option to ssh forces creation of a virtual terminal, which",
         "# fixes the problem, but then the ssh command does not execute. The remote",
         "# federate does not start!",
         "ssh " + target + " 'mkdir -p log; \\",
-        "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
+        "    echo \""
+            + ANSI_INFO
+            + "-------------- Federation ID: \"'$FEDERATION_ID'"
+            + ANSI_RESET
+            + "\" >> "
+            + logFileName
+            + "; \\",
         "    date >> " + logFileName + "; \\",
-        "    echo \"Executing RTI: "
+        "    echo \""
+            + ANSI_INFO
+            + "Executing RTI: "
             + rtiLaunchString
-            + "\n\" 2>&1 | tee -a "
+            + "\n"
+            + ANSI_RESET
+            + "\" 2>&1 | tee -a "
             + logFileName
             + "; \\",
         "    # First, check if the RTI is on the PATH",
         "    if ! command -v RTI &> /dev/null",
         "    then",
-        "        echo \"RTI could not be found.\"",
-        "        echo \"The source code can be found in org.lflang/src/lib/core/federated/RTI\"",
+        "        echo \"" + ANSI_ERROR + "RTI could not be found." + ANSI_RESET + "\"",
+        "        echo \""
+            + ANSI_ERROR
+            + "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+            + ANSI_RESET
+            + "\"",
         "        exit 1",
         "    fi",
         "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
@@ -453,10 +494,13 @@ public class FedLauncherGenerator {
     String tarFileName = name + ".tar.gz";
     return String.join(
         "\n",
-        "echo \"Making directory "
+        "echo \""
+            + ANSI_INFO
+            + "------ Making directory "
             + remoteBase
             + " and subdirectories federate_name, bin, and log on host "
             + getUserHost(user, host)
+            + ANSI_RESET
             + "\"",
         "ssh " + getUserHost(user, host) + " '\\",
         "    mkdir -p " + binDirectory + " " + logDirectory + "; \\",
@@ -470,9 +514,19 @@ public class FedLauncherGenerator {
         "    date >> " + remoteBuildLogFileName + ";",
         "'",
         "pushd " + fileConfig.getSrcGenPath() + " > /dev/null",
-        "echo \"**** Bundling source files into " + tarFileName + "\"",
+        "echo \""
+            + ANSI_INFO
+            + "**** Bundling source files into "
+            + tarFileName
+            + ANSI_RESET
+            + "\"",
         "tar -czf " + tarFileName + " --exclude build " + name,
-        "echo \"**** Copying tarfile to host " + getUserHost(user, host) + "\"",
+        "echo \""
+            + ANSI_INFO
+            + "**** Copying tarfile to host "
+            + getUserHost(user, host)
+            + ANSI_RESET
+            + "\"",
         "scp -r "
             + tarFileName
             + " "
@@ -490,7 +544,12 @@ public class FedLauncherGenerator {
         "    rm " + tarFileName + ";",
         "'",
         "popd > /dev/null",
-        "echo \"**** Generating and executing compile.sh on host " + getUserHost(user, host) + "\"",
+        "echo \""
+            + ANSI_INFO
+            + "**** Generating and executing compile.sh on host "
+            + getUserHost(user, host)
+            + ANSI_RESET
+            + "\"",
         "ssh "
             + getUserHost(user, host)
             + " '"
@@ -568,10 +627,13 @@ public class FedLauncherGenerator {
 
     return String.join(
         "\n",
-        "echo \"#### Launching the federate "
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the federate "
             + federate.name
             + " on host "
             + getUserHost(federate.user, federate.host)
+            + ANSI_RESET
             + "\"",
         "# FIXME: Killing this ssh does not kill the remote process.",
         "# A double -t -t option to ssh forces creation of a virtual terminal, which",
@@ -588,7 +650,13 @@ public class FedLauncherGenerator {
       FederateInstance federate, String executeCommand, int federateIndex) {
     return String.join(
         "\n",
-        "echo \"#### Launching the federate " + federate.name + ".\"",
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the federate "
+            + federate.name
+            + "."
+            + ANSI_RESET
+            + "\"",
         "if [ \"$LOG_TO_FILE\" = true ]; then",
         "    " + executeCommand + " \"${REMAINING_ARGS[@]}\" >& " + federate.name + ".log &",
         "else",
@@ -706,10 +774,15 @@ public class FedLauncherGenerator {
     lines.add("    tmux set-option -t \"$SESSION_NAME\" pane-border-status top");
     lines.add("    tmux set-option -t \"$SESSION_NAME\" pane-border-format \" #{pane_title} \"");
     lines.add(
-        "    tmux set-option -t \"$SESSION_NAME\" pane-border-style" + " 'fg=white,bg=colour25'");
+        "    tmux set-option -t \"$SESSION_NAME\" pane-border-style"
+            + " 'fg=white,bg="
+            + TMUX_TITLE_BG_COLOR
+            + "'");
     lines.add(
         "    tmux set-option -t \"$SESSION_NAME\" pane-active-border-style"
-            + " 'fg=white,bg=colour25,bold'");
+            + " 'fg=white,bg="
+            + TMUX_TITLE_BG_COLOR
+            + ",bold'");
     lines.add("    tmux set-option -t \"$SESSION_NAME\" status off");
     lines.add("    tmux set-option -t \"$SESSION_NAME\" mouse on");
     lines.add("");
