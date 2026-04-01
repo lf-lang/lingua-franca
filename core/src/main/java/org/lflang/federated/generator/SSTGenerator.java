@@ -285,7 +285,7 @@ public class SSTGenerator {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
-    String encryptionMode = "AES_128_CBC";
+    String sessionkey_encryptionMode = "AES_128_CBC";
     int hmacMode = 1;
     String pubkeyRoot =
         fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString()
@@ -319,8 +319,8 @@ public class SSTGenerator {
         .append("authInfo.id=")
         .append(authID)
         .append("\n")
-        .append("encryptionMode=")
-        .append(encryptionMode)
+        .append("sessionKey.encryptionMode=")
+        .append(sessionkey_encryptionMode)
         .append("\n")
         .append("HmacMode=")
         .append(hmacMode)
