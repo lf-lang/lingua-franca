@@ -203,6 +203,11 @@ public class FedASTUtils {
           FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
               .getNetworkBufferType());
       action.setType(action_type);
+      // Payload is opaque bytes on the socket until the federate-specific deserializer runs; the C
+      // runtime (federate.c) must not interpret length using sizeof(network buffer type).
+      var opaquePayloadAttr = factory.createAttribute();
+      opaquePayloadAttr.setAttrName(AttributeUtils.FED_OPAQUE_NETWORK_PAYLOAD_ATTR);
+      action.getAttributes().add(opaquePayloadAttr);
     }
 
     // The connection is 'physical' if it uses the ~> notation.

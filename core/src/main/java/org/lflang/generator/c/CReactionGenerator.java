@@ -1026,7 +1026,10 @@ public class CReactionGenerator {
       // If the action type is 'void', we need to avoid generating the code
       // 'sizeof(void)', which some compilers reject.
       var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action)) : null;
-      if (rootType != null && !rootType.equals("void")) {
+      if (rootType != null
+          && !rootType.equals("void")
+          && AttributeUtils.findAttributeByName(action, AttributeUtils.FED_OPAQUE_NETWORK_PAYLOAD_ATTR)
+              == null) {
         elementSize = "sizeof(" + rootType + ")";
       }
 

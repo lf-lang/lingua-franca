@@ -209,6 +209,14 @@ public class AttributeUtils {
   }
 
   /**
+   * Internal attribute for synthesized federated {@code networkMessage} actions whose on-wire
+   * payload is opaque until a connection-specific deserializer runs. The C runtime must create the
+   * inbound token with {@code element_size == 0} (raw byte count), not {@code sizeof} of the
+   * nominal buffer type (e.g. {@code PyObject*}).
+   */
+  public static final String FED_OPAQUE_NETWORK_PAYLOAD_ATTR = "_fed_opaque_network_payload";
+
+  /**
    * Return the declared label of the node, as given by the `@label` annotation.
    *
    * @param node The node to get the label from.
