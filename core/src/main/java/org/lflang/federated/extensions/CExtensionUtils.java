@@ -530,7 +530,7 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {
-        case NATIVE, PROTO -> {
+        case NATIVE, PICKLE, PROTO, CUSTOM -> {
           // No need to do anything at this point.
         }
         case ROS2 -> {
@@ -547,7 +547,7 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {
-        case NATIVE, PROTO -> {
+        case NATIVE, PICKLE, PROTO, CUSTOM -> {
           // No CMake code is needed for now
         }
         case ROS2 -> {

@@ -45,24 +45,29 @@ public class PythonExtension extends CExtension {
     for (SupportedSerializers serialization : federate.enabledSerializers) {
       switch (serialization) {
         case NATIVE:
+        case PICKLE:
           {
             FedNativePythonSerialization pickler = new FedNativePythonSerialization();
             code.pr(pickler.generatePreambleForSupport().toString());
           }
+          break;
         case CUSTOM:
           {
             FedCustomPythonSerialization serializer =
                 new FedCustomPythonSerialization(serialization.getSerializer());
             code.pr(serializer.generatePreambleForSupport().toString());
           }
+          break;
         case PROTO:
           {
             // Nothing needs to be done
           }
+          break;
         case ROS2:
           {
             // FIXME: Not supported yet
           }
+          break;
       }
     }
     return code.getCode();
@@ -174,7 +179,7 @@ lf_enqueue_port_absent_reactions(self->base.environment);
       MessageReporter messageReporter) {
     String value;
     switch (connection.getSerializer()) {
-      case NATIVE -> {
+      case NATIVE, PICKLE -> {
         value = action.getName();
         FedNativePythonSerialization pickler = new FedNativePythonSerialization();
         result.pr(pickler.generateNetworkDeserializerCode(value, null));
@@ -222,7 +227,7 @@ lf_enqueue_port_absent_reactions(self->base.environment);
     String lengthExpression;
     String pointerExpression;
     switch (connection.getSerializer()) {
-      case NATIVE -> {
+      case NATIVE, PICKLE -> {
         var variableToSerialize = sendRef + "->value";
         FedNativePythonSerialization pickler = new FedNativePythonSerialization();
         lengthExpression = pickler.serializedBufferLength();

@@ -2,6 +2,7 @@ package org.lflang.federated.generator;
 
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.lf.Connection;
+import org.lflang.target.Target;
 
 /**
  * A collection of utility methods for the federated generator.
@@ -29,6 +30,13 @@ public class FedUtils {
       if (isCustomSerializer) {
         serializer = SupportedSerializers.fromCustomString(connection.getSerializer().getType());
       }
+    }
+    // Python–Python federations use pickle on the wire; that must not be classified as NATIVE for
+    // AST purposes (opaque bytes vs. sizeof(port type)). Map native default/explicit native → PICKLE.
+    if (serializer == SupportedSerializers.NATIVE
+        && srcFederate.targetConfig.target == Target.Python
+        && dstFederate.targetConfig.target == Target.Python) {
+      serializer = SupportedSerializers.PICKLE;
     }
     // Add it to the list of enabled serializers for the source and destination federates
     srcFederate.enabledSerializers.add(serializer);

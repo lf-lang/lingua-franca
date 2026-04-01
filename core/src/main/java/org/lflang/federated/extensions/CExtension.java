@@ -190,6 +190,13 @@ public class CExtension implements FedTargetExtension {
       }
       case PROTO ->
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PICKLE ->
+          throw new UnsupportedOperationException(
+              "Pickle serialization is only supported for Python federates; use a C-compatible"
+                  + " serializer for this connection.");
+      case CUSTOM ->
+          throw new UnsupportedOperationException(
+              "Custom serializers are not supported for the C target on this connection.");
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
@@ -414,6 +421,13 @@ public class CExtension implements FedTargetExtension {
       }
       case PROTO ->
           throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PICKLE ->
+          throw new UnsupportedOperationException(
+              "Pickle serialization is only supported for Python federates; use a C-compatible"
+                  + " serializer for this connection.");
+      case CUSTOM ->
+          throw new UnsupportedOperationException(
+              "Custom serializers are not supported for the C target on this connection.");
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
         if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {

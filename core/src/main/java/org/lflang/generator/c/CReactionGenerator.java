@@ -1028,7 +1028,8 @@ public class CReactionGenerator {
       var rootType = action.getType() != null ? CUtil.rootType(types.getTargetType(action)) : null;
       if (rootType != null
           && !rootType.equals("void")
-          && AttributeUtils.findAttributeByName(action, AttributeUtils.FED_OPAQUE_NETWORK_PAYLOAD_ATTR)
+          && AttributeUtils.findAttributeByName(
+                  action, AttributeUtils.FED_OPAQUE_NETWORK_PAYLOAD_ATTR)
               == null) {
         elementSize = "sizeof(" + rootType + ")";
       }
