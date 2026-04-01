@@ -32,7 +32,8 @@ public class FedUtils {
       }
     }
     // Python–Python federations use pickle on the wire; that must not be classified as NATIVE for
-    // AST purposes (opaque bytes vs. sizeof(port type)). Map native default/explicit native → PICKLE.
+    // AST purposes (opaque bytes vs. sizeof(port type)). Map native default/explicit native →
+    // PICKLE.
     if (serializer == SupportedSerializers.NATIVE
         && srcFederate.targetConfig.target == Target.Python
         && dstFederate.targetConfig.target == Target.Python) {
