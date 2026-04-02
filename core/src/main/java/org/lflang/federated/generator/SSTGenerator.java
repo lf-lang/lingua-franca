@@ -22,7 +22,7 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
-import org.lflang.target.property.SSTPathProperty;
+import org.lflang.target.property.SSTProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -37,7 +37,7 @@ public class SSTGenerator {
       MessageReporter messageReporter,
       LFGeneratorContext context,
       RtiConfig rtiConfig) throws IOException {
-    if (context.getTargetConfig().get(SSTPathProperty.INSTANCE).isEmpty()) {
+    if (context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath().isEmpty()) {
       context
           .getErrorReporter()
           .nowhere()
@@ -81,7 +81,7 @@ public class SSTGenerator {
     }
 
     // Set root path to execute commands.
-    Path sstRepoRootPath = Paths.get(context.getTargetConfig().get(SSTPathProperty.INSTANCE));
+    Path sstRepoRootPath = Paths.get(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath());
     ProcessBuilder processBuilder = new ProcessBuilder();
 
     // Set the working directory to the specified path

@@ -2,7 +2,10 @@ target C {
   timeout: 2 secs,
   build-type: RelWithDebInfo,
   comm-type: SST,
-  sst-root-path: "/Users/dkim314/project/sstclean"
+  sst: {
+    sst-root-path: "/Users/dkim314/project/sstclean",
+    use-permanent-key: true
+  }
 }
 
 reactor Fed {

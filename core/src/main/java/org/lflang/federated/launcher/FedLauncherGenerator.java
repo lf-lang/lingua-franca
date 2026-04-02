@@ -19,7 +19,6 @@ import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
 import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.DNETProperty;
-import org.lflang.target.property.SSTPathProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
