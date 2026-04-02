@@ -799,13 +799,6 @@ public class CExtension implements FedTargetExtension {
             "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
             "}"));
     
-    var transientLines = new ArrayList<String>();
-    transientLines.add("// Initialize the transients array: true if transient, false otherwise.");
-    for (var fed : allFederates) {
-      transientLines.add("_fed.transients[" + fed.id + "] = " + fed.isTransient + ";");
-    }
-    code.pr(String.join("\n", transientLines));
-    
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
     if (clockSyncOptions.testOffset != null) {

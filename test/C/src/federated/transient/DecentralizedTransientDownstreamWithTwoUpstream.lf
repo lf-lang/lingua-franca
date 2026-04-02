@@ -14,8 +14,8 @@ target C {
   coordination: decentralized
 }
 
-import Up from "TransientDownstreamWithTimer.lf"
-import Middle from "TransientDownstreamWithTimer.lf"
+import Up from "DecentralizedTransientDownstreamWithTimer.lf"
+import Middle from "DecentralizedTransientDownstreamWithTimer.lf"
 
 preamble {=
   #include <stdlib.h>
@@ -54,7 +54,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down {
+reactor Down (STP_offset: time = 100 ms) {
   timer t(0, 500 ms)
 
   input in_mid: int

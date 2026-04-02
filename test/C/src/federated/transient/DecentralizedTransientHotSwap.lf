@@ -13,8 +13,8 @@ target C {
   coordination: decentralized
 }
 
-import Up from "TransientDownstreamWithTimer.lf"
-import Down from "TransientDownstreamWithTimer.lf"
+import Up from "DecentralizedTransientDownstreamWithTimer.lf"
+import Down from "DecentralizedTransientDownstreamWithTimer.lf"
 
 preamble {=
   #include <stdlib.h>
@@ -55,7 +55,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
  * second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
  * notifies `Down`.
  */
-reactor Middle {
+reactor Middle (STP_offset: time = 100 ms){
   input in: int
   output out: int
   output join: int
