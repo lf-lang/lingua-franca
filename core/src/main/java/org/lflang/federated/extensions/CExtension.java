@@ -783,10 +783,7 @@ public class CExtension implements FedTargetExtension {
             "_fed.number_of_inbound_p2p_transients = "
                 + numberOfInboundConnectionsToTransients + ";",
             "_fed.number_of_outbound_p2p_transients = "
-                + numberOfOutboundConnectionsToTransients + ";",
-            "_fed.outbound_p2p_transient_ids = (uint16_t*)malloc("
-                + numberOfOutboundConnectionsToTransients 
-                + " * sizeof(uint16_t));"));
+                + numberOfOutboundConnectionsToTransients + ";"));
 
     code.pr(
         String.join(
@@ -851,13 +848,9 @@ public class CExtension implements FedTargetExtension {
                   + " lf_handle_p2p_connections_from_federates, env);"));
     }
     
-    int transientIndex = 0;
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
       code.pr("lf_connect_to_federate(" + remoteFederate.id + ", " + remoteFederate.isTransient + ");");
-      if (remoteFederate.isTransient) {
-        code.pr("_fed.outbound_p2p_transient_ids[" + transientIndex + "] = " + remoteFederate.id + ";");
-        transientIndex++;
-      }
+      code.pr("_fed.outbound_p2p_connection_is_transient[" + remoteFederate.id + "] = " + remoteFederate.isTransient + ";");
     }
     return code.getCode();
   }
