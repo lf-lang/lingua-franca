@@ -55,8 +55,9 @@ public class SSTGenerator {
     // Create graph used when creating credentials.
     // Set graph path.
     Path graphPath = fileConfig.getSSTGraphsPath().resolve(fileConfig.name + ".graph");
+    boolean usePermanentDistKey = context.getTargetConfig().get(SSTProperty.INSTANCE).usePermanentDistKey();
     // Generate the graph file content
-    JsonObject graphObject = SSTGenerator.generateGraphFile(federates, rtiConfig);
+    JsonObject graphObject = SSTGenerator.generateGraphFile(federates, rtiConfig, usePermanentDistKey);
     // Write the graph object to a JSON file
     try (FileWriter fileWriter = new FileWriter(graphPath.toString())) {
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -208,7 +209,7 @@ public class SSTGenerator {
     }
 
     // Copy the configs and credentials of rti and federates, to the src-gen for tar deployments.
-    SSTGenerator.copyAuthAndConfigsAndKeys(fileConfig, federates);
+    SSTGenerator.copyAuthAndConfigsAndKeys(fileConfig, federates, usePermanentDistKey);
   }
 
   public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
@@ -298,7 +299,7 @@ public class SSTGenerator {
   }
 
   private static JsonObject generateGraphFile(
-      List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
+      List<FederateInstance> federateInstances, RtiConfig rtiConfig, boolean usePermanentDistKey) {
     JsonObject graphObject = new JsonObject();
 
     // Auth list
@@ -326,7 +327,7 @@ public class SSTGenerator {
     graphObject.add("assignments", assignments);
 
     // Entity list section
-    JsonArray entityList = createEntityList(federateInstances, rtiConfig);
+    JsonArray entityList = createEntityList(federateInstances, rtiConfig, usePermanentDistKey);
     graphObject.add("entityList", entityList);
 
     // File sharing lists (empty for this example)
@@ -406,11 +407,11 @@ public class SSTGenerator {
   }
 
   private static JsonArray createEntityList(
-      List<FederateInstance> federateInstances, RtiConfig rtiConfig) {
+      List<FederateInstance> federateInstances, RtiConfig rtiConfig, boolean usePermanentDistKey) {
     JsonArray entityList = new JsonArray();
 
     // RTI entity
-    JsonObject rti = createEntity("RTI", "net1.rti", "Net1.rti");
+    JsonObject rti = createEntity("RTI", "net1.rti", "Net1.rti", usePermanentDistKey);
     rti.addProperty("port", rtiConfig.getPort());
     rti.addProperty("host", rtiConfig.getHost());
     entityList.add(rti);
@@ -418,18 +419,18 @@ public class SSTGenerator {
     // Federate entities
     for (FederateInstance federate : federateInstances) {
       String federateName = federate.name;
-      JsonObject entity = createEntity("Federates", "net1." + federateName, "Net1." + federateName);
+      JsonObject entity = createEntity("Federates", "net1." + federateName, "Net1." + federateName, usePermanentDistKey);
       entityList.add(entity);
     }
     return entityList;
   }
 
-  private static JsonObject createEntity(String group, String name, String credentialPrefix) {
+  private static JsonObject createEntity(String group, String name, String credentialPrefix, boolean usePermanentDistKey) {
     JsonObject entity = new JsonObject();
     entity.addProperty("group", group);
     entity.addProperty("name", name);
     entity.addProperty("distProtocol", "TCP");
-    entity.addProperty("usePermanentDistKey", false);
+    entity.addProperty("usePermanentDistKey", usePermanentDistKey);
     entity.addProperty("distKeyValidityPeriod", "1*hour");
     entity.addProperty("maxSessionKeysPerRequest", 1);
     entity.addProperty("netName", "net1");
@@ -559,7 +560,7 @@ public class SSTGenerator {
     return line;
   }
 
-    private static void copyAuthAndConfigsAndKeys(FederationFileConfig fileConfig, List<FederateInstance> federates)
+    private static void copyAuthAndConfigsAndKeys(FederationFileConfig fileConfig, List<FederateInstance> federates, boolean usePermanentDistKey)
     throws IOException {
       // 1. Copy Auth to RTI directory.
       Path auth_src = fileConfig.getSSTAuthPath();
@@ -589,20 +590,40 @@ public class SSTGenerator {
       Files.createDirectories(dstCredentialsRoot);
 
       // 1) Copy private key
-      String keySuffix = federate.name + "Key.pem";
-      List<Path> keyMatches = FileUtil.globFilesEndsWith(keysRoot, keySuffix);
-      if (keyMatches.isEmpty()) {
-        throw new IOException(
-            "No key file found for federate: " + federate.name
-                + " (expected suffix: " + keySuffix + ") under " + keysRoot);
-      }
-      Path keyFile = keyMatches.get(0);
+      if (usePermanentDistKey) {
+        String cipherKeySuffix = federate.name + "CipherKey.key";
+        String macKeySuffix = federate.name + "MacKey.key";
+        List<Path> cipherKeyMatches = FileUtil.globFilesEndsWith(keysRoot, cipherKeySuffix);
+        List<Path> macKeyMatches = FileUtil.globFilesEndsWith(keysRoot, macKeySuffix);
+        if (cipherKeyMatches.isEmpty() || macKeyMatches.isEmpty()) {
+            throw new IOException("No key file found for federate: " + federate.name + " under " + keysRoot);
+        }
+        Path cipherKeyFile = cipherKeyMatches.get(0);
+        Path cipherKeyRel = credentialsRoot.relativize(cipherKeyFile);
+        Path cipherKeyDst = dstCredentialsRoot.resolve(cipherKeyRel);
+        Files.createDirectories(cipherKeyDst.getParent());
+        FileUtil.copyFile(cipherKeyFile, cipherKeyDst);
 
-      // Preserve structure: credentials/keys/net1/<file>
-      Path keyRel = credentialsRoot.relativize(keyFile); // keys/net1/Net1.xxxKey.pem
-      Path keyDst = dstCredentialsRoot.resolve(keyRel);  // dst/credentials/keys/net1/...
-      Files.createDirectories(keyDst.getParent());
-      FileUtil.copyFile(keyFile, keyDst);
+        Path macKeyFile = macKeyMatches.get(0);
+        Path macKeyRel = credentialsRoot.relativize(macKeyFile);
+        Path macKeyDst = dstCredentialsRoot.resolve(macKeyRel);
+        FileUtil.copyFile(macKeyFile, macKeyDst);
+      } else {
+        String keySuffix = federate.name + "Key.pem";
+        List<Path> keyMatches = FileUtil.globFilesEndsWith(keysRoot, keySuffix);
+        if (keyMatches.isEmpty()) {
+          throw new IOException(
+              "No key file found for federate: " + federate.name
+                  + " (expected suffix: " + keySuffix + ") under " + keysRoot);
+        }
+        Path keyFile = keyMatches.get(0);
+
+        // Preserve structure: credentials/keys/net1/<file>
+        Path keyRel = credentialsRoot.relativize(keyFile); // keys/net1/Net1.xxxKey.pem
+        Path keyDst = dstCredentialsRoot.resolve(keyRel);  // dst/credentials/keys/net1/...
+        Files.createDirectories(keyDst.getParent());
+        FileUtil.copyFile(keyFile, keyDst);
+      }
 
       // 2) Copy config
       Path configSrc = configsRoot.resolve(federate.name + ".config");
@@ -634,19 +655,39 @@ public class SSTGenerator {
     Files.createDirectories(rtiCredentialsDst);
 
     // 1) Copy RTI private key (keep original relative path under credentials/)
-    String rtiKeySuffix = "rtiKey.pem";
-    List<Path> rtiKeyMatches = FileUtil.globFilesEndsWith(keysRoot, rtiKeySuffix);
-    if (rtiKeyMatches.isEmpty()) {
-      throw new IOException(
-          "No key file found for RTI (expected suffix: " + rtiKeySuffix + ") under " + keysRoot);
-    }
-    Path rtiKeyFile = rtiKeyMatches.get(0);
+    if (usePermanentDistKey) {
+      String cipherKeySuffix = "rtiCipherKey.key";
+      String macKeySuffix = "rtiMacKey.key";
+      List<Path> cipherKeyMatches = FileUtil.globFilesEndsWith(keysRoot, cipherKeySuffix);
+      List<Path> macKeyMatches = FileUtil.globFilesEndsWith(keysRoot, macKeySuffix);
+      if (cipherKeyMatches.isEmpty() || macKeyMatches.isEmpty()) {
+          throw new IOException("No key file found for RTI under " + keysRoot);
+      }
+      Path cipherKeyFile = cipherKeyMatches.get(0);
+      Path cipherKeyRel = credentialsRoot.relativize(cipherKeyFile);
+      Path cipherKeyDst = rtiCredentialsDst.resolve(cipherKeyRel);
+      Files.createDirectories(cipherKeyDst.getParent());
+      FileUtil.copyFile(cipherKeyFile, cipherKeyDst);
 
-    // Preserve structure: credentials/keys/net1/<file>
-    Path rtiKeyRel = credentialsRoot.relativize(rtiKeyFile); // keys/net1/Net1.rtiKey.pem
-    Path rtiKeyDst = rtiCredentialsDst.resolve(rtiKeyRel);   // rtiDst/credentials/keys/net1/...
-    Files.createDirectories(rtiKeyDst.getParent());
-    FileUtil.copyFile(rtiKeyFile, rtiKeyDst);
+      Path macKeyFile = macKeyMatches.get(0);
+      Path macKeyRel = credentialsRoot.relativize(macKeyFile);
+      Path macKeyDst = rtiCredentialsDst.resolve(macKeyRel);
+      FileUtil.copyFile(macKeyFile, macKeyDst);
+    } else {
+      String rtiKeySuffix = "rtiKey.pem";
+      List<Path> rtiKeyMatches = FileUtil.globFilesEndsWith(keysRoot, rtiKeySuffix);
+      if (rtiKeyMatches.isEmpty()) {
+        throw new IOException(
+            "No key file found for RTI (expected suffix: " + rtiKeySuffix + ") under " + keysRoot);
+      }
+      Path rtiKeyFile = rtiKeyMatches.get(0);
+
+      // Preserve structure: credentials/keys/net1/<file>
+      Path rtiKeyRel = credentialsRoot.relativize(rtiKeyFile); // keys/net1/Net1.rtiKey.pem
+      Path rtiKeyDst = rtiCredentialsDst.resolve(rtiKeyRel);   // rtiDst/credentials/keys/net1/...
+      Files.createDirectories(rtiKeyDst.getParent());
+      FileUtil.copyFile(rtiKeyFile, rtiKeyDst);
+    }
 
     // 2) Copy RTI config
     Path rtiConfigSrc = configsRoot.resolve("rti.config");

@@ -33,15 +33,15 @@ public final class SSTProperty extends TargetProperty<SSTOptions, DictionaryType
   public SSTOptions fromAst(Element node, MessageReporter reporter) {
     if (node.getKeyvalue() != null) {
       String rootPath = "";
-      boolean usePermanentKey = false;
+      boolean usePermanentDistKey = false;
       for (KeyValuePair entry : node.getKeyvalue().getPairs()) {
         SSTOption option = (SSTOption) DictionaryType.SST_DICT.forName(entry.getName());
         switch (option) {
           case ROOT_PATH -> rootPath = ASTUtils.elementToSingleString(entry.getValue());
-          case USE_PERMANENT_KEY -> usePermanentKey = ASTUtils.toBoolean(entry.getValue());
+          case USE_PERMANENT_DIST_KEY -> usePermanentDistKey = ASTUtils.toBoolean(entry.getValue());
         }
       }
-      return new SSTOptions(rootPath, usePermanentKey);
+      return new SSTOptions(rootPath, usePermanentDistKey);
     }
     return initialValue();
   }
@@ -53,7 +53,7 @@ public final class SSTProperty extends TargetProperty<SSTOptions, DictionaryType
 
   @Override
   public Element toAstElement(SSTOptions value) {
-    if (value.rootPath().isEmpty() && !value.usePermanentKey()) {
+    if (value.rootPath().isEmpty() && !value.usePermanentDistKey()) {
       return null;
     }
     Element e = LfFactory.eINSTANCE.createElement();
@@ -68,8 +68,8 @@ public final class SSTProperty extends TargetProperty<SSTOptions, DictionaryType
             kvp.getPairs().add(pair);
           }
         }
-        case USE_PERMANENT_KEY -> {
-            pair.setValue(ASTUtils.toElement(value.usePermanentKey()));
+        case USE_PERMANENT_DIST_KEY -> {
+            pair.setValue(ASTUtils.toElement(value.usePermanentDistKey()));
             kvp.getPairs().add(pair);
         }
       }
@@ -83,11 +83,11 @@ public final class SSTProperty extends TargetProperty<SSTOptions, DictionaryType
     return "sst";
   }
 
-  public record SSTOptions(String rootPath, boolean usePermanentKey) {}
+  public record SSTOptions(String rootPath, boolean usePermanentDistKey) {}
 
   public enum SSTOption implements DictionaryElement {
     ROOT_PATH("sst-root-path", PrimitiveType.STRING),
-    USE_PERMANENT_KEY("use-permanent-key", PrimitiveType.BOOLEAN);
+    USE_PERMANENT_DIST_KEY("use-permanent-distribution-key", PrimitiveType.BOOLEAN);
 
     public final PrimitiveType type;
     public final String option;
