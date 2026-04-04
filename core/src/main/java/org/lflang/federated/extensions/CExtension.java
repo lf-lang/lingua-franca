@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
@@ -781,9 +780,11 @@ public class CExtension implements FedTargetExtension {
             "_fed.number_of_inbound_p2p_connections = " + numberOfInboundConnections + ";",
             "_fed.number_of_outbound_p2p_connections = " + numberOfOutboundConnections + ";",
             "_fed.number_of_inbound_p2p_transients = "
-                + numberOfInboundConnectionsToTransients + ";",
+                + numberOfInboundConnectionsToTransients
+                + ";",
             "_fed.number_of_outbound_p2p_transients = "
-                + numberOfOutboundConnectionsToTransients + ";"));
+                + numberOfOutboundConnectionsToTransients
+                + ";"));
 
     code.pr(
         String.join(
@@ -800,7 +801,7 @@ public class CExtension implements FedTargetExtension {
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
             "}"));
-    
+
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
     if (clockSyncOptions.testOffset != null) {
@@ -847,10 +848,16 @@ public class CExtension implements FedTargetExtension {
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
                   + " lf_handle_p2p_connections_from_federates, env);"));
     }
-    
+
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-      code.pr("lf_connect_to_federate(" + remoteFederate.id + ", " + remoteFederate.isTransient + ");");
-      code.pr("_fed.outbound_p2p_connection_is_transient[" + remoteFederate.id + "] = " + remoteFederate.isTransient + ";");
+      code.pr(
+          "lf_connect_to_federate(" + remoteFederate.id + ", " + remoteFederate.isTransient + ");");
+      code.pr(
+          "_fed.outbound_p2p_connection_is_transient["
+              + remoteFederate.id
+              + "] = "
+              + remoteFederate.isTransient
+              + ";");
     }
     return code.getCode();
   }

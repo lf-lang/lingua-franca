@@ -48,7 +48,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
   =}
 }
 
-reactor Persistence (STP_offset: time = 100 ms){
+reactor Persistence(STP_offset: time = 100 ms) {
   state middle_state: federate_state_t = {'A', 0}
   state middle_first_join: bool = true
 
@@ -95,7 +95,7 @@ reactor Up(period: time = 500 ms) {
  * input ports, then stops. It will execute twice during the lifetime of the federation. The second
  * launch is done by TransientExec at logical time 1 s. Each time Middle joins, it notifies Down.
  */
-reactor Middle (STP_offset: time = 100 ms) {
+reactor Middle(STP_offset: time = 100 ms) {
   input in: int
   output out: int
   output join: bool
@@ -138,7 +138,7 @@ reactor Middle (STP_offset: time = 100 ms) {
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down (STP_offset: time = 100 ms) {
+reactor Down(STP_offset: time = 100 ms) {
   timer t(0, 500 ms)
 
   input in: int

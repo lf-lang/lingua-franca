@@ -55,7 +55,8 @@ public class FedPreambleEmitter {
         =}"""
             .formatted(
                 FedTargetExtensionFactory.getExtension(federate.targetConfig.target)
-                    .generatePreamble(federate, allFederates, fileConfig, rtiConfig, messageReporter)));
+                    .generatePreamble(
+                        federate, allFederates, fileConfig, rtiConfig, messageReporter)));
 
     return preambleCode.getCode();
   }
