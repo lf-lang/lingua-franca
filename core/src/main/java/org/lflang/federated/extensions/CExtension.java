@@ -791,7 +791,7 @@ public class CExtension implements FedTargetExtension {
             "// Initialize the array of socket for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
-            "    _fed.inbound_p2p_is_transient[i] = false;",
+            "    _fed.inbound_p2p_connection_is_transient[i] = false;",
             "}"));
     code.pr(
         String.join(
