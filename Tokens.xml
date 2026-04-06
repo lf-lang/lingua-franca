@@ -2837,6 +2837,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::target::property::CommunicationModeProperty</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::target::property::CompileDefinitionsProperty</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -3257,6 +3266,24 @@
       <Scope>org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType_1_1ClockSyncMode.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::target::property::type::CommunicationModeType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::target::property::type::CommunicationModeType::CommunicationMode</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -7174,6 +7201,16 @@
       <Name>astElementFromConfig</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>astElementFromConfig</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -10824,6 +10861,16 @@
       <Name>check</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>check</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
@@ -11453,6 +11500,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>checkType</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
@@ -12136,6 +12193,17 @@
     <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
     <Anchor>a6f661d42abbc34b4fd1e3dbacac0dae3</Anchor>
     <DeclaredIn>LinguaFrancaStyleExtensions.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>CommunicationMode</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>a2374871fa89ba151d70118bd0943cf9e</Anchor>
+    <DeclaredIn>CommunicationModeType.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -15970,6 +16038,17 @@
       <Name>enumClass</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+    <Anchor>abe76ab5298904c4a1ad26d2345960c0b</Anchor>
+    <DeclaredIn>CommunicationModeType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.CoordinationModeType</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html</Path>
@@ -16036,6 +16115,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>enumClass</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
     <Anchor>acba28480a983143a56542199f2b94eda</Anchor>
@@ -16318,6 +16407,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>equals</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
@@ -17627,6 +17726,16 @@
       <Name>forName</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>forName</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
@@ -17771,6 +17880,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeInitIncludeProperty.html</Path>
     <Anchor>a30c7c5873c94f6a20f9b88599a2b89b3</Anchor>
     <DeclaredIn>CmakeInitIncludeProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+    <Anchor>a09d669f69b3c9c5c1393cca945c17c65</Anchor>
+    <DeclaredIn>CommunicationModeProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -18045,6 +18165,16 @@
       <Name>fromAst</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a933963905148cf092a184ae81ef47311</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -18280,6 +18410,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromJSON</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
@@ -18606,6 +18746,17 @@
       <Name>fromString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+    <Anchor>a790ebf471fcd54cf55501bc18fccbd8c</Anchor>
+    <DeclaredIn>CommunicationModeProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
@@ -18865,6 +19016,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a24adaa91451dc8f91a17a08242c56f81</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a24adaa91451dc8f91a17a08242c56f81</Anchor>
@@ -22312,6 +22473,17 @@
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType_1_1BuildType.html</Path>
     <Anchor>a62b8a2793957ddbeb70ef0b7be56bae6</Anchor>
     <DeclaredIn>BuildTypeType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getDefault</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>acbb03fe1204ac889b101fc50afa5237d</Anchor>
+    <DeclaredIn>CommunicationModeType.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -27867,6 +28039,16 @@
       <Name>hashCode</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>hashCode</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -29112,6 +29294,17 @@
       <Name>initialValue</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+    <Anchor>ae92cb2c5d4681b87da3b3e1ab08450b5</Anchor>
+    <DeclaredIn>CommunicationModeProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
@@ -29393,6 +29586,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ad2c7f85f75eb09fc6c90f25daadc180e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ad2c7f85f75eb09fc6c90f25daadc180e</Anchor>
@@ -29753,6 +29956,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeInitIncludeProperty.html</Path>
     <Anchor>a7f4278efefa96740b19f5f415daf19e9</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>INSTANCE</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+    <Anchor>a8d4ae04583a27c799535ac809969c3d2</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -32071,6 +32284,16 @@
       <Name>loadFromFederate</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromFederate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -32273,6 +32496,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromFederation</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
@@ -32495,6 +32728,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromImport</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
@@ -34122,6 +34365,17 @@
       <Name>name</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+    <Anchor>ae9350ad30f50cf97b563682ad7fdf862</Anchor>
+    <DeclaredIn>CommunicationModeProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
@@ -34546,6 +34800,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a377e5e754300aea66587e195a3f3fc39</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a377e5e754300aea66587e195a3f3fc39</Anchor>
@@ -35756,6 +36020,17 @@
     <TokenIdentifier>
       <Name>optionsList</Name>
       <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>af9f1ba91d2eef4497c02820df931251e</Anchor>
+    <DeclaredIn>CommunicationModeType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>java</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; T &gt;</Scope>
     </TokenIdentifier>
@@ -35779,6 +36054,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsList</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
     <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
@@ -35850,6 +36135,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>optionsString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
     <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
@@ -36223,6 +36518,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>override</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
@@ -43696,6 +44001,16 @@
       <Name>TargetProperty</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>abfdae3bad81323c6cc18146a7be72380</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TargetProperty</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -43831,6 +44146,16 @@
     <Path>classorg_1_1lflang_1_1util_1_1TargetResourceNotFoundException.html</Path>
     <Anchor>a4b9cb0c2e8d69b46727f7c2f008f3525</Anchor>
     <DeclaredIn>TargetResourceNotFoundException.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TCP</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>af3f864fd4b26e2c9990c1c265afae86e</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -45423,6 +45748,17 @@
       <Name>toAstElement</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CommunicationModeProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+    <Anchor>a376bde1ea2abdb9f0fb4fab357741483</Anchor>
+    <DeclaredIn>CommunicationModeProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
@@ -45682,6 +46018,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
@@ -46541,6 +46887,17 @@
       <Name>toString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>ab67c9c1c03e7186a779a2be3b70e60f6</Anchor>
+    <DeclaredIn>CommunicationModeType.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.type.CoordinationModeType.CoordinationMode</Scope>
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType_1_1CoordinationMode.html</Path>
@@ -46795,6 +47152,16 @@
       <Name>toString</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -46936,6 +47303,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
     <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
@@ -47721,6 +48098,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>data</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>type</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
@@ -48634,6 +49021,16 @@
       <Name>update</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>update</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -49124,6 +49521,16 @@
       <Name>validate</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; CoordinationOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -49265,6 +49672,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+    <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
     <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>

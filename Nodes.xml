@@ -39021,6 +39021,78 @@
                       </Subnodes>
                      </Node>
                      <Node>
+                      <Name>CommunicationModeType</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                    <Subnodes>
+                       <Node>
+                        <Name>CommunicationMode</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                      <Subnodes>
+                         <Node>
+                          <Name>CommunicationMode</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>a2374871fa89ba151d70118bd0943cf9e</Anchor>
+                         </Node>
+                         <Node>
+                          <Name>getDefault</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>acbb03fe1204ac889b101fc50afa5237d</Anchor>
+                         </Node>
+                         <Node>
+                          <Name>optionsList</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>af9f1ba91d2eef4497c02820df931251e</Anchor>
+                         </Node>
+                         <Node>
+                          <Name>toString</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>ab67c9c1c03e7186a779a2be3b70e60f6</Anchor>
+                         </Node>
+                         <Node>
+                          <Name>TCP</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>af3f864fd4b26e2c9990c1c265afae86e</Anchor>
+                         </Node>
+                        </Subnodes>
+                       </Node>
+                       <Node>
+                        <Name>check</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>a50b001132a71a2e3bce54ebc9e22eb57</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>enumClass</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>abe76ab5298904c4a1ad26d2345960c0b</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>forName</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>a4ff3b44a960db9e5c76bc1669e2dd123</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>optionsList</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>abbde7293586142994ecd1427e39fc7be</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>optionsString</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>a74017325de7c0c3f7bbac83724817f5b</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>toString</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>a3942bb143f9f5a359126ff5c532fcdf7</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>validate</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
+                        <Anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</Anchor>
+                       </Node>
+                      </Subnodes>
+                     </Node>
+                     <Node>
                       <Name>CoordinationModeType</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html</Path>
                     <Subnodes>
@@ -40966,6 +41038,112 @@
                      <Node>
                       <Name>type</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeInitIncludeProperty.html</Path>
+                      <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
+                    <Name>CommunicationModeProperty</Name>
+                    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>astElementFromConfig</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>checkType</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>equals</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromAst</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a09d669f69b3c9c5c1393cca945c17c65</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromJSON</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a790ebf471fcd54cf55501bc18fccbd8c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>hashCode</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>initialValue</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>ae92cb2c5d4681b87da3b3e1ab08450b5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederation</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromImport</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>name</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>ae9350ad30f50cf97b563682ad7fdf862</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>override</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a376bde1ea2abdb9f0fb4fab357741483</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>update</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>validate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>INSTANCE</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+                      <Anchor>a8d4ae04583a27c799535ac809969c3d2</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>type</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
                       <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
                      </Node>
                     </Subnodes>
@@ -53768,6 +53946,16 @@
             </Subnodes>
            </Node>
            <Node>
+            <Name>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</Name>
+            <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+          <Subnodes>
+             <Node>
+              <Name>org.lflang.target.property.CommunicationModeProperty</Name>
+              <Path>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</Path>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
             <Name>org.lflang.target.property.TargetProperty&lt; CoordinationMode, CoordinationModeType &gt;</Name>
             <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
           <Subnodes>
@@ -54002,6 +54190,10 @@
             <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType_1_1ClockSyncMode.html</Path>
            </Node>
            <Node>
+            <Name>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Name>
+            <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+           </Node>
+           <Node>
             <Name>org.lflang.target.property.type.CoordinationModeType.CoordinationMode</Name>
             <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType_1_1CoordinationMode.html</Path>
            </Node>
@@ -54056,6 +54248,16 @@
              <Node>
               <Name>org.lflang.target.property.type.ClockSyncModeType</Name>
               <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType.html</Path>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
+            <Name>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</Name>
+            <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</Path>
+          <Subnodes>
+             <Node>
+              <Name>org.lflang.target.property.type.CommunicationModeType</Name>
+              <Path>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</Path>
              </Node>
             </Subnodes>
            </Node>

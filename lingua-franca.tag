@@ -27874,6 +27874,151 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::target::property::CommunicationModeProperty</name>
+    <filename>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</filename>
+    <base>org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;</base>
+    <member kind="function">
+      <type>Optional&lt; Element &gt;</type>
+      <name>astElementFromConfig</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a6a5c01889646675b2403aba03a9561b1</anchor>
+      <arglist>(TargetConfig config)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>checkType</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ad2943097a2b239aecb9c0bf4eb2968f6</anchor>
+      <arglist>(KeyValuePair pair, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>equals</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a204b717061ca87ddd71cbc866440af5c</anchor>
+      <arglist>(Object obj)</arglist>
+    </member>
+    <member kind="function">
+      <type>CommunicationMode</type>
+      <name>fromAst</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</anchorfile>
+      <anchor>a09d669f69b3c9c5c1393cca945c17c65</anchor>
+      <arglist>(Element node, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function">
+      <type>int</type>
+      <name>hashCode</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a29acc44b1e353f4638f22bb3289d7338</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>CommunicationMode</type>
+      <name>initialValue</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</anchorfile>
+      <anchor>ae92cb2c5d4681b87da3b3e1ab08450b5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromFederate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a887afc08ede48190976f784b8769b7ea</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromFederation</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a033370849eef3120afd46c4845863e2d</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromImport</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ab53684f78f96af96841c92187f131488</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>name</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</anchorfile>
+      <anchor>ae9350ad30f50cf97b563682ad7fdf862</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>final void</type>
+      <name>override</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a2a3ae8487cf2df37b7e3c98a9d594685</anchor>
+      <arglist>(TargetConfig config, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</anchorfile>
+      <anchor>a376bde1ea2abdb9f0fb4fab357741483</anchor>
+      <arglist>(CommunicationMode value)</arglist>
+    </member>
+    <member kind="function">
+      <type>abstract Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a7f6fdee8910285230340bcd7a52f3ade</anchor>
+      <arglist>(T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a80cded89b1d2808e307cd4b9991f887b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>update</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a74548a3778514c9c3757ee031dae825c</anchor>
+      <arglist>(TargetConfig config, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a05712b0e4f6256710f969dfd27a097f3</anchor>
+      <arglist>(TargetConfig config, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="variable">
+      <type>final S</type>
+      <name>type</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ae91c05dae9df2fc924ba84e4072e2087</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final CommunicationModeProperty</type>
+      <name>INSTANCE</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</anchorfile>
+      <anchor>a8d4ae04583a27c799535ac809969c3d2</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>T</type>
+      <name>fromJSON</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ac340310011200e10f311d2fe985be828</anchor>
+      <arglist>(JsonElement element, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>CommunicationMode</type>
+      <name>fromString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html</anchorfile>
+      <anchor>a790ebf471fcd54cf55501bc18fccbd8c</anchor>
+      <arglist>(String string, MessageReporter reporter)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::target::property::CompileDefinitionsProperty</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</filename>
     <base>org.lflang.target.property.TargetProperty&lt; Map&lt; String, String &gt;, StringDictionaryType &gt;</base>
@@ -33536,6 +33681,100 @@
       <name>ON</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType_1_1ClockSyncMode.html</anchorfile>
       <anchor>a3144096f073363d3fbd7756fcf0a95f8</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>org::lflang::target::property::type::CommunicationModeType</name>
+    <filename>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</filename>
+    <base>org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;</base>
+    <class kind="enum">org::lflang::target::property::type::CommunicationModeType::CommunicationMode</class>
+    <member kind="function">
+      <type>boolean</type>
+      <name>check</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a50b001132a71a2e3bce54ebc9e22eb57</anchor>
+      <arglist>(Element e, String name, MessageReporter r)</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>forName</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a4ff3b44a960db9e5c76bc1669e2dd123</anchor>
+      <arglist>(String name)</arglist>
+    </member>
+    <member kind="function">
+      <type>final List&lt; T &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>abbde7293586142994ecd1427e39fc7be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>optionsString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a74017325de7c0c3f7bbac83724817f5b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a3942bb143f9f5a359126ff5c532fcdf7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html</anchorfile>
+      <anchor>a7f6dff94cfcb7c9c66d6c2c43b6826ae</anchor>
+      <arglist>(Element e)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>Class&lt; CommunicationMode &gt;</type>
+      <name>enumClass</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html</anchorfile>
+      <anchor>abe76ab5298904c4a1ad26d2345960c0b</anchor>
+      <arglist>()</arglist>
+    </member>
+  </compound>
+  <compound kind="enum">
+    <name>org::lflang::target::property::type::CommunicationModeType::CommunicationMode</name>
+    <filename>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</filename>
+    <member kind="function">
+      <type></type>
+      <name>CommunicationMode</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>a2374871fa89ba151d70118bd0943cf9e</anchor>
+      <arglist>(String alias)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>ab67c9c1c03e7186a779a2be3b70e60f6</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static CommunicationMode</type>
+      <name>getDefault</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>acbb03fe1204ac889b101fc50afa5237d</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static List&lt; CommunicationMode &gt;</type>
+      <name>optionsList</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>af9f1ba91d2eef4497c02820df931251e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>TCP</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>af3f864fd4b26e2c9990c1c265afae86e</anchor>
       <arglist></arglist>
     </member>
   </compound>
@@ -43144,6 +43383,7 @@
     <class kind="class">org::lflang::target::property::CmakeArgsProperty</class>
     <class kind="class">org::lflang::target::property::CmakeIncludeProperty</class>
     <class kind="class">org::lflang::target::property::CmakeInitIncludeProperty</class>
+    <class kind="class">org::lflang::target::property::CommunicationModeProperty</class>
     <class kind="class">org::lflang::target::property::CompileDefinitionsProperty</class>
     <class kind="class">org::lflang::target::property::CompilerProperty</class>
     <class kind="class">org::lflang::target::property::CoordinationOptionsProperty</class>
@@ -43187,6 +43427,7 @@
     <class kind="enum">org::lflang::target::property::type::ArrayType</class>
     <class kind="class">org::lflang::target::property::type::BuildTypeType</class>
     <class kind="class">org::lflang::target::property::type::ClockSyncModeType</class>
+    <class kind="class">org::lflang::target::property::type::CommunicationModeType</class>
     <class kind="class">org::lflang::target::property::type::CoordinationModeType</class>
     <class kind="enum">org::lflang::target::property::type::DictionaryType</class>
     <class kind="class">org::lflang::target::property::type::LoggingType</class>
@@ -44368,6 +44609,7 @@
     <file>CmakeArgsProperty.java</file>
     <file>CmakeIncludeProperty.java</file>
     <file>CmakeInitIncludeProperty.java</file>
+    <file>CommunicationModeProperty.java</file>
     <file>CompileDefinitionsProperty.java</file>
     <file>CompilerProperty.java</file>
     <file>CoordinationOptionsProperty.java</file>
@@ -44651,6 +44893,7 @@
     <file>ArrayType.java</file>
     <file>BuildTypeType.java</file>
     <file>ClockSyncModeType.java</file>
+    <file>CommunicationModeType.java</file>
     <file>CoordinationModeType.java</file>
     <file>DictionaryType.java</file>
     <file>LoggingType.java</file>

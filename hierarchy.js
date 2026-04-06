@@ -504,6 +504,9 @@ var hierarchy =
     [ "org.lflang.target.property.TargetProperty&lt; ClockSyncOptions, DictionaryType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.ClockSyncOptionsProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty.html", null ]
     ] ],
+    [ "org.lflang.target.property.TargetProperty&lt; CommunicationMode, CommunicationModeType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
+      [ "org.lflang.target.property.CommunicationModeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CommunicationModeProperty.html", null ]
+    ] ],
     [ "org.lflang.target.property.TargetProperty&lt; CoordinationMode, CoordinationModeType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [
       [ "org.lflang.target.property.CoordinationProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CoordinationProperty.html", null ]
     ] ],
@@ -572,6 +575,7 @@ var hierarchy =
     [ "org.lflang.target.property.TracingProperty.TracingOptions", "classorg_1_1lflang_1_1target_1_1property_1_1TracingProperty_1_1TracingOptions.html", null ],
     [ "org.lflang.target.property.type.BuildTypeType.BuildType", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1BuildTypeType_1_1BuildType.html", null ],
     [ "org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType_1_1ClockSyncMode.html", null ],
+    [ "org.lflang.target.property.type.CommunicationModeType.CommunicationMode", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html", null ],
     [ "org.lflang.target.property.type.CoordinationModeType.CoordinationMode", "enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType_1_1CoordinationMode.html", null ],
     [ "org.lflang.target.property.type.DictionaryType.DictionaryElement", "interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType_1_1DictionaryElement.html", [
       [ "org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOption", "enumorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOption.html", null ],
@@ -587,6 +591,9 @@ var hierarchy =
     ] ],
     [ "org.lflang.target.property.type.OptionsType&lt; ClockSyncMode &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.ClockSyncModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1ClockSyncModeType.html", null ]
+    ] ],
+    [ "org.lflang.target.property.type.OptionsType&lt; CommunicationMode &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
+      [ "org.lflang.target.property.type.CommunicationModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType.html", null ]
     ] ],
     [ "org.lflang.target.property.type.OptionsType&lt; CoordinationMode &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1OptionsType.html", [
       [ "org.lflang.target.property.type.CoordinationModeType", "classorg_1_1lflang_1_1target_1_1property_1_1type_1_1CoordinationModeType.html", null ]
