@@ -551,6 +551,7 @@ public enum Target {
               CmakeArgsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               CmakeInitIncludeProperty.INSTANCE,
+              CommunicationModeProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
