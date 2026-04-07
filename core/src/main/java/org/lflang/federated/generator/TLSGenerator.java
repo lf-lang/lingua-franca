@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.util.FileUtil;
@@ -24,8 +23,8 @@ public class TLSGenerator {
       FederationFileConfig fileConfig,
       List<FederateInstance> federates,
       MessageReporter messageReporter,
-      LFGeneratorContext context
-  ) throws IOException {
+      LFGeneratorContext context)
+      throws IOException {
 
     // 1) Generate cert/key for RTI + each federate into fed-gen/<program>/credentials
     Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/<program>/credentials
@@ -48,7 +47,8 @@ public class TLSGenerator {
     return fileConfig.getGenPath().resolve("credentials");
   }
 
-  public static Path getLocalEntityCredentialsDir(FederationFileConfig fileConfig, String entityName) {
+  public static Path getLocalEntityCredentialsDir(
+      FederationFileConfig fileConfig, String entityName) {
     return getLocalCredentialsRoot(fileConfig).resolve(entityName);
   }
 
@@ -66,15 +66,18 @@ public class TLSGenerator {
    * Remote base (NO "~"). You should prefix with "$HOME/" in generated scripts.
    * e.g. "$HOME/" + getRelativeRemoteCredentialsDir(...)
    */
-  public static String getRelativeRemoteCredentialsDir(FederationFileConfig fileConfig, String entityName) {
+  public static String getRelativeRemoteCredentialsDir(
+      FederationFileConfig fileConfig, String entityName) {
     return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName + "/credentials";
   }
 
-  public static String getRelativeRemoteCertPath(FederationFileConfig fileConfig, String entityName) {
+  public static String getRelativeRemoteCertPath(
+      FederationFileConfig fileConfig, String entityName) {
     return getRelativeRemoteCredentialsDir(fileConfig, entityName) + "/" + entityName + ".crt";
   }
 
-  public static String getRelativeRemoteKeyPath(FederationFileConfig fileConfig, String entityName) {
+  public static String getRelativeRemoteKeyPath(
+      FederationFileConfig fileConfig, String entityName) {
     return getRelativeRemoteCredentialsDir(fileConfig, entityName) + "/" + entityName + ".key";
   }
 
@@ -84,14 +87,12 @@ public class TLSGenerator {
 
   /** Generate a self-signed cert+key for one entity under credentialsRoot/<entityName>/ */
   private static void generateEntityCertAndKey(
-      Path credentialsRoot, String entityName, MessageReporter reporter
-  ) throws IOException {
+      Path credentialsRoot, String entityName, MessageReporter reporter) throws IOException {
     Path dir = credentialsRoot.resolve(entityName);
     Files.createDirectories(dir);
 
     Path key = dir.resolve(entityName + ".key");
     Path crt = dir.resolve(entityName + ".crt");
-
 
     // Using openssl to generate:
     //   - RSA 2048 key (unencrypted) + self-signed cert, CN=<entityName>
@@ -101,19 +102,22 @@ public class TLSGenerator {
 
     String cmd =
         "openssl req -x509 -newkey rsa:2048 -nodes "
-            + "-keyout " + shellEscape(keyStr) + " "
-            + "-out " + shellEscape(crtStr) + " "
+            + "-keyout "
+            + shellEscape(keyStr)
+            + " "
+            + "-out "
+            + shellEscape(crtStr)
+            + " "
             + "-days 365 "
-            + "-subj " + shellEscape("/CN=" + entityName);
+            + "-subj "
+            + shellEscape("/CN=" + entityName);
 
     runLocalCommand(cmd, reporter, "[TLS Gen " + entityName + "]");
   }
 
   private static void copyTLSCredentialsToSrcGen(
-      FederationFileConfig fileConfig,
-      List<FederateInstance> federates,
-      Path credentialsRoot
-  ) throws IOException {
+      FederationFileConfig fileConfig, List<FederateInstance> federates, Path credentialsRoot)
+      throws IOException {
 
     // Federates: src-gen/<fed>/credentials/  (copy only that fed's key+cert)
     for (FederateInstance fed : federates) {

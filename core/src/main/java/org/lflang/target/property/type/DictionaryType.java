@@ -67,9 +67,10 @@ public enum DictionaryType implements TargetPropertyType {
       for (KeyValuePair pair : kv.getPairs()) {
         String key = pair.getName();
         Element val = pair.getValue();
-        Optional<DictionaryElement> match = this.options.stream()
-            .filter(element -> key.equalsIgnoreCase(element.toString()))
-            .findAny();
+        Optional<DictionaryElement> match =
+            this.options.stream()
+                .filter(element -> key.equalsIgnoreCase(element.toString()))
+                .findAny();
         if (match.isPresent()) {
           // Make sure the type is correct, too.
           TargetPropertyType type = match.get().getType();

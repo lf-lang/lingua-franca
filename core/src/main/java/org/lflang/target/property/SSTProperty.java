@@ -69,8 +69,8 @@ public final class SSTProperty extends TargetProperty<SSTOptions, DictionaryType
           }
         }
         case USE_PERMANENT_DIST_KEY -> {
-            pair.setValue(ASTUtils.toElement(value.usePermanentDistKey()));
-            kvp.getPairs().add(pair);
+          pair.setValue(ASTUtils.toElement(value.usePermanentDistKey()));
+          kvp.getPairs().add(pair);
         }
       }
     }

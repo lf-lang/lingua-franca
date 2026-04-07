@@ -401,7 +401,7 @@ public class CCmakeGenerator {
 
     if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
-      //TODO: Do we need this?
+      // TODO: Do we need this?
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
       if (platformOptions.platform() != Platform.AUTO) {

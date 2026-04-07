@@ -59,8 +59,8 @@ import org.lflang.lf.TargetDecl;
 import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
-import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -266,16 +266,17 @@ public class FedGenerator {
     configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
 
     // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
       configureArgs.add("-DCOMM_TYPE=SST");
-    } else if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+    } else if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
       configureArgs.add("-DCOMM_TYPE=TLS");
     }
 
     configureArgs.add(".");
 
-    var configure =
-        LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
+    var configure = LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
 
     var build =
         LFCommand.get(

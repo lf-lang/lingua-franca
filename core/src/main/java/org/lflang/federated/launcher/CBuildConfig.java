@@ -42,12 +42,13 @@ public class CBuildConfig extends BuildConfig {
           commandToReturn
               + " -sst "
               + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString();
-    } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+    } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
       commandToReturn +=
           " -tls "
-          + TLSGenerator.getLocalCertPath(fileConfig, federate.name).toString()
-          + " "
-          + TLSGenerator.getLocalKeyPath(fileConfig, federate.name).toString();
+              + TLSGenerator.getLocalCertPath(fileConfig, federate.name).toString()
+              + " "
+              + TLSGenerator.getLocalKeyPath(fileConfig, federate.name).toString();
     }
     return commandToReturn;
   }

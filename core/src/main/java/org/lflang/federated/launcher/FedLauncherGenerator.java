@@ -173,7 +173,7 @@ public class FedLauncherGenerator {
                 getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
             .append("\n");
         shCode
-        //TODO: Need to fix calling rtiConfig.getDirectory() here
+            // TODO: Need to fix calling rtiConfig.getDirectory() here
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
       } else {
@@ -197,7 +197,7 @@ public class FedLauncherGenerator {
       } else {
         // RTI is job %2 (Auth is %1)
         shCode.append("fg %2\n");
-}
+      }
     }
     // Wait for launched processes to finish
     shCode
@@ -433,10 +433,10 @@ public class FedLauncherGenerator {
 
       if (isRemote) {
         certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, "rti");
-        keyPath  = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, "rti");
+        keyPath = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, "rti");
       } else {
         certPath = TLSGenerator.getLocalCertPath(fileConfig, "rti").toString();
-        keyPath  = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
+        keyPath = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
       }
 
       commands.add("                        -tls " + certPath + " " + keyPath + " \\");
@@ -514,7 +514,7 @@ public class FedLauncherGenerator {
       sstAuthLaunch =
           String.join(
               "\n",
-            "# Launch the SST Auth on remote host.",
+              "# Launch the SST Auth on remote host.",
               "echo \"Executing Auth.\"",
               "ssh " + target + " 'mkdir -p log; \\",
               "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\",
@@ -745,10 +745,15 @@ public class FedLauncherGenerator {
       executeCommand =
           executeCommand
               + " -sst "
-              + SSTGenerator.getSSTRemoteBasePath(fileConfig, federate.name) + federate.name+ ".config";
-    } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
-      String certRemote = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, federate.name);
-      String keyRemote  = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, federate.name);
+              + SSTGenerator.getSSTRemoteBasePath(fileConfig, federate.name)
+              + federate.name
+              + ".config";
+    } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      String certRemote =
+          "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, federate.name);
+      String keyRemote =
+          "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, federate.name);
       executeCommand += " -tls " + certRemote + " " + keyRemote;
     }
 
