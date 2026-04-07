@@ -34,6 +34,10 @@ public class FedLauncherGenerator {
   protected TargetConfig targetConfig;
   protected FederationFileConfig fileConfig;
   protected MessageReporter messageReporter;
+  private static final String ANSI_INFO = "\033[36m";
+  private static final String ANSI_ERROR = "\033[31m";
+  private static final String ANSI_RESET = "\033[0m";
+  private static final String TMUX_TITLE_BG_COLOR = "colour25";
 
   /**
    * @param targetConfig The current target configuration.
@@ -96,6 +100,7 @@ public class FedLauncherGenerator {
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
     shCode.append(getSetupCode()).append("\n");
+    shCode.append(getTmuxLaunchCode(federates, rtiConfig)).append("\n");
     String distHeader = getDistHeader();
 
     String host = rtiConfig.getHost();
@@ -162,10 +167,7 @@ public class FedLauncherGenerator {
     for (FederateInstance federate : federates) {
       var buildConfig = getBuildConfig(federate, fileConfig, messageReporter);
       if (federate.isRemote) {
-        Path fedRelSrcGenPath =
-            fileConfig.getOutPath().relativize(fileConfig.getSrcGenPath()).resolve(federate.name);
         if (distCode.isEmpty()) distCode.append(distHeader).append("\n");
-        String logFileName = String.format("log/%s_%s.log", fileConfig.name, federate.name);
         distCode
             .append(
                 getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
@@ -184,7 +186,11 @@ public class FedLauncherGenerator {
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // Local PID managements
       shCode.append(
-          "echo \"#### Bringing the RTI back to foreground so it can receive Control-C.\"" + "\n");
+          "echo \""
+              + ANSI_INFO
+              + "#### Bringing the RTI back to foreground so it can receive Control-C."
+              + "\""
+              + "\n");
       if (targetConfig.get(CommunicationModeProperty.INSTANCE) != CommunicationMode.SST) {
         // RTI is job %1
         shCode.append("fg %1\n");
@@ -198,14 +204,18 @@ public class FedLauncherGenerator {
         .append(
             String.join(
                 "\n",
-                "echo \"RTI has exited. Wait for federates to exit.\"",
+                "echo \""
+                    + ANSI_INFO
+                    + "RTI has exited. Wait for federates to exit."
+                    + ANSI_RESET
+                    + "\"",
                 "# Wait for launched processes to finish.",
                 "# The errors are handled separately via trap.",
                 "for pid in \"${pids[@]}\"",
                 "do",
                 "    wait $pid || exit $?",
                 "done",
-                "echo \"All done.\"",
+                "echo \"" + ANSI_INFO + "All done." + ANSI_RESET + "\"",
                 "EXITED_SUCCESSFULLY=true"))
         .append("\n");
 
@@ -290,6 +300,43 @@ public class FedLauncherGenerator {
         "set -m",
         "shopt -s huponexit",
         "",
+        "# Parse launcher arguments.",
+        "LOG_TO_FILE=false",
+        "USE_TMUX=false",
+        "SLEEP_TIME=1",
+        "SLEEP_TIME_SET=false",
+        "REMAINING_ARGS=()",
+        "NEXT_IS_SLEEP=false",
+        "for arg in \"$@\"; do",
+        "    if [ \"$NEXT_IS_SLEEP\" = true ]; then",
+        "        SLEEP_TIME=\"$arg\"",
+        "        SLEEP_TIME_SET=true",
+        "        NEXT_IS_SLEEP=false",
+        "    elif [ \"$arg\" = \"--help\" ] || [ \"$arg\" = \"-h\" ]; then",
+        "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N] [-h|--help]"
+            + " [FEDERATE_ARGS...]\"",
+        "        echo \"\"",
+        "        echo \"Launcher options:\"",
+        "        echo \"  -l              Log federate output to files instead of stdout\"",
+        "        echo \"  -x, --tmux      Launch federates and RTI in a tmux session\"",
+        "        echo \"  -s, --sleep N   Seconds to sleep after launching RTI (default: 1,"
+            + " tmux: 2)\"",
+        "        echo \"  -h, --help      Show this help message\"",
+        "        echo \"\"",
+        "        echo \"All other arguments are forwarded to each federate.\"",
+        "        echo \"For available federate parameters, run a federate binary with --help.\"",
+        "        exit 0",
+        "    elif [ \"$arg\" = \"-l\" ]; then",
+        "        LOG_TO_FILE=true",
+        "    elif [ \"$arg\" = \"--tmux\" ] || [ \"$arg\" = \"-x\" ]; then",
+        "        USE_TMUX=true",
+        "    elif [ \"$arg\" = \"--sleep\" ] || [ \"$arg\" = \"-s\" ]; then",
+        "        NEXT_IS_SLEEP=true",
+        "    else",
+        "        REMAINING_ARGS+=(\"$arg\")",
+        "    fi",
+        "done",
+        "",
         "# Set a trap to kill all background jobs on error or control-C",
         "# Use two distinct traps so we can see which signal causes this.",
         "cleanup() {",
@@ -312,8 +359,13 @@ public class FedLauncherGenerator {
         "# Create a random 48-byte text ID for this federation.",
         "# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).",
         "FEDERATION_ID=`openssl rand -hex 24`",
-        "echo \"Federate " + fileConfig.name + " in Federation ID '$FEDERATION_ID'\"",
-        "# Launch the federates:");
+        "echo \""
+            + ANSI_INFO
+            + "Federation "
+            + fileConfig.name
+            + " with Federation ID '$FEDERATION_ID'."
+            + ANSI_RESET
+            + "\"");
   }
 
   private String getSSTAuthExecutionCode() {
@@ -419,13 +471,17 @@ public class FedLauncherGenerator {
     String launchCodeWithoutLogging = String.join(" ", rtiLaunchCode, "&");
     return String.join(
         "\n",
-        "echo \"#### Launching the runtime infrastructure (RTI).\"",
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the runtime infrastructure (RTI)."
+            + ANSI_RESET
+            + "\"",
         "# The RTI is started first to allow proper boot-up",
         "# before federates will try to connect.",
         "# The RTI will be brought back to foreground",
         "# to be responsive to user inputs after all federates",
         "# are launched.",
-        "if [ \"$1\" = \"-l\" ]; then",
+        "if [ \"$LOG_TO_FILE\" = true ]; then",
         launchCodeWithLogging,
         "else",
         launchCodeWithoutLogging,
@@ -435,7 +491,7 @@ public class FedLauncherGenerator {
         "# Wait for the RTI to boot up before",
         "# starting federates (this could be done by waiting for a specific output",
         "# from the RTI, but here we use sleep)",
-        "sleep 1");
+        "sleep $SLEEP_TIME");
   }
 
   private String getRemoteLaunchCode(
@@ -473,24 +529,44 @@ public class FedLauncherGenerator {
     return String.join(
         "\n",
         sstAuthLaunch,
-        "echo \"#### Launching the runtime infrastructure (RTI) on remote host " + host + ".\"",
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the runtime infrastructure (RTI) on remote host "
+            + host
+            + "."
+            + ANSI_RESET
+            + "\"",
         "# FIXME: Killing this ssh does not kill the remote process.",
         "# A double -t -t option to ssh forces creation of a virtual terminal, which",
         "# fixes the problem, but then the ssh command does not execute. The remote",
         "# federate does not start!",
         "ssh " + target + " 'mkdir -p log; \\",
-        "    echo \"-------------- Federation ID: \"'$FEDERATION_ID' >> " + logFileName + "; \\",
+        "    echo \""
+            + ANSI_INFO
+            + "-------------- Federation ID: \"'$FEDERATION_ID'"
+            + ANSI_RESET
+            + "\" >> "
+            + logFileName
+            + "; \\",
         "    date >> " + logFileName + "; \\",
-        "    echo \"Executing RTI: "
+        "    echo \""
+            + ANSI_INFO
+            + "Executing RTI: "
             + rtiLaunchString
-            + "\n\" 2>&1 | tee -a "
+            + "\n"
+            + ANSI_RESET
+            + "\" 2>&1 | tee -a "
             + logFileName
             + "; \\",
         "    # First, check if the RTI is on the PATH",
         "    if ! command -v RTI &> /dev/null",
         "    then",
-        "        echo \"RTI could not be found.\"",
-        "        echo \"The source code can be found in org.lflang/src/lib/core/federated/RTI\"",
+        "        echo \"" + ANSI_ERROR + "RTI could not be found." + ANSI_RESET + "\"",
+        "        echo \""
+            + ANSI_ERROR
+            + "The source code can be found in org.lflang/src/lib/core/federated/RTI"
+            + ANSI_RESET
+            + "\"",
         "        exit 1",
         "    fi",
         "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
@@ -540,10 +616,13 @@ public class FedLauncherGenerator {
 
     return String.join(
         "\n",
-        "echo \"Making directory "
+        "echo \""
+            + ANSI_INFO
+            + "------ Making directory "
             + remoteBase
             + " and subdirectories federate_name, bin, and log on host "
             + getUserHost(user, host)
+            + ANSI_RESET
             + "\"",
         "ssh " + getUserHost(user, host) + " '\\",
         "    mkdir -p " + binDirectory + " " + logDirectory + "; \\",
@@ -557,9 +636,19 @@ public class FedLauncherGenerator {
         "    date >> " + remoteBuildLogFileName + ";",
         "'",
         "pushd " + fileConfig.getSrcGenPath() + " > /dev/null",
-        "echo \"**** Bundling source files into " + tarFileName + "\"",
+        "echo \""
+            + ANSI_INFO
+            + "**** Bundling source files into "
+            + tarFileName
+            + ANSI_RESET
+            + "\"",
         "tar -czf " + tarFileName + " --exclude build " + name,
-        "echo \"**** Copying tarfile to host " + getUserHost(user, host) + "\"",
+        "echo \""
+            + ANSI_INFO
+            + "**** Copying tarfile to host "
+            + getUserHost(user, host)
+            + ANSI_RESET
+            + "\"",
         "scp -r "
             + tarFileName
             + " "
@@ -577,7 +666,12 @@ public class FedLauncherGenerator {
         "    rm " + tarFileName + ";",
         "'",
         "popd > /dev/null",
-        "echo \"**** Generating and executing compile.sh on host " + getUserHost(user, host) + "\"",
+        "echo \""
+            + ANSI_INFO
+            + "**** Generating and executing compile.sh on host "
+            + getUserHost(user, host)
+            + ANSI_RESET
+            + "\"",
         "ssh "
             + getUserHost(user, host)
             + " '"
@@ -660,10 +754,13 @@ public class FedLauncherGenerator {
 
     return String.join(
         "\n",
-        "echo \"#### Launching the federate "
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the federate "
             + federate.name
             + " on host "
             + getUserHost(federate.user, federate.host)
+            + ANSI_RESET
             + "\"",
         "# FIXME: Killing this ssh does not kill the remote process.",
         "# A double -t -t option to ssh forces creation of a virtual terminal, which",
@@ -680,13 +777,192 @@ public class FedLauncherGenerator {
       FederateInstance federate, String executeCommand, int federateIndex) {
     return String.join(
         "\n",
-        "echo \"#### Launching the federate " + federate.name + ".\"",
-        "if [ \"$1\" = \"-l\" ]; then",
-        "    " + executeCommand + " >& " + federate.name + ".log &",
+        "echo \""
+            + ANSI_INFO
+            + "#### Launching the federate "
+            + federate.name
+            + "."
+            + ANSI_RESET
+            + "\"",
+        "if [ \"$LOG_TO_FILE\" = true ]; then",
+        "    " + executeCommand + " \"${REMAINING_ARGS[@]}\" >& " + federate.name + ".log &",
         "else",
-        "    " + executeCommand + " &",
+        "    " + executeCommand + " \"${REMAINING_ARGS[@]}\" &",
         "fi",
         "pids[" + federateIndex + "]=$!");
+  }
+
+  /**
+   * Return the RTI launch command as a single line (no line-continuation backslashes). This is used
+   * in the tmux launch code where the command is sent as keystrokes to a tmux pane.
+   */
+  private String getRtiCommandOneLine(String rtiBinPath, List<FederateInstance> federates) {
+    return getRtiCommand(rtiBinPath, federates, false)
+        .replaceAll(" \\\\\\n\\s*", " ")
+        .replaceAll(" \\\\\\s*$", "");
+  }
+
+  /**
+   * Return shell script code that launches the federation in a tmux session when the USE_TMUX
+   * variable is set. The RTI gets a narrow pane at the top of the window, and the federates are
+   * arranged in a tiled grid below it. The block is wrapped in an {@code if} conditional so that
+   * the non-tmux code path is skipped when tmux mode is active.
+   */
+  private String getTmuxLaunchCode(List<FederateInstance> federates, RtiConfig rtiConfig) {
+    String host = rtiConfig.getHost();
+    boolean rtiIsLocal = host.equals("localhost") || host.equals("0.0.0.0");
+    int numFeds = federates.size();
+
+    String rtiCmd;
+    if (rtiIsLocal) {
+      rtiCmd = getRtiCommandOneLine(fileConfig.getRtiBinPath().toString(), federates);
+    } else {
+      String target = (rtiConfig.getUser() != null) ? rtiConfig.getUser() + "@" + host : host;
+      rtiCmd =
+          "ssh "
+              + target
+              + " '"
+              + getRtiCommandOneLine(rtiConfig.getRtiBinPath(fileConfig), federates)
+              + "'";
+    }
+
+    List<String> lines = new ArrayList<>();
+    lines.add("if [ \"$USE_TMUX\" = true ]; then");
+
+    // Check that tmux is installed.
+    lines.add("    if ! command -v tmux &> /dev/null; then");
+    lines.add("        echo \"tmux is not installed. Install it using one of the following:\"");
+    lines.add("        echo \"  macOS:          brew install tmux\"");
+    lines.add("        echo \"  Ubuntu/Debian:  sudo apt-get install tmux\"");
+    lines.add("        echo \"  Fedora:         sudo dnf install tmux\"");
+    lines.add("        echo \"  Arch Linux:     sudo pacman -S tmux\"");
+    lines.add("        exit 1");
+    lines.add("    fi");
+    lines.add("");
+    lines.add("    if [ \"$SLEEP_TIME_SET\" = false ]; then SLEEP_TIME=2; fi");
+    lines.add("");
+
+    // Create a tmux session with a name derived from the program and federation ID.
+    lines.add("    SESSION_NAME=\"" + fileConfig.name + "_${FEDERATION_ID:0:8}\"");
+    lines.add("    tmux kill-session -t \"$SESSION_NAME\" 2>/dev/null || true");
+    lines.add("");
+
+    // Create tmux session. The initial pane will become the first federate.
+    lines.add("    FED_PANE_0=$(tmux new-session -d -s \"$SESSION_NAME\" -P -F '#{pane_id}')");
+
+    // Arrange federate panes in a grid: up to 3 columns per row.
+    int maxCols = 3;
+    int rows = (numFeds + maxCols - 1) / maxCols;
+
+    // Split into rows (horizontal bands of equal height).
+    if (rows > 1) {
+      lines.add("    ROW_TARGET=$FED_PANE_0");
+      for (int r = 0; r < rows - 1; r++) {
+        int pct = (int) Math.round(100.0 * (rows - r - 1) / (rows - r));
+        lines.add("    ROW_" + r + "=$ROW_TARGET");
+        lines.add(
+            "    ROW_TARGET=$(tmux split-window -v -l "
+                + pct
+                + "% -t \"$ROW_TARGET\" -P -F '#{pane_id}')");
+      }
+      lines.add("    ROW_" + (rows - 1) + "=$ROW_TARGET");
+    } else {
+      lines.add("    ROW_0=$FED_PANE_0");
+    }
+
+    // Split each row into equally-sized columns.
+    for (int r = 0; r < rows; r++) {
+      int fedStart = r * maxCols;
+      int colsInRow = Math.min(numFeds - fedStart, maxCols);
+      if (colsInRow == 1) {
+        lines.add("    FED_PANE_" + fedStart + "=$ROW_" + r);
+      } else {
+        lines.add("    COL_TARGET=$ROW_" + r);
+        for (int c = 0; c < colsInRow - 1; c++) {
+          int pct = (int) Math.round(100.0 * (colsInRow - c - 1) / (colsInRow - c));
+          lines.add("    FED_PANE_" + (fedStart + c) + "=$COL_TARGET");
+          lines.add(
+              "    COL_TARGET=$(tmux split-window -h -l "
+                  + pct
+                  + "% -t \"$COL_TARGET\" -P -F '#{pane_id}')");
+        }
+        lines.add("    FED_PANE_" + (fedStart + colsInRow - 1) + "=$COL_TARGET");
+      }
+    }
+    lines.add("");
+
+    // Create a narrow full-width RTI pane at the very top of the window.
+    lines.add(
+        "    RTI_PANE=$(tmux split-window -f -v -b -l 5 -t \"$SESSION_NAME:0\""
+            + " -P -F '#{pane_id}')");
+    lines.add("");
+
+    // Style pane title bars with a blue background and white text.
+    lines.add("    tmux set-option -t \"$SESSION_NAME\" pane-border-status top");
+    lines.add("    tmux set-option -t \"$SESSION_NAME\" pane-border-format \" #{pane_title} \"");
+    lines.add(
+        "    tmux set-option -t \"$SESSION_NAME\" pane-border-style"
+            + " 'fg=white,bg="
+            + TMUX_TITLE_BG_COLOR
+            + "'");
+    lines.add(
+        "    tmux set-option -t \"$SESSION_NAME\" pane-active-border-style"
+            + " 'fg=white,bg="
+            + TMUX_TITLE_BG_COLOR
+            + ",bold'");
+    lines.add("    tmux set-option -t \"$SESSION_NAME\" status off");
+    lines.add("    tmux set-option -t \"$SESSION_NAME\" mouse on");
+    lines.add("");
+
+    // Assign pane titles. The RTI title doubles as an instruction banner.
+    lines.add(
+        "    tmux select-pane -t \"$RTI_PANE\" -T"
+            + " \"RTI — Ctrl+C to stop | Ctrl+B d to detach and kill\"");
+    for (int i = 0; i < numFeds; i++) {
+      lines.add(
+          "    tmux select-pane -t \"$FED_PANE_" + i + "\" -T \"" + federates.get(i).name + "\"");
+    }
+    lines.add("");
+
+    // Launch the RTI and federates. Each federate command sleeps briefly
+    // to give the RTI time to start listening before federates connect.
+    lines.add("    tmux send-keys -t \"$RTI_PANE\" \"" + rtiCmd + "\" C-m");
+    for (int i = 0; i < numFeds; i++) {
+      FederateInstance fed = federates.get(i);
+      String fedCmd;
+      if (fed.isRemote) {
+        String fedTarget = getUserHost(fed.user, fed.host);
+        String binDir = "~/" + rtiConfig.getDirectory() + "/" + fileConfig.name + "/bin";
+        fedCmd =
+            "sleep $SLEEP_TIME && ssh "
+                + fedTarget
+                + " 'cd ~/"
+                + rtiConfig.getDirectory()
+                + "/"
+                + fileConfig.name
+                + " && "
+                + binDir
+                + "/"
+                + fed.name
+                + " -i $FEDERATION_ID'";
+      } else {
+        var buildConfig = getBuildConfig(fed, fileConfig, messageReporter);
+        fedCmd =
+            "sleep $SLEEP_TIME && " + buildConfig.localExecuteCommand() + " ${REMAINING_ARGS[*]}";
+      }
+      lines.add("    tmux send-keys -t \"$FED_PANE_" + i + "\" \"" + fedCmd + "\" C-m");
+    }
+    lines.add("");
+
+    // Focus the RTI pane and attach to the session.
+    lines.add("    tmux select-pane -t \"$RTI_PANE\"");
+    lines.add("    tmux attach-session -t \"$SESSION_NAME\"");
+    lines.add("    tmux kill-session -t \"$SESSION_NAME\" 2>/dev/null || true");
+    lines.add("    EXITED_SUCCESSFULLY=true");
+    lines.add("    exit 0");
+    lines.add("fi");
+
+    return String.join("\n", lines);
   }
 
   /**

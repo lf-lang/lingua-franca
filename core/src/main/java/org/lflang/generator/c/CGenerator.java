@@ -54,6 +54,8 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -296,6 +298,9 @@ public class CGenerator extends GeneratorBase {
   /** A code-generator for enclave-specific code, */
   private CEnclaveGenerator enclaveGenerator;
 
+  /** Main reactor parameters that can be overridden from the command line. */
+  private List<Parameter> cliParameters = new ArrayList<>();
+
   /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
   private final CEnclavedReactorTransformation enclaveAST;
 
@@ -411,11 +416,9 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
     } catch (RuntimeException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
       throw e;
     }
 
@@ -561,9 +564,18 @@ public class CGenerator extends GeneratorBase {
     GeneratorUtils.refreshProject(resource, context.getMode());
   }
 
+  private static String formatExceptionMessage(Throwable e) {
+    String message = e.getMessage();
+    return message == null || message.isBlank() ? e.getClass().getName() : message;
+  }
+
   private void generateCodeFor(String lfModuleName) throws IOException {
     code.pr(generateDirectives());
-    code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
+    Reactor mainReactorClass =
+        mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
+    var mainFunctionGenerator = new CMainFunctionGenerator(targetConfig, mainReactorClass);
+    code.pr(mainFunctionGenerator.generateCode());
+    this.cliParameters = mainFunctionGenerator.getCliParameters();
     // Generate code for each reactor.
     generateReactorDefinitions();
     copyUserFiles(targetConfig, fileConfig);
@@ -1650,10 +1662,20 @@ public class CGenerator extends GeneratorBase {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
         initializeTriggerObjects.pr(
-            CTimerGenerator.generateInitializer(timer, instance.containingEnclave));
+            CTimerGenerator.generateInitializer(
+                timer, instance.containingEnclave, supportsNativeParameterReferences()));
         instance.containingEnclave.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
+  }
+
+  /**
+   * Return true if the generated C self struct stores parameters as native C types so that
+   * timer/deadline init code can reference them directly. The Python target stores parameters
+   * as PyObject* and must override this to return false.
+   */
+  protected boolean supportsNativeParameterReferences() {
+    return true;
   }
 
   /**
@@ -1807,7 +1829,8 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor.
    */
   private void generateActionInitializations(ReactorInstance instance) {
-    initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance));
+    initializeTriggerObjects.pr(
+        CActionGenerator.generateInitializers(instance, supportsNativeParameterReferences()));
   }
 
   /**
@@ -1825,7 +1848,7 @@ public class CGenerator extends GeneratorBase {
         var payloadSize = "0";
         if (!type.isUndefined()) {
           var typeStr = types.getTargetType(type);
-          if (CUtil.isTokenType(type)) {
+          if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
             typeStr = CUtil.rootType(typeStr);
           }
           if (typeStr != null && !typeStr.equals("") && !typeStr.equals("void")) {
@@ -1885,9 +1908,22 @@ public class CGenerator extends GeneratorBase {
     for (ReactionInstance reaction : instance.reactions) {
       var selfRef = CUtil.reactorRef(reaction.getParent()) + "->_lf__reaction_" + reaction.index;
       if (reaction.declaredDeadline != null) {
-        var deadline = reaction.declaredDeadline.maxDelay;
-        initializeTriggerObjects.pr(
-            selfRef + ".deadline = " + types.getTargetTimeExpr(deadline) + ";");
+        var delayExpr = reaction.getDefinition().getDeadline().getDelay();
+        if (supportsNativeParameterReferences()
+            && delayExpr instanceof ParameterReference paramRef) {
+          var reactorRef = CUtil.reactorRef(reaction.getParent());
+          initializeTriggerObjects.pr(
+              selfRef
+                  + ".deadline = "
+                  + reactorRef
+                  + "->"
+                  + paramRef.getParameter().getName()
+                  + ";");
+        } else {
+          var deadline = reaction.declaredDeadline.maxDelay;
+          initializeTriggerObjects.pr(
+              selfRef + ".deadline = " + types.getTargetTimeExpr(deadline) + ";");
+        }
       } else { // No deadline.
         initializeTriggerObjects.pr(selfRef + ".deadline = NEVER;");
       }
@@ -1966,6 +2002,22 @@ public class CGenerator extends GeneratorBase {
       } else {
         initializeTriggerObjects.pr(
             selfRef + "->" + parameter.getName() + " = " + initializer + ";");
+      }
+    }
+    // For the main reactor, override parameters with command-line values if given.
+    if (instance.isMainOrFederated() && !cliParameters.isEmpty()) {
+      for (Parameter param : cliParameters) {
+        var name = param.getName();
+        var baseType = param.getType() != null ? ASTUtils.baseType(param.getType()) : "";
+        initializeTriggerObjects.pr("if (_lf_cli_" + name + "_given) {");
+        if ("string".equals(baseType)) {
+          // CLI variable is const char*; self struct field is char* (typedef string).
+          initializeTriggerObjects.pr(
+              "    " + selfRef + "->" + name + " = (char*)_lf_cli_" + name + ";");
+        } else {
+          initializeTriggerObjects.pr("    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        }
+        initializeTriggerObjects.pr("}");
       }
     }
   }
@@ -2118,65 +2170,75 @@ public class CGenerator extends GeneratorBase {
   }
 
   private String generateTopLevelPreambles(Reactor reactor, Set<EObject> visited) {
-    if (visited.contains(reactor.eContainer())) {
-      // If we have already visited the container of this reactor, then we do not need to
-      // generate the preamble again.
-      return "";
-    }
-
     CodeBuilder builder = new CodeBuilder();
 
     // First, generate the preambles for the base classes of the specified reactor.
-    var superClasses = reactor.getSuperClasses();
-    if (superClasses != null) {
-      for (var superClass : superClasses) {
-        builder.pr(generateTopLevelPreambles(toDefinition(superClass), visited));
+    // Use ASTUtils.superClasses to get the full resolved superclass chain, which handles
+    // imported reactors correctly. This returns classes in deepest-first order.
+    var allSuperClasses = ASTUtils.superClasses(reactor);
+    if (allSuperClasses != null) {
+      for (var superClass : allSuperClasses) {
+        generatePreambleForFile(superClass.eContainer(), visited, builder);
       }
     }
-    // These could have been in the same file, in which case we avoid generating again.
-    if (!visited.contains(reactor.eContainer())) {
-      visited.add(reactor.eContainer());
-      // Generate the preambles for the specified reactor.
-      // We need to guard it with a #ifndef.
-      // The eContainer() of the reactor is the file in which it is defined, which
-      // is where top-level preambles reside. Hence, guard the preamble with an
-      // identifier unique to the file.
-      var preambles = ((Model) reactor.eContainer()).getPreambles();
-      var hasPreamble =
-          !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
-      if (hasPreamble) {
-        var guard = "TOP_LEVEL_PREAMBLE_" + reactor.eContainer().hashCode() + "_H";
-        builder.pr("#ifndef " + guard);
-        builder.pr("#define " + guard);
 
-        for (var preamble : preambles) {
-          var code = preamble.getCode();
-          if (code != null) {
-            var text = toText(code);
-            builder.pr(text);
-          }
-        }
+    // Generate preamble for the current reactor's file (may have been visited via superclasses).
+    generatePreambleForFile(reactor.eContainer(), visited, builder);
 
-        // Also generate the preambles for all the .proto files that are used.
-        for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-          var dotIndex = file.lastIndexOf(".");
-          var rootFilename = file;
-          if (dotIndex > 0) {
-            rootFilename = file.substring(0, dotIndex);
-          }
-          code.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-          builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
-        }
-
-        builder.pr("#endif // " + guard);
-      }
-    }
     // Finally, generate the preambles for all the reactors that are instantiated.
+    // This recursively collects preambles from instantiated reactors and their superclasses.
     for (var instantiation : ASTUtils.allInstantiations(reactor)) {
       var instantiated = toDefinition(instantiation.getReactorClass());
-      builder.pr(generateTopLevelPreambles(toDefinition(instantiated), visited));
+      if (instantiated != null) {
+        builder.pr(generateTopLevelPreambles(instantiated, visited));
+      }
     }
     return builder.toString();
+  }
+
+  /**
+   * Generate guarded preamble code for the given file (Model container) if not already visited.
+   *
+   * @param fileContainer The eContainer of a reactor (the Model/file containing it).
+   * @param visited Set of already-visited containers to avoid duplicates.
+   * @param builder The CodeBuilder to append the preamble to.
+   */
+  private void generatePreambleForFile(
+      EObject fileContainer, Set<EObject> visited, CodeBuilder builder) {
+    if (visited.contains(fileContainer)) {
+      return;
+    }
+    visited.add(fileContainer);
+
+    var preambles = ((Model) fileContainer).getPreambles();
+    var hasPreamble =
+        !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
+    if (!hasPreamble) {
+      return;
+    }
+
+    var guard = "TOP_LEVEL_PREAMBLE_" + fileContainer.hashCode() + "_H";
+    builder.pr("#ifndef " + guard);
+    builder.pr("#define " + guard);
+
+    for (var preamble : preambles) {
+      var code = preamble.getCode();
+      if (code != null) {
+        builder.pr(toText(code));
+      }
+    }
+
+    // Also generate includes for all the .proto files that are used.
+    for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
+      var dotIndex = file.lastIndexOf(".");
+      var rootFilename = file;
+      if (dotIndex > 0) {
+        rootFilename = file.substring(0, dotIndex);
+      }
+      builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+    }
+
+    builder.pr("#endif // " + guard);
   }
 
   protected boolean targetLanguageIsCpp() {

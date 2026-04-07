@@ -4,11 +4,14 @@ import static org.lflang.generator.c.CGenerator.variableStructType;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Action;
+import org.lflang.lf.Expression;
+import org.lflang.lf.ParameterReference;
 import org.lflang.target.Target;
 
 /**
@@ -30,26 +33,25 @@ public class CActionGenerator {
    * and period fields.
    *
    * @param instance The reactor.
+   * @param useParamRefs If true, use self-struct parameter references for min_delay/min_spacing
+   *     when the AST expression is a ParameterReference, so runtime CLI overrides take effect.
    */
-  public static String generateInitializers(ReactorInstance instance) {
+  public static String generateInitializers(ReactorInstance instance, boolean useParamRefs) {
     List<String> code = new ArrayList<>();
     for (ActionInstance action : instance.actions) {
       if (!action.isShutdown()) {
         var triggerStructName = CUtil.reactorRef(action.getParent()) + "->_lf__" + action.getName();
-        var minDelay = action.getMinDelay();
-        var minSpacing = action.getMinSpacing();
-        var offsetInitializer =
-            triggerStructName
-                + ".offset = "
-                + CTypes.getInstance().getTargetTimeExpr(minDelay)
-                + ";";
-        var periodInitializer =
-            triggerStructName
-                + ".period = "
-                + (minSpacing != null
-                    ? CTypes.getInstance().getTargetTimeExpr(minSpacing)
-                    : CGenerator.UNDEFINED_MIN_SPACING)
-                + ";";
+        var selfRef = CUtil.reactorRef(action.getParent());
+        var def = action.getDefinition();
+        var offsetExpr =
+            getActionTimeExpr(def.getMinDelay(), selfRef, action.getMinDelay(), useParamRefs);
+        var spacingExpr =
+            action.getMinSpacing() != null
+                ? getActionTimeExpr(
+                    def.getMinSpacing(), selfRef, action.getMinSpacing(), useParamRefs)
+                : CGenerator.UNDEFINED_MIN_SPACING;
+        var offsetInitializer = triggerStructName + ".offset = " + offsetExpr + ";";
+        var periodInitializer = triggerStructName + ".period = " + spacingExpr + ";";
         var lastTimeInitializer = triggerStructName + ".last_tag = NEVER_TAG;";
         code.addAll(
             List.of(
@@ -74,6 +76,19 @@ public class CActionGenerator {
       }
     }
     return String.join("\n", code);
+  }
+
+  /**
+   * Return a C expression for an action's min_delay or min_spacing. If {@code useParamRefs} is true
+   * and the AST expression is a {@link ParameterReference}, return a self-struct field reference so
+   * that CLI overrides propagate to the action timing.
+   */
+  private static String getActionTimeExpr(
+      Expression astExpr, String selfRef, TimeValue resolved, boolean useParamRefs) {
+    if (useParamRefs && astExpr instanceof ParameterReference paramRef) {
+      return selfRef + "->" + paramRef.getParameter().getName();
+    }
+    return CTypes.getInstance().getTargetTimeExpr(resolved);
   }
 
   /**

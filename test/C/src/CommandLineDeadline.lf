@@ -1,0 +1,45 @@
+// Test that main reactor parameters propagate to child reactor deadlines.
+// Also tests command-line override of parameters.
+// Default: execution_time=100ms, deadline_time=50ms -> violation occurs -> expect_violation=1.
+// CLI test: --execution_time 10 msec --deadline_time 200 msec --expect_violation 0
+//   -> no violation -> expect_violation=0.
+target C
+
+reactor Source(execution_time: time = 100 ms) {
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_sleep(self->execution_time);
+    lf_set(out, 42);
+  =}
+}
+
+reactor Print(deadline_time: time = 50 ms, expect_violation: int = 1) {
+  input in: int
+  state violation_detected: int = 0
+
+  reaction(in) {=
+    lf_print("No deadline violation.");
+  =} deadline(deadline_time) {=
+    self->violation_detected = 1;
+    lf_print("Deadline violation detected.");
+  =}
+
+  reaction(shutdown) {=
+    if (self->violation_detected != self->expect_violation) {
+      lf_print_error_and_exit("Expected expect_violation=%d but got %d.",
+          self->expect_violation, self->violation_detected);
+    }
+    printf("SUCCESS: expect_violation=%d, violation_detected=%d.\n",
+           self->expect_violation, self->violation_detected);
+  =}
+}
+
+main reactor CommandLineDeadline(
+    execution_time: time = 100 ms,
+    deadline_time: time = 50 ms,
+    expect_violation: int = 1) {
+  s = new Source(execution_time=execution_time)
+  p = new Print(deadline_time=deadline_time, expect_violation=expect_violation)
+  s.out -> p.in
+}

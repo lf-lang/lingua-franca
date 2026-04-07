@@ -11,6 +11,7 @@ import org.lflang.generator.CodeBuilder;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
@@ -198,17 +199,15 @@ public class CReactorHeaderFileGenerator {
   private static Stream<PortVariable> portVariableStream(
       Reaction r, TypeParameterizedReactor reactorOfReaction) {
     return varRefStream(r)
+        .filter(it -> it.getVariable() instanceof Port)
         .map(
             it ->
-                it.getVariable() instanceof TypedVariable tv
-                    ? new PortVariable(
-                        tv,
-                        it.getContainer() != null
-                            ? new TypeParameterizedReactor(it.getContainer(), reactorOfReaction)
-                            : reactorOfReaction,
-                        it.getContainer())
-                    : null)
-        .filter(Objects::nonNull);
+                new PortVariable(
+                    (TypedVariable) it.getVariable(),
+                    it.getContainer() != null
+                        ? new TypeParameterizedReactor(it.getContainer(), reactorOfReaction)
+                        : reactorOfReaction,
+                    it.getContainer()));
   }
 
   /**

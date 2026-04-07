@@ -548,6 +548,7 @@ public enum Target {
               BuildTypeProperty.INSTANCE,
               ClockSyncModeProperty.INSTANCE,
               ClockSyncOptionsProperty.INSTANCE,
+              CmakeArgsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
               CommunicationModeProperty.INSTANCE,
               SSTProperty.INSTANCE,

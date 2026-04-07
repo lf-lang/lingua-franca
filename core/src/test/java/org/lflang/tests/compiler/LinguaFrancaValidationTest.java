@@ -29,6 +29,7 @@ import org.lflang.target.TargetConfig;
 import org.lflang.target.property.CargoDependenciesProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.TargetProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.type.ArrayType;
 import org.lflang.target.property.type.DictionaryType;
 import org.lflang.target.property.type.DictionaryType.DictionaryElement;
@@ -1586,6 +1587,11 @@ public class LinguaFrancaValidationTest {
         // we test that separately as it has better error messages
         continue;
       }
+      if (property instanceof TracePluginProperty) {
+        // trace-plugin has semantic requirements beyond its structural dictionary type (it requires
+        // both 'package' and 'library'), so it doesn't fit the generic type-synthesis tests here.
+        continue;
+      }
       var type = property.type;
       List<String> knownCorrect = synthesizeExamples(type, true);
 
@@ -2370,5 +2376,33 @@ public class LinguaFrancaValidationTest {
         LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         "Cannot specify workers in single-threaded mode.");
+  }
+
+  @Test
+  public void tracePluginRequiresPackageAndLibraryMissingLibrary() throws Exception {
+    String testCase =
+        """
+        target C { trace-plugin: {package: "foo"} };
+        main reactor {}
+        """;
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "trace-plugin must be a dictionary with keys 'package' and 'library'.");
+  }
+
+  @Test
+  public void tracePluginRequiresPackageAndLibraryMissingPackage() throws Exception {
+    String testCase =
+        """
+        target C { trace-plugin: {library: "bar"} };
+        main reactor {}
+        """;
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        "trace-plugin must be a dictionary with keys 'package' and 'library'.");
   }
 }
