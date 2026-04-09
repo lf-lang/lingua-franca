@@ -27473,8 +27473,8 @@
     <member kind="function">
       <type>boolean</type>
       <name>loadFromImport</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
-      <anchor>ab53684f78f96af96841c92187f131488</anchor>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</anchorfile>
+      <anchor>af2c22648245648eb241fc639c6b02a78</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -28074,8 +28074,8 @@
     <member kind="function">
       <type>boolean</type>
       <name>loadFromImport</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
-      <anchor>ab53684f78f96af96841c92187f131488</anchor>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</anchorfile>
+      <anchor>afd40a5d5b29da738c5e07dbe4fb127a5</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">

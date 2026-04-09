@@ -32645,6 +32645,28 @@
       <Name>loadFromImport</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.CmakeArgsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CmakeArgsProperty.html</Path>
+    <Anchor>af2c22648245648eb241fc639c6b02a78</Anchor>
+    <DeclaredIn>CmakeArgsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromImport</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.CompileDefinitionsProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html</Path>
+    <Anchor>afd40a5d5b29da738c5e07dbe4fb127a5</Anchor>
+    <DeclaredIn>CompileDefinitionsProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromImport</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.FileListProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1FileListProperty.html</Path>

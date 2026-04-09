@@ -10,7 +10,7 @@ var classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty =
     [ "initialValue", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#ac9aaa320c4ab8d719dd0fe6bc0adef62", null ],
     [ "loadFromFederate", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#a887afc08ede48190976f784b8769b7ea", null ],
     [ "loadFromFederation", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#a033370849eef3120afd46c4845863e2d", null ],
-    [ "loadFromImport", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#ab53684f78f96af96841c92187f131488", null ],
+    [ "loadFromImport", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#afd40a5d5b29da738c5e07dbe4fb127a5", null ],
     [ "name", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#a57767eaf3e52e4b3935bf690400bd59d", null ],
     [ "override", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#a2a3ae8487cf2df37b7e3c98a9d594685", null ],
     [ "toAstElement", "classorg_1_1lflang_1_1target_1_1property_1_1CompileDefinitionsProperty.html#ab4a1a7fcd5a173da80b3733c62bca6ac", null ],
