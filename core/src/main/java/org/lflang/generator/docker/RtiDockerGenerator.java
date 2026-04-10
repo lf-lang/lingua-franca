@@ -37,7 +37,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
   @Override
   protected String generateCopyOfCredentials() {
     if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      return "COPY rti/sst/ ./sst/";
+      return "COPY sst/ ./sst/";
     }
     return "";
   }
@@ -54,7 +54,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
   protected List<String> defaultBuildCommands() {
     return List.of(
         "mkdir -p bin",
-        "cmake -DCOMM_TYPE=SST -S src-gen/rti -B bin",
+        "cmake -DCOMM_TYPE=SST -S src-gen -B bin",
         "cd bin",
         "make all",
         "cd ..");

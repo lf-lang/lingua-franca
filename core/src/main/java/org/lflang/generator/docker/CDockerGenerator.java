@@ -52,7 +52,7 @@ public class CDockerGenerator extends DockerGenerator {
         "\n",
         "FROM " + defaultImage() + " AS sst-builder",
         "RUN set -ex && apk add --no-cache gcc musl-dev cmake make openssl-dev",
-        "COPY sst-src/ /sst-src/",
+        "COPY /sst-src/ /sst-src/",
         "WORKDIR /sst-build",
         "RUN cmake -DBUILD_TESTING=OFF /sst-src && make && make install"
       );
@@ -63,7 +63,7 @@ public class CDockerGenerator extends DockerGenerator {
   @Override
   protected String generateCopyOfCredentials() { 
     if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      return "COPY " + context.getFileConfig().name + "/sst/ ./sst/";
+      return "COPY /sst/ ./sst/";
     }
 
     return "";
@@ -111,7 +111,7 @@ public class CDockerGenerator extends DockerGenerator {
               context.getTargetConfig().target == Target.CCPP);
       var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
       var commFlag = isSST ? " -DCOMM_TYPE=SST" : "";
-      var srcDir = isSST ? "src-gen/" + context.getFileConfig().name : "src-gen";
+      var srcDir = "src-gen";
       return List.of(
           "mkdir -p bin",
           String.format(

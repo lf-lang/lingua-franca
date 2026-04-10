@@ -96,7 +96,7 @@ public class DockerComposeGenerator {
 
   /** Return the name of the service represented by the given data. */
   protected String getBuildContext(DockerData data) {
-    return ".";
+    return data.serviceName;
   }
 
   /** Return the name of the container for the given data. */

@@ -45,6 +45,12 @@ public class SSTGenerator {
       return;
     }
 
+    for (FederateInstance federate : federates) {
+      copySSTSource(context, federate.name);
+    }
+
+    copySSTSource(context, "rti");
+
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTGraphsPath().toFile());
@@ -221,8 +227,107 @@ public class SSTGenerator {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  private static void generateSSTConfig(
-      FederationFileConfig fileConfig, String name, String authAndRtiIP) {
+  /**
+   * Generate a {@code transient_federates.config} file in the RTI's src-gen directory. The file
+   * lists every transient federate in the federation so the RTI can launch them on demand. Each
+   * entry records the federate's ID, name, IP address, SSH user, binary launch path, and SST
+   * config path.
+   */
+  public static void generateTransientFederateConfig(
+      FederationFileConfig fileConfig, List<FederateInstance> federates) {
+
+    StringBuilder transientConfig = new StringBuilder();
+    for (FederateInstance federate : federates) {
+      if (federate.isTransient) {
+        int id = federate.id;
+        String fedName = federate.name;
+        String fedIp = federate.host;
+        String fedUser = federate.user;
+        String launchFilePath;
+        String sstConfigPath;
+        if (fedIp == null || fedIp.equals("localhost")) {
+          fedIp = "localhost";
+          launchFilePath = fileConfig.getFedBinPath().resolve(fedName).toString();
+          sstConfigPath = fileConfig.getSSTConfigPath().resolve(fedName + ".config").toString();
+        } else {
+          launchFilePath = getRemoteBasePath(fileConfig, "") + "/bin/" + fedName;
+          sstConfigPath = getSSTRemoteBasePath(fileConfig, fedName) + fedName + ".config";
+        }
+
+        transientConfig
+            .append("federateId=")
+            .append(id)
+            .append("\n")
+            .append("federateName=")
+            .append(fedName)
+            .append("\n")
+            .append("federateUser=")
+            .append(fedUser)
+            .append("\n")
+            .append("federateIp=")
+            .append(fedIp)
+            .append("\n")
+            .append("federateLaunchPath=")
+            .append(launchFilePath)
+            .append("\n")
+            .append("federateSSTPath=")
+            .append(sstConfigPath)
+            .append("\n");
+      }
+    }
+
+    // No need to create the file if no transient federates are present
+    if (transientConfig.length() <= 0) {
+      return;
+    }
+
+    // Write the transient federates config to the RTI's src-gen directory.
+    try {
+      Path newFilePath;
+      newFilePath = fileConfig.getRtiSrcGenPath().resolve("transient_federates.config");
+      BufferedWriter writer = new BufferedWriter(new FileWriter(newFilePath.toFile()));
+      writer.write(transientConfig.toString());
+      writer.close();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static void copySSTSource(LFGeneratorContext context, String name) {
+    var destDirBase = context.getFileConfig().getSrcGenPath().resolve(name).resolve("sst-src");
+    var srcDirBase = Path.of(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath()).resolve("entity/c");
+
+    try {
+      // Copy the files in the src folder
+      var destDir = destDirBase.resolve("src");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      var srcDir = srcDirBase.resolve("src");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // Copy the test files
+      destDir = destDirBase.resolve("tests");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("tests");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // copy cmake
+      destDir = destDirBase.resolve("cmake");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("cmake");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      //copy CMakeLists.txt
+      FileUtil.copyFile(
+        srcDirBase.resolve("CMakeLists.txt"),
+        destDirBase.resolve("CMakeLists.txt")
+      );
+    }
+    catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while copying sst files: " + e.getMessage());
+    }
+  }
+
+  private static void generateSSTConfig(FederationFileConfig fileConfig, String name, String authAndRtiIP) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
