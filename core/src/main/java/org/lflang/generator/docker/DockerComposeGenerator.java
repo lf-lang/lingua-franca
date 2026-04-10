@@ -64,6 +64,7 @@ public class DockerComposeGenerator {
                %s:
                    build:
                        context: "%s"
+                       %s
                    container_name: "%s"
                    tty: true
                    extra_hosts:
@@ -75,6 +76,7 @@ public class DockerComposeGenerator {
         .formatted(
             getServiceName(data),
             getBuildContext(data),
+            getDockerFilePath(data),
             getContainerName(data),
             getEnvironmentFile());
   }
@@ -100,6 +102,10 @@ public class DockerComposeGenerator {
   /** Return the name of the container for the given data. */
   protected String getContainerName(DockerData data) {
     return data.serviceName;
+  }
+
+  protected String getDockerFilePath(DockerData data) {
+    return "";
   }
 
   /**

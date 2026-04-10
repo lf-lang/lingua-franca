@@ -73,6 +73,9 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
+import java.nio.file.Path;
+import org.lflang.target.property.SSTProperty;
+
 
 /**
  * The main class for the federated code generator.
@@ -244,6 +247,9 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
+      if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        copySSTSourceForDocker(context);
+      }
       dockerGen.buildIfRequested();
     } catch (IOException e) {
       context
@@ -364,6 +370,43 @@ public class FedGenerator {
   private void generateLaunchScript() {
     new FedLauncherGenerator(this.targetConfig, this.fileConfig, this.messageReporter)
         .doGenerate(federates, rtiConfig);
+  }
+
+  /**
+   * 
+   */
+  private void copySSTSourceForDocker(LFGeneratorContext context) {
+    var destDirBase = context.getFileConfig().getSrcGenPath().resolve("sst-src");
+    var srcDirBase = Path.of(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath()).resolve("entity/c");
+
+    try {
+      // copy the src files into the sst-src folder
+      var destDir = destDirBase.resolve("src");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      var srcDir = srcDirBase.resolve("src");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      destDir = destDirBase.resolve("tests");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("tests");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // copy cmake
+      destDir = destDirBase.resolve("cmake");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("cmake");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      //copy CMakeLists.txt
+      FileUtil.copyFile(
+        srcDirBase.resolve("CMakeLists.txt"),
+        destDirBase.resolve("CMakeLists.txt")
+      );
+    }
+    catch (IOException e) {
+      context.getErrorReporter().nowhere().error("Error while copying sst files: " + e.getMessage());
+    }
+
   }
 
   /**

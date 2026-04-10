@@ -5,6 +5,9 @@ import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.CommunicationModeProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
+
 
 /**
  * A docker-compose configuration generator for a federated program.
@@ -44,14 +47,16 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
         """
             .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
     if (this.rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
+      var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+      var rtiBuildContext = isSST ? "context: \".\"\n            dockerfile: \"rti/Dockerfile\"" : "context: \"rti\"";
       return """
              %s\
                  rti:
                      build:
-                         context: "rti"
+                         %s
              %s
              """
-          .formatted(super.generateDockerServices(services), attributes);
+          .formatted(super.generateDockerServices(services), rtiBuildContext, attributes);
     } else {
       return """
              %s\
@@ -79,11 +84,22 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
 
   @Override
   protected String getBuildContext(DockerData data) {
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      return ".";
+    }
     return data.serviceName;
   }
 
   @Override
   protected String getContainerName(DockerData data) {
     return this.containerName + "-" + data.serviceName;
+  }
+
+  @Override
+  protected String getDockerFilePath(DockerData data) {
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      return "dockerfile: \"" + data.serviceName + "/Dockerfile\"";
+    }
+    return "";
   }
 }
