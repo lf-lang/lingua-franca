@@ -1,5 +1,7 @@
-// Verify that deadline increases from 200 ms to 1 sec works.
-// Also, test if the increased deadline works when reaction is triggered again.
+# Verify that deadline increases from 200 ms to 1 sec works.
+# This test is flaky. It usually passes, but occasionally fails, particularly on the Windows platform.
+# The flakiness is intrinsic to the test, not a reflection of some defect in the code.
+# Also, test if the increased deadline works when reaction is triggered again.
 target C {
   timeout: 1500 msec
 }

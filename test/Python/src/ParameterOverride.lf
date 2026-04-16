@@ -1,0 +1,16 @@
+target Python
+
+reactor A(x=0) {
+  reaction(startup) {=
+    if self.x != 1:
+      print(f"x is {self.x}. Should be 1.")
+      exit(1)
+  =}
+}
+
+reactor B(x=1) extends A {
+}
+
+main reactor {
+  b = new B()
+}
