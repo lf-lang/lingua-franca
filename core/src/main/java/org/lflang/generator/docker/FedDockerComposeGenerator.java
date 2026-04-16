@@ -46,11 +46,12 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
         """
             .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var authIP = context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
     var authService = isSST ? """
                  auth:
                      networks:
                          default: 
-                             ipv4_address: "172.21.0.2"
+                             ipv4_address: "%s"
                      build:
                          context: "auth"
                      container_name: "%s-auth"
@@ -60,7 +61,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                          test: ["CMD", "nc", "-z", "localhost", "21900"]
                          interval: 2s
                          retries: 15
-             """.formatted(containerName) : "";
+             """.formatted(authIP, containerName) : "";
     var rtiDependsOn = isSST ? """
                      depends_on:
                          - auth
@@ -109,6 +110,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   @Override
   protected String generateDockerNetwork(String networkName) {
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var subnet = context.getTargetConfig().get(DockerProperty.INSTANCE).subnet();
     if (isSST) {
       return """
              networks:
@@ -117,7 +119,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                      ipam: 
                          config:
                              - subnet: "%s"
-             """.formatted(networkName, "172.21.0.0/16");
+             """.formatted(networkName, subnet);
     }
 
     return super.generateDockerNetwork(networkName);
