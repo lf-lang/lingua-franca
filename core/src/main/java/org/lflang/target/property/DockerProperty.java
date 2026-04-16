@@ -44,6 +44,10 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     var runScript = "";
     var envFile = "";
     var dockerConfigFile = "";
+    var deployment = "compose";
+    var registryAddress = "";
+    var authIP = "172.21.0.2";
+    var subnet = "172.21.0.0/16";
 
     if (node.getLiteral() != null) {
       if (ASTUtils.toBoolean(node)) {
@@ -66,6 +70,11 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           case ENV_FILE -> envFile = ASTUtils.elementToSingleString(entry.getValue());
           case DOCKER_CONFIG_FILE ->
               dockerConfigFile = ASTUtils.elementToSingleString(entry.getValue());
+          case DEPLOYMENT_TYPE -> deployment = ASTUtils.elementToSingleString(entry.getValue());
+          case REGISTRY_ADDRESS -> 
+              registryAddress = ASTUtils.elementToSingleString(entry.getValue());
+          case AUTH_IP -> authIP = ASTUtils.elementToSingleString(entry.getValue());
+          case SUBNET -> subnet = ASTUtils.elementToSingleString(entry.getValue());
         }
       }
     }
@@ -80,7 +89,11 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
         postBuildScript,
         runScript,
         envFile,
-        dockerConfigFile);
+        dockerConfigFile,
+        deployment,
+        registryAddress,
+        authIP,
+        subnet);
   }
 
   @Override
@@ -118,6 +131,10 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           case RTI_IMAGE -> pair.setValue(ASTUtils.toElement(value.rti));
           case ENV_FILE -> pair.setValue(ASTUtils.toElement(value.envFile));
           case DOCKER_CONFIG_FILE -> pair.setValue(ASTUtils.toElement(value.dockerConfigFile));
+          case DEPLOYMENT_TYPE -> pair.setValue(ASTUtils.toElement(value.deployment));
+          case REGISTRY_ADDRESS -> pair.setValue(ASTUtils.toElement(value.registryAddress));
+          case AUTH_IP -> pair.setValue(ASTUtils.toElement(value.authIP));
+          case SUBNET -> pair.setValue(ASTUtils.toElement(value.subnet));
         }
         kvp.getPairs().add(pair);
       }
@@ -146,7 +163,11 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
       String postBuildScript,
       String preRunScript,
       String envFile,
-      String dockerConfigFile) {
+      String dockerConfigFile,
+      String deployment,
+      String registryAddress,
+      String authIP,
+      String subnet) {
 
     public static final String DEFAULT_SHELL = "/bin/sh";
 
@@ -154,7 +175,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, false, "", "", LOCAL_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "");
+      this(enabled, false, "", "", LOCAL_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "", "compose", "", "172.21.0.2", "172.21.0.0/16");
     }
   }
 
@@ -172,7 +193,11 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     PRE_BUILD_SCRIPT("pre-build-script", PrimitiveType.STRING),
     PRE_RUN_SCRIPT("pre-run-script", PrimitiveType.STRING),
     POST_BUILD_SCRIPT("post-build-script", PrimitiveType.STRING),
-    DOCKER_CONFIG_FILE("docker-compose-override", PrimitiveType.STRING);
+    DOCKER_CONFIG_FILE("docker-compose-override", PrimitiveType.STRING),
+    DEPLOYMENT_TYPE("deployment-type", PrimitiveType.STRING),
+    REGISTRY_ADDRESS("registry-address", PrimitiveType.STRING),
+    AUTH_IP("auth-ip", PrimitiveType.STRING),
+    SUBNET("subnet", PrimitiveType.STRING);
 
     public final PrimitiveType type;
 
