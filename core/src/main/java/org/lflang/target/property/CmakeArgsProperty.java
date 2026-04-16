@@ -64,4 +64,9 @@ public final class CmakeArgsProperty
   public String name() {
     return "cmake-args";
   }
+
+  @Override
+  public boolean loadFromImport() {
+    return true;
+  }
 }

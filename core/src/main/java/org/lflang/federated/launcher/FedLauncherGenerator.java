@@ -454,7 +454,7 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \""
             + ANSI_INFO
-            + "-------------- Federation ID: \"'$FEDERATION_ID'"
+            + "-------------- Federation ID: \"${FEDERATION_ID}\""
             + ANSI_RESET
             + "\" >> "
             + logFileName
