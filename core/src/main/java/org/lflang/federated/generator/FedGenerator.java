@@ -73,8 +73,8 @@ import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
-import java.nio.file.Path;
 import org.lflang.target.property.SSTProperty;
+import org.lflang.generator.docker.AuthDockerGenerator;
 
 
 /**
@@ -227,7 +227,8 @@ public class FedGenerator {
     // If communication mode is SST, generate configurations for SST.
     if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
-      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
+      var authHost = useDocker ? "172.21.0.2" : rtiConfig.getHost();
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig, authHost);
     } else if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
       TLSGenerator.setupTLS(fileConfig, federates, messageReporter, context);
@@ -247,6 +248,9 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
+      if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        new AuthDockerGenerator(context).generate();
+      }
       dockerGen.buildIfRequested();
     } catch (IOException e) {
       context

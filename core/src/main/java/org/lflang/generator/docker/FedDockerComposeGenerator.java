@@ -2,9 +2,11 @@ package org.lflang.generator.docker;
 
 import java.util.List;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
 import org.lflang.target.property.TracingProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
 /**
  * A docker-compose configuration generator for a federated program.
@@ -43,6 +45,26 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                 container_name: "%s-rti"
         """
             .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
+    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var authService = isSST ? """
+                 auth:
+                     networks:
+                         default: 
+                             ipv4_address: "172.21.0.2"
+                     build:
+                         context: "auth"
+                     container_name: "%s-auth"
+                     ports:
+                         - "21900:21900"
+                     healthcheck:
+                         test: ["CMD", "nc", "-z", "localhost", "21900"]
+                         interval: 2s
+                         retries: 15
+             """.formatted(containerName) : "";
+    var rtiDependsOn = isSST ? """
+                     depends_on:
+                         - auth
+             """ : "";
     if (this.rtiImage.equals(DockerOptions.LOCAL_RTI_IMAGE)) {
       var rtiBuildContext = "context: \"rti\"";
       return """
@@ -50,27 +72,55 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                  rti:
                      build:
                          %s
+             %s\
+             %s\
              %s
              """
-          .formatted(super.generateDockerServices(services), rtiBuildContext, attributes);
+          .formatted(super.generateDockerServices(services), rtiBuildContext, attributes, rtiDependsOn, authService);
     } else {
       return """
              %s\
                  rti:
+             %s\
+             %s\
              %s
              """
-          .formatted(super.generateDockerServices(services), attributes);
+          .formatted(super.generateDockerServices(services), attributes, rtiDependsOn, authService);
     }
   }
 
   @Override
   protected String getServiceDescription(DockerData data) {
+    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var dependsOn = isSST ? """
+                    depends_on:
+                        - rti
+                        - auth
+            """ : """
+                    depends_on:
+                        - rti
+            """;
     return """
            %s\
-                   depends_on:
-                       - rti
-           """
-        .formatted(super.getServiceDescription(data));
+           %s
+           """.formatted(super.getServiceDescription(data), dependsOn);
+  }
+
+  @Override
+  protected String generateDockerNetwork(String networkName) {
+    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    if (isSST) {
+      return """
+             networks:
+                 default: 
+                     name: "%s"
+                     ipam: 
+                         config:
+                             - subnet: "%s"
+             """.formatted(networkName, "172.21.0.0/16");
+    }
+
+    return super.generateDockerNetwork(networkName);
   }
 
   @Override
