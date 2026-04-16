@@ -252,6 +252,19 @@ public class FedGenerator {
       if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
         new AuthDockerGenerator(context).generate();
       }
+      if (context.getTargetConfig().get(DockerProperty.INSTANCE).deployment().equals("kubernetes")) {
+        if (context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress().isEmpty()){
+          context.getErrorReporter().nowhere().error("registry-address must be set in docker options when deployment-type is kubernetes");
+          return;
+        }
+
+        if (context.getTargetConfig().get(DockerProperty.INSTANCE).authIP().equals("172.21.0.2")) {
+          context.getErrorReporter().nowhere().error("auth-ip must be set to a real machine's ip");
+          return;
+        }
+        
+        // Need to create a pod file generator when the deployment type is kubernetes
+      }
       dockerGen.buildIfRequested();
     } catch (IOException e) {
       context

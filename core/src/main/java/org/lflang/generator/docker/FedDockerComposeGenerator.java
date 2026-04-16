@@ -47,7 +47,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
             .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var authIP = context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
-    var authService = isSST ? """
+    var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
+    var authService = (isSST && deploymentType.equals("compose")) ? """
                  auth:
                      networks:
                          default: 
@@ -62,7 +63,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                          interval: 2s
                          retries: 15
              """.formatted(authIP, containerName) : "";
-    var rtiDependsOn = isSST ? """
+    var rtiDependsOn = (isSST && deploymentType.equals("compose"))  ? """
                      depends_on:
                          - auth
              """ : "";
@@ -93,7 +94,12 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   @Override
   protected String getServiceDescription(DockerData data) {
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
-    var dependsOn = isSST ? """
+    var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
+
+    if (isSST && deploymentType.equals("kubernetes")) {
+      return super.getServiceDescription(data);
+    }
+    var dependsOn = (isSST && deploymentType.equals("compose")) ? """
                     depends_on:
                         - rti
                         - auth
@@ -111,7 +117,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   protected String generateDockerNetwork(String networkName) {
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var subnet = context.getTargetConfig().get(DockerProperty.INSTANCE).subnet();
-    if (isSST) {
+    var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
+    if (isSST && deploymentType.equals("compose")) {
       return """
              networks:
                  default: 
