@@ -127,7 +127,8 @@ public class ReactorPortAdjustment implements IStyleModifier {
             var isBank = port.getProperty(LinguaFrancaSynthesis.REACTOR_HAS_BANK_PORT_OFFSET);
 
             // Add new figure
-            _linguaFrancaShapeExtensions.addTrianglePort(port, isMultiport, flip);
+            var portSide = port.getProperty(CoreOptions.PORT_SIDE);
+            _linguaFrancaShapeExtensions.addTrianglePort(port, isMultiport, flip, portSide);
             port.setProperty(FLIPPED, flip);
 
             // Compute new offset

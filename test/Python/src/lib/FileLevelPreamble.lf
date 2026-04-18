@@ -1,10 +1,10 @@
 target Python
 
-reactor FileLevelPreamble {
-  preamble {=
-    FOO = 2
-  =}
+preamble {=
+  FOO = 2
+=}
 
+reactor FileLevelPreamble {
   reaction(startup) {=
     global FOO
     print(f"FOO: {FOO}")

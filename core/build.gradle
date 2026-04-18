@@ -61,7 +61,53 @@ dependencies {
     mwe2 "org.eclipse.xtext:org.eclipse.xtext.xtext.generator:$xtextVersion"
 }
 
+// Ensure the patched ANTLR 3.2 jar that Xtext's AntlrToolFacade expects is
+// present before the MWE2 workflow runs, avoiding the unreliable download from
+// download.itemis.com.  Lookup order:
+//   1. Already at core/.antlr-generator-3.2.0-patch.jar (previous build / CI cache)
+//   2. Committed copy at gradle/antlr-generator-3.2.0-patch.jar
+//   3. Download from itemis (and cache for next time)
+tasks.register('provideAntlrPatchJar') {
+    def targetFile = file('.antlr-generator-3.2.0-patch.jar')
+    def cachedFile = rootProject.file('gradle/antlr-generator-3.2.0-patch.jar')
+    outputs.file targetFile
+    doLast {
+        if (targetFile.exists()) return
+        if (cachedFile.exists()) {
+            copy {
+                from cachedFile
+                into projectDir
+                rename { '.antlr-generator-3.2.0-patch.jar' }
+            }
+            return
+        }
+        def urls = [
+            'https://download.itemis.com/antlr-generator-3.2.0-patch.jar',
+            'http://download.itemis.com/antlr-generator-3.2.0-patch.jar'
+        ]
+        for (url in urls) {
+            try {
+                ant.get(src: url, dest: targetFile, verbose: true)
+                copy {
+                    from targetFile
+                    into cachedFile.parentFile
+                    rename { cachedFile.name }
+                }
+                return
+            } catch (Exception e) {
+                logger.warn("Failed to download from ${url}: ${e.message}")
+            }
+        }
+        throw new GradleException(
+            "Could not obtain antlr-generator-3.2.0-patch.jar.\n" +
+            "Download it manually from https://download.itemis.com/antlr-generator-3.2.0-patch.jar\n" +
+            "and place it at ${cachedFile.absolutePath}"
+        )
+    }
+}
+
 tasks.register('generateXtextLanguage', JavaExec) {
+    dependsOn provideAntlrPatchJar
     mainClass = 'org.eclipse.emf.mwe2.launch.runtime.Mwe2Launcher'
     classpath = configurations.mwe2
     inputs.file "src/main/java/org/lflang/GenerateLinguaFranca.mwe2"

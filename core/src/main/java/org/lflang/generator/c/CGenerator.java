@@ -416,11 +416,9 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
     } catch (RuntimeException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
       throw e;
     }
 
@@ -564,6 +562,11 @@ public class CGenerator extends GeneratorBase {
 
     // In case we are in Eclipse, make sure the generated code is visible.
     GeneratorUtils.refreshProject(resource, context.getMode());
+  }
+
+  private static String formatExceptionMessage(Throwable e) {
+    String message = e.getMessage();
+    return message == null || message.isBlank() ? e.getClass().getName() : message;
   }
 
   private void generateCodeFor(String lfModuleName) throws IOException {
@@ -944,9 +947,13 @@ public class CGenerator extends GeneratorBase {
         FileUtil.copyFromClassPath("/lib/c/reactor-c/" + directory, dest, true, false);
       }
       for (var directory :
-          List.of("logging", "platform", "low_level_platform", "trace", "version", "tag")) {
+          List.of(
+              "logging", "platform", "low_level_platform", "trace", "version", "tag", "network")) {
         var entry = "/lib/c/reactor-c/" + directory;
         if (arduino) {
+          if ("network".equals(directory)) {
+            continue; // Skip copying for the "network" directory
+          }
           if (FileConfig.class.getResource(entry + "/api") != null) {
             FileUtil.copyFromClassPath(
                 entry + "/api",

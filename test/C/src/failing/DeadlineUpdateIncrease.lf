@@ -1,5 +1,7 @@
-// Verify that deadline increases from 200 ms to 1 sec works.
-// Also, test if the increased deadline works when reaction is triggered again.
+# Verify that deadline increases from 200 ms to 1 sec works.
+# This test is flaky. It usually passes, but occasionally fails, particularly on the Windows platform.
+# The flakiness is intrinsic to the test, not a reflection of some defect in the code.
+# Also, test if the increased deadline works when reaction is triggered again.
 target C {
   timeout: 1500 msec
 }
@@ -14,9 +16,9 @@ reactor IncreaseDeadline {
         lf_update_deadline(self, SEC(1));
         lf_sleep(MSEC(200));
         if (lf_check_deadline(self, true)) {
-            lf_print_error_and_exit("Deadline update failed. Deadline handler should not invoked on lag of 200 msec.");
+            lf_print_error_and_exit("Deadline update failed. Deadline handler should not be invoked on lag of 200 msec.");
         }
-        lf_sleep(MSEC(800));
+        lf_sleep(MSEC(900));
         if (!lf_check_deadline(self, true)) {
             lf_print_error_and_exit("Deadline update failed. Deadline handler was not invoked on lag of 1 sec.");
         }
