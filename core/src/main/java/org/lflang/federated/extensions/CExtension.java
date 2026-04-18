@@ -488,7 +488,7 @@ public class CExtension implements FedTargetExtension {
 
   /** Put the C preamble in a `include/_federate.name + _preamble.h` file under the federate's
    *  src-gen directory so that the generated .c file (in src-gen/federate_name/) can find it
-   *  via #include "include/...". */
+   *  via `#include "include/..."`. */
   protected final void writePreambleFile(
       FederateInstance federate,
       FederationFileConfig fileConfig,
