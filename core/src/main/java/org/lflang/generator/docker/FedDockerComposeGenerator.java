@@ -96,8 +96,29 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
 
-    if (isSST && deploymentType.equals("kubernetes")) {
-      return super.getServiceDescription(data);
+    if (deploymentType.equals("kubernetes")) {
+      var registryAddr = context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress();
+
+      return """
+               %s:
+                   build:
+                       context: "%s"
+                       %s
+                   image: "%s/%s:latest"  
+                   container_name: "%s"
+                   tty: true
+                   extra_hosts:
+                     - "host.docker.internal:host-gateway"
+                   environment:
+                     - "LF_TELEGRAF_HOST_NAME=${LF_TELEGRAF_HOST_NAME:-host.docker.internal}"
+           """
+        .formatted(
+            getServiceName(data),
+            getBuildContext(data),
+            getDockerFilePath(data),
+            registryAddr,
+            getContainerName(data),
+            getContainerName(data));
     }
     var dependsOn = (isSST && deploymentType.equals("compose")) ? """
                     depends_on:
