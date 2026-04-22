@@ -275,6 +275,44 @@ public class AttributeSpec {
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
 
+    // @build_type("value") - e.g. @build_type("DEBUG") or @build_type("RELEASE")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "build_type",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @logging("value") - e.g. @logging("WARN")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "logging",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+    // @timeout(value) - e.g. @timeout(10 sec)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "timeout",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.TIME, false))));
+    // @fast(value) - e.g. @fast(true)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "fast",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
+    // @keepalive(value) - e.g. @keepalive(true)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "keepalive",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
+    // @clock_sync("value") - simple form: @clock_sync("on") or @clock_sync("off")
+    // detailed form: @clock_sync(grandmaster=true, period=3500000000, max_adj=512000, kp=0.5,
+    // ki=0.1)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "clock_sync",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, true),
+                new AttrParamSpec("grandmaster", AttrParamType.BOOLEAN, true),
+                new AttrParamSpec("period", AttrParamType.BIGINT, true),
+                new AttrParamSpec("max_adj", AttrParamType.BIGINT, true),
+                new AttrParamSpec("kp", AttrParamType.FLOAT, true),
+                new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
+    // @platform("value") - e.g. @platform("NATIVE")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "platform",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+
     // Attributes used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // Marker for total port order (TPO) levels.

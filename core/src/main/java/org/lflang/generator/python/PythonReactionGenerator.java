@@ -309,7 +309,7 @@ public class PythonReactionGenerator {
    * initialization code is put at the beginning of the reaction before user code
    *
    * @param parameters The parameters used for function definition
-   * @param inits The initialization code for those paramters
+   * @param inits The initialization code for those parameters
    * @param decl Reactor declaration
    * @param reaction The reaction to be used to generate parameters for
    */

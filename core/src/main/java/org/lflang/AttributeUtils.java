@@ -209,40 +209,40 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the declared label of the node, as given by the `@label` annotation.
+   * Return the declared label of the node, as given by the `@label` attribute.
    *
    * @param node The node to get the label from.
-   * @return The label of the node or null if there is no such annotation.
+   * @return The label of the node or null if there is no such attribute.
    */
   public static String getLabel(EObject node) {
     return getAttributeValue(node, "label");
   }
 
   /**
-   * Return the declared icon of the node, as given by the `@icon` annotation, or null if there is no
-   * such annotation.
+   * Return the declared icon of the node, as given by the `@icon` attribute, or null if there is no
+   * such attribute.
    *
    * @param node The node to get the icon path from.
-   * @return The icon path of the node or null if there is no such annotation.
+   * @return The icon path of the node or null if there is no such attribute.
    */
   public static String getIconPath(EObject node) {
     return getAttributeValue(node, "icon");
   }
 
   /**
-   * Return the `@side` annotation for the given node (presumably a port) or null if there is
-   * no such annotation.
+   * Return the `@side` attribute for the given node (presumably a port) or null if there is
+   * no such attribute.
    *
    * @param node The node to get the port side from.
-   * @return The port side of the node or null if there is no such annotation.
+   * @return The port side of the node or null if there is no such attribute.
    */
   public static String getPortSide(EObject node) {
     return getAttributeValue(node, "side");
   }
 
   /**
-   * Return the layout annotations for the given element or null if there is no such annotation.
-   * Layout annotations have the form:
+   * Return the layout attributes for the given element or null if there is no such attribute.
+   * Layout attributes have the form:
    *
    * <pre>{@code
    * @layout(option="string", value="any")
@@ -254,7 +254,7 @@ public class AttributeUtils {
    * @layout(option="port.side", value="WEST")
    * }</pre>
    *
-   * This will return all such annotations for the specified node in the form of a map from the option
+   * This will return all such attributes for the specified node in the form of a map from the option
    * name to the value.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
