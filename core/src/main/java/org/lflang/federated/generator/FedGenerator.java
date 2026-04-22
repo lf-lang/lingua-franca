@@ -50,6 +50,7 @@ import org.lflang.generator.SubContext;
 import org.lflang.generator.docker.DockerData;
 import org.lflang.generator.docker.FedDockerComposeGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
+import org.lflang.generator.docker.FedKubernetesGenerator;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -252,18 +253,16 @@ public class FedGenerator {
       if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
         new AuthDockerGenerator(context).generate();
       }
+
+      // Check if deployment mode is set to "kubernetes" and confirm if the registry address is provided in lf code file
       if (context.getTargetConfig().get(DockerProperty.INSTANCE).deployment().equals("kubernetes")) {
         if (context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress().isEmpty()){
           context.getErrorReporter().nowhere().error("registry-address must be set in docker options when deployment-type is kubernetes");
           return;
         }
-
-        if (context.getTargetConfig().get(DockerProperty.INSTANCE).authIP().equals("172.21.0.2")) {
-          context.getErrorReporter().nowhere().error("auth-ip must be set to a real machine's ip");
-          return;
-        }
         
-        // Need to create a pod file generator when the deployment type is kubernetes
+        var kubernetesGen = new FedKubernetesGenerator(context, federates, rtiConfig);
+        kubernetesGen.generate();
       }
       dockerGen.buildIfRequested();
     } catch (IOException e) {
