@@ -23,6 +23,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -2364,43 +2365,51 @@ public class CGenerator extends GeneratorBase {
       return;
     }
 
-    // Generate the priority function using the computed deadline statistics
-    code.pr(
-        String.join(
-            "\n",
-            "int get_priority_value(interval_t rel_deadline) {",
-            "  if (rel_deadline <= 0) return 0;",
-            "  double d_max = " + maxDeadline + ";",
-            "  double d_min = " + minDeadline + ";",
-            "  double median = " + medianDeadline + ";",
-            "  double rel_deadline_ms = rel_deadline / 1000000.0;",
-            "  // Constants that shape the priority function",
-            "  double alpha_max = 0.025;",
-            "  double alpha_min = 0.005;",
-            "  int prio = 1;",
-            "  if (d_min == d_max) {",
-            "    prio = 98;",
-            "  } else {",
-            "    double alpha = alpha_max - (median - d_min) / (d_max - d_min) * (alpha_max - alpha_min);",
-            "    double K = 96 / (exp(-alpha * d_min) - exp(-alpha * d_max));",
-            "    double P = 98 - 96 * exp(-alpha * d_min) / (exp(-alpha * d_min) - exp(-alpha * d_max));",
-            "    double continuous_fun_value = K * exp(-alpha * rel_deadline_ms) + P;",
-            "    prio = (int)round(continuous_fun_value);",
-            "  }",
-            "  return prio;",
-            "}"));
+    // Generate the priority function: precompute exp() and derived values in Java so the
+    // generated C uses numeric literals (one exp() remains for the runtime rel_deadline_ms term).
+    if (Double.compare(minDeadline, maxDeadline) == 0) {
+      code.pr(
+          String.join(
+              "\n",
+              "int get_priority_value(interval_t rel_deadline) {",
+              "  if (rel_deadline <= 0) return 0;",
+              "  return 98;",
+              "}"));
+    } else {
+      final double alphaMax = 0.025;
+      final double alphaMin = 0.005;
+      final double alpha =
+          alphaMax
+              - (medianDeadline - minDeadline) / (maxDeadline - minDeadline) * (alphaMax - alphaMin);
+      final double expMinusAlphaDmin = Math.exp(-alpha * minDeadline);
+      final double expMinusAlphaDmax = Math.exp(-alpha * maxDeadline);
+      final double denom = expMinusAlphaDmin - expMinusAlphaDmax;
+      final double k = 96.0 / denom;
+      final double p = 98.0 - 96.0 * expMinusAlphaDmin / denom;
+      final double negAlpha = -alpha;
+      code.pr(
+          String.join(
+              "\n",
+              "int get_priority_value(interval_t rel_deadline) {",
+              "  if (rel_deadline <= 0) return 0;",
+              "  double rel_deadline_ms = rel_deadline / 1000000.0;",
+              "  const double K = " + formatDoubleForC(k) + ";",
+              "  const double P = " + formatDoubleForC(p) + ";",
+              "  const double neg_alpha = " + formatDoubleForC(negAlpha) + ";",
+              "  double continuous_fun_value = K * exp(neg_alpha * rel_deadline_ms) + P;",
+              "  return (int)round(continuous_fun_value);",
+              "}"));
+    }
   }
 
-  /**
-   * Recursively collect all inferred deadlines from a ReactorInstance.
-   *
-   * <p>This uses inferred deadlines which include deadline propagation through
-   * the reaction graph — if a downstream reaction has an earlier deadline, it is
-   * propagated to upstream reactions.
-   *
-   * @param instance The reactor instance to collect deadlines from.
-   * @return A list of all deadlines found in this instance and its children.
-   */
+  /** Format a finite double as a C floating literal (decimal, US locale). */
+  private static String formatDoubleForC(double value) {
+    if (!Double.isFinite(value)) {
+      throw new IllegalArgumentException("Non-finite double cannot be emitted as C literal: " + value);
+    }
+    return String.format(Locale.US, "%.17g", value);
+  }
+
   /**
    * Map a policy name string (from the @platform attribute's scheduler parameter) to the
    * corresponding C #define value.
@@ -2417,6 +2426,15 @@ public class CGenerator extends GeneratorBase {
     };
   }
 
+  /**
+   * Recursively collect all inferred deadlines from a ReactorInstance.
+   *
+   * <p>This uses inferred deadlines which include deadline propagation through the reaction graph —
+   * if a downstream reaction has an earlier deadline, it is propagated to upstream reactions.
+   *
+   * @param instance The reactor instance to collect deadlines from.
+   * @return A list of all deadlines found in this instance and its children.
+   */
   private List<TimeValue> collectAllDeadlines(ReactorInstance instance) {
     List<TimeValue> deadlines = new ArrayList<>();
 
