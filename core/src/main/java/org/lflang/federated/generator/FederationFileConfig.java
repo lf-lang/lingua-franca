@@ -11,6 +11,7 @@ import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.FilesProperty;
 import org.lflang.target.property.ProtobufsProperty;
+import org.lflang.target.property.TracePluginProperty;
 import org.lflang.util.FileUtil;
 
 /**
@@ -100,6 +101,29 @@ public class FederationFileConfig extends FileConfig {
                 p.override(targetConfig, relativizePathList(targetConfig.get(p)));
               }
             });
+
+    // Handle TracePluginProperty separately since it uses TracePluginSpec, not List<String>.
+    if (targetConfig.isSet(TracePluginProperty.INSTANCE)) {
+      var spec = targetConfig.get(TracePluginProperty.INSTANCE);
+      if (spec != null && spec.paths != null && !spec.paths.isBlank()) {
+        spec.paths = relativizeSemicolonSeparatedPaths(spec.paths);
+        TracePluginProperty.INSTANCE.override(targetConfig, spec);
+      }
+    }
+  }
+
+  /**
+   * Relativize each segment of a semicolon-separated path list (CMake list syntax).
+   *
+   * @param cmakePathList Semicolon-separated paths to relativize.
+   */
+  private String relativizeSemicolonSeparatedPaths(String cmakePathList) {
+    String[] segments = cmakePathList.split(";");
+    List<String> result = new ArrayList<>();
+    for (String segment : segments) {
+      result.add(relativizePath(Paths.get(segment.trim())));
+    }
+    return String.join(";", result);
   }
 
   /**

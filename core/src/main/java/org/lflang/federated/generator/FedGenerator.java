@@ -319,6 +319,7 @@ public class FedGenerator {
               "logging",
               "platform",
               "low_level_platform",
+              "network",
               "trace",
               "version",
               "tag")) {

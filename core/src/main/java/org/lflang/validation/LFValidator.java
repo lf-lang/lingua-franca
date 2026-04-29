@@ -458,7 +458,9 @@ public class LFValidator extends BaseLFValidator {
     if (isCBasedTarget() && isEnclave(inst)) {
       // 1. Disallow banks of enclaves
       if (inst.getWidthSpec() != null) {
-        error("Banks of enclaves are not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+        error(
+            "Banks of enclaves are not supported in the C target",
+            Literals.INSTANTIATION__WIDTH_SPEC);
       }
 
       // 2. Disallow multiports and array ports   on enclaves
@@ -466,23 +468,25 @@ public class LFValidator extends BaseLFValidator {
       for (Input input : encDef.getInputs()) {
         if (input.getWidthSpec() != null) {
           error(
-              "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+              "Enclaves with multiports not supported in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
         }
         if (input.getType().getCStyleArraySpec() != null) {
           error(
               "Enclaves do not currently support ports with array types in the C target",
-              Literals.WIDTH_SPEC__TERMS);
+              Literals.INSTANTIATION__REACTOR_CLASS);
         }
       }
       for (Output output : encDef.getOutputs()) {
         if (output.getWidthSpec() != null) {
           error(
-              "Enclaves with multiports not supported in the C target", Literals.WIDTH_SPEC__TERMS);
+              "Enclaves with multiports not supported in the C target",
+              Literals.INSTANTIATION__REACTOR_CLASS);
         }
         if (output.getType().getCStyleArraySpec() != null) {
           error(
               "Enclaves do not currently support ports with array types in the C target",
-              Literals.WIDTH_SPEC__TERMS);
+              Literals.INSTANTIATION__REACTOR_CLASS);
         }
       }
 
@@ -491,14 +495,16 @@ public class LFValidator extends BaseLFValidator {
       for (Reaction r : parent.getReactions()) {
         for (VarRef effect : r.getEffects()) {
           if (effect.getContainer().equals(inst)) {
-            error("Enclave input ports can not be driven by reactions", Literals.REACTION__EFFECTS);
+            error(
+                "Enclave input ports can not be driven by reactions",
+                Literals.INSTANTIATION__REACTOR_CLASS);
           }
         }
         for (VarRef source : r.getSources()) {
           if (source.getContainer().equals(inst)) {
             error(
                 "Enclave output ports can not be sources for reactions",
-                Literals.REACTION__EFFECTS);
+                Literals.INSTANTIATION__REACTOR_CLASS);
           }
         }
         for (TriggerRef trigger : r.getTriggers()) {
@@ -506,7 +512,7 @@ public class LFValidator extends BaseLFValidator {
             if (((VarRef) trigger).getContainer().equals(inst)) {
               error(
                   "Enclave output ports can not be triggers for reactions",
-                  Literals.REACTION__EFFECTS);
+                  Literals.INSTANTIATION__REACTOR_CLASS);
             }
           }
         }
@@ -762,16 +768,36 @@ public class LFValidator extends BaseLFValidator {
 
     if (this.target == Target.CPP) {
       EObject container = param.eContainer();
-      Reactor reactor = (Reactor) container;
-      if (reactor.isMain()) {
-        // we need to check for the cli parameters that are always taken
-        List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
-        if (cliParams.contains(param.getName())) {
-          error(
-              "Parameter '"
-                  + param.getName()
-                  + "' is already in use as command line argument by Lingua Franca,",
-              Literals.PARAMETER__NAME);
+      if (container instanceof Reactor) {
+        Reactor reactor = (Reactor) container;
+        if (reactor.isMain()) {
+          // we need to check for the cli parameters that are always taken
+          List<String> cliParams = List.of("t", "threads", "o", "timeout", "f", "fast", "help");
+          if (cliParams.contains(param.getName())) {
+            error(
+                "Parameter '"
+                    + param.getName()
+                    + "' is already in use as command line argument by Lingua Franca,",
+                Literals.PARAMETER__NAME);
+          }
+        }
+      }
+    }
+
+    if (isCBasedTarget()) {
+      EObject container = param.eContainer();
+      if (container instanceof Reactor) {
+        Reactor reactor = (Reactor) container;
+        if (reactor.isMain() || reactor.isFederated()) {
+          List<String> reservedNames =
+              List.of("fast", "timeout", "keepalive", "workers", "id", "rti", "help");
+          if (reservedNames.contains(param.getName())) {
+            error(
+                "Parameter '"
+                    + param.getName()
+                    + "' name conflicts with a built-in command-line option.",
+                Literals.PARAMETER__NAME);
+          }
         }
       }
     }
@@ -1332,6 +1358,9 @@ public class LFValidator extends BaseLFValidator {
     } else if (name.equals("platform")) {
       checkPlatformAttribute(attr);
     }
+    if (GLOBAL_ATTRIBUTE_NAMES.contains(name)) {
+      checkGlobalAttribute(attr);
+    }
   }
 
   private void checkMaxWaitAttribute(Attribute attr) {
@@ -1435,6 +1464,26 @@ public class LFValidator extends BaseLFValidator {
                 + "\". Allowed values are: \"rt-fifo\", \"rt-rr\", \"normal\".",
             Literals.ATTRIBUTE__ATTR_NAME);
       }
+    }
+  }
+
+  private void checkGlobalAttribute(Attribute attr) {
+    var container = attr.eContainer();
+    if (!(container instanceof Reactor)) {
+      error(
+          "The @"
+              + attr.getAttrName()
+              + " attribute is only allowed on a main or federated reactor.",
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    Reactor reactor = (Reactor) container;
+    if (!reactor.isMain() && !reactor.isFederated()) {
+      error(
+          "The @"
+              + attr.getAttrName()
+              + " attribute is only allowed on a main or federated reactor.",
+          Literals.ATTRIBUTE__ATTR_NAME);
     }
   }
 
@@ -2136,6 +2185,11 @@ public class LFValidator extends BaseLFValidator {
   private static String RESERVED_MESSAGE =
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
+
+  // FIXME: Revisit attribute naming/semantics so @platform (scheduler override) and the
+  // target platform property can be cleanly separated without special-case handling.
+  private static final Set<String> GLOBAL_ATTRIBUTE_NAMES =
+      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync");
 
   private static List<String> SPACING_VIOLATION_POLICIES =
       List.of("defer", "drop", "replace", "update");

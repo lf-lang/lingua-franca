@@ -13,6 +13,7 @@ import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CmakeInitIncludeProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -306,10 +307,17 @@ public class CCmakeGenerator {
               cMakeCode.pr("set(" + key + " " + v + " CACHE STRING \"\")\n");
             });
     // Add trace-plugin data
-    var tracePlugin = targetConfig.getOrDefault(TracePluginProperty.INSTANCE);
-    System.out.println(tracePlugin);
-    if (tracePlugin != null) {
-      cMakeCode.pr("set(LF_TRACE_PLUGIN " + tracePlugin + " CACHE STRING \"\")\n");
+    if (targetConfig.isSet(TracePluginProperty.INSTANCE)) {
+      var tracePlugin = targetConfig.get(TracePluginProperty.INSTANCE);
+      if (tracePlugin != null) {
+        cMakeCode.pr("set(LF_TRACE_PLUGIN " + tracePlugin.pkg + " CACHE STRING \"\")\n");
+        cMakeCode.pr(
+            "set(LF_TRACE_PLUGIN_LIBRARY " + tracePlugin.library + " CACHE STRING \"\")\n");
+        if (tracePlugin.paths != null && !tracePlugin.paths.isBlank()) {
+          var absPaths = absolutizeCmakePathList(tracePlugin.paths);
+          cMakeCode.pr("set(LF_TRACE_PLUGIN_PATHS \"" + absPaths + "\" CACHE STRING \"\")\n");
+        }
+      }
     }
 
     // Setup main target for different platforms
@@ -403,6 +411,10 @@ public class CCmakeGenerator {
       cMakeCode.pr("# Find OpenSSL and link to it");
       cMakeCode.pr("find_package(OpenSSL REQUIRED)");
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+      cMakeCode.newLine();
+    }
+    if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
+      cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
       cMakeCode.newLine();
     }
 
@@ -503,6 +515,40 @@ public class CCmakeGenerator {
     cMakeCode.newLine();
 
     return cMakeCode;
+  }
+
+  /**
+   * Convert a CMake list of paths (semicolon-separated) into an absolute-path list.
+   *
+   * <p>Relative paths are resolved against the directory of the top-level LF file.
+   */
+  private String absolutizeCmakePathList(String cmakePathList) {
+    var parts = cmakePathList.split(";");
+    var out = new ArrayList<String>(parts.length);
+
+    for (var part : parts) {
+      var p = part.trim();
+      if (p.isEmpty()) continue;
+
+      // Leave CMake-style variables and "~" untouched.
+      if (p.contains("$") || p.startsWith("~")) {
+        out.add(p);
+        continue;
+      }
+
+      try {
+        var path = Paths.get(p);
+        if (!path.isAbsolute()) {
+          path = fileConfig.srcPath.resolve(path).normalize().toAbsolutePath();
+        }
+        out.add(FileUtil.toUnixString(path));
+      } catch (Exception e) {
+        // If it's not a valid OS path, don't rewrite it.
+        out.add(p);
+      }
+    }
+
+    return String.join(";", out);
   }
 
   /** Provide a strategy for configuring the main target of the CMake build. */

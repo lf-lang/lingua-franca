@@ -1,6 +1,7 @@
 package org.lflang.generator.python;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
@@ -178,8 +179,13 @@ public class PythonReactorGenerator {
     CodeBuilder code = new CodeBuilder();
     code.pr(PyUtil.reactorRef(instance) + " = _" + className + "(");
     code.indent();
-    boolean hasBankIndexParameter = false;
+    // Deduplicate parameters by name, keeping the most-derived class's override.
+    var deduped = new LinkedHashMap<String, ParameterInstance>();
     for (ParameterInstance param : instance.parameters) {
+      deduped.put(param.getName(), param);
+    }
+    boolean hasBankIndexParameter = false;
+    for (ParameterInstance param : deduped.values()) {
       if (param.getName().equals("bank_index")) {
         if (param.getOverride() != null) hasBankIndexParameter = true;
         else continue; // Skip bank_index if it is not explicitly set

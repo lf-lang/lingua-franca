@@ -521,9 +521,9 @@ public class CExtension implements FedTargetExtension {
         extern "C" {
         #endif""");
     includes.pr("#include \"core/federated/federate.h\"");
-    includes.pr("#include \"core/federated/network/net_common.h\"");
-    includes.pr("#include \"core/federated/network/net_util.h\"");
-    includes.pr("#include \"core/federated/network/socket_common.h\"");
+    includes.pr("#include \"network/api/net_abstraction.h\"");
+    includes.pr("#include \"network/api/net_common.h\"");
+    includes.pr("#include \"network/api/net_util.h\"");
     includes.pr("#include \"core/federated/clock-sync.h\"");
     includes.pr("#include \"core/threaded/reactor_threaded.h\"");
     includes.pr("#include \"core/utils/util.h\"");
@@ -544,9 +544,9 @@ public class CExtension implements FedTargetExtension {
     var code = new CodeBuilder();
 
     code.pr("#include \"core/federated/federate.h\"");
-    code.pr("#include \"core/federated/network/net_common.h\"");
-    code.pr("#include \"core/federated/network/net_util.h\"");
-    code.pr("#include \"core/federated/network/socket_common.h\"");
+    code.pr("#include \"network/api/net_abstraction.h\"");
+    code.pr("#include \"network/api/net_common.h\"");
+    code.pr("#include \"network/api/net_util.h\"");
     code.pr("#include \"core/federated/clock-sync.h\"");
     code.pr("#include \"core/threaded/reactor_threaded.h\"");
     code.pr("#include \"core/utils/util.h\"");
@@ -687,7 +687,7 @@ public class CExtension implements FedTargetExtension {
         String.join(
             "\n",
             "// Initialize the socket mutexes",
-            "lf_mutex_init(&lf_outbound_socket_mutex);",
+            "lf_mutex_init(&lf_outbound_net_mutex);",
             "init_shutdown_mutex();",
             "lf_cond_init(&lf_port_status_changed, &env->mutex);"));
 
@@ -747,16 +747,16 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of socket for incoming connections to -1.",
+            "// Initialize the array of network abstractions for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.sockets_for_inbound_p2p_connections[i] = -1;",
+            "    _fed.net_for_inbound_p2p_connections[i] = NULL;",
             "}"));
     code.pr(
         String.join(
             "\n",
-            "// Initialize the array of socket for outgoing connections to -1.",
+            "// Initialize the array of network abstractions for outgoing connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
-            "    _fed.sockets_for_outbound_p2p_connections[i] = -1;",
+            "    _fed.net_for_outbound_p2p_connections[i] = NULL;",
             "}"));
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
@@ -772,7 +772,7 @@ public class CExtension implements FedTargetExtension {
     code.pr(
         String.join(
             "\n",
-            "// Connect to the RTI. This sets _fed.socket_TCP_RTI and _lf_rti_socket_UDP.",
+            "// Connect to the RTI. This sets _fed.net_to_RTI and _lf_rti_socket_UDP.",
             "lf_connect_to_rti("
                 + addDoubleQuotes(rtiConfig.getHost())
                 + ", "
@@ -782,14 +782,14 @@ public class CExtension implements FedTargetExtension {
     // Disable clock synchronization for the federate if it resides on the same host as the RTI,
     // unless that is overridden with the clock-sync-options target property.
     if (CExtensionUtils.clockSyncIsOn(federate, rtiConfig)) {
-      code.pr("synchronize_initial_physical_clock_with_rti(&_fed.socket_TCP_RTI);");
+      code.pr("synchronize_initial_physical_clock_with_rti(_fed.net_to_RTI);");
     }
 
     if (numberOfInboundConnections > 0) {
       code.pr(
           String.join(
               "\n",
-              "// Create a socket server to listen to other federates.",
+              "// Create a server to listen to other federates.",
               "// If a port is specified by the user, that will be used",
               "// as the only possibility for the server. If not, the port",
               "// will be selected by the OS (by specifying port 0).",
