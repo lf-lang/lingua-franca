@@ -8,7 +8,7 @@ reactor Worker(id: int = 0) {
   reaction(startup) {=
     printf("Worker %d starting on Patmos\n", self->id);
   =}
-  
+
   reaction(shutdown) {=
     printf("Worker %d shutting down\n", self->id);
   =}
@@ -17,11 +17,11 @@ reactor Worker(id: int = 0) {
 main reactor {
   w1 = new Worker(id=1)
   w2 = new Worker(id=2)
-  
+
   reaction(startup) {=
     printf("MultiCore Patmos test started\n");
   =}
-  
+
   reaction(shutdown) {=
     printf("MultiCore Patmos test completed\n");
   =}

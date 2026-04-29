@@ -9,7 +9,7 @@ reactor Producer {
   output out: int
   timer t(0, 2 msec)
   state count: int = 0
-  
+
   reaction(t) -> out {=
     if (self->count < 3) {
       lf_set(out, self->count);
@@ -21,12 +21,12 @@ reactor Producer {
 reactor Consumer {
   input in: int
   state last_received: int = -1
-  
+
   reaction(in) {=
     self->last_received = in->value;
     printf("Consumer received: %d\n", in->value);
   =}
-  
+
   reaction(shutdown) {=
     printf("Last received value: %d\n", self->last_received);
   =}
@@ -35,13 +35,13 @@ reactor Consumer {
 main reactor {
   producer = new Producer()
   consumer = new Consumer()
-  
+
   producer.out -> consumer.in
-  
+
   reaction(startup) {=
     printf("MultiCore Patmos synchronization test started\n");
   =}
-  
+
   reaction(shutdown) {=
     printf("MultiCore Patmos synchronization test completed\n");
   =}
