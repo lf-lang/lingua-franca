@@ -37,6 +37,10 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
     if (context.getTargetConfig().getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       tracing = " -t ";
     }
+    var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
+    var registryAddress = context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress();
+    var image = deploymentType.equals("kubernetes") ? String.format("%s/%s-rti:latest", registryAddress, this.containerName.toLowerCase()) : this.rtiImage;
+
     var attributes =
         """
                 image: "%s"
@@ -44,10 +48,9 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                 command: "-i 1 %s -n %s"
                 container_name: "%s-rti"
         """
-            .formatted(this.rtiImage, this.rtiHost, tracing, services.size(), containerName);
+            .formatted(image, this.rtiHost, tracing, services.size(), containerName.toLowerCase());
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var authIP = context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
-    var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
     var authService = (isSST && deploymentType.equals("compose")) ? """
                  auth:
                      networks:
@@ -117,8 +120,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
             getBuildContext(data),
             getDockerFilePath(data),
             registryAddr,
-            getContainerName(data),
-            getContainerName(data));
+            getContainerName(data).toLowerCase(),
+            getContainerName(data).toLowerCase());
     }
     var dependsOn = (isSST && deploymentType.equals("compose")) ? """
                     depends_on:

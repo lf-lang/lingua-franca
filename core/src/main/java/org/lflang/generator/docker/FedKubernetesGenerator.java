@@ -36,39 +36,61 @@ public class FedKubernetesGenerator {
         var federationName = context.getFileConfig().name;
         var registryAddress = context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress();
         var rtiHost = this.config.getHost();
+        var federateCount = this.federates.size();
         return String.join(
             "\n---\n",
-            generateRtiPod(federationName, rtiHost, registryAddress),
-            generateFederatesPod(federationName, registryAddress)
+            generateRtiPod(federationName.toLowerCase(), rtiHost, registryAddress, federateCount),
+            generateRtiService(federationName.toLowerCase()),
+            generateFederatesPod(federationName.toLowerCase(), registryAddress)
             
         );
     }
 
 
-    private String generateRtiPod(String federation, String host, String registryAddress) {
+    private String generateRtiPod(String federation, String host, String registryAddress, int federateCount) {
         return """ 
                  apiVersion: v1
                  kind: Pod
                  metadata:
                     name: %s-rti
                     namespace: %s
+                    labels:
+                        app: %s-rti
                  spec:
-                    hostNetwork:  true
                     restartPolicy: Never
                     nodeSelector:
                         lf-host: "%s"
                     containers:
                         - name: rti
                           image: "%s/%s-rti:latest"
-                          imagePullPolicy: Always
+                          imagePullPolicy: Never
+                          args: ["-i", "1", "-n", "%d"]
         
             """.formatted(
                     federation,
                     federation,
+                    federation,
                     host,
                     registryAddress,
-                    federation
+                    federation,
+                    federateCount
                 );
+    }
+
+    private String generateRtiService(String federation) {
+        return """
+                 apiVersion: v1
+                 kind: Service
+                 metadata:
+                    name: rti
+                    namespace: %s
+                 spec:
+                    selector: 
+                        app: %s-rti
+                    ports:
+                        - port: 15045
+                          targetPort: 15045
+            """.formatted(federation, federation);
     }
 
     private String generateFederatesPod(String federation, String registryAddress) {
@@ -91,21 +113,21 @@ public class FedKubernetesGenerator {
                     name: %s-%s
                     namespace: %s
                  spec:
-                    hostNetwork:  true
                     restartPolicy: Never
                     nodeSelector:
                         lf-host: "%s"
                     containers:
                         - name: %s
                           image: "%s/%s-%s:latest"
-                          imagePullPolicy: Always
+                          imagePullPolicy: Never
+                          args: ["-r", "rti"]
         
             """.formatted(
                     federation,
-                    entityName,
+                    entityName.replace("__", "-"),
                     federation,
                     host,
-                    entityName,
+                    entityName.replace("__", "-"),
                     registryAddress,
                     federation,
                     entityName
