@@ -63,7 +63,7 @@ public class FedKubernetesGenerator {
                     containers:
                         - name: rti
                           image: "%s/%s-rti:latest"
-                          imagePullPolicy: Never
+                          imagePullPolicy: Always
                           args: ["-i", "1", "-n", "%d"]
         
             """.formatted(
@@ -119,7 +119,7 @@ public class FedKubernetesGenerator {
                     containers:
                         - name: %s
                           image: "%s/%s-%s:latest"
-                          imagePullPolicy: Never
+                          imagePullPolicy: Always
                           args: ["-r", "rti"]
         
             """.formatted(
