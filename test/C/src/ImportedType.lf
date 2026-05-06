@@ -1,0 +1,24 @@
+target C
+
+import Imported from "lib/Imported.lf"
+
+reactor Test {
+  state s: foo_t
+
+  reaction(startup) {=
+    self->s.foo = 42;
+    lf_print("s.foo is %f", self->s.foo);
+  =}
+}
+
+main reactor {
+  state s: foo_t
+
+  a = new Imported()
+  b = new Test()
+
+  reaction(startup) {=
+    self->s.foo = 42;
+    lf_print("s.foo is %f", self->s.foo);
+  =}
+}
