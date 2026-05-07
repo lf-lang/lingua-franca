@@ -2545,22 +2545,68 @@ public class CGenerator extends GeneratorBase {
   private static double findBestAlphaForDeadlines(
       List<Double> sortedDistinctDeadlinesMs, double minDeadlineMs, double maxDeadlineMs) {
     // Search alpha on a log scale: good values can vary over orders of magnitude.
-    final double alphaLo = 1e-6;
-    final double alphaHi = 1.0;
+    //
+    // We start from a tight, canonical bracket derived from two extreme workloads
+    // (see scripts/priority_alpha_search.py), and automatically widen it if the best alpha lands
+    // on a boundary. This keeps compile-time cost low while avoiding missing the optimum.
+    double alphaLo = 1e-5;   // ms^-1 (canonical gentle end)
+    double alphaHi = 0.025;  // ms^-1 (canonical steep end)
     final int coarseSteps = 2000;
     final int fineSteps = 2000;
 
-    final AlphaCandidate coarse =
+    // Hard safety limits (only used if boundary widening keeps triggering).
+    final double minAlphaLimit = 1e-12;
+    final double maxAlphaLimit = 1e3;
+    final int maxExpansions = 8;
+
+    AlphaSearchOutcome outcome = null;
+    for (int attempt = 0; attempt <= maxExpansions; attempt++) {
+      outcome =
+          searchAlphaWithRefinement(
+              sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs, alphaLo, alphaHi, coarseSteps, fineSteps);
+      if (outcome == null) {
+        // Should be rare; fall back to a conservative value in the middle of the canonical bracket.
+        return 0.005;
+      }
+      if (outcome.hitLowerBoundary && alphaLo > minAlphaLimit) {
+        alphaLo = Math.max(minAlphaLimit, alphaLo / 10.0);
+        continue;
+      }
+      if (outcome.hitUpperBoundary && alphaHi < maxAlphaLimit) {
+        alphaHi = Math.min(maxAlphaLimit, alphaHi * 10.0);
+        continue;
+      }
+      break;
+    }
+    return outcome != null ? outcome.best.alpha : 0.005;
+  }
+
+  private record AlphaCandidate(double alpha, int collisions, int minNeighborGap) {}
+
+  private record AlphaSearchOutcome(AlphaCandidate best, boolean hitLowerBoundary, boolean hitUpperBoundary) {}
+
+  private record GridSearchResult(AlphaCandidate best, int bestIndex, int steps) {}
+
+  private static AlphaSearchOutcome searchAlphaWithRefinement(
+      List<Double> sortedDistinctDeadlinesMs,
+      double minDeadlineMs,
+      double maxDeadlineMs,
+      double alphaLo,
+      double alphaHi,
+      int coarseSteps,
+      int fineSteps) {
+    final GridSearchResult coarse =
         bestAlphaOnLogGrid(sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs, alphaLo, alphaHi, coarseSteps);
+    if (coarse == null) return null;
 
     // Refine around the coarse winner (in log space).
     final double lo = Math.log10(alphaLo);
     final double hi = Math.log10(alphaHi);
     final double step = (hi - lo) / (coarseSteps - 1);
-    final double center = Math.log10(coarse.alpha);
+    final double center = Math.log10(coarse.best.alpha);
     final double refineLo = Math.max(lo, center - 3.0 * step);
     final double refineHi = Math.min(hi, center + 3.0 * step);
-    final AlphaCandidate fine =
+    final GridSearchResult fine =
         bestAlphaOnLogGrid(
             sortedDistinctDeadlinesMs,
             minDeadlineMs,
@@ -2568,12 +2614,14 @@ public class CGenerator extends GeneratorBase {
             Math.pow(10.0, refineLo),
             Math.pow(10.0, refineHi),
             fineSteps);
-    return fine.alpha;
+    if (fine == null) return null;
+
+    final boolean hitLower = fine.bestIndex == 0;
+    final boolean hitUpper = fine.bestIndex == fine.steps - 1;
+    return new AlphaSearchOutcome(fine.best, hitLower, hitUpper);
   }
 
-  private record AlphaCandidate(double alpha, int collisions, int minNeighborGap) {}
-
-  private static AlphaCandidate bestAlphaOnLogGrid(
+  private static GridSearchResult bestAlphaOnLogGrid(
       List<Double> sortedDistinctDeadlinesMs,
       double minDeadlineMs,
       double maxDeadlineMs,
@@ -2581,6 +2629,7 @@ public class CGenerator extends GeneratorBase {
       double alphaHi,
       int steps) {
     AlphaCandidate best = null;
+    int bestIndex = -1;
     final double lo = Math.log10(alphaLo);
     final double hi = Math.log10(alphaHi);
     for (int i = 0; i < steps; i++) {
@@ -2590,21 +2639,25 @@ public class CGenerator extends GeneratorBase {
       if (cand == null) continue;
       if (best == null) {
         best = cand;
+        bestIndex = i;
         continue;
       }
       if (cand.collisions < best.collisions) {
         best = cand;
+        bestIndex = i;
       } else if (cand.collisions == best.collisions) {
         if (cand.minNeighborGap > best.minNeighborGap) {
           best = cand;
+          bestIndex = i;
         } else if (cand.minNeighborGap == best.minNeighborGap) {
           if (cand.alpha < best.alpha) {
             best = cand;
+            bestIndex = i;
           }
         }
       }
     }
-    return best != null ? best : new AlphaCandidate(0.005, Integer.MAX_VALUE, 0);
+    return best != null ? new GridSearchResult(best, bestIndex, steps) : null;
   }
 
   /**
