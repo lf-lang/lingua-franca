@@ -1,6 +1,7 @@
 package org.lflang.federated.generator;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -82,6 +83,7 @@ public class FedUtils {
       json.addProperty("maxDeadlineMs", 0.0);
       json.addProperty("medianDeadlineMs", 0.0);
       json.addProperty("totalDeadlines", 0);
+      json.add("deadlinesMs", new JsonArray());
     } else {
       // Compute statistics
       TimeValue minDeadline = validDeadlines.get(0);
@@ -107,6 +109,14 @@ public class FedUtils {
       json.addProperty("maxDeadlineMs", maxDeadlineMs);
       json.addProperty("medianDeadlineMs", medianDeadlineMs);
       json.addProperty("totalDeadlines", validDeadlines.size());
+
+      // Also include the full set of inferred deadlines in milliseconds so targets can optimize
+      // quantized priority mappings directly (e.g., search alpha to avoid rounding collisions).
+      JsonArray deadlinesMs = new JsonArray();
+      for (TimeValue d : validDeadlines) {
+        deadlinesMs.add(d.toNanoSeconds() / 1_000_000.0);
+      }
+      json.add("deadlinesMs", deadlinesMs);
     }
 
     // Write the JSON file

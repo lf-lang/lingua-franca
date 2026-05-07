@@ -14,6 +14,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonArray;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -2392,6 +2394,7 @@ public class CGenerator extends GeneratorBase {
     double minDeadline;
     double maxDeadline;
     double medianDeadline;
+    List<Double> distinctDeadlinesMs = List.of();
 
     if (isFederated) {
       // For federated applications, read deadline stats from the federation properties JSON file
@@ -2404,6 +2407,16 @@ public class CGenerator extends GeneratorBase {
           minDeadline = json.get("minDeadlineMs").getAsDouble();
           maxDeadline = json.get("maxDeadlineMs").getAsDouble();
           medianDeadline = json.get("medianDeadlineMs").getAsDouble();
+          if (json.has("deadlinesMs") && json.get("deadlinesMs").isJsonArray()) {
+            JsonArray arr = json.getAsJsonArray("deadlinesMs");
+            List<Double> all = new ArrayList<>(arr.size());
+            for (var el : arr) {
+              if (el != null && el.isJsonPrimitive() && el.getAsJsonPrimitive().isNumber()) {
+                all.add(el.getAsDouble());
+              }
+            }
+            distinctDeadlinesMs = all.stream().distinct().sorted().collect(Collectors.toList());
+          }
         } else {
           messageReporter.nowhere().warning(
               "Federation properties JSON file not found at " + jsonPath + ", using default values");
@@ -2436,6 +2449,11 @@ public class CGenerator extends GeneratorBase {
         medianDeadline = (validDeadlines.size() % 2 == 0)
             ? (validDeadlines.get(mid - 1).toNanoSeconds() + validDeadlines.get(mid).toNanoSeconds()) / 2 / 1000000.0
             : validDeadlines.get(mid).toNanoSeconds() / 1000000.0;
+        distinctDeadlinesMs = validDeadlines.stream()
+            .map(d -> d.toNanoSeconds() / 1000000.0)
+            .distinct()
+            .sorted()
+            .collect(Collectors.toList());
       }
     }
 
@@ -2463,30 +2481,168 @@ public class CGenerator extends GeneratorBase {
               "  return 98;",
               "}"));
     } else {
-      final double alphaMax = 0.025;
-      final double alphaMin = 0.005;
-      final double alpha =
-          alphaMax
-              - (medianDeadline - minDeadline) / (maxDeadline - minDeadline) * (alphaMax - alphaMin);
+      // Prefer per-program alpha optimization if we have the full set of deadlines.
+      // (Federated applications get this from federation_properties.json.)
+      final double alpha;
+      if (distinctDeadlinesMs != null && distinctDeadlinesMs.size() >= 2) {
+        alpha = findBestAlphaForDeadlines(distinctDeadlinesMs, minDeadline, maxDeadline);
+      } else {
+        // Fallback: old heuristic (kept only for robustness if deadlinesMs isn't available).
+        final double alphaMax = 0.025;
+        final double alphaMin = 0.005;
+        alpha =
+            alphaMax
+                - (medianDeadline - minDeadline) / (maxDeadline - minDeadline) * (alphaMax - alphaMin);
+      }
       final double expMinusAlphaDmin = Math.exp(-alpha * minDeadline);
       final double expMinusAlphaDmax = Math.exp(-alpha * maxDeadline);
       final double denom = expMinusAlphaDmin - expMinusAlphaDmax;
       final double k = 96.0 / denom;
       final double p = 98.0 - 96.0 * expMinusAlphaDmin / denom;
       final double negAlpha = -alpha;
+      // Keep the mapping safe for sentinel "no deadline" values and any values outside the
+      // [minDeadline,maxDeadline] fitting interval.
+      final double maxDeadlineMsFinal = maxDeadline;
       code.pr(
           String.join(
               "\n",
               "int get_priority_value(interval_t rel_deadline) {",
               "  if (rel_deadline <= 0) return 0;",
+              // Lingua Franca uses large sentinel values (e.g., TimeValue.MAX_VALUE) to encode
+              // the absence of a deadline. These can be much larger than maxDeadline and would
+              // otherwise map to negative priorities (because g(d) continues decreasing past d_max).
+              // Treat these as \"no deadline\" -> lowest priority (1).
+              "  if (rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
               "  double rel_deadline_ms = rel_deadline / 1000000.0;",
+              "  if (rel_deadline_ms >= " + formatDoubleForC(maxDeadlineMsFinal) + ") return 2;",
               "  const double K = " + formatDoubleForC(k) + ";",
               "  const double P = " + formatDoubleForC(p) + ";",
               "  const double neg_alpha = " + formatDoubleForC(negAlpha) + ";",
               "  double continuous_fun_value = K * exp(neg_alpha * rel_deadline_ms) + P;",
-              "  return (int)round(continuous_fun_value);",
+              "  int prio = (int)round(continuous_fun_value);",
+              "  if (prio < 2) prio = 2;",
+              "  if (prio > 98) prio = 98;",
+              "  return prio;",
               "}"));
     }
+  }
+
+  /**
+   * Find alpha (ms^-1) that minimizes collisions after rounding, for a given program's distinct
+   * inferred deadlines.
+   *
+   * <p>Optimization goal (lexicographic):
+   * <ol>
+   *   <li>Minimize collision count: {@code collisions = m - |distinct priorities|}.</li>
+   *   <li>Maximize minimum neighbor gap between priorities for adjacent sorted deadlines.</li>
+   *   <li>Deterministic tie-break: choose smaller alpha.</li>
+   * </ol>
+   *
+   * <p>Note: monotonicity does not need to be enforced explicitly here: the continuous mapping
+   * {@code g(d) = K*exp(-alpha*d)+P} is strictly decreasing in {@code d} for {@code alpha>0}, and
+   * {@code round(·)} is monotone. Therefore integer priorities cannot increase as deadlines increase.
+   */
+  private static double findBestAlphaForDeadlines(
+      List<Double> sortedDistinctDeadlinesMs, double minDeadlineMs, double maxDeadlineMs) {
+    // Search alpha on a log scale: good values can vary over orders of magnitude.
+    final double alphaLo = 1e-6;
+    final double alphaHi = 1.0;
+    final int coarseSteps = 2000;
+    final int fineSteps = 2000;
+
+    final AlphaCandidate coarse =
+        bestAlphaOnLogGrid(sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs, alphaLo, alphaHi, coarseSteps);
+
+    // Refine around the coarse winner (in log space).
+    final double lo = Math.log10(alphaLo);
+    final double hi = Math.log10(alphaHi);
+    final double step = (hi - lo) / (coarseSteps - 1);
+    final double center = Math.log10(coarse.alpha);
+    final double refineLo = Math.max(lo, center - 3.0 * step);
+    final double refineHi = Math.min(hi, center + 3.0 * step);
+    final AlphaCandidate fine =
+        bestAlphaOnLogGrid(
+            sortedDistinctDeadlinesMs,
+            minDeadlineMs,
+            maxDeadlineMs,
+            Math.pow(10.0, refineLo),
+            Math.pow(10.0, refineHi),
+            fineSteps);
+    return fine.alpha;
+  }
+
+  private record AlphaCandidate(double alpha, int collisions, int minNeighborGap) {}
+
+  private static AlphaCandidate bestAlphaOnLogGrid(
+      List<Double> sortedDistinctDeadlinesMs,
+      double minDeadlineMs,
+      double maxDeadlineMs,
+      double alphaLo,
+      double alphaHi,
+      int steps) {
+    AlphaCandidate best = null;
+    final double lo = Math.log10(alphaLo);
+    final double hi = Math.log10(alphaHi);
+    for (int i = 0; i < steps; i++) {
+      final double t = (double) i / (steps - 1);
+      final double alpha = Math.pow(10.0, lo + t * (hi - lo));
+      final AlphaCandidate cand = scoreAlpha(alpha, sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs);
+      if (cand == null) continue;
+      if (best == null) {
+        best = cand;
+        continue;
+      }
+      if (cand.collisions < best.collisions) {
+        best = cand;
+      } else if (cand.collisions == best.collisions) {
+        if (cand.minNeighborGap > best.minNeighborGap) {
+          best = cand;
+        } else if (cand.minNeighborGap == best.minNeighborGap) {
+          if (cand.alpha < best.alpha) {
+            best = cand;
+          }
+        }
+      }
+    }
+    return best != null ? best : new AlphaCandidate(0.005, Integer.MAX_VALUE, 0);
+  }
+
+  /**
+   * Score a candidate alpha on the program deadlines.
+   */
+  private static AlphaCandidate scoreAlpha(
+      double alpha, List<Double> sortedDistinctDeadlinesMs, double minDeadlineMs, double maxDeadlineMs) {
+    if (!(alpha > 0.0) || !Double.isFinite(alpha)) return null;
+    if (sortedDistinctDeadlinesMs == null || sortedDistinctDeadlinesMs.size() < 2) return null;
+
+    final double expMinusAlphaDmin = Math.exp(-alpha * minDeadlineMs);
+    final double expMinusAlphaDmax = Math.exp(-alpha * maxDeadlineMs);
+    final double denom = expMinusAlphaDmin - expMinusAlphaDmax;
+    if (denom == 0.0 || !Double.isFinite(denom)) return null;
+
+    final double K = 96.0 / denom;
+    final double P = 98.0 - 96.0 * expMinusAlphaDmin / denom;
+
+    int minGap = Integer.MAX_VALUE;
+    final Set<Integer> used = new HashSet<>();
+
+    Integer prev = null;
+    for (double d : sortedDistinctDeadlinesMs) {
+      final double g = K * Math.exp(-alpha * d) + P;
+      final int p = (int) Math.round(g);
+      used.add(p);
+      if (prev != null) {
+        final int gap = Math.abs(prev - p);
+        if (gap < minGap) minGap = gap;
+      }
+      prev = p;
+    }
+
+    if (minGap == Integer.MAX_VALUE) minGap = 0;
+    final int m = sortedDistinctDeadlinesMs.size();
+    final int distinctPriorities = used.size();
+    final int collisions = m - distinctPriorities;
+    return new AlphaCandidate(alpha, collisions, minGap);
   }
 
   /** Format a finite double as a C floating literal (decimal, US locale). */
