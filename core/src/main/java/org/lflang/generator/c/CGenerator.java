@@ -2531,11 +2531,10 @@ public class CGenerator extends GeneratorBase {
    * Find alpha (ms^-1) that minimizes collisions after rounding, for a given program's distinct
    * inferred deadlines.
    *
-   * <p>Optimization goal (lexicographic):
+   * <p>Optimization goal:
    * <ol>
    *   <li>Minimize collision count: {@code collisions = m - |distinct priorities|}.</li>
-   *   <li>Maximize minimum neighbor gap between priorities for adjacent sorted deadlines.</li>
-   *   <li>Deterministic tie-break: choose smaller alpha.</li>
+   *   <li>Deterministic tie-break for equal collision count: choose smaller alpha.</li>
    * </ol>
    *
    * <p>Note: monotonicity does not need to be enforced explicitly here: the continuous mapping
@@ -2581,7 +2580,7 @@ public class CGenerator extends GeneratorBase {
     return outcome != null ? outcome.best.alpha : 0.005;
   }
 
-  private record AlphaCandidate(double alpha, int collisions, int minNeighborGap) {}
+  private record AlphaCandidate(double alpha, int collisions) {}
 
   private record AlphaSearchOutcome(AlphaCandidate best, boolean hitLowerBoundary, boolean hitUpperBoundary) {}
 
@@ -2645,16 +2644,9 @@ public class CGenerator extends GeneratorBase {
       if (cand.collisions < best.collisions) {
         best = cand;
         bestIndex = i;
-      } else if (cand.collisions == best.collisions) {
-        if (cand.minNeighborGap > best.minNeighborGap) {
-          best = cand;
-          bestIndex = i;
-        } else if (cand.minNeighborGap == best.minNeighborGap) {
-          if (cand.alpha < best.alpha) {
-            best = cand;
-            bestIndex = i;
-          }
-        }
+      } else if (cand.collisions == best.collisions && cand.alpha < best.alpha) {
+        best = cand;
+        bestIndex = i;
       }
     }
     return best != null ? new GridSearchResult(best, bestIndex, steps) : null;
@@ -2676,26 +2668,17 @@ public class CGenerator extends GeneratorBase {
     final double K = 96.0 / denom;
     final double P = 98.0 - 96.0 * expMinusAlphaDmin / denom;
 
-    int minGap = Integer.MAX_VALUE;
     final Set<Integer> used = new HashSet<>();
-
-    Integer prev = null;
     for (double d : sortedDistinctDeadlinesMs) {
       final double g = K * Math.exp(-alpha * d) + P;
       final int p = (int) Math.round(g);
       used.add(p);
-      if (prev != null) {
-        final int gap = Math.abs(prev - p);
-        if (gap < minGap) minGap = gap;
-      }
-      prev = p;
     }
 
-    if (minGap == Integer.MAX_VALUE) minGap = 0;
     final int m = sortedDistinctDeadlinesMs.size();
     final int distinctPriorities = used.size();
     final int collisions = m - distinctPriorities;
-    return new AlphaCandidate(alpha, collisions, minGap);
+    return new AlphaCandidate(alpha, collisions);
   }
 
   /** Format a finite double as a C floating literal (decimal, US locale). */
