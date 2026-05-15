@@ -216,7 +216,7 @@ public class FedGenerator {
                     }
                   });
               if (useDocker) {
-                buildUsingDocker(context, subContexts);
+                buildUsingDocker(context, subContexts, federation);
               } else {
                 generateLaunchScript();
               }
@@ -246,7 +246,7 @@ public class FedGenerator {
    * @param context The main generator context.
    * @param subContexts The context for the federates.
    */
-  private void buildUsingDocker(LFGeneratorContext context, List<SubContext> subContexts) {
+  private void buildUsingDocker(LFGeneratorContext context, List<SubContext> subContexts, Reactor federation) {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
@@ -261,7 +261,7 @@ public class FedGenerator {
           return;
         }
         
-        var kubernetesGen = new FedKubernetesGenerator(context, federates, rtiConfig);
+        var kubernetesGen = new FedKubernetesGenerator(context, federates, rtiConfig, federation.getHost().getAddr());
         kubernetesGen.generate();
       }
       dockerGen.buildIfRequested();
@@ -600,15 +600,16 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
-    if (rtiConfig.getHost().equals("localhost")
-        && federation.getHost() != null
-        && !federation.getHost().getAddr().equals("localhost")) {
-      rtiConfig.setHost(federation.getHost().getAddr());
-    }
 
     if (rtiConfig.getHost().equals("localhost")
         && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
       rtiConfig.setHost("rti");
+    }
+
+    if (rtiConfig.getHost().equals("localhost")
+        && federation.getHost() != null
+        && !federation.getHost().getAddr().equals("localhost")) {
+      rtiConfig.setHost(federation.getHost().getAddr());
     }
   }
 

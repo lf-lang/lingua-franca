@@ -543,9 +543,9 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \""
             + ANSI_INFO
-            + "-------------- Federation ID: \"'$FEDERATION_ID'"
+            + "-------------- Federation ID: "
             + ANSI_RESET
-            + "\" >> "
+            + "\"'$FEDERATION_ID' >> "
             + logFileName
             + "; \\",
         "    date >> " + logFileName + "; \\",
@@ -558,17 +558,6 @@ public class FedLauncherGenerator {
             + "\" 2>&1 | tee -a "
             + logFileName
             + "; \\",
-        "    # First, check if the RTI is on the PATH",
-        "    if ! command -v RTI &> /dev/null",
-        "    then",
-        "        echo \"" + ANSI_ERROR + "RTI could not be found." + ANSI_RESET + "\"",
-        "        echo \""
-            + ANSI_ERROR
-            + "The source code can be found in org.lflang/src/lib/core/federated/RTI"
-            + ANSI_RESET
-            + "\"",
-        "        exit 1",
-        "    fi",
         "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
         "# Store the PID of the channel to RTI",
         "RTI=$!",

@@ -44,11 +44,11 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
     var attributes =
         """
                 image: "%s"
-                hostname: "%s"
+                hostname: "rti"
                 command: "-i 1 %s -n %s"
                 container_name: "%s-rti"
         """
-            .formatted(image, this.rtiHost, tracing, services.size(), containerName.toLowerCase());
+            .formatted(image, tracing, services.size(), containerName.toLowerCase());
     var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var authIP = context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
     var authService = (isSST && deploymentType.equals("compose")) ? """

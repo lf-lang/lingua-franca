@@ -16,11 +16,13 @@ public class FedKubernetesGenerator {
     private final LFGeneratorContext context;
     private final List<FederateInstance> federates;
     private final RtiConfig config;
+    private final String rtiNodeHost;
 
-    public FedKubernetesGenerator(LFGeneratorContext context, List<FederateInstance> federates, RtiConfig config) {
+    public FedKubernetesGenerator(LFGeneratorContext context, List<FederateInstance> federates, RtiConfig config, String rtiNodeHost) {
         this.context = context;
         this.federates = federates;
         this.config = config;
+        this.rtiNodeHost = rtiNodeHost;
     }
     
 
@@ -58,6 +60,7 @@ public class FedKubernetesGenerator {
                         app: %s-rti
                  spec:
                     restartPolicy: Never
+                    hostNetwork: true
                     nodeSelector:
                         lf-host: "%s"
                     containers:
@@ -70,7 +73,7 @@ public class FedKubernetesGenerator {
                     federation,
                     federation,
                     federation,
-                    host,
+                    rtiNodeHost,
                     registryAddress,
                     federation,
                     federateCount
@@ -114,8 +117,13 @@ public class FedKubernetesGenerator {
                     namespace: %s
                  spec:
                     restartPolicy: Never
+                    hostNetwork: true
                     nodeSelector:
                         lf-host: "%s"
+                    hostAliases: 
+                        - ip: %s
+                          hostnames:
+                            - "rti"
                     containers:
                         - name: %s
                           image: "%s/%s-%s:latest"
@@ -127,6 +135,7 @@ public class FedKubernetesGenerator {
                     entityName.replace("__", "-"),
                     federation,
                     host,
+                    rtiNodeHost,
                     entityName.replace("__", "-"),
                     registryAddress,
                     federation,
