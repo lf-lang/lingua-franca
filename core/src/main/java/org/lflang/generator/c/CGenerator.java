@@ -2459,7 +2459,7 @@ public class CGenerator extends GeneratorBase {
 
     // No valid deadlines — all reactions get the highest priority
     if (minDeadline == 0.0 && maxDeadline == 0.0 && medianDeadline == 0.0) {
-      code.pr(
+      prGetPriorityFunction(
           String.join(
               "\n",
               "// Priority assignment function (no deadlines found)",
@@ -2473,7 +2473,7 @@ public class CGenerator extends GeneratorBase {
     // Generate the priority function: precompute exp() and derived values in Java so the
     // generated C uses numeric literals (one exp() remains for the runtime rel_deadline_ms term).
     if (Double.compare(minDeadline, maxDeadline) == 0) {
-      code.pr(
+      prGetPriorityFunction(
           String.join(
               "\n",
               "int get_priority_value(interval_t rel_deadline) {",
@@ -2503,7 +2503,7 @@ public class CGenerator extends GeneratorBase {
       // Keep the mapping safe for sentinel "no deadline" values and any values outside the
       // [minDeadline,maxDeadline] fitting interval.
       final double maxDeadlineMsFinal = maxDeadline;
-      code.pr(
+      prGetPriorityFunction(
           String.join(
               "\n",
               "int get_priority_value(interval_t rel_deadline) {",
@@ -2525,6 +2525,17 @@ public class CGenerator extends GeneratorBase {
               "  return prio;",
               "}"));
     }
+  }
+
+  /**
+   * Emit {@code get_priority_value}, which is called from reactor-c (C translation unit).
+   * CCpp compiles the generated main file as C++, so the definition needs C linkage.
+   */
+  private void prGetPriorityFunction(String function) {
+    if (targetLanguageIsCpp()) {
+      code.pr("extern \"C\"");
+    }
+    code.pr(function);
   }
 
   /**
