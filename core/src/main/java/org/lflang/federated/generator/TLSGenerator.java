@@ -112,7 +112,9 @@ public class TLSGenerator {
             + "-subj "
             + shellEscape("/CN=" + entityName);
 
+    reporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
     runLocalCommand(cmd, reporter, "[TLS Gen " + entityName + "]");
+    reporter.nowhere().info("Successfully generated TLS credentials for " + entityName + ".");
   }
 
   private static void copyTLSCredentialsToSrcGen(
@@ -153,6 +155,10 @@ public class TLSGenerator {
     try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
       String line;
       while ((line = r.readLine()) != null) {
+        // Suppress openssl's progress indicator lines like ".+...+...+*..." or "-----"
+        if (line.matches("^[\\.\\+\\*\\- ]+$")) {
+          continue;
+        }
         reporter.nowhere().info(tag + " " + line);
       }
     }
