@@ -196,7 +196,7 @@ public class SSTGenerator {
     }
 
     // Generate SST config for the rti.
-    SSTGenerator.generateSSTConfig(fileConfig, "rti", rtiConfig.getHost());
+    SSTGenerator.generateSSTConfig(fileConfig, "rti", rtiConfig.getHost(), usePermanentDistKey);
     messageReporter
         .nowhere()
         .info(
@@ -205,7 +205,7 @@ public class SSTGenerator {
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      SSTGenerator.generateSSTConfig(fileConfig, federate.name, rtiConfig.getHost());
+      SSTGenerator.generateSSTConfig(fileConfig, federate.name, rtiConfig.getHost(), usePermanentDistKey);
       messageReporter
           .nowhere()
           .info(
@@ -222,7 +222,7 @@ public class SSTGenerator {
   }
 
   private static void generateSSTConfig(
-      FederationFileConfig fileConfig, String name, String authAndRtiIP) {
+      FederationFileConfig fileConfig, String name, String authAndRtiIP, boolean usePermanentDistKey) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
@@ -240,6 +240,18 @@ public class SSTGenerator {
             + "Net1."
             + name
             + "Key.pem";
+    String cipherkeyRoot =
+        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+            + File.separator
+            + "Net1."
+            + name
+            + "CipherKey.key";
+    String mackeyRoot =
+        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+            + File.separator
+            + "Net1."
+            + name
+            + "MacKey.key";
     if ("localhost".equals(authAndRtiIP)) {
       authAndRtiIP = "127.0.0.1";
     }
@@ -265,13 +277,31 @@ public class SSTGenerator {
         .append("\n")
         .append("HmacMode=")
         .append(hmacMode)
-        .append("\n")
-        .append("authInfo.pubkey.path=")
-        .append(pubkeyRoot)
-        .append("\n")
-        .append("entityInfo.privkey.path=")
-        .append(privkeyRoot)
-        .append("\n")
+        .append("\n");
+
+    if (usePermanentDistKey) {
+      configContent
+          .append("PermanentDistKeyMode=on\n")
+          .append("distKey.encryptionMode=")
+          .append(sessionkey_encryptionMode)
+          .append("\n")
+          .append("distKey.cipherkey.path=")
+          .append(cipherkeyRoot)
+          .append("\n")
+          .append("distkey.mackey.path=")
+          .append(mackeyRoot)
+          .append("\n");
+    } else {
+      configContent
+          .append("authInfo.pubkey.path=")
+          .append(pubkeyRoot)
+          .append("\n")
+          .append("entityInfo.privkey.path=")
+          .append(privkeyRoot)
+          .append("\n");
+    }
+
+    configContent
         .append("auth.ip.address=")
         .append(authIpAddress)
         .append("\n")
@@ -740,6 +770,10 @@ public class SSTGenerator {
         updated = replaceConfigPathBaseKeepTail(line, "authInfo.pubkey.path=", base);
       } else if (line.startsWith("entityInfo.privkey.path=")) {
         updated = replaceConfigPathBaseKeepTail(line, "entityInfo.privkey.path=", base);
+      } else if (line.startsWith("distKey.cipherkey.path=")) {
+        updated = replaceConfigPathBaseKeepTail(line, "distKey.cipherkey.path=", base);
+      } else if (line.startsWith("distkey.mackey.path=")) {
+        updated = replaceConfigPathBaseKeepTail(line, "distkey.mackey.path=", base);
       }
 
       if (!updated.equals(line)) changed = true;

@@ -4,7 +4,7 @@ target C {
   comm-type: SST,
   sst: {
     sst-root-path: "/Users/dkim314/project/sstclean",
-    use-permanent-key: true
+    use-permanent-distribution-key: true
   }
 }
 
