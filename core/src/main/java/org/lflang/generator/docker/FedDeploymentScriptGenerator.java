@@ -38,7 +38,7 @@ public class FedDeploymentScriptGenerator {
 
     private String generateDeploymentLaunchScript(String srcGenPath, String deploymentType, String federationName) {
         var dockerImageCleanup = """
-                                docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{print $1}')
+                                docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{print $1}') 2>/dev/null || true
                                 """.formatted(federationName.toLowerCase());
 
         var cleanup = deploymentType.equals("kubernetes")
@@ -108,7 +108,7 @@ public class FedDeploymentScriptGenerator {
                     docker compose build
                     docker compose push
                     kubectl wait --for=delete namespace/%s --timeout=120s 2>/dev/null || true
-                    kubectl create namespace %s --dry-run=client -o yaml | kubectl apply -f -
+                    kubectl create namespace %s
                     kubectl delete -f %s-pods.yaml --ignore-not-found
                     kubectl apply -f %s-pods.yaml
                     """.formatted(federationName.toLowerCase(), federationName.toLowerCase(), federationName, federationName)
