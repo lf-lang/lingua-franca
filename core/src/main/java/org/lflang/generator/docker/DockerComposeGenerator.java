@@ -65,6 +65,7 @@ public class DockerComposeGenerator {
                    build:
                        context: "%s"
                        %s
+                   image: "%s:latest"
                    container_name: "%s"
                    tty: true
                    extra_hosts:
@@ -77,6 +78,7 @@ public class DockerComposeGenerator {
             getServiceName(data),
             getBuildContext(data),
             getDockerFilePath(data),
+            getContainerName(data).toLowerCase(),
             getContainerName(data),
             getEnvironmentFile());
   }

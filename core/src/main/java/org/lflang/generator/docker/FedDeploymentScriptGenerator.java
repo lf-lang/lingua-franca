@@ -37,20 +37,26 @@ public class FedDeploymentScriptGenerator {
     }
 
     private String generateDeploymentLaunchScript(String srcGenPath, String deploymentType, String federationName) {
+        var dockerImageCleanup = """
+                                docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{print $1}')
+                                """.formatted(federationName.toLowerCase());
+
         var cleanup = deploymentType.equals("kubernetes")
             ? """
                 cleanup() {
                     kubectl delete -f %s-pods.yaml --ignore-not-found
                     kubectl delete namespace %s --ignore-not-found
+                    %s
                 }
                 trap cleanup EXIT
-                """.formatted(federationName, federationName.toLowerCase())
+                """.formatted(federationName, federationName.toLowerCase(), dockerImageCleanup)
             : """
                 cleanup() {
                     docker compose down
+                    %s
                 }
                 trap cleanup EXIT
-                """;
+                """.formatted(dockerImageCleanup);
 
         var header = """
                 #!/bin/bash
