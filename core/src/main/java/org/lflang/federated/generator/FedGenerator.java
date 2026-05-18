@@ -51,6 +51,7 @@ import org.lflang.generator.docker.DockerData;
 import org.lflang.generator.docker.FedDockerComposeGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.generator.docker.FedKubernetesGenerator;
+import org.lflang.generator.docker.FedDeploymentScriptGenerator;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -264,6 +265,10 @@ public class FedGenerator {
         var kubernetesGen = new FedKubernetesGenerator(context, federates, rtiConfig, federation.getHost().getAddr());
         kubernetesGen.generate();
       }
+
+      var launchScriptGen = new FedDeploymentScriptGenerator(context);
+      launchScriptGen.generate();
+
       dockerGen.buildIfRequested();
     } catch (IOException e) {
       context
