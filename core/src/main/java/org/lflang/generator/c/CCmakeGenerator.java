@@ -431,7 +431,8 @@ public class CCmakeGenerator {
         // TLS requires OpenSSL only
         cMakeCode.pr("# Find OpenSSL for TLS support");
         cMakeCode.pr("find_package(OpenSSL REQUIRED)");
-        cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
+        cMakeCode.pr(
+            "target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
         cMakeCode.newLine();
       }
     }
