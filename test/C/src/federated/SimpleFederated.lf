@@ -1,5 +1,6 @@
 target C {
   timeout: 2 secs,
+  build-type: RelWithDebInfo
 }
 
 reactor Fed {
