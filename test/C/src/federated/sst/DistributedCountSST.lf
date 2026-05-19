@@ -1,13 +1,12 @@
 /**
  * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication.
- * 
- * To run this test, you must specify the path to your local SST repository.
- * You can do this by either:
- * 1. Setting the `sst-root-path` target property in the `sst` dictionary.
- * 2. Setting the `SST_ROOT` environment variable in your system.
- * 
+ *
+ * To run this test, you must specify the path to your local SST repository. You can do this by
+ * either: 1. Setting the `sst-root-path` target property in the `sst` dictionary. 2. Setting the
+ * `SST_ROOT` environment variable in your system.
+ *
  * Based on the DistributedCount test.
- * 
+ *
  * @author Edward A. Lee
  * @author Dongha Kim
  */
