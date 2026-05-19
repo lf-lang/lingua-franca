@@ -1,0 +1,40 @@
+target Rust
+
+reactor A {
+  input a: u32
+  output out: u32
+
+  reaction(a) -> out {=
+    ctx.set(out, ctx.get(a).unwrap());
+  =}
+}
+
+reactor B extends A {
+  input b: u32
+
+  reaction(a, b) -> out {=
+    if let Some(output) = ctx.get(out){
+      println!("The Expected output is 3: {}", output);
+    } else {
+      eprintln!("FAILURE: Inherited action not ran");
+    }
+
+    ctx.set(out, ctx.get(a).unwrap() + ctx.get(b).unwrap());
+
+    if let Some(output) = ctx.get(out){
+      println!("The output is: {}", output);
+    } else {
+        eprintln!("FAILURE: No output set");
+        ctx.request_stop(Asap);
+    }
+  =}
+}
+
+main reactor {
+  b = new B()
+
+  reaction(startup) -> b.b, b.a {=
+    ctx.set(b__b, 2);
+    ctx.set(b__a, 3);
+  =}
+}

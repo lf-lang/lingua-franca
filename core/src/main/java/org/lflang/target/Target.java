@@ -420,7 +420,7 @@ public enum Target {
   /** Return true if the target supports reactor inheritance (extends keyword). */
   public boolean supportsInheritance() {
     return switch (this) {
-      case C, CCPP, Python -> true;
+      case C, CCPP, Python, Rust -> true;
       default -> false;
     };
   }
