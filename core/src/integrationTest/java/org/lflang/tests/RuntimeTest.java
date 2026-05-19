@@ -143,6 +143,18 @@ public abstract class RuntimeTest extends TestBase {
         false);
   }
 
+  @Test
+  public void runFederatedSSTTests() {
+    Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+    runTestsForTargets(
+        Message.DESC_FEDERATED,
+        TestCategory.FEDERATED_SST::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
   /** Run the tests for modal reactors. */
   @Test
   public void runModalTests() {
