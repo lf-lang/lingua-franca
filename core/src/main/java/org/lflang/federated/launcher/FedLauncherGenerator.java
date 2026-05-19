@@ -889,6 +889,10 @@ public class FedLauncherGenerator {
     lines.add(
         "    RTI_PANE=$(tmux split-window -f -v -b -l 5 -t \"$SESSION_NAME:0\""
             + " -P -F '#{pane_id}')");
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      lines.add(
+          "    AUTH_PANE=$(tmux split-window -h -t \"$RTI_PANE\" -P -F '#{pane_id}')");
+    }
     lines.add("");
 
     // Style pane title bars with a blue background and white text.
@@ -912,6 +916,9 @@ public class FedLauncherGenerator {
     lines.add(
         "    tmux select-pane -t \"$RTI_PANE\" -T"
             + " \"RTI — Ctrl+C to stop | Ctrl+B d to detach and kill\"");
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      lines.add("    tmux select-pane -t \"$AUTH_PANE\" -T \"Auth\"");
+    }
     for (int i = 0; i < numFeds; i++) {
       lines.add(
           "    tmux select-pane -t \"$FED_PANE_" + i + "\" -T \"" + federates.get(i).name + "\"");
@@ -921,6 +928,17 @@ public class FedLauncherGenerator {
     // Launch the RTI and federates. Each federate command sleeps briefly
     // to give the RTI time to start listening before federates connect.
     lines.add("    tmux send-keys -t \"$RTI_PANE\" \"" + rtiCmd + "\" C-m");
+    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      String authLaunchCode =
+          "java -jar "
+              + fileConfig.getSSTAuthPath().toString()
+              + "/auth-server-jar-with-dependencies.jar -p "
+              + fileConfig.getSSTAuthPath().toString()
+              + "/properties/exampleAuth101.properties --password="
+              + fileConfig.name
+              + "</dev/null";
+      lines.add("    tmux send-keys -t \"$AUTH_PANE\" \"" + authLaunchCode + "\" C-m");
+    }
     for (int i = 0; i < numFeds; i++) {
       FederateInstance fed = federates.get(i);
       String fedCmd;
