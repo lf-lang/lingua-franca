@@ -426,10 +426,7 @@ public class CCmakeGenerator {
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
       cMakeCode.newLine();
       // If communication mode is SST, find sst package.
-      cMakeCode.pr("# Find sst-c-api and link to it.");
-      cMakeCode.pr("find_package(sst-lib REQUIRED)");
-      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE sst-lib::sst-c-api)");
-      cMakeCode.newLine();
+      cMakeCode.pr("# sst-c-api is already linked transitively via reactor-c.");
     } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
       // TLS requires OpenSSL only
       cMakeCode.pr("# Find OpenSSL for TLS support");
