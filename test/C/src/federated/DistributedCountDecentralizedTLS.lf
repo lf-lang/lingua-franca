@@ -54,7 +54,7 @@ reactor Print {
   =}
 }
 
-federated reactor DistributedCountDecentralized {
+federated reactor DistributedCountDecentralizedTLS {
   c = new Count()
   p = new Print()
   c.out -> p.in after 200 msec  // Indicating a 'logical' connection with a large enough delay.
