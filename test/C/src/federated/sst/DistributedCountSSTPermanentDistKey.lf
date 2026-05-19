@@ -1,0 +1,53 @@
+/**
+ * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication
+ * with permanent distribution keys enabled.
+ * 
+ * To run this test, you must specify the path to your local SST repository.
+ * You can do this by either:
+ * 1. Setting the `sst-root-path` target property in the `sst` dictionary.
+ * 2. Setting the `SST_ROOT` environment variable in your system.
+ * 
+ * Based on the DistributedCount test.
+ * 
+ * @author Edward A. Lee
+ * @author Dongha Kim
+ */
+target C {
+  timeout: 5 sec,
+  coordination: centralized,
+  comm-type: SST,
+  sst: {
+    use-permanent-distribution-key: true
+  }
+}
+
+import Count from "../../lib/Count.lf"
+
+reactor Print {
+  input in: int
+  state c: int = 1
+
+  reaction(in) {=
+    interval_t elapsed_time = lf_time_logical_elapsed();
+    lf_print("At time " PRINTF_TIME ", received %d", elapsed_time, in->value);
+    if (in->value != self->c) {
+      lf_print_error_and_exit("Expected to receive %d.", self->c);
+    }
+    if (elapsed_time != MSEC(200) + SEC(1) * (self->c - 1) ) {
+      lf_print_error_and_exit("Expected received time to be " PRINTF_TIME ".", MSEC(200) * self->c);
+    }
+    self->c++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->c != 6) {
+      lf_print_error_and_exit("Expected to receive 5 items. Received %d.", self->c - 1);
+    }
+  =}
+}
+
+federated reactor DistributedCountSSTPermanentDistKey(offset: time = 200 msec) {
+  c = new Count()
+  p = new Print()
+  c.out -> p.in after offset
+}
