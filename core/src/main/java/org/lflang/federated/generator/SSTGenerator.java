@@ -45,7 +45,8 @@ public class SSTGenerator {
           .getErrorReporter()
           .nowhere()
           .error(
-              "`comm-type: SST` requires a path to the SST repository. Please either set the `sst-root-path` target property or set the `SST_ROOT` environment variable.");
+              "`comm-type: SST` requires a path to the SST repository. Please either set the"
+                  + " `sst-root-path` target property or set the `SST_ROOT` environment variable.");
       return;
     }
 
@@ -208,7 +209,8 @@ public class SSTGenerator {
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      SSTGenerator.generateSSTConfig(fileConfig, federate.name, rtiConfig.getHost(), usePermanentDistKey);
+      SSTGenerator.generateSSTConfig(
+          fileConfig, federate.name, rtiConfig.getHost(), usePermanentDistKey);
       messageReporter
           .nowhere()
           .info(
@@ -225,7 +227,10 @@ public class SSTGenerator {
   }
 
   private static void generateSSTConfig(
-      FederationFileConfig fileConfig, String name, String authAndRtiIP, boolean usePermanentDistKey) {
+      FederationFileConfig fileConfig,
+      String name,
+      String authAndRtiIP,
+      boolean usePermanentDistKey) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
