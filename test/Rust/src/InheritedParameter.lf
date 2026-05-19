@@ -1,0 +1,36 @@
+target Rust
+
+reactor Parent(a: i32 = 0) {
+  state a = a
+}
+
+reactor T(b: i32 = 0) {
+  state b = b 
+  output out: i32
+
+  reaction(startup) -> out {=
+    println!("b: {}", self.b);
+    ctx.set(out, self.b);
+  =}
+}
+
+reactor Child (b: i32 = 0, c:i32 = 0) extends Parent {
+  output out: i32
+  
+  // not working
+  t = new T(b = a)
+  t.out -> out
+}
+
+main reactor {
+  p1 = new Parent(a = 2)
+  c1 = new Child(a = 42)
+
+  reaction(c1.out) {=
+    println!("c1.out: {}", ctx.get(c1__out).unwrap());
+    if ctx.get(c1__out).unwrap() != 42 {
+      eprintln!("Expected 42");
+      ctx.request_stop(Asap);
+    }
+  =}
+}

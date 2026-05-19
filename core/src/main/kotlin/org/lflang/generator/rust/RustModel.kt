@@ -425,6 +425,7 @@ private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
 /** Regex to match a simple (C) code block, captures the insides as $1. */
 private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
 
+private val TARGET_BLOCK_L = Regex("\\.---")
 /**
  * Produce model classes from the AST.
  */
@@ -540,11 +541,12 @@ object RustModelBuilder {
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
         reactors.map { reactor ->
             //
-            val inheritedReactors = makeInheritedReactorInfos(((reactor.superClasses.map { it.toDefinition() })))
+            val inheritedR = reactor.superClasses.map { it.toDefinition() }
+            val inheritedReactors = makeInheritedReactorInfos(inheritedR)
             val inheritedReactions = inheritedReactors.flatMap { it.reactions }
 
             val components = mutableMapOf<String, ReactorComponent>()
-            val allComponents: List<Variable> = reactor.allComponents()
+            val allComponents: List<Variable> = reactor.allComponents() + inheritedR.flatMap { it.allComponents() }
             for (component in allComponents) {
                 val irObj = ReactorComponent.from(component)
                 components[irObj.lfName] = irObj
@@ -594,6 +596,8 @@ object RustModelBuilder {
                 reactions.flatMap { it.allDependencies.values }.flatten()
                     .filterIsInstance<ChildPortReference>().toSet()
 
+            // loc is required. use loc to dictate weather or not the reactor has a nestedInstance inherits something
+            //val nestedInstances = reactor.allInstantiations.map { if (inheritedReactors.map { it.names }.contains(it.name)) { } }
 
             val allReactions = (reactions + inheritedReactions).mapIndexed { newIdx, info -> info.copy(idx = newIdx)  }
             ReactorInfo(
@@ -604,21 +608,21 @@ object RustModelBuilder {
                 },
                 globalId = reactor.globalId,
                 reactions = allReactions,
-                otherComponents = components.values.toSet() + portReferences,
+                otherComponents = components.values.toSet() + portReferences + inheritedReactors.flatMap { it.otherComponents },
                 isMain = reactor.isMain,
-                typeParamList = reactor.typeParms.map {
+                typeParamList = (reactor.typeParms.map {
                     TypeParamInfo(targetCode = it.toText(), it.identifier, it.locationInfo())
-                },
-                preambles = reactor.preambles.map { it.code.toText() },
-                stateVars = reactor.stateVars.map {
+                } + inheritedReactors.flatMap { it.typeParamList }),
+                preambles = reactor.preambles.map { it.code.toText() } + inheritedReactors.flatMap { it.preambles },
+                stateVars = (reactor.stateVars.map {
                     StateVarInfo(
                         lfName = it.name,
                         type = RustTypes.getTargetType(it.type, it.init),
                         init = RustTypes.getTargetInitializer(it.init, it.type)
                     )
-                },
-                nestedInstances = reactor.instantiations.map { it.toModel() },
-                connections = reactor.connections,
+                } + inheritedReactors.flatMap { it.stateVars }),
+                nestedInstances = reactor.instantiations.map { it.toModel() } + inheritedReactors.flatMap { it.nestedInstances },
+                connections = reactor.connections + inheritedReactors.flatMap { it.connections },
                 ctorParams = reactor.parameters.map {
                     CtorParamInfo(
                         lfName = it.name,
@@ -628,7 +632,7 @@ object RustModelBuilder {
                         isTime = it.inferredType.isTime,
                         defaultValueAsTimeValue = ASTUtils.getDefaultAsTimeValue(it),
                     )
-                }
+                } + inheritedReactors.flatMap { it.ctorParams }
             )
         }
 
@@ -687,7 +691,7 @@ object RustModelBuilder {
                 lfName = reactor.name,
                 loc = reactor.locationInfo().let {
                     // remove body
-                    it.copy(lfText = it.lfText.replace(BLOCK_R, "{ ... }"))
+                    it.copy(lfText = it.lfText.replace(BLOCK_R, "{ ... } - Inherited from Reactor ${reactor.name}"))
                 },
                 globalId = reactor.globalId,
                 reactions = reactions,
@@ -796,6 +800,8 @@ fun Reactor.instantiateType(formalType: TargetCode, typeArgs: List<Type>): Targe
         }
     }
 }
+
+
 
 /**
  * Returns the identifier of this type param.

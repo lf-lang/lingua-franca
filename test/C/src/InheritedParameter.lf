@@ -12,10 +12,14 @@ reactor T(b: int = 0) {
   =}
 }
 
-reactor Child extends Parent {
+reactor Child(b: int = 0) extends Parent {
   output out: int
   t = new T(b=a)
   t.out -> out
+
+  reaction(startup){=
+      lf_print("%d\n",self->b);
+    =}
 }
 
 main reactor {

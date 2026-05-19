@@ -1,0 +1,34 @@
+target Rust
+
+reactor Foo { 
+    input in: u32
+    output out: u32
+
+    reaction(in) -> out {=
+        ctx.set(out, ctx.get(in));
+    =}
+}
+
+reactor Parent { 
+    input in: u32 
+    output out: u32
+    f = new Foo() 
+}
+
+reactor Child extends Parent { 
+    reaction(startup) -> f.in {=
+        ctx.set(f__out, 42);
+    =}
+
+    reaction(f.out) {=
+        println!("Out: {}", ctx.get(f__out).unwrap());
+        if ctx.get(f__out).unwrap() != 42 { 
+            println!("Expected 42");
+            ctx.request_stop(Asap);
+        }
+    =}
+}
+
+main reactor { 
+    c = new Child()
+}
