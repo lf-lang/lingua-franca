@@ -1,2 +1,3 @@
 allowBuilds:
   '@lf-lang/reactor-ts': true
+  'microtime': true
