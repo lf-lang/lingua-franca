@@ -677,10 +677,12 @@ public class SSTGenerator {
       FileUtil.copyFile(configSrc, dst.resolve(federate.name + ".config"));
 
       // 3) Copy auth certificates
-      if (!Files.isDirectory(authCertsRoot)) {
-        throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+      if (!usePermanentDistKey) {
+        if (!Files.isDirectory(authCertsRoot)) {
+          throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+        }
+        FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
       }
-      FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
 
       // 4) Update the copied configs to the remote base.
       SSTGenerator.updateConfigFile(
@@ -740,10 +742,12 @@ public class SSTGenerator {
     FileUtil.copyFile(rtiConfigSrc, rtiDst.resolve("rti.config"));
 
     // 3) Copy auth certificates
-    if (!Files.isDirectory(authCertsRoot)) {
-      throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+    if (!usePermanentDistKey) {
+      if (!Files.isDirectory(authCertsRoot)) {
+        throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+      }
+      FileUtil.copyDirectory(authCertsRoot, rtiCredentialsDst, false);
     }
-    FileUtil.copyDirectory(authCertsRoot, rtiCredentialsDst, false);
 
     // 4) Update the copied configs to the remote base.
     SSTGenerator.updateConfigFile(

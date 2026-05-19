@@ -1,0 +1,53 @@
+## Summary
+
+This PR adds pluggable security support for federated Lingua Franca programs by introducing two new secure communication modes: **TLS** and **SST**.
+
+The changes span both the Lingua Franca code generator and the Reactor C runtime so that federated executions can be generated, built, launched, and run with secure network communication instead of plain TCP.
+
+## Main Changes
+
+### TLS support
+
+- Adds `TLS` as a supported federated communication mode.
+- Generates TLS credentials and launch-time configuration for federated programs.
+- Builds the RTI and federates with `COMM_TYPE=TLS` when TLS communication is selected.
+- Adds runtime support for TLS-based network communication in Reactor C.
+- Adds RTI command-line support for passing certificate and private key paths:
+  - `-tls <cert_path> <key_path>`
+  - `--tls <cert_path> <key_path>`
+- Adds CMake support for linking the TLS implementation with OpenSSL.
+
+### SST support
+
+- Adds `SST` as a supported federated communication mode.
+- Adds an SST target property and related configuration handling.
+- Generates SST configuration files, credentials, graphs, policy files, and authentication assets for federated executions.
+- Supports local and remote deployment paths for SST-generated artifacts.
+- Builds the RTI and federates with `COMM_TYPE=SST` when SST communication is selected.
+- Adds RTI command-line support for passing the SST configuration path:
+  - `-sst <config_path>`
+  - `--sst <config_path>`
+- Adds Reactor C runtime support for SST-based initialization, connection setup, secure reads/writes, shutdown, and cleanup.
+
+### Network abstraction updates
+
+- Extends the Reactor C network abstraction so different communication backends can be selected behind a common interface.
+- Adds backend-specific helpers for TCP, TLS, and SST while preserving existing federated runtime behavior.
+- Replaces direct socket-private access in several RTI paths with network-abstraction getter/setter functions, enabling TLS and SST backends to work without assuming a raw socket implementation.
+
+### Generator and launcher updates
+
+- Updates the federated generator to run the SST or TLS setup flow based on the selected communication mode.
+- Updates RTI build generation to pass the correct `COMM_TYPE` to CMake.
+- Updates launcher scripts so generated federated programs pass the required TLS or SST runtime arguments.
+- Adds support for copying generated security artifacts into `src-gen` so local execution and remote deployment can access them.
+
+## Motivation
+
+Federated Lingua Franca programs currently rely primarily on plain TCP communication. This PR adds secure communication options so federated deployments can use either TLS-based encrypted channels or SST-based secure communication infrastructure, depending on the target configuration.
+
+## Notes
+
+- TLS mode requires certificate and private key paths to be provided to the RTI and generated federates.
+- SST mode requires generated SST configuration and credential artifacts to be available at runtime.
+- These changes are intended to be backward-compatible with existing TCP-based federated execution when neither TLS nor SST is selected.
