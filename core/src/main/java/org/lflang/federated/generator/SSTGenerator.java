@@ -35,13 +35,17 @@ public class SSTGenerator {
       LFGeneratorContext context,
       RtiConfig rtiConfig)
       throws IOException {
-    if (context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath().isEmpty()) {
+    String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
+    if (sstRootPath == null || sstRootPath.isEmpty()) {
+      sstRootPath = System.getenv("SST_ROOT");
+    }
+
+    if (sstRootPath == null || sstRootPath.isEmpty()) {
       context
           .getErrorReporter()
           .nowhere()
           .error(
-              "Target property `sst-root-path:` has not been defined. `comm-type: SST` requires"
-                  + " `sst-root-path`");
+              "`comm-type: SST` requires a path to the SST repository. Please either set the `sst-root-path` target property or set the `SST_ROOT` environment variable.");
       return;
     }
 
@@ -82,8 +86,7 @@ public class SSTGenerator {
     }
 
     // Set root path to execute commands.
-    Path sstRepoRootPath =
-        Paths.get(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath());
+    Path sstRepoRootPath = Paths.get(sstRootPath);
     ProcessBuilder processBuilder = new ProcessBuilder();
 
     // Set the working directory to the specified path
