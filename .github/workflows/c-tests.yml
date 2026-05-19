@@ -54,6 +54,11 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Clone SST repository for federated tests
+        run: |
+          git clone https://github.com/iotauth/iotauth.git iotauth
+          echo "SST_ROOT=$GITHUB_WORKSPACE/iotauth" >> $GITHUB_ENV
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Perform tests for C target with default scheduler
         run: ./gradlew targetTest -Ptarget=C
         if: ${{ !inputs.use-cpp && !inputs.scheduler }}
