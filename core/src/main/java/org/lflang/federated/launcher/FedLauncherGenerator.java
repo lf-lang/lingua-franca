@@ -890,8 +890,7 @@ public class FedLauncherGenerator {
         "    RTI_PANE=$(tmux split-window -f -v -b -l 5 -t \"$SESSION_NAME:0\""
             + " -P -F '#{pane_id}')");
     if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      lines.add(
-          "    AUTH_PANE=$(tmux split-window -h -t \"$RTI_PANE\" -P -F '#{pane_id}')");
+      lines.add("    AUTH_PANE=$(tmux split-window -h -t \"$RTI_PANE\" -P -F '#{pane_id}')");
     }
     lines.add("");
 
