@@ -338,7 +338,8 @@ public class TestRegistry {
     ZEPHYR_UNTHREADED(false, "zephyr" + File.separator + "unthreaded", TestLevel.BUILD),
     ZEPHYR_BOARDS(false, "zephyr" + File.separator + "boards", TestLevel.BUILD),
     FLEXPRET(false, "flexpret", TestLevel.BUILD),
-    PATMOS(false, "patmos", TestLevel.EXECUTION),
+    PATMOS_THREADED(false, "patmos" + File.separator + "threaded", TestLevel.EXECUTION),
+    PATMOS_UNTHREADED(false, "patmos" + File.separator + "unthreaded", TestLevel.EXECUTION),
     VERIFIER(false, "verifier", TestLevel.EXECUTION),
     TARGET(false, "", TestLevel.EXECUTION);
 

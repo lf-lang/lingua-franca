@@ -247,7 +247,8 @@ public abstract class RuntimeTest extends TestBase {
             || category == TestCategory.ZEPHYR_BOARDS
             || category == TestCategory.ZEPHYR_THREADED
             || category == TestCategory.FLEXPRET
-            || category == TestCategory.PATMOS;
+            || category == TestCategory.PATMOS_THREADED
+            || category == TestCategory.PATMOS_UNTHREADED;
 
     // SERIALIZATION and TARGET tests are excluded on Windows.
     excluded |= isWindows() && category == TestCategory.TARGET;
