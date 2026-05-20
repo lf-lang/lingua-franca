@@ -3,7 +3,6 @@ package org.lflang.federated.launcher;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
-
 import org.lflang.federated.generator.SSTGenerator;
 import org.lflang.federated.generator.TLSGenerator;
 import org.lflang.target.property.CommunicationModeProperty;
