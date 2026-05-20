@@ -222,10 +222,10 @@ public class FedGenerator {
     buildRtiLocally(context);
 
     // If communication mode is SST, generate configurations for SST.
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
-    } else if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
       TLSGenerator.setupTLS(fileConfig, federates, messageReporter, context);
     }
@@ -266,10 +266,10 @@ public class FedGenerator {
     configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
 
     // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       configureArgs.add("-DCOMM_TYPE=SST");
-    } else if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
       configureArgs.add("-DCOMM_TYPE=TLS");
     }
