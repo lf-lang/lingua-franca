@@ -427,7 +427,8 @@ public class FedLauncherGenerator {
       }
 
       commands.add("                        -sst " + sstConfigPath + " \\");
-    } else if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+    } else if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
       String certPath;
       String keyPath;
 
@@ -588,7 +589,8 @@ public class FedLauncherGenerator {
     String cmakeArgs = "";
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       cmakeArgs = " -DCOMM_TYPE=SST";
-    } else if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+    } else if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
       cmakeArgs = " -DCOMM_TYPE=TLS";
     }
 
@@ -730,7 +732,8 @@ public class FedLauncherGenerator {
     String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
     String executeCommand = binDirectory + "/" + federate.name + " -i '$FEDERATION_ID'";
 
-    if (federate.targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+    if (federate.targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
       executeCommand =
           executeCommand
               + " -sst "
