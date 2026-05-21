@@ -10,7 +10,6 @@ import org.lflang.target.Target;
 import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
-
 /**
  * Generate the docker file related code for the C and CCpp target.
  *
@@ -38,7 +37,8 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected String builderBase() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
       return "sst-builder";
     }
 
@@ -47,22 +47,23 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected String generateAdditionalArguments() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
       return String.join(
-        "\n",
-        "FROM " + defaultImage() + " AS sst-builder",
-        "RUN set -ex && apk add --no-cache gcc musl-dev cmake make openssl-dev",
-        "COPY /sst-src/ /sst-src/",
-        "WORKDIR /sst-build",
-        "RUN cmake -DBUILD_TESTING=OFF /sst-src && make && make install"
-      );
+          "\n",
+          "FROM " + defaultImage() + " AS sst-builder",
+          "RUN set -ex && apk add --no-cache gcc musl-dev cmake make openssl-dev",
+          "COPY /sst-src/ /sst-src/",
+          "WORKDIR /sst-build",
+          "RUN cmake -DBUILD_TESTING=OFF /sst-src && make && make install");
     }
     return "";
   }
 
   @Override
-  protected String generateCopyOfCredentials() { 
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+  protected String generateCopyOfCredentials() {
+    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
       return "COPY /sst/ ./sst/";
     }
 
@@ -72,7 +73,8 @@ public class CDockerGenerator extends DockerGenerator {
   @Override
   public List<String> defaultEntryPoint() {
     var name = context.getFileConfig().name;
-    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var isSST =
+        context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     if (isSST) {
       return List.of("./bin/" + name, "-sst", "./sst/" + name + ".config");
     }
@@ -83,7 +85,8 @@ public class CDockerGenerator extends DockerGenerator {
   protected String generateRunForInstallingDeps() {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
-    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var isSST =
+        context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
 
     if (isSST) {
       return "# (Dependencies already installed in sst-builder stage)";
@@ -91,8 +94,7 @@ public class CDockerGenerator extends DockerGenerator {
 
     if (builderBase().equals(defaultImage())) {
       return "RUN set -ex && apk add --no-cache %s musl-dev cmake make".formatted(compiler);
-    }
-    else {
+    } else {
       return "# (Skipping installation of build dependencies; custom base image.)";
     }
   }
@@ -109,13 +111,16 @@ public class CDockerGenerator extends DockerGenerator {
                   false),
               context.getErrorReporter(),
               context.getTargetConfig().target == Target.CCPP);
-      var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+      var isSST =
+          context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+              == CommunicationMode.SST;
       var commFlag = isSST ? " -DCOMM_TYPE=SST" : "";
       var srcDir = "src-gen";
       return List.of(
           "mkdir -p bin",
           String.format(
-              "%s -DCMAKE_C_FLAGS=-march=armv8-a -DCMAKE_INSTALL_BINDIR=./bin%s -S %s -B bin", ccompile.compileCmakeCommand(), commFlag, srcDir),
+              "%s -DCMAKE_C_FLAGS=-march=armv8-a -DCMAKE_INSTALL_BINDIR=./bin%s -S %s -B bin",
+              ccompile.compileCmakeCommand(), commFlag, srcDir),
           "cd bin",
           "make all",
           "cd ..");

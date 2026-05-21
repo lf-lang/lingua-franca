@@ -54,9 +54,10 @@ public abstract class DockerGenerator {
         generateCopyOfScript(),
         generateCopyOfUserFiles(),
         generateRunForMakingExecutableDir(),
-        generateCopyOfExecutable(), // need to add another function after this to copy the sst code?? Not sure
+        generateCopyOfExecutable(), // need to add another function after this to copy the sst
+        // code?? Not sure
         generateCopyOfCredentials(),
-        generateEntryPoint(),  // need to update
+        generateEntryPoint(), // need to update
         "");
   }
 

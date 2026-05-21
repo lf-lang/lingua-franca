@@ -71,7 +71,7 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
           case DOCKER_CONFIG_FILE ->
               dockerConfigFile = ASTUtils.elementToSingleString(entry.getValue());
           case DEPLOYMENT_TYPE -> deployment = ASTUtils.elementToSingleString(entry.getValue());
-          case REGISTRY_ADDRESS -> 
+          case REGISTRY_ADDRESS ->
               registryAddress = ASTUtils.elementToSingleString(entry.getValue());
           case AUTH_IP -> authIP = ASTUtils.elementToSingleString(entry.getValue());
           case SUBNET -> subnet = ASTUtils.elementToSingleString(entry.getValue());
@@ -175,7 +175,22 @@ public final class DockerProperty extends TargetProperty<DockerOptions, UnionTyp
     public static final String LOCAL_RTI_IMAGE = "rti:local";
 
     public DockerOptions(boolean enabled) {
-      this(enabled, false, "", "", LOCAL_RTI_IMAGE, DEFAULT_SHELL, "", "", "", "", "", "compose", "", "172.21.0.2", "172.21.0.0/16");
+      this(
+          enabled,
+          false,
+          "",
+          "",
+          LOCAL_RTI_IMAGE,
+          DEFAULT_SHELL,
+          "",
+          "",
+          "",
+          "",
+          "",
+          "compose",
+          "",
+          "172.21.0.2",
+          "172.21.0.0/16");
     }
   }
 
