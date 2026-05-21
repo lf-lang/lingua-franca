@@ -229,8 +229,9 @@ public class FedGenerator {
     // If communication mode is SST, generate configurations for SST.
     if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
-      
-      var authHost = useDocker ? context.getTargetConfig().get(DockerProperty.INSTANCE).authIP() : rtiConfig.getHost();
+      var isKubernetes = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment().equals("kubernetes");
+      var authHost = ((!useDocker || isKubernetes) && federation.getHost() != null ) ? federation.getHost().getAddr() : context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
+
       SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig, authHost);
     } else if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {

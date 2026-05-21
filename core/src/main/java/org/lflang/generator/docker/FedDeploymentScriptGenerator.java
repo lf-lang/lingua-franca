@@ -95,7 +95,7 @@ public class FedDeploymentScriptGenerator {
         var logStreaming = """
                 echo "Waiting for pods to start..."
                 kubectl wait --for=condition=Ready pods --all -n %s --timeout=60s
-                for pod in $(kubectl get pods -n %s -o name); do
+                for pod in $(kubectl get pods -n %s -o name | grep -v auth); do
                     kubectl logs -f -n %s $pod &
                 done
                 wait

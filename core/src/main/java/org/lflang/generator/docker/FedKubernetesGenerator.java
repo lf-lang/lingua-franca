@@ -3,8 +3,8 @@ package org.lflang.generator.docker;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.launcher.RtiConfig;
-import org.lflang.target.Target;
-import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CommunicationModeProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import java.util.ArrayList;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.util.FileUtil;
@@ -39,17 +39,85 @@ public class FedKubernetesGenerator {
         var registryAddress = context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress();
         var rtiHost = this.config.getHost();
         var federateCount = this.federates.size();
-        return String.join(
-            "\n---\n",
-            generateRtiPod(federationName.toLowerCase(), rtiHost, registryAddress, federateCount),
-            generateRtiService(federationName.toLowerCase()),
-            generateFederatesPod(federationName.toLowerCase(), registryAddress)
-            
-        );
+        
+        List<String> sections = new ArrayList<>();
+
+        if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+            sections.add(generateAuthPod(federationName.toLowerCase(), registryAddress));
+            sections.add(generateAuthService(federationName.toLowerCase()));
+        }
+
+        sections.add(generateRtiPod(federationName.toLowerCase(), rtiHost, registryAddress, federateCount));
+        sections.add(generateRtiService(federationName.toLowerCase()));
+        sections.add(generateFederatesPod(federationName.toLowerCase(), registryAddress));
+
+        return String.join("\n---\n", sections);
     }
 
+    private String generateAuthPod(String federation, String registryAddress) {
+        return """
+                 apiVersion: v1
+                 kind: Pod
+                 metadata:
+                    name: %s-auth
+                    namespace: %s
+                    labels:
+                        app: %s-auth
+                 spec:
+                    restartPolicy: Never
+                    hostNetwork: true
+                    nodeSelector: 
+                        lf-host: "%s"
+                    containers:
+                        - name: auth
+                          image: "%s/%s-auth:latest"
+                          imagePullPolicy: Always
+                          readinessProbe:
+                              tcpSocket:
+                                  port: 21900
+                              initialDelaySeconds: 3
+                              periodSeconds: 2
+            """.formatted(
+                    federation,
+                    federation,
+                    federation,
+                    rtiNodeHost,
+                    registryAddress,
+                    federation
+            );
+    }
+
+    private String generateAuthService(String federation) {
+        return """
+                 apiVersion: v1
+                 kind: Service
+                 metadata:
+                    name: auth
+                    namespace: %s
+                 spec:
+                    selector: 
+                        app: %s-auth
+                    ports:
+                        - port: 21900
+                          targetPort: 21900
+            """.formatted(federation, federation);
+    }
 
     private String generateRtiPod(String federation, String host, String registryAddress, int federateCount) {
+        var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        var rtiHostAliases = isSST ? """
+                hostAliases:
+                            - ip: %s
+                              hostnames:
+                                - "auth"
+                """.formatted(rtiNodeHost) : "";
+        var rtiInitContainers = isSST ? """
+                initContainers:
+                            - name: wait-for-auth
+                              image: alpine
+                              command: ['sh', '-c', 'until nc -z auth 21900 2>/dev/null; do sleep 2; done']
+                """ : "";
+
         return """ 
                  apiVersion: v1
                  kind: Pod
@@ -63,17 +131,21 @@ public class FedKubernetesGenerator {
                     hostNetwork: true
                     nodeSelector:
                         lf-host: "%s"
+                    %s
+                    %s
                     containers:
                         - name: rti
                           image: "%s/%s-rti:latest"
                           imagePullPolicy: Always
                           args: ["-i", "1", "-n", "%d"]
-        
+
             """.formatted(
                     federation,
                     federation,
                     federation,
                     rtiNodeHost,
+                    rtiHostAliases,
+                    rtiInitContainers,
                     registryAddress,
                     federation,
                     federateCount
@@ -109,6 +181,14 @@ public class FedKubernetesGenerator {
     }
 
     private String generatePerEntityContent(String federation, String host, String registryAddress, String entityName) {
+        var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        var entityInitContainers = isSST ? """
+                initContainers:
+                            - name: wait-for-auth
+                              image: alpine
+                              command: ['sh', '-c', 'until nc -z auth 21900 2>/dev/null; do sleep 2; done']
+                """ : "";
+
         return """ 
                  apiVersion: v1
                  kind: Pod
@@ -123,7 +203,8 @@ public class FedKubernetesGenerator {
                     hostAliases: 
                         - ip: %s
                           hostnames:
-                            - "rti"
+                            %s
+                    %s
                     containers:
                         - name: %s
                           image: "%s/%s-%s:latest"
@@ -136,11 +217,21 @@ public class FedKubernetesGenerator {
                     federation,
                     host,
                     rtiNodeHost,
+                    getHostNames(),
+                    entityInitContainers,
                     entityName.replace("__", "-"),
                     registryAddress,
                     federation,
                     entityName
                 );
+    }
+
+    private String getHostNames() {
+        if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST){
+            return "- \"rti\"\n                - \"auth\"";
+        }
+
+        return "- \"rti\"";
     }
 
 

@@ -39,7 +39,10 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
     }
     var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
     var registryAddress = context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress();
-    var image = deploymentType.equals("kubernetes") ? String.format("%s/%s-rti:latest", registryAddress, this.containerName.toLowerCase()) : this.rtiImage;
+    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+
+    var rtiImg = deploymentType.equals("kubernetes") ? String.format("%s/%s-rti:latest", registryAddress, this.containerName.toLowerCase()) : this.rtiImage;
+    var authImg = (deploymentType.equals("kubernetes") && isSST) ? String.format("%s/%s-auth:latest", registryAddress, this.containerName.toLowerCase()) : "";
 
     var attributes =
         """
@@ -48,10 +51,10 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                 command: "-i 1 %s -n %s"
                 container_name: "%s-rti"
         """
-            .formatted(image, tracing, services.size(), containerName.toLowerCase());
-    var isSST = context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+            .formatted(rtiImg, tracing, services.size(), containerName.toLowerCase());
+  
     var authIP = context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
-    var authService = (isSST && deploymentType.equals("compose")) ? """
+    var authService = isSST ? deploymentType.equals("compose") ? """
                  auth:
                      networks:
                          default: 
@@ -62,10 +65,19 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                      ports:
                          - "21900:21900"
                      healthcheck:
-                         test: ["CMD", "nc", "-z", "localhost", "21900"]
+                         test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/21900"]
                          interval: 2s
                          retries: 15
-             """.formatted(authIP, containerName) : "";
+             """.formatted(authIP, containerName)
+             : """
+                 auth:
+                     build:
+                         context: "auth"
+                     image: "%s"
+                     container_name: "%s-auth"
+             """.formatted(authImg, containerName.toLowerCase()) 
+             : "";
+
     var rtiDependsOn = (isSST && deploymentType.equals("compose"))  ? """
                      depends_on:
                          - auth

@@ -115,7 +115,7 @@ public class CDockerGenerator extends DockerGenerator {
       return List.of(
           "mkdir -p bin",
           String.format(
-              "%s -DCMAKE_BUILD_TYPE=DEBUG -DLOG_LEVEL=4 -DCMAKE_C_FLAGS=-march=armv8-a -DCMAKE_INSTALL_BINDIR=./bin%s -S %s -B bin", ccompile.compileCmakeCommand(), commFlag, srcDir),
+              "%s -DCMAKE_C_FLAGS=-march=armv8-a -DCMAKE_INSTALL_BINDIR=./bin%s -S %s -B bin", ccompile.compileCmakeCommand(), commFlag, srcDir),
           "cd bin",
           "make all",
           "cd ..");
