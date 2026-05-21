@@ -580,10 +580,14 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
-    if (rtiConfig.getHost().equals("localhost")
-        && federation.getHost() != null
-        && !federation.getHost().getAddr().equals("localhost")) {
-      rtiConfig.setHost(federation.getHost().getAddr());
+    if (federation.getHost() != null) {
+      if (rtiConfig.getHost().equals("localhost")
+          && !federation.getHost().getAddr().equals("localhost")) {
+        rtiConfig.setHost(federation.getHost().getAddr());
+      }
+      if (rtiConfig.getUser() == null) {
+        rtiConfig.setUser(federation.getHost().getUser());
+      }
     }
 
     if (rtiConfig.getHost().equals("localhost")
