@@ -2,6 +2,13 @@
 // reactor definition.
 target C
 
+preamble {=
+  // Test that type definitions are visible when this is imported.
+  typedef struct {
+    double foo;
+  } foo_t;
+=}
+
 reactor ImportedAgain {
   input x: int
 

@@ -1,5 +1,126 @@
 # Changelog
 
+## [v0.12.1](https://github.com/lf-lang/lingua-franca/tree/v0.12.1) (2026-04-17)
+
+**Highlights**
+
+This patch release fixes a memory leak reported in [issue #580 of reactor-c](https://github.com/lf-lang/reactor-c/issues/580).
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🔧 Fixes**
+
+- Decrement reference count of old token when template token is replaced. [\#581](https://github.com/lf-lang/reactor-c/pull/581) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
+## [v0.12.0](https://github.com/lf-lang/lingua-franca/tree/v0.12.0) (2026-04-16)
+
+**Highlights**
+
+This release offers a number of usability and infrastructure improvements. On the infrastructure side, the most significant is a refactoring of the network interface to make it less reliant on implementation via TCP sockets. A layer of abstraction has been introduced to support future development of other communication mechanisms, including encrypted communication. It also adds target properties `trace-plugin` and `cmake-args` for the C and Python targets in order to support alternative plugins for tracing such as the [Xronos Dashboard](https://github.com/lf-lang/lf-trace-xronos).  See [instructions](https://www.lf-lang.org/docs/next/reference/tracing/#live-tracing-in-c-via-the-xronos-dashboard).
+
+On the usability side, it is now possible to override parameter values of the main or federated reactor if they are primitive data types and do not control the width of multiports or banks.
+This release also add utility functions for loading parameter values from a file. This is particularly useful for customizing the parameters of bank members.
+For federated execution, a new `--tmux` option gives a convenient way to start a federation using the [tmux terminal multiplexer](https://github.com/tmux/tmux/wiki). This separates the `stdin` and `stdout` from each of the federation components into separate windows. Another small enhancement is that the logging API now produces colored text on terminals that support colored text.
+This release also adds a Python API to for user-defined tracepoints similar to those in the C target.
+Finally, the diagrams now show annotations showing `maxwait` and `absent_after` attributes for federates and connections between federates. See the [blog about `maxwait`](https://www.lf-lang.org/blog/maxwait-patterns/), and the `@side` attributes for ports now support all four points of the compass, `"north"`, `"east"`, `"south"`, and `"west"`.
+
+**🚀 New Features**
+
+- Add maxwait and absent_after annotation in diagrams. [\#2572](https://github.com/lf-lang/lingua-franca/pull/2572) (@edwardalee)
+- Add subfields to `trace-plugin` property and add `cmake-args` property [\#2578](https://github.com/lf-lang/lingua-franca/pull/2578) (@lsk567)
+- Add command-line overrides for top-level parameters with primitive types or time type. [\#2591](https://github.com/lf-lang/lingua-franca/pull/2591) (@edwardalee)
+- Add API for user trace events for Python target. [\#2596](https://github.com/lf-lang/lingua-franca/pull/2596) (@edwardalee)
+- Add --tmux or -x command-line option for federated launchers. [\#2604](https://github.com/lf-lang/lingua-franca/pull/2604) (@edwardalee)
+- Add utility functions to initialize parameters and state variables from a file. [\#2612](https://github.com/lf-lang/lingua-franca/pull/2612) (@edwardalee)
+
+**✨ Enhancements**
+
+- Color logging outputs printed to stdout to better distinguish them from user outputs. [\#2605](https://github.com/lf-lang/lingua-franca/pull/2605) (@edwardalee)
+- Fix bug with overridden parameters and enable the `cmake-args` target property in Python. [\#2611](https://github.com/lf-lang/lingua-franca/pull/2611) (@edwardalee)
+- Add support for reactor-uc attributes to the validator (for the VS Code plugin). [\#2616](https://github.com/lf-lang/lingua-franca/pull/2616) (@edwardalee)
+
+**🔧 Fixes**
+
+- Report enclave errors on appropriate object [\#2577](https://github.com/lf-lang/lingua-franca/pull/2577) (@edwardalee)
+- Fix bug with includes for custom port types [\#2579](https://github.com/lf-lang/lingua-franca/pull/2579) (@edwardalee)
+- Relativize trace-plugin paths for federated builds [\#2585](https://github.com/lf-lang/lingua-franca/pull/2585) (@lsk567)
+- Fix memory bug with fixed-sized arrays with after [\#2588](https://github.com/lf-lang/lingua-franca/pull/2588) (@edwardalee)
+- Ensure tracing shutdown [\#2599](https://github.com/lf-lang/lingua-franca/pull/2599) (@edwardalee)
+- Override to not generate type parameters in Python target [\#2600](https://github.com/lf-lang/lingua-franca/pull/2600) (@edwardalee)
+- Remove dependence on itemis.com download and fix rendering of north and south ports [\#2601](https://github.com/lf-lang/lingua-franca/pull/2601) (@edwardalee)
+- Fix bug triggered by reaction naming [\#2603](https://github.com/lf-lang/lingua-franca/pull/2603) (@edwardalee)
+- Fix length calculation for federate incoming fixed-length array. [\#2608](https://github.com/lf-lang/lingua-franca/pull/2608) (@edwardalee)
+- Fix bug where imported file-level preambles were not propagating [\#2610](https://github.com/lf-lang/lingua-franca/pull/2610) (@edwardalee)
+- Fix bug with overridden parameters and enable the `cmake-args` target property in Python. [\#2611](https://github.com/lf-lang/lingua-franca/pull/2611) (@edwardalee)
+- Pull in reactor-c fix for segfault on closing network connections [\#2613](https://github.com/lf-lang/lingua-franca/pull/2613) (@edwardalee)
+- Fix quoting error in launch script generation for federated programs. [\#2617](https://github.com/lf-lang/lingua-franca/pull/2617) (@edwardalee)
+
+**🚧 Maintenance and Refactoring**
+
+- Drop support for the ROS2 in the Cpp target. [\#2581](https://github.com/lf-lang/lingua-franca/pull/2581) (@lsk567)
+- Add Network Abstraction Layer [\#2455](https://github.com/lf-lang/lingua-franca/pull/2455) (@Jakio815)
+
+**🧪 Tests**
+
+- Tests for the function `update_deadline` in Python target [\#2590](https://github.com/lf-lang/lingua-franca/pull/2590) (@byeonggiljun)
+
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- Use `find_package` to link against external trace plugin. [\#554](https://github.com/lf-lang/reactor-c/pull/554) (@lsk567)
+- Add lf_time_parse function to get a time from a numeric string and a units string. [\#562](https://github.com/lf-lang/reactor-c/pull/562) (@edwardalee)
+- Support command-line overrides of top-level parameters with primitive types or time type. [\#563](https://github.com/lf-lang/reactor-c/pull/563) (@edwardalee)
+- Add API for user trace events for Python target. [\#565](https://github.com/lf-lang/reactor-c/pull/565) (@edwardalee)
+- Support for function `update_deadline` in Python target [\#558](https://github.com/lf-lang/reactor-c/pull/558) (@byeonggiljun)
+- Add utility functions to initialize parameters and state variables from a file. [\#577](https://github.com/lf-lang/reactor-c/pull/577) (@edwardalee)
+
+**✨ Enhancements**
+
+- Add a C helper API to read a Python reactor parameter as a long. [\#568](https://github.com/lf-lang/reactor-c/pull/568) (@edwardalee)
+- Improve `fedsd` visualization and add `ADDRESS_QUERY_REPLY` tracing [\#569](https://github.com/lf-lang/reactor-c/pull/569) (@ChadliaJerad)
+- Color logging outputs to stdout to better distinguish them from user outputs. [\#570](https://github.com/lf-lang/reactor-c/pull/570) (@edwardalee)
+
+**🔧 Fixes**
+
+- Ensure tracing shutdown [\#566](https://github.com/lf-lang/reactor-c/pull/566) (@edwardalee)
+- Fix length calculation for federate received array [\#572](https://github.com/lf-lang/reactor-c/pull/572) (@edwardalee)
+- Fix for the wrong return value of `lf_check_deadline` [\#559](https://github.com/lf-lang/reactor-c/pull/559) (@byeonggiljun)
+- Fix segfault on closing down network connections [\#579](https://github.com/lf-lang/reactor-c/pull/579) (@edwardalee)
+- Remove `INET_ADDRSTRLEN` limit for symbolic hostnames and optimize socket connections. [\#578](https://github.com/lf-lang/reactor-c/pull/578) (@Jakio815)
+
+**🚧 Maintenance and Refactoring**
+
+- Addition of network abstraction layer to separate socket implementation code from network communication logic [\#508](https://github.com/lf-lang/reactor-c/pull/508) (@Jakio815)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+**🔧 Fixes**
+
+- Revert "Merge pull request #81 from lf-lang/fix-ros2-cpp-build" [\#82](https://github.com/lf-lang/reactor-cpp/pull/82) (@lsk567)
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
+
 ## [v0.11.0](https://github.com/lf-lang/lingua-franca/tree/v0.11.0) (2025-12-05)
 
 **Highlights**
