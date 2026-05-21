@@ -1,0 +1,11 @@
+x, y, z
+0.25, 0.5, 0.75
+1.25, 1.5, 1.75
+int values next:
+foo, bar
+1, 2
+3, 4
+string values next:
+name
+first bank reactor
+"second bank reactor"

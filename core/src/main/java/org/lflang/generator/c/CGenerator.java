@@ -2199,18 +2199,39 @@ public class CGenerator extends GeneratorBase {
   /**
    * Generate guarded preamble code for the given file (Model container) if not already visited.
    *
+   * <p>In addition to emitting the preambles declared in the file itself, this also recursively
+   * emits the preambles of every file imported (directly or transitively) by this file. This
+   * ensures that type and macro definitions from a preamble in an imported file are visible to all
+   * reactors defined in the importing file, not just reactors that happen to instantiate something
+   * from the imported file.
+   *
    * @param fileContainer The eContainer of a reactor (the Model/file containing it).
    * @param visited Set of already-visited containers to avoid duplicates.
    * @param builder The CodeBuilder to append the preamble to.
    */
   private void generatePreambleForFile(
       EObject fileContainer, Set<EObject> visited, CodeBuilder builder) {
-    if (visited.contains(fileContainer)) {
+    if (visited.contains(fileContainer) || !(fileContainer instanceof Model model)) {
       return;
     }
     visited.add(fileContainer);
 
-    var preambles = ((Model) fileContainer).getPreambles();
+    // First, recursively emit preambles of files imported by this file. A preamble declared
+    // at the top level of an imported file should be visible to every reactor defined in this
+    // file, mirroring the way imported type names are resolved by the scope provider.
+    for (var imp : model.getImports()) {
+      for (var importedReactor : imp.getReactorClasses()) {
+        var resolved = importedReactor.getReactorClass();
+        if (resolved != null) {
+          var importedFile = resolved.eContainer();
+          if (importedFile != null) {
+            generatePreambleForFile(importedFile, visited, builder);
+          }
+        }
+      }
+    }
+
+    var preambles = model.getPreambles();
     var hasPreamble =
         !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
     if (!hasPreamble) {

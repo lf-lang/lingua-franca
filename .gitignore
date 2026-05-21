@@ -1,5 +1,4 @@
 *.lft
-*.csv
 **/trace_svg.html
 *.out
 *.class

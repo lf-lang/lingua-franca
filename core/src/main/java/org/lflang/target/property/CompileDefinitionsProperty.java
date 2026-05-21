@@ -63,4 +63,9 @@ public final class CompileDefinitionsProperty
   public String name() {
     return "compile-definitions";
   }
+
+  @Override
+  public boolean loadFromImport() {
+    return true;
+  }
 }

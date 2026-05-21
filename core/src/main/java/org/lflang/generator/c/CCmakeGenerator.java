@@ -401,7 +401,6 @@ public class CCmakeGenerator {
 
     if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
-      // TODO: Do we need this?
       var osName = System.getProperty("os.name").toLowerCase();
       // if platform target was set, use given platform instead
       if (platformOptions.platform() != Platform.AUTO) {
@@ -415,27 +414,27 @@ public class CCmakeGenerator {
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
       cMakeCode.newLine();
     }
-    if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
-      cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
-      cMakeCode.newLine();
-    }
-    if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      // If security is requested, add the auth option.
-      cMakeCode.pr("# Find OpenSSL and link to it");
-      cMakeCode.pr("find_package(OpenSSL REQUIRED)");
-      cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
-      cMakeCode.newLine();
-      // If communication mode is SST, find sst package.
-      cMakeCode.pr("# Find sst-c-api and link to it.");
-      cMakeCode.pr("find_package(sst-lib REQUIRED)");
-      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE sst-lib::sst-c-api)");
-      cMakeCode.newLine();
-    } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
-      // TLS requires OpenSSL only
-      cMakeCode.pr("# Find OpenSSL for TLS support");
-      cMakeCode.pr("find_package(OpenSSL REQUIRED)");
-      cMakeCode.pr("target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
-      cMakeCode.newLine();
+    if (targetConfig.isSupported(CommunicationModeProperty.INSTANCE)) {
+      if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
+        cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
+        cMakeCode.newLine();
+      }
+      if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        // If security is requested, add the auth option.
+        cMakeCode.pr("# Find OpenSSL and link to it");
+        cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+        cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+        cMakeCode.newLine();
+        // If communication mode is SST, find sst package.
+        cMakeCode.pr("# sst-c-api is already linked transitively via reactor-c.");
+      } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+        // TLS requires OpenSSL only
+        cMakeCode.pr("# Find OpenSSL for TLS support");
+        cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+        cMakeCode.pr(
+            "target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
+        cMakeCode.newLine();
+      }
     }
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
         && platformOptions.platform() != Platform.ZEPHYR

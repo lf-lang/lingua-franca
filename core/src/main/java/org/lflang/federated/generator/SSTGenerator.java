@@ -36,13 +36,18 @@ public class SSTGenerator {
       LFGeneratorContext context,
       RtiConfig rtiConfig,
       String authHost) throws IOException {
-    if (context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath().isEmpty()) {
+    String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
+    if (sstRootPath == null || sstRootPath.isEmpty()) {
+      sstRootPath = System.getenv("SST_ROOT");
+    }
+
+    if (sstRootPath == null || sstRootPath.isEmpty()) {
       context
           .getErrorReporter()
           .nowhere()
           .error(
-              "Target property `sst-root-path:` has not been defined. `comm-type: SST` requires"
-                  + " `sst-root-path`");
+              "`comm-type: SST` requires a path to the SST repository. Please either set the"
+                  + " `sst-root-path` target property or set the `SST_ROOT` environment variable.");
       return;
     }
 
@@ -89,8 +94,7 @@ public class SSTGenerator {
     }
 
     // Set root path to execute commands.
-    Path sstRepoRootPath =
-        Paths.get(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath());
+    Path sstRepoRootPath = Paths.get(sstRootPath);
     ProcessBuilder processBuilder = new ProcessBuilder();
 
     // Set the working directory to the specified path
@@ -214,7 +218,7 @@ public class SSTGenerator {
     }
 
     // Generate SST config for the rti.
-    SSTGenerator.generateSSTConfig(fileConfig, "rti", rtiConfig.getHost(), authHost, useDocker);
+    SSTGenerator.generateSSTConfig(fileConfig, "rti", rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
     messageReporter
         .nowhere()
         .info(
@@ -223,7 +227,8 @@ public class SSTGenerator {
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      SSTGenerator.generateSSTConfig(fileConfig, federate.name, rtiConfig.getHost(), authHost, useDocker);
+      SSTGenerator.generateSSTConfig(
+          fileConfig, federate.name, rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
       messageReporter
           .nowhere()
           .info(
@@ -274,7 +279,10 @@ public class SSTGenerator {
     }
   }
 
-  private static void generateSSTConfig(FederationFileConfig fileConfig, String name, String rtiIP, String authIP, boolean useDocker) {
+  private static void generateSSTConfig(FederationFileConfig fileConfig,
+      String name, String rtiIP,
+      String authIP, boolean useDocker,
+      boolean usePermanentDistKey) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
@@ -294,6 +302,18 @@ public class SSTGenerator {
             + "Net1."
             + name
             + "Key.pem";
+    String cipherkeyRoot =
+        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+            + File.separator
+            + "Net1."
+            + name
+            + "CipherKey.key";
+    String mackeyRoot =
+        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+            + File.separator
+            + "Net1."
+            + name
+            + "MacKey.key";
     if ("localhost".equals(rtiIP)) {
       rtiIP = "127.0.0.1";
       authIP = "127.0.0.1";
@@ -320,13 +340,31 @@ public class SSTGenerator {
         .append("\n")
         .append("HmacMode=")
         .append(hmacMode)
-        .append("\n")
-        .append("authInfo.pubkey.path=")
-        .append(pubkeyRoot)
-        .append("\n")
-        .append("entityInfo.privkey.path=")
-        .append(privkeyRoot)
-        .append("\n")
+        .append("\n");
+
+    if (usePermanentDistKey) {
+      configContent
+          .append("PermanentDistKeyMode=on\n")
+          .append("distKey.encryptionMode=")
+          .append(sessionkey_encryptionMode)
+          .append("\n")
+          .append("distKey.cipherkey.path=")
+          .append(cipherkeyRoot)
+          .append("\n")
+          .append("distkey.mackey.path=")
+          .append(mackeyRoot)
+          .append("\n");
+    } else {
+      configContent
+          .append("authInfo.pubkey.path=")
+          .append(pubkeyRoot)
+          .append("\n")
+          .append("entityInfo.privkey.path=")
+          .append(privkeyRoot)
+          .append("\n");
+    }
+
+    configContent
         .append("auth.ip.address=")
         .append(authIpAddress)
         .append("\n")
@@ -714,10 +752,12 @@ public class SSTGenerator {
       FileUtil.copyFile(configSrc, dst.resolve(federate.name + ".config"));
 
       // 3) Copy auth certificates
-      if (!Files.isDirectory(authCertsRoot)) {
-        throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+      if (!usePermanentDistKey) {
+        if (!Files.isDirectory(authCertsRoot)) {
+          throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+        }
+        FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
       }
-      FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
 
       // 4) Update the copied configs to the remote base.
       if (!useDocker) {
@@ -788,10 +828,12 @@ public class SSTGenerator {
     FileUtil.copyFile(rtiConfigSrc, rtiDst.resolve("rti.config"));
 
     // 3) Copy auth certificates
-    if (!Files.isDirectory(authCertsRoot)) {
-      throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+    if (!usePermanentDistKey) {
+      if (!Files.isDirectory(authCertsRoot)) {
+        throw new IOException("Missing auth_certs directory at " + authCertsRoot);
+      }
+      FileUtil.copyDirectory(authCertsRoot, rtiCredentialsDst, false);
     }
-    FileUtil.copyDirectory(authCertsRoot, rtiCredentialsDst, false);
 
     // 4) Update the copied configs to the remote base.
     if (!useDocker) {
@@ -819,6 +861,10 @@ public class SSTGenerator {
         updated = replaceConfigPathBaseKeepTail(line, "authInfo.pubkey.path=", base);
       } else if (line.startsWith("entityInfo.privkey.path=")) {
         updated = replaceConfigPathBaseKeepTail(line, "entityInfo.privkey.path=", base);
+      } else if (line.startsWith("distKey.cipherkey.path=")) {
+        updated = replaceConfigPathBaseKeepTail(line, "distKey.cipherkey.path=", base);
+      } else if (line.startsWith("distkey.mackey.path=")) {
+        updated = replaceConfigPathBaseKeepTail(line, "distkey.mackey.path=", base);
       }
 
       if (!updated.equals(line)) changed = true;

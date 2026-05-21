@@ -391,7 +391,11 @@ public class CReactionGenerator {
           "self->_lf_" + outputName + ".is_present = true;",
           "lf_critical_section_exit(self->base.environment);");
     } else {
-      return "lf_set(" + outputName + ", " + actionName + "->value);";
+      return String.join(
+          "\n",
+          "lf_critical_section_enter(self->base.environment);",
+          "lf_set(" + outputName + ", " + actionName + "->value);",
+          "lf_critical_section_exit(self->base.environment);");
     }
   }
 

@@ -103,6 +103,13 @@ public class CTest extends RuntimeTest {
   }
 
   @Test
+  @Override
+  public void runFederatedSSTTests() {
+    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+    super.runFederatedSSTTests();
+  }
+
+  @Test
   public void runModalTests() {
     super.runModalTests();
   }

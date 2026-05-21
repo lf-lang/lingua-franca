@@ -13,8 +13,8 @@ import org.lflang.util.FileUtil;
 /**
  * TLS related methods (cert/key generation + copy to src-gen).
  *
- * - Generate cert+key for RTI and each federate into: fed-gen/<program>/credentials/<name>/
- * - Copy only the needed pair into: src-gen/<entity>/credentials/
+ * - Generate cert+key for RTI and each federate into: fed-gen/[program]/credentials/[name]/
+ * - Copy only the needed pair into: src-gen/[entity]/credentials/
  */
 public class TLSGenerator {
 
@@ -26,8 +26,8 @@ public class TLSGenerator {
       LFGeneratorContext context)
       throws IOException {
 
-    // 1) Generate cert/key for RTI + each federate into fed-gen/<program>/credentials
-    Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/<program>/credentials
+    // 1) Generate cert/key for RTI + each federate into fed-gen/[program]/credentials
+    Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/[program]/credentials
     Files.createDirectories(credentialsRoot);
 
     // RTI
@@ -42,7 +42,7 @@ public class TLSGenerator {
     copyTLSCredentialsToSrcGen(fileConfig, federates, credentialsRoot);
   }
 
-  /** fed-gen/<program>/credentials */
+  /** fed-gen/[program]/credentials */
   public static Path getLocalCredentialsRoot(FederationFileConfig fileConfig) {
     return fileConfig.getGenPath().resolve("credentials");
   }
@@ -52,12 +52,12 @@ public class TLSGenerator {
     return getLocalCredentialsRoot(fileConfig).resolve(entityName);
   }
 
-  /** fed-gen/<program>/credentials/<entity>/<entity>.crt */
+  /** fed-gen/[program]/credentials/[entity]/[entity].crt */
   public static Path getLocalCertPath(FederationFileConfig fileConfig, String entityName) {
     return getLocalEntityCredentialsDir(fileConfig, entityName).resolve(entityName + ".crt");
   }
 
-  /** fed-gen/<program>/credentials/<entity>/<entity>.key */
+  /** fed-gen/[program]/credentials/[entity]/[entity].key */
   public static Path getLocalKeyPath(FederationFileConfig fileConfig, String entityName) {
     return getLocalEntityCredentialsDir(fileConfig, entityName).resolve(entityName + ".key");
   }
@@ -112,7 +112,9 @@ public class TLSGenerator {
             + "-subj "
             + shellEscape("/CN=" + entityName);
 
+    reporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
     runLocalCommand(cmd, reporter, "[TLS Gen " + entityName + "]");
+    reporter.nowhere().info("Successfully generated TLS credentials for " + entityName + ".");
   }
 
   private static void copyTLSCredentialsToSrcGen(
@@ -153,6 +155,10 @@ public class TLSGenerator {
     try (BufferedReader r = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
       String line;
       while ((line = r.readLine()) != null) {
+        // Suppress openssl's progress indicator lines like ".+...+...+*..." or "-----"
+        if (line.matches("^[\\.\\+\\*\\- ]+$")) {
+          continue;
+        }
         reporter.nowhere().info(tag + " " + line);
       }
     }
