@@ -99,7 +99,7 @@ public class FedLauncherGenerator {
     // var outPath = binGenPath
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
-    shCode.append(getSetupCode()).append("\n");
+    shCode.append(getSetupCode(rtiConfig)).append("\n");
     shCode.append(getTmuxLaunchCode(federates, rtiConfig)).append("\n");
     String distHeader = getDistHeader();
 
@@ -206,7 +206,7 @@ public class FedLauncherGenerator {
                 "\n",
                 "echo \""
                     + ANSI_INFO
-                    + "RTI has exited. Wait for federates to exit."
+                    + "All components launched. Waiting for federates to exit..."
                     + ANSI_RESET
                     + "\"",
                 "# Wait for launched processes to finish.",
@@ -284,11 +284,24 @@ public class FedLauncherGenerator {
     }
   }
 
-  private String getSetupCode() {
-    String killAuthCommand =
-        (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
-            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
-            : "";
+  private String getSetupCode(RtiConfig rtiConfig) {
+    String host = rtiConfig.getHost();
+    String user = rtiConfig.getUser();
+    boolean isRemote = host != null && !host.equals("localhost") && !host.equals("0.0.0.0");
+
+    String killAuthCommand = "";
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      if (isRemote) {
+        String target = getUserHost(user, host);
+        killAuthCommand = "        printf \"#### Killing Remote Auth...\\n\"\n"
+            + "        ssh " + target + " \"pkill -f auth-server-jar-with-dependencies.jar\" || true\n"
+            + "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
+            + "        kill ${AUTH} || true";
+      } else {
+        killAuthCommand = "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
+            + "        kill ${AUTH} || true";
+      }
+    }
     return String.join(
         "\n",
         "#!/bin/bash -l",
