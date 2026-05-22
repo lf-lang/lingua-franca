@@ -293,13 +293,17 @@ public class FedLauncherGenerator {
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       if (isRemote) {
         String target = getUserHost(user, host);
-        killAuthCommand = "        printf \"#### Killing Remote Auth...\\n\"\n"
-            + "        ssh " + target + " \"pkill -f auth-server-jar-with-dependencies.jar\" || true\n"
-            + "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
-            + "        kill ${AUTH} || true";
+        killAuthCommand =
+            "        printf \"#### Killing Remote Auth...\\n\"\n"
+                + "        ssh "
+                + target
+                + " \"pkill -f auth-server-jar-with-dependencies.jar\" || true\n"
+                + "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
+                + "        kill ${AUTH} || true";
       } else {
-        killAuthCommand = "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
-            + "        kill ${AUTH} || true";
+        killAuthCommand =
+            "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
+                + "        kill ${AUTH} || true";
       }
     }
     return String.join(
@@ -446,8 +450,10 @@ public class FedLauncherGenerator {
       String keyPath;
 
       if (isRemote) {
-        certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.crt";
-        keyPath = "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.key";
+        certPath =
+            "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.crt";
+        keyPath =
+            "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.key";
       } else {
         certPath = TLSGenerator.getLocalCertPath(fileConfig, "rti").toString();
         keyPath = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
