@@ -433,8 +433,8 @@ public class FedLauncherGenerator {
       String keyPath;
 
       if (isRemote) {
-        certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, "rti");
-        keyPath = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, "rti");
+        certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.crt";
+        keyPath = "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.key";
       } else {
         certPath = TLSGenerator.getLocalCertPath(fileConfig, "rti").toString();
         keyPath = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
