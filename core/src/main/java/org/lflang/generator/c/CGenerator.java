@@ -1687,23 +1687,38 @@ public class CGenerator extends GeneratorBase {
    * @param filename Name of the file to process.
    */
   public void processProtoFile(String filename) {
+    var protoPath = Paths.get(filename);
+    var protoDir = protoPath.getParent();
+    var protocArgs = new ArrayList<String>();
+    protocArgs.add("--c_out=" + this.fileConfig.getSrcGenPath());
+    if (protoDir != null && !protoDir.toString().isEmpty()) {
+      protocArgs.add("-I" + protoDir);
+    } else {
+      protocArgs.add("-I" + fileConfig.srcPath);
+    }
+    protocArgs.add(filename);
     var protoc =
-        commandFactory.createCommand(
-            "protoc-c",
-            List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
-            fileConfig.srcPath);
+        commandFactory.createCommand("protoc-c", protocArgs, fileConfig.srcPath);
     if (protoc == null) {
       messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
     }
     var returnCode = protoc.run();
     if (returnCode == 0) {
-      var nameSansProto = filename.substring(0, filename.length() - 6);
       targetConfig.compileAdditionalSources.add(
-          fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
+          fileConfig.getSrcGenPath().resolve(protoBaseName(filename) + ".pb-c.c").toString());
     } else {
       messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
+  }
+
+  /** Return the base name of a .proto file without its extension. */
+  private static String protoBaseName(String filename) {
+    var name = Paths.get(filename).getFileName().toString();
+    if (name.endsWith(".proto")) {
+      return name.substring(0, name.length() - 6);
+    }
+    return name;
   }
 
   /**
@@ -2251,12 +2266,7 @@ public class CGenerator extends GeneratorBase {
 
     // Also generate includes for all the .proto files that are used.
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      var dotIndex = file.lastIndexOf(".");
-      var rootFilename = file;
-      if (dotIndex > 0) {
-        rootFilename = file.substring(0, dotIndex);
-      }
-      builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+      builder.pr("#include " + addDoubleQuotes(protoBaseName(file) + ".pb-c.h"));
     }
 
     builder.pr("#endif // " + guard);

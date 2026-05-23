@@ -17,7 +17,9 @@ import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.federated.serialization.FedProtoCSerialization;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -188,8 +190,19 @@ public class CExtension implements FedTargetExtension {
           }
         }
       }
-      case PROTO ->
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
+        var portTypeStr = types.getTargetType(portType);
+        if (CUtil.isTokenType(portType) || CUtil.isFixedSizeArrayType(portType)) {
+          throw new UnsupportedOperationException(
+              "Cannot handle protobuf serialization when ports are pointers or arrays.");
+        }
+        var protoDeserializer = new FedProtoCSerialization();
+        result.pr(
+            protoDeserializer.generateNetworkDeserializerCode(
+                "self->_lf__" + action.getName(), portTypeStr));
+        result.pr(protoDeserializer.generatePortAssignmentCode(receiveRef));
+      }
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
@@ -412,8 +425,20 @@ public class CExtension implements FedTargetExtension {
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
         }
       }
-      case PROTO ->
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        var typeStr = types.getTargetType(type);
+        if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
+          throw new UnsupportedOperationException(
+              "Cannot handle protobuf serialization when ports are pointers or arrays.");
+        }
+        var protoSerializer = new FedProtoCSerialization();
+        lengthExpression = protoSerializer.serializedBufferLength();
+        pointerExpression = protoSerializer.serializedBufferVar();
+        result.pr(protoSerializer.generateNetworkSerializerCode(sendRef, typeStr));
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
+        result.pr("free(" + FedSerialization.serializedVarName + ");");
+      }
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
         if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {

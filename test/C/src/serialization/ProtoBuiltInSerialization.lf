@@ -1,0 +1,53 @@
+/**
+ * This test showcases automatic protobuf serialization and deserialization in federated C
+ * programs. The sender federate sends a ProtoHelloWorld message to the receiver federate using
+ * serializer "proto".
+ *
+ * To run this test, install protoc, protoc-c, and libprotobuf-c. See PersonProtocolBuffers.lf for
+ * details.
+ */
+target C {
+  protobufs: [ProtoHelloWorld.proto],
+  timeout: 2 sec,
+  build-type: debug
+}
+
+reactor Sender {
+  output out: ProtoHelloWorld
+
+  state count: int = 0
+
+  timer t(0, 1 sec)
+
+  reaction(t) -> out {=
+    self->count++;
+    out->value.name = "Hello World";
+    out->value.number = self->count;
+    lf_set_present(out);
+  =}
+}
+
+reactor Receiver {
+  input in: ProtoHelloWorld
+
+  state count: int = 0
+
+  reaction(in) {=
+    lf_print(
+      "Received: name=\"%s\", number=%d.",
+      in->value.name,
+      in->value.number
+    );
+    if (in->value.number != self->count + 1) {
+      lf_print_error_and_exit("Expected number %d.", self->count + 1);
+    }
+    self->count++;
+  =}
+}
+
+federated reactor {
+  sender = new Sender()
+  receiver = new Receiver()
+
+  sender.out -> receiver.in after 100 msec serializer "proto"
+}
