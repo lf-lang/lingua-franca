@@ -193,9 +193,14 @@ public class CExtension implements FedTargetExtension {
       case PROTO -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
-        if (CUtil.isTokenType(portType) || CUtil.isFixedSizeArrayType(portType)) {
-          throw new UnsupportedOperationException(
-              "Cannot handle protobuf serialization when ports are pointers or arrays.");
+        if (!CUtil.isTokenType(portType)) {
+          messageReporter
+              .at(receivingPort.getVariable())
+              .error(
+                  "Protobuf serialization requires a pointer-typed port (e.g. 'MyMessage*'). "
+                      + "Found type: "
+                      + portTypeStr);
+          return;
         }
         var protoDeserializer = new FedProtoCSerialization();
         result.pr(
@@ -427,9 +432,14 @@ public class CExtension implements FedTargetExtension {
       }
       case PROTO -> {
         var typeStr = types.getTargetType(type);
-        if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
-          throw new UnsupportedOperationException(
-              "Cannot handle protobuf serialization when ports are pointers or arrays.");
+        if (!CUtil.isTokenType(type)) {
+          messageReporter
+              .nowhere()
+              .error(
+                  "Protobuf serialization requires a pointer-typed port (e.g. 'MyMessage*'). "
+                      + "Found type: "
+                      + typeStr);
+          return;
         }
         var protoSerializer = new FedProtoCSerialization();
         lengthExpression = protoSerializer.serializedBufferLength();

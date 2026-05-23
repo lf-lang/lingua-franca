@@ -6,10 +6,20 @@ import org.lflang.target.Target;
 /**
  * Enables support for Protocol Buffer serialization in C code using protobuf-c.
  *
+ * <p>For federated connections that use {@code serializer "proto"}, the port type must be a
+ * protobuf message <em>pointer</em> (e.g. {@code MyMessage*}). Sender reactions allocate and
+ * initialize messages on the heap; the runtime owns the lifetime of deserialized messages on the
+ * receiver side and frees them via {@link
+ * org.lflang.federated.serialization.FedProtoCSerialization#PROTOBUF_DESTRUCTOR_NAME} (a thin
+ * wrapper around {@code protobuf_c_message_free_unpacked}).
+ *
  * @author Edward A. Lee
  * @ingroup Federated
  */
 public class FedProtoCSerialization implements FedSerialization {
+
+  /** Name of the generated destructor that frees a heap-allocated protobuf-c message. */
+  public static final String PROTOBUF_DESTRUCTOR_NAME = "_lf_protobuf_destructor";
 
   /**
    * Convert a protobuf message type name to the protobuf-c function prefix. For example, {@code
@@ -29,6 +39,15 @@ public class FedProtoCSerialization implements FedSerialization {
       }
     }
     return prefix.toString();
+  }
+
+  /** Strip trailing {@code *} characters from a C pointer type string. */
+  public static String stripPointer(String type) {
+    String result = type;
+    while (result.endsWith("*")) {
+      result = result.substring(0, result.length() - 1).trim();
+    }
+    return result;
   }
 
   @Override
@@ -53,73 +72,86 @@ public class FedProtoCSerialization implements FedSerialization {
     return serializedVarName;
   }
 
+  /**
+   * Generate code that serializes the value of a pointer-typed port using {@code __pack}.
+   *
+   * @param varName Reference to the port (e.g. {@code msg[0]}). The port's {@code value} field is
+   *     expected to be a pointer to a protobuf message of type {@code originalType}.
+   * @param originalType The protobuf message type name (without the trailing {@code *}).
+   */
   @Override
   public StringBuilder generateNetworkSerializerCode(String varName, String originalType) {
-    String prefix = protobufCFunctionPrefix(originalType);
+    String prefix = protobufCFunctionPrefix(stripPointer(originalType));
     String valueRef = varName + "->value";
-    StringBuilder serializerCode = new StringBuilder();
-    serializerCode.append(
-        "if (((const ProtobufCMessage *)&"
-            + valueRef
-            + ")->descriptor == NULL) {\n");
-    serializerCode.append(
-        "    ProtobufCMessage *_lf_msg_base = (ProtobufCMessage *)&" + valueRef + ";\n");
-    serializerCode.append(
-        "    _lf_msg_base->descriptor = &" + prefix + "__descriptor;\n");
-    serializerCode.append("    _lf_msg_base->n_unknown_fields = 0;\n");
-    serializerCode.append("    _lf_msg_base->unknown_fields = NULL;\n");
-    serializerCode.append("}\n");
-    serializerCode.append(
+    StringBuilder code = new StringBuilder();
+    code.append(
         "size_t "
             + serializedVarName
             + "_length = "
             + prefix
-            + "__get_packed_size(&"
+            + "__get_packed_size("
             + valueRef
             + ");\n");
-    serializerCode.append(
+    code.append(
         "unsigned char* "
             + serializedVarName
             + " = (unsigned char*)malloc("
             + serializedVarName
             + "_length);\n");
-    serializerCode.append("if (" + serializedVarName + " == NULL) {\n");
-    serializerCode.append(
+    code.append("if (" + serializedVarName + " == NULL) {\n");
+    code.append(
         "    lf_print_error_and_exit(\"Failed to allocate buffer for protobuf serialization.\");\n");
-    serializerCode.append("}\n");
-    serializerCode.append(prefix + "__pack(&" + valueRef + ", " + serializedVarName + ");\n");
-    return serializerCode;
-  }
-
-  @Override
-  public StringBuilder generateNetworkDeserializerCode(String varName, String targetType) {
-    String prefix = protobufCFunctionPrefix(targetType);
-    StringBuilder deserializerCode = new StringBuilder();
-    deserializerCode.append(
-        targetType + " *" + deserializedVarName + " = " + prefix + "__unpack(NULL, ");
-    deserializerCode.append(varName + ".tmplt.token->length, ");
-    deserializerCode.append("(uint8_t*)" + varName + ".tmplt.token->value);\n");
-    deserializerCode.append("if (" + deserializedVarName + " == NULL) {\n");
-    deserializerCode.append(
-        "    lf_print_error_and_exit(\"Could not deserialize protobuf message.\");\n");
-    deserializerCode.append("}\n");
-    return deserializerCode;
+    code.append("}\n");
+    code.append(prefix + "__pack(" + valueRef + ", " + serializedVarName + ");\n");
+    return code;
   }
 
   /**
-   * Generate code that copies a deserialized protobuf message into a port value.
+   * Generate code that deserializes a network message into a freshly heap-allocated protobuf
+   * message via {@code __unpack}.
    *
-   * @param receiveRef A target language reference to the receiving port.
+   * @param varName Reference to the receiving action.
+   * @param targetType The protobuf message type name (without the trailing {@code *}).
+   */
+  @Override
+  public StringBuilder generateNetworkDeserializerCode(String varName, String targetType) {
+    String base = stripPointer(targetType);
+    String prefix = protobufCFunctionPrefix(base);
+    StringBuilder code = new StringBuilder();
+    code.append(
+        base
+            + " *"
+            + deserializedVarName
+            + " = "
+            + prefix
+            + "__unpack(NULL, "
+            + varName
+            + ".tmplt.token->length, (uint8_t*)"
+            + varName
+            + ".tmplt.token->value);\n");
+    code.append("if (" + deserializedVarName + " == NULL) {\n");
+    code.append(
+        "    lf_print_error_and_exit(\"Could not deserialize protobuf message.\");\n");
+    code.append("}\n");
+    return code;
+  }
+
+  /**
+   * Generate code that hands ownership of the deserialized message to the LF runtime via a token,
+   * so that {@code protobuf_c_message_free_unpacked} is invoked when the token's reference count
+   * drops to zero.
    */
   public StringBuilder generatePortAssignmentCode(String receiveRef) {
     StringBuilder code = new StringBuilder();
     code.append(
-        "lf_assign_protobuf_message(&"
+        "lf_token_t* _lf_proto_token = lf_new_token((void*)"
             + receiveRef
-            + "->value, (ProtobufCMessage*)"
+            + ", "
             + deserializedVarName
-            + ");\n");
-    code.append("lf_set_present(" + receiveRef + ");\n");
+            + ", 1);\n");
+    code.append(
+        "lf_set_destructor(" + receiveRef + ", " + PROTOBUF_DESTRUCTOR_NAME + ");\n");
+    code.append("lf_set_token(" + receiveRef + ", _lf_proto_token);\n");
     return code;
   }
 
@@ -127,200 +159,15 @@ public class FedProtoCSerialization implements FedSerialization {
   public StringBuilder generatePreambleForSupport() {
     StringBuilder preamble = new StringBuilder();
     preamble.append("#include <protobuf-c/protobuf-c.h>\n");
-    preamble.append("#include <string.h>\n");
-    preamble.append("#include <stdlib.h>\n");
     preamble.append(
         """
-        // Free heap-owned fields inside a stack-allocated protobuf message.
-        // Unlike protobuf_c_message_free_unpacked(), this does not free the message struct itself.
-        static void lf_free_protobuf_message_fields(ProtobufCMessage *message) {
-          const ProtobufCMessageDescriptor *desc;
-          unsigned f;
-
-          if (message == NULL || message->descriptor == NULL) {
-            return;
-          }
-          desc = message->descriptor;
-          for (f = 0; f < desc->n_fields; f++) {
-            if (0 != (desc->fields[f].flags & PROTOBUF_C_FIELD_FLAG_ONEOF) &&
-                desc->fields[f].id !=
-                    *(uint32_t *)((char *)message + desc->fields[f].quantifier_offset)) {
-              continue;
-            }
-            if (desc->fields[f].label == PROTOBUF_C_LABEL_REPEATED) {
-              size_t n = *(size_t *)((char *)message + desc->fields[f].quantifier_offset);
-              void *arr = *(void **)((char *)message + desc->fields[f].offset);
-              if (arr != NULL) {
-                if (desc->fields[f].type == PROTOBUF_C_TYPE_STRING) {
-                  unsigned i;
-                  for (i = 0; i < n; i++) {
-                    free(((char **)arr)[i]);
-                  }
-                } else if (desc->fields[f].type == PROTOBUF_C_TYPE_BYTES) {
-                  unsigned i;
-                  for (i = 0; i < n; i++) {
-                    free(((ProtobufCBinaryData *)arr)[i].data);
-                  }
-                } else if (desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
-                  unsigned i;
-                  for (i = 0; i < n; i++) {
-                    protobuf_c_message_free_unpacked(((ProtobufCMessage **)arr)[i], NULL);
-                  }
-                }
-                free(arr);
-              }
-            } else if (desc->fields[f].type == PROTOBUF_C_TYPE_STRING) {
-              char *str = *(char **)((char *)message + desc->fields[f].offset);
-              if (str && str != desc->fields[f].default_value) {
-                free(str);
-              }
-            } else if (desc->fields[f].type == PROTOBUF_C_TYPE_BYTES) {
-              ProtobufCBinaryData *bd = (ProtobufCBinaryData *)((char *)message + desc->fields[f].offset);
-              const ProtobufCBinaryData *default_bd = desc->fields[f].default_value;
-              if (bd->data != NULL && (default_bd == NULL || default_bd->data != bd->data)) {
-                free(bd->data);
-              }
-            } else if (desc->fields[f].type == PROTOBUF_C_TYPE_MESSAGE) {
-              ProtobufCMessage *sm = *(ProtobufCMessage **)((char *)message + desc->fields[f].offset);
-              if (sm && sm != desc->fields[f].default_value) {
-                protobuf_c_message_free_unpacked(sm, NULL);
-              }
-            }
-          }
-          for (f = 0; f < message->n_unknown_fields; f++) {
-            free(message->unknown_fields[f].data);
-          }
-          if (message->unknown_fields != NULL) {
-            free(message->unknown_fields);
-          }
-          protobuf_c_message_init(desc, message);
-        }
-
-        static void lf_deep_copy_protobuf_message(ProtobufCMessage *dest, const ProtobufCMessage *src) {
-          const ProtobufCMessageDescriptor *desc = src->descriptor;
-          unsigned f;
-
-          for (f = 0; f < desc->n_fields; f++) {
-            const ProtobufCFieldDescriptor *field = &desc->fields[f];
-            void *dest_field = (char *)dest + field->offset;
-            const void *src_field = (const char *)src + field->offset;
-
-            if (0 != (field->flags & PROTOBUF_C_FIELD_FLAG_ONEOF) &&
-                field->id != *(uint32_t *)((char *)src + field->quantifier_offset)) {
-              continue;
-            }
-
-            if (field->label == PROTOBUF_C_LABEL_REPEATED) {
-              size_t n = *(size_t *)((char *)src + field->quantifier_offset);
-              *(size_t *)((char *)dest + field->quantifier_offset) = n;
-              if (n == 0) {
-                *(void **)dest_field = NULL;
-                continue;
-              }
-              if (field->type == PROTOBUF_C_TYPE_STRING) {
-                char **src_arr = *(char ***)src_field;
-                char **dest_arr = (char **)malloc(n * sizeof(char *));
-                if (dest_arr == NULL) {
-                  lf_print_error_and_exit("Failed to allocate buffer for protobuf deserialization.");
-                }
-                for (size_t i = 0; i < n; i++) {
-                  dest_arr[i] = src_arr[i] ? strdup(src_arr[i]) : NULL;
-                }
-                *(char ***)dest_field = dest_arr;
-              } else if (field->type == PROTOBUF_C_TYPE_MESSAGE) {
-                lf_print_error_and_exit("Repeated protobuf sub-messages are not supported yet.");
-              } else {
-                size_t element_size = 0;
-                switch (field->type) {
-                  case PROTOBUF_C_TYPE_INT32:
-                  case PROTOBUF_C_TYPE_SINT32:
-                  case PROTOBUF_C_TYPE_SFIXED32:
-                  case PROTOBUF_C_TYPE_UINT32:
-                  case PROTOBUF_C_TYPE_FIXED32:
-                  case PROTOBUF_C_TYPE_FLOAT:
-                  case PROTOBUF_C_TYPE_ENUM:
-                    element_size = 4;
-                    break;
-                  case PROTOBUF_C_TYPE_INT64:
-                  case PROTOBUF_C_TYPE_SINT64:
-                  case PROTOBUF_C_TYPE_SFIXED64:
-                  case PROTOBUF_C_TYPE_UINT64:
-                  case PROTOBUF_C_TYPE_FIXED64:
-                  case PROTOBUF_C_TYPE_DOUBLE:
-                    element_size = 8;
-                    break;
-                  case PROTOBUF_C_TYPE_BOOL:
-                    element_size = sizeof(protobuf_c_boolean);
-                    break;
-                  default:
-                    lf_print_error_and_exit("Unsupported repeated protobuf field type.");
-                }
-                void *dest_arr = malloc(n * element_size);
-                if (dest_arr == NULL) {
-                  lf_print_error_and_exit("Failed to allocate buffer for protobuf deserialization.");
-                }
-                memcpy(dest_arr, *(void **)src_field, n * element_size);
-                *(void **)dest_field = dest_arr;
-              }
-            } else {
-              switch (field->type) {
-                case PROTOBUF_C_TYPE_STRING: {
-                  const char *src_str = *(const char **)src_field;
-                  *(char **)dest_field = src_str ? strdup(src_str) : NULL;
-                  break;
-                }
-                case PROTOBUF_C_TYPE_BYTES: {
-                  const ProtobufCBinaryData *src_bd = (const ProtobufCBinaryData *)src_field;
-                  ProtobufCBinaryData *dest_bd = (ProtobufCBinaryData *)dest_field;
-                  dest_bd->len = src_bd->len;
-                  if (src_bd->len > 0) {
-                    dest_bd->data = (uint8_t *)malloc(src_bd->len);
-                    if (dest_bd->data == NULL) {
-                      lf_print_error_and_exit("Failed to allocate buffer for protobuf deserialization.");
-                    }
-                    memcpy(dest_bd->data, src_bd->data, src_bd->len);
-                  } else {
-                    dest_bd->data = NULL;
-                  }
-                  break;
-                }
-                case PROTOBUF_C_TYPE_MESSAGE:
-                  lf_print_error_and_exit("Nested protobuf sub-messages are not supported yet.");
-                  break;
-                case PROTOBUF_C_TYPE_INT32:
-                case PROTOBUF_C_TYPE_SINT32:
-                case PROTOBUF_C_TYPE_SFIXED32:
-                case PROTOBUF_C_TYPE_UINT32:
-                case PROTOBUF_C_TYPE_FIXED32:
-                case PROTOBUF_C_TYPE_FLOAT:
-                case PROTOBUF_C_TYPE_ENUM:
-                  *(uint32_t *)dest_field = *(const uint32_t *)src_field;
-                  break;
-                case PROTOBUF_C_TYPE_INT64:
-                case PROTOBUF_C_TYPE_SINT64:
-                case PROTOBUF_C_TYPE_SFIXED64:
-                case PROTOBUF_C_TYPE_UINT64:
-                case PROTOBUF_C_TYPE_FIXED64:
-                case PROTOBUF_C_TYPE_DOUBLE:
-                  *(uint64_t *)dest_field = *(const uint64_t *)src_field;
-                  break;
-                case PROTOBUF_C_TYPE_BOOL:
-                  *(protobuf_c_boolean *)dest_field = *(const protobuf_c_boolean *)src_field;
-                  break;
-                default:
-                  lf_print_error_and_exit("Unsupported protobuf field type.");
-                  break;
-              }
-            }
+        static void %s(void* value) {
+          if (value != NULL) {
+            protobuf_c_message_free_unpacked((ProtobufCMessage*)value, NULL);
           }
         }
-
-        static void lf_assign_protobuf_message(void *dest, ProtobufCMessage *src) {
-          lf_free_protobuf_message_fields((ProtobufCMessage *)dest);
-          lf_deep_copy_protobuf_message((ProtobufCMessage *)dest, src);
-          protobuf_c_message_free_unpacked(src, NULL);
-        }
-        """);
+        """
+            .formatted(PROTOBUF_DESTRUCTOR_NAME));
     return preamble;
   }
 

@@ -13,4 +13,11 @@ public class FedProtoCSerializationTest {
     assertEquals(
         "proto_hello_world", FedProtoCSerialization.protobufCFunctionPrefix("ProtoHelloWorld"));
   }
+
+  @Test
+  public void stripPointer() {
+    assertEquals("Person", FedProtoCSerialization.stripPointer("Person"));
+    assertEquals("Person", FedProtoCSerialization.stripPointer("Person*"));
+    assertEquals("Person", FedProtoCSerialization.stripPointer("Person **"));
+  }
 }
