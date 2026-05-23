@@ -92,13 +92,21 @@ public class FedProtoCSerialization implements FedSerialization {
             + "__get_packed_size("
             + valueRef
             + ");\n");
+    // Note: malloc(0) is permitted to return NULL without indicating failure, so we only treat
+    // NULL as an allocation error when a non-zero buffer was requested. Empty protobuf messages
+    // (where __get_packed_size returns 0) thus serialize to a zero-byte payload as expected.
     code.append(
         "unsigned char* "
             + serializedVarName
             + " = (unsigned char*)malloc("
             + serializedVarName
             + "_length);\n");
-    code.append("if (" + serializedVarName + " == NULL) {\n");
+    code.append(
+        "if ("
+            + serializedVarName
+            + " == NULL && "
+            + serializedVarName
+            + "_length > 0) {\n");
     code.append(
         "    lf_print_error_and_exit(\"Failed to allocate buffer for protobuf"
             + " serialization.\");\n");
