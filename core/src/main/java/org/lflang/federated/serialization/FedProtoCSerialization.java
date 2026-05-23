@@ -100,7 +100,8 @@ public class FedProtoCSerialization implements FedSerialization {
             + "_length);\n");
     code.append("if (" + serializedVarName + " == NULL) {\n");
     code.append(
-        "    lf_print_error_and_exit(\"Failed to allocate buffer for protobuf serialization.\");\n");
+        "    lf_print_error_and_exit(\"Failed to allocate buffer for protobuf"
+            + " serialization.\");\n");
     code.append("}\n");
     code.append(prefix + "__pack(" + valueRef + ", " + serializedVarName + ");\n");
     return code;
@@ -130,8 +131,7 @@ public class FedProtoCSerialization implements FedSerialization {
             + varName
             + ".tmplt.token->value);\n");
     code.append("if (" + deserializedVarName + " == NULL) {\n");
-    code.append(
-        "    lf_print_error_and_exit(\"Could not deserialize protobuf message.\");\n");
+    code.append("    lf_print_error_and_exit(\"Could not deserialize protobuf message.\");\n");
     code.append("}\n");
     return code;
   }
@@ -149,8 +149,7 @@ public class FedProtoCSerialization implements FedSerialization {
             + ", "
             + deserializedVarName
             + ", 1);\n");
-    code.append(
-        "lf_set_destructor(" + receiveRef + ", " + PROTOBUF_DESTRUCTOR_NAME + ");\n");
+    code.append("lf_set_destructor(" + receiveRef + ", " + PROTOBUF_DESTRUCTOR_NAME + ");\n");
     code.append("lf_set_token(" + receiveRef + ", _lf_proto_token);\n");
     return code;
   }

@@ -1697,8 +1697,7 @@ public class CGenerator extends GeneratorBase {
       protocArgs.add("-I" + fileConfig.srcPath);
     }
     protocArgs.add(filename);
-    var protoc =
-        commandFactory.createCommand("protoc-c", protocArgs, fileConfig.srcPath);
+    var protoc = commandFactory.createCommand("protoc-c", protocArgs, fileConfig.srcPath);
     if (protoc == null) {
       messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
