@@ -193,7 +193,7 @@ public class CExtension implements FedTargetExtension {
       case PROTO -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
-        if (!CUtil.isTokenType(portType)) {
+        if (!CUtil.isPointerType(portType)) {
           messageReporter
               .at(receivingPort.getVariable())
               .error(
@@ -432,7 +432,7 @@ public class CExtension implements FedTargetExtension {
       }
       case PROTO -> {
         var typeStr = types.getTargetType(type);
-        if (!CUtil.isTokenType(type)) {
+        if (!CUtil.isPointerType(type)) {
           messageReporter
               .nowhere()
               .error(
