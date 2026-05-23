@@ -102,11 +102,7 @@ public class FedProtoCSerialization implements FedSerialization {
             + serializedVarName
             + "_length);\n");
     code.append(
-        "if ("
-            + serializedVarName
-            + " == NULL && "
-            + serializedVarName
-            + "_length > 0) {\n");
+        "if (" + serializedVarName + " == NULL && " + serializedVarName + "_length > 0) {\n");
     code.append(
         "    lf_print_error_and_exit(\"Failed to allocate buffer for protobuf"
             + " serialization.\");\n");
