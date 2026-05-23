@@ -663,7 +663,7 @@ public class FedASTUtils {
   /**
    * Return a null-safe List
    *
-   * @param <E> The type of the list
+   * @tparam <E> The type of the list
    * @param list The potentially null List
    * @return Empty list or the original list
    */
