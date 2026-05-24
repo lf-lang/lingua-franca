@@ -1,4 +1,4 @@
-#include "../include/BankMultiportToReactionNoInlining/BankMultiportToReactionNoInlining.h"
+#include "BankMultiportToReactionNoInlining/BankMultiportToReactionNoInlining.h"
 
 void check(bankmultiporttoreactionnoinlining_self_t* self, doublecount_out_t*** out) {
     for (int i = 0; i < 2; i++) {
