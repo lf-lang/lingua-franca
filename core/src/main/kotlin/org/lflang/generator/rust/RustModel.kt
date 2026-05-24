@@ -540,9 +540,6 @@ object RustModelBuilder {
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =
         reactors.map { processReactor(it, isInherited = false) }
 
-    /**
-     * Returns a
-     */
     private fun processReactor(reactor: Reactor, isInherited: Boolean): ReactorInfo {
         val fullReactor = if (isInherited) emptyList() else reactor.superClasses.map {it.toDefinition()}
         val fullReactorInfos = fullReactor.map {processReactor(it, isInherited=true)}
@@ -559,13 +556,10 @@ object RustModelBuilder {
                 .filterIsInstance<ChildPortReference>().toSet()
 
         // fullReactions + reactions allows for the inherited reactions to be ran first as react_0 will run before react_1.
-        // If you are curious about this behavior test with rust/src/InheritedReaction.lf .
-        // This might be an issue with the reactor-rs crate I have yet to pinpoint the cause of the issue.
         // TODO: debug precedence issue with reactions.
         val allReactions = ( fullReactions + reactions).mapIndexed { newIdx, info -> info.copy(idx = newIdx) }
 
-        // val allReactions = ( reactions + fullReactions).mapIndexed { newIdx, info -> info.copy(idx = newIdx) }
-        val completedReactorInfo = ReactorInfo(
+        return ReactorInfo(
             lfName = reactor.name,
             loc = reactor.locationInfo().let{
                 it.copy(lfText = it.lfText.replace(BLOCK_R, "{ ... }"))
@@ -583,8 +577,6 @@ object RustModelBuilder {
             connections = reactor.connections + fullReactorInfos.flatMap { it.connections },
             ctorParams = reactor.parameters.map { it.toCtorParamInfo()} + fullReactorInfos.flatMap { it.ctorParams },
         )
-
-        return completedReactorInfo
     }
 
     private fun Reaction.toReactionInfo(components: Map<String, ReactorComponent>, inheritedFromName: String?): ReactionInfo {
