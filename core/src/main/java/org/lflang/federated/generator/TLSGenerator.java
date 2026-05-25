@@ -31,8 +31,7 @@ public class TLSGenerator {
   }
 
   /** Entry point called from generator when comm-type is TLS. */
-  public void setupTLS(List<FederateInstance> federates)
-      throws IOException {
+  public void setupTLS(List<FederateInstance> federates) throws IOException {
 
     // 1) Generate cert/key for RTI + each federate into fed-gen/[program]/credentials
     Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/[program]/credentials
@@ -94,8 +93,8 @@ public class TLSGenerator {
   // ------------------------------------------------------------
 
   /** Generate a self-signed cert+key for one entity under credentialsRoot/<entityName>/ */
-  private void generateEntityCertAndKey(
-      Path credentialsRoot, String entityName) throws IOException {
+  private void generateEntityCertAndKey(Path credentialsRoot, String entityName)
+      throws IOException {
     Path dir = credentialsRoot.resolve(entityName);
     Files.createDirectories(dir);
 
@@ -122,11 +121,12 @@ public class TLSGenerator {
 
     messageReporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
     runLocalCommand(cmd, "[TLS Gen " + entityName + "]");
-    messageReporter.nowhere().info("Successfully generated TLS credentials for " + entityName + ".");
+    messageReporter
+        .nowhere()
+        .info("Successfully generated TLS credentials for " + entityName + ".");
   }
 
-  private void copyTLSCredentialsToSrcGen(
-      List<FederateInstance> federates, Path credentialsRoot)
+  private void copyTLSCredentialsToSrcGen(List<FederateInstance> federates, Path credentialsRoot)
       throws IOException {
 
     // Federates: src-gen/<fed>/credentials/  (copy only that fed's key+cert)
@@ -154,8 +154,7 @@ public class TLSGenerator {
     FileUtil.copyDirectoryContents(rtiSrcDir, rtiDst, false);
   }
 
-  private void runLocalCommand(String bashCommand, String tag)
-      throws IOException {
+  private void runLocalCommand(String bashCommand, String tag) throws IOException {
     ProcessBuilder pb = new ProcessBuilder("bash", "-c", bashCommand);
     pb.redirectErrorStream(true);
     Process p = pb.start();
