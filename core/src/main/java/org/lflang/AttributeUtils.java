@@ -325,8 +325,10 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
-   * have one.
+   * Return the value of the `@maxwait` attribute of the given node or TimeValue.FOREVER if it does
+   * not have one. FOREVER is the default because, under decentralized coordination, a federate
+   * without an explicit `@maxwait` will wait indefinitely for inputs to become known before
+   * declaring them absent.
    *
    * @param node The AST node (Instantiation or Connection).
    */
@@ -340,7 +342,7 @@ public class AttributeUtils {
         return ASTUtils.toTimeValue(time);
       }
     }
-    return TimeValue.ZERO;
+    return TimeValue.FOREVER;
   }
 
   /**
