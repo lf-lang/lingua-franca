@@ -221,7 +221,7 @@ public class FedGenerator {
     // Compile an RTI for this federation.
     buildRtiLocally(context);
 
-    // If communication mode is SST, generate configurations for SST.
+    // Generate SST configurations/credentials or TLS credentials depending on the communication mode.
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
