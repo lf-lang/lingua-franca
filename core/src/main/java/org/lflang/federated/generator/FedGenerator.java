@@ -221,14 +221,14 @@ public class FedGenerator {
     // Compile an RTI for this federation.
     buildRtiLocally(context);
 
-    // Generate SST configurations/credentials or TLS credentials depending on the communication
+    // Generate SST configurations/credentials or TLS credentials depending on the
     // mode.
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
-      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig);
+      new SSTGenerator(fileConfig, messageReporter, context).setupSST(federates, rtiConfig);
     } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
-      TLSGenerator.setupTLS(fileConfig, federates, messageReporter, context);
+      new TLSGenerator(fileConfig, messageReporter, context).setupTLS(federates);
     }
 
     context.finish(Status.COMPILED, codeMapMap);

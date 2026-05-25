@@ -28,11 +28,21 @@ import org.lflang.util.FileUtil;
  * @author Dongha Kim
  */
 public class SSTGenerator {
-  public static void setupSST(
+  private final FederationFileConfig fileConfig;
+  private final MessageReporter messageReporter;
+  private final LFGeneratorContext context;
+
+  public SSTGenerator(
       FederationFileConfig fileConfig,
-      List<FederateInstance> federates,
       MessageReporter messageReporter,
-      LFGeneratorContext context,
+      LFGeneratorContext context) {
+    this.fileConfig = fileConfig;
+    this.messageReporter = messageReporter;
+    this.context = context;
+  }
+
+  public void setupSST(
+      List<FederateInstance> federates,
       RtiConfig rtiConfig)
       throws IOException {
     String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
@@ -62,7 +72,7 @@ public class SSTGenerator {
         context.getTargetConfig().get(SSTProperty.INSTANCE).usePermanentDistKey();
     // Generate the graph file content
     JsonObject graphObject =
-        SSTGenerator.generateGraphFile(federates, rtiConfig, usePermanentDistKey);
+        generateGraphFile(federates, rtiConfig, usePermanentDistKey);
     // Write the graph object to a JSON file
     try (FileWriter fileWriter = new FileWriter(graphPath.toString())) {
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -184,15 +194,15 @@ public class SSTGenerator {
 
     // Copy credentials.
     try {
-      SSTGenerator.copyCredentials(fileConfig, sstRepoRootPath);
+      copyCredentials(sstRepoRootPath);
       messageReporter
           .nowhere()
           .info("Credentials copied into: " + fileConfig.getSSTCredentialsPath().toString());
-      SSTGenerator.copyAuthNecessary(fileConfig, sstRepoRootPath);
+      copyAuthNecessary(sstRepoRootPath);
       messageReporter
           .nowhere()
           .info("Auth necessary files copied into: " + fileConfig.getSSTAuthPath().toString());
-      SSTGenerator.updatePropertiesFile(
+      updatePropertiesFile(
           fileConfig.getSSTAuthPath().resolve("properties"),
           fileConfig.getSSTAuthPath().toString());
     } catch (IOException e) {
@@ -200,34 +210,33 @@ public class SSTGenerator {
     }
 
     // Generate SST config for the rti.
-    SSTGenerator.generateSSTConfig(fileConfig, "rti", rtiConfig.getHost(), usePermanentDistKey);
+    generateSSTConfig("rti", rtiConfig.getHost(), usePermanentDistKey);
     messageReporter
         .nowhere()
         .info(
             "Generated RTI's SST config into: "
-                + SSTGenerator.getSSTConfig(fileConfig, "rti").toString());
+                + getSSTConfig(fileConfig, "rti").toString());
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      SSTGenerator.generateSSTConfig(
-          fileConfig, federate.name, rtiConfig.getHost(), usePermanentDistKey);
+      generateSSTConfig(
+          federate.name, rtiConfig.getHost(), usePermanentDistKey);
       messageReporter
           .nowhere()
           .info(
               "Federate generated SST config into: "
-                  + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString());
+                  + getSSTConfig(fileConfig, federate.name).toString());
     }
 
     // Copy the configs and credentials of rti and federates, to the src-gen for tar deployments.
-    SSTGenerator.copyAuthAndConfigsAndKeys(fileConfig, federates, usePermanentDistKey);
+    copyAuthAndConfigsAndKeys(federates, usePermanentDistKey);
   }
 
   public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  private static void generateSSTConfig(
-      FederationFileConfig fileConfig,
+  private void generateSSTConfig(
       String name,
       String authAndRtiIP,
       boolean usePermanentDistKey) {
@@ -342,7 +351,7 @@ public class SSTGenerator {
     }
   }
 
-  private static JsonObject generateGraphFile(
+  private JsonObject generateGraphFile(
       List<FederateInstance> federateInstances, RtiConfig rtiConfig, boolean usePermanentDistKey) {
     JsonObject graphObject = new JsonObject();
 
@@ -488,7 +497,7 @@ public class SSTGenerator {
     return entity;
   }
 
-  private static void copyCredentials(FederationFileConfig fileConfig, Path sstRepoRootPath)
+  private void copyCredentials(Path sstRepoRootPath)
       throws IOException {
     // Copy auth_certs.
     Path source1 = sstRepoRootPath.resolve("entity").resolve("auth_certs");
@@ -501,7 +510,7 @@ public class SSTGenerator {
     FileUtil.copyDirectoryContents(source2, destination2, false);
   }
 
-  private static void copyAuthNecessary(FederationFileConfig fileConfig, Path sstRepoRootPath)
+  private void copyAuthNecessary(Path sstRepoRootPath)
       throws IOException {
     // Copy Auth credentials.
     Path source1 = sstRepoRootPath.resolve("auth").resolve("credentials").resolve("ca");
@@ -603,8 +612,7 @@ public class SSTGenerator {
     return line;
   }
 
-  private static void copyAuthAndConfigsAndKeys(
-      FederationFileConfig fileConfig,
+  private void copyAuthAndConfigsAndKeys(
       List<FederateInstance> federates,
       boolean usePermanentDistKey)
       throws IOException {
@@ -614,9 +622,9 @@ public class SSTGenerator {
     FileUtil.copyDirectoryContents(auth_src, rti_src, false);
 
     // Update the copied properties to the remote base.
-    SSTGenerator.updatePropertiesFile(
+    updatePropertiesFile(
         rti_src.resolve("properties"),
-        SSTGenerator.getRelativeRemoteBasePath(fileConfig, "RTI") + "/auth/");
+        getRelativeRemoteBasePath(fileConfig, "RTI") + "/auth/");
 
     // 2. Copy Configs and Keys to src-gen of federates and RTIs.
     Path credentialsRoot = fileConfig.getSSTCredentialsPath(); // .../sst/credentials
