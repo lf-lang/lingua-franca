@@ -1753,7 +1753,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     if (getBooleanValue(SHOW_USER_LABELS)) {
       TimeValue maxWait = AttributeUtils.getMaxWait(element);
 
-      if (!maxWait.equals(TimeValue.ZERO)) {
+      // FOREVER is the default (returned when there is no @maxwait annotation, or when the
+      // annotation explicitly specifies forever), so omit the comment for that case.
+      if (!maxWait.equals(TimeValue.FOREVER)) {
         KNode comment = _kNodeExtensions.createNode();
         setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
         String commentText = "maxwait: " + maxWait.toString();
