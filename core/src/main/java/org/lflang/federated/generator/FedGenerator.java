@@ -265,7 +265,7 @@ public class FedGenerator {
     configureArgs.add("-Bbuild");
     configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
 
-    // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
+    // If communication mode is SST or TLS, the RTI must be built with -DCOMM_TYPE=SST or -DCOMM_TYPE=TLS.
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       configureArgs.add("-DCOMM_TYPE=SST");
