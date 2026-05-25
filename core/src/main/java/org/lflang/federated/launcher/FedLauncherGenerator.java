@@ -206,7 +206,7 @@ public class FedLauncherGenerator {
                 "\n",
                 "echo \""
                     + ANSI_INFO
-                    + "All components launched. Waiting for federates to exit..."
+                    + "All components launched. Waiting for federates to complete..."
                     + ANSI_RESET
                     + "\"",
                 "# Wait for launched processes to finish.",
