@@ -389,7 +389,7 @@ public class SSTGenerator {
     return graphObject;
   }
 
-  private static JsonObject createGroupPolicy(
+  private JsonObject createGroupPolicy(
       String requestingGroup,
       String targetType,
       String target,
@@ -410,7 +410,7 @@ public class SSTGenerator {
   }
 
   // Creates the policy JSON array to be passed to authConfigGenerator.js via --policy <file>.
-  private static JsonArray generateCommunicationPolicy() {
+  private JsonArray generateCommunicationPolicy() {
     JsonArray policies = new JsonArray();
 
     policies.add(
@@ -423,7 +423,7 @@ public class SSTGenerator {
     return policies;
   }
 
-  private static JsonObject createAuthEntry(
+  private JsonObject createAuthEntry(
       int id,
       String entityHost,
       String authHost,
@@ -448,7 +448,7 @@ public class SSTGenerator {
     return authEntry;
   }
 
-  private static JsonArray createEntityList(
+  private JsonArray createEntityList(
       List<FederateInstance> federateInstances, RtiConfig rtiConfig, boolean usePermanentDistKey) {
     JsonArray entityList = new JsonArray();
 
@@ -469,7 +469,7 @@ public class SSTGenerator {
     return entityList;
   }
 
-  private static JsonObject createEntity(
+  private JsonObject createEntity(
       String group, String name, String credentialPrefix, boolean usePermanentDistKey) {
     JsonObject entity = new JsonObject();
     entity.addProperty("group", group);
@@ -546,7 +546,7 @@ public class SSTGenerator {
    * @param propertiesDir Path to the ".../sst/auth/properties" directory (parent path only).
    * @param updateBasePath new base path to use for replacement (must point to ".../sst/auth/" or ".../RTI/auth/")
    */
-  private static void updatePropertiesFile(Path propertiesDir, String updateBasePath)
+  private void updatePropertiesFile(Path propertiesDir, String updateBasePath)
       throws IOException {
     if (propertiesDir == null) {
       throw new IllegalArgumentException("propertiesDir must not be null");
@@ -588,7 +588,7 @@ public class SSTGenerator {
     }
   }
 
-  private static String updatePath(String line, String base) {
+  private String updatePath(String line, String base) {
     int idx = line.indexOf('=');
     if (idx < 0) return line;
 
@@ -624,7 +624,7 @@ public class SSTGenerator {
     // Update the copied properties to the remote base.
     updatePropertiesFile(
         rti_src.resolve("properties"),
-        getRelativeRemoteBasePath(fileConfig, "RTI") + "/auth/");
+        getRelativeRemoteBasePath("RTI") + "/auth/");
 
     // 2. Copy Configs and Keys to src-gen of federates and RTIs.
     Path credentialsRoot = fileConfig.getSSTCredentialsPath(); // .../sst/credentials
@@ -700,8 +700,7 @@ public class SSTGenerator {
         FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
       }
 
-      // 4) Update the copied configs to the remote base.
-      SSTGenerator.updateConfigFile(
+      updateConfigFile(
           dst.resolve(federate.name + ".config"), fileConfig.name + "/" + federate.name + "/sst/");
     }
 
@@ -766,11 +765,11 @@ public class SSTGenerator {
     }
 
     // 4) Update the copied configs to the remote base.
-    SSTGenerator.updateConfigFile(
-        rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath(fileConfig, "RTI"));
+    updateConfigFile(
+        rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath("RTI"));
   }
 
-  private static void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
+  private void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
     if (fileToUpdate == null) throw new IllegalArgumentException("fileToUpdate is null");
     if (newBasePath == null || newBasePath.isBlank())
       throw new IllegalArgumentException("newBasePath is null/blank");
@@ -805,7 +804,7 @@ public class SSTGenerator {
     }
   }
 
-  private static String replaceConfigPathBaseKeepTail(
+  private String replaceConfigPathBaseKeepTail(
       String fullLine, String keyPrefix, String base) {
     String value = fullLine.substring(keyPrefix.length()).trim().replace("\\", "/");
 
@@ -828,13 +827,11 @@ public class SSTGenerator {
     return getRemoteBasePath(fileConfig, entityName) + "/sst/";
   }
 
-  private static String getRelativeRemoteBasePath(
-      FederationFileConfig fileConfig, String entityName) {
+  private String getRelativeRemoteBasePath(String entityName) {
     return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName;
   }
 
-  private static String getRelativeSSTRemoteBasePath(
-      FederationFileConfig fileConfig, String entityName) {
+  private String getRelativeSSTRemoteBasePath(String entityName) {
     return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName + "/sst/";
   }
 }
