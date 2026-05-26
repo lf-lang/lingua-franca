@@ -108,6 +108,8 @@ public class SSTGenerator {
             + graphPath
             + " -p "
             + fileConfig.name
+            + " --policy "
+            + policyPath
             + "\" && "
             + "./cleanAll.sh ; ./generateAll.sh -g "
             + graphPath
@@ -376,6 +378,9 @@ public class SSTGenerator {
     // File sharing lists (empty for this example)
     graphObject.add("filesharingLists", new JsonArray());
 
+    // Privilege list (empty for this example)
+    graphObject.add("privilegeList", new JsonArray());
+
     return graphObject;
   }
 
@@ -396,6 +401,8 @@ public class SSTGenerator {
     o.addProperty("SessionCryptoSpec", sessionCryptoSpec);
     o.addProperty("AbsoluteValidity", absoluteValidity);
     o.addProperty("RelativeValidity", relativeValidity);
+    o.addProperty("Expiration", "Infinity");
+    o.addProperty("IsDelegated", 0);
     return o;
   }
 
