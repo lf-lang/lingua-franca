@@ -556,7 +556,6 @@ object RustModelBuilder {
                 .filterIsInstance<ChildPortReference>().toSet()
 
         // fullReactions + reactions allows for the inherited reactions to be ran first as react_0 will run before react_1.
-        // TODO: debug precedence issue with reactions.
         val allReactions = ( fullReactions + reactions).mapIndexed { newIdx, info -> info.copy(idx = newIdx) }
 
         return ReactorInfo(
