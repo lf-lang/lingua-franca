@@ -43,10 +43,9 @@ object RustReactorEmitter : RustEmitterBase() {
 
     private fun makeReactorModule(out: Emitter, reactor: ReactorInfo) {
         out += with(reactor) {
-            val typeParams = typeParamList.map { it.targetCode }.angle()
-            val typeArgs = typeParamList.map { it.lfName }.angle()
-
-            val privateParams = reactor.extraConstructionParams;
+            val typeParams = typeParamList.map { it.targetCode }.angle() //+ reactor.inheritedReactors.joinToString("") {  typeParamList.map { it.targetCode }.angle()}
+            val typeArgs = typeParamList.map { it.lfName }.angle() //+ reactor.inheritedReactors.joinToString("") { typeParamList.map{ it.lfName }.angle() }
+            val privateParams = reactor.extraConstructionParams //+ reactor.inheritedReactors.flatMap { extraConstructionParams}
 
             with(reactor.names) {
                 with(PrependOperator) {

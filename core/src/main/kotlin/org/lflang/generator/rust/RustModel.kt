@@ -425,6 +425,7 @@ private val TARGET_BLOCK_R = Regex("\\{=(.*)=}", RegexOption.DOT_MATCHES_ALL)
 /** Regex to match a simple (C) code block, captures the insides as $1. */
 private val BLOCK_R = Regex("\\{(.*)}", RegexOption.DOT_MATCHES_ALL)
 
+private val TARGET_BLOCK_L = Regex("\\.---")
 /**
  * Produce model classes from the AST.
  */
@@ -718,6 +719,8 @@ fun Reactor.instantiateType(formalType: TargetCode, typeArgs: List<Type>): Targe
         }
     }
 }
+
+
 
 /**
  * Returns the identifier of this type param.

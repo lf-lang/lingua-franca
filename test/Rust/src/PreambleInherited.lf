@@ -1,0 +1,21 @@
+target Rust;
+
+reactor A { 
+    preamble {=
+        let FOO: u32 = 2
+    =}
+
+    reaction (startup) {=
+        println!("Foo: {}", FOO);
+    =}
+}
+
+reactor B extends A { 
+    reaction(startup) {=
+        println!("Foo: {}"FOO);
+    =}
+}
+
+main reactor { 
+    b = new B()
+}
