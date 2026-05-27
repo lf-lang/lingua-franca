@@ -33,7 +33,8 @@ var searchData=
   ['properties_30',['PROPERTIES',['../enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ad1b45135a92dd0171f9f1a5a55961cef',1,'org::lflang::tests::TestRegistry::TestCategory']]],
   ['properties_31',['properties',['../classorg_1_1lflang_1_1target_1_1TargetConfig.html#aba01d9037d76fbfe4e0170224986de47',1,'org::lflang::target::TargetConfig']]],
   ['proto_32',['PROTO',['../enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers.html#adfe3acfd3b6f68ed302f6eefdec0a73a',1,'org::lflang::federated::serialization::SupportedSerializers']]],
-  ['python_33',['PYTHON',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#abc6a86754777b932a937b581294ffb67',1,'org::lflang::tests::lsp::ErrorInserter']]],
-  ['python_34',['Python',['../enumorg_1_1lflang_1_1target_1_1Target.html#a82a66f8f4b5c432cac502108e46bf6e2',1,'org::lflang::target::Target']]],
-  ['python_5fsyntax_5fonly_35',['PYTHON_SYNTAX_ONLY',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#a657b9a244f4ba26268126eebf1cc0874',1,'org::lflang::tests::lsp::ErrorInserter']]]
+  ['protobuf_5fdestructor_5fname_33',['PROTOBUF_DESTRUCTOR_NAME',['../classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#af537618cee02823279588712336bcb99',1,'org::lflang::federated::serialization::FedProtoCSerialization']]],
+  ['python_34',['PYTHON',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#abc6a86754777b932a937b581294ffb67',1,'org::lflang::tests::lsp::ErrorInserter']]],
+  ['python_35',['Python',['../enumorg_1_1lflang_1_1target_1_1Target.html#a82a66f8f4b5c432cac502108e46bf6e2',1,'org::lflang::target::Target']]],
+  ['python_5fsyntax_5fonly_36',['PYTHON_SYNTAX_ONLY',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#a657b9a244f4ba26268126eebf1cc0874',1,'org::lflang::tests::lsp::ErrorInserter']]]
 ];

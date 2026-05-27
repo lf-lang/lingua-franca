@@ -4769,6 +4769,77 @@
             </Subnodes>
            </Node>
            <Node>
+            <Name>org.lflang.federated.serialization.FedProtoCSerialization</Name>
+            <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+          <Subnodes>
+             <Node>
+              <Name>generateCompilerExtensionForSupport</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>af397534c7d424acad9681d30143aaa5a</Anchor>
+             </Node>
+             <Node>
+              <Name>generateNetworkDeserializerCode</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>ad413bc7935759b83e361a4e0e4f3e8c2</Anchor>
+             </Node>
+             <Node>
+              <Name>generateNetworkSerializerCode</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a9b06fe522bfccaf2c14b19a0f0116e48</Anchor>
+             </Node>
+             <Node>
+              <Name>generatePortAssignmentCode</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a2238b6426362e441358f697cab92d7ee</Anchor>
+             </Node>
+             <Node>
+              <Name>generatePreambleForSupport</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a6e581ab2a891b7d1cccd775ffd8e5729</Anchor>
+             </Node>
+             <Node>
+              <Name>isCompatible</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>aff4adafbafdeb101be81ed2638016adb</Anchor>
+             </Node>
+             <Node>
+              <Name>protobufCFunctionPrefix</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>ac67b13b30794e6e281746007fb8bacf0</Anchor>
+             </Node>
+             <Node>
+              <Name>serializedBufferLength</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a210f33db0df287b029efac5497a597de</Anchor>
+             </Node>
+             <Node>
+              <Name>serializedBufferVar</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a3b09ac6e6842784809dfdcaea49dac11</Anchor>
+             </Node>
+             <Node>
+              <Name>stripPointer</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a9a6d963b39ea7be7e2f7c15cf5cb49bb</Anchor>
+             </Node>
+             <Node>
+              <Name>deserializedVarName</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>ad26ff751148d3f622edd98d54a6c27bf</Anchor>
+             </Node>
+             <Node>
+              <Name>PROTOBUF_DESTRUCTOR_NAME</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>af537618cee02823279588712336bcb99</Anchor>
+             </Node>
+             <Node>
+              <Name>serializedVarName</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+              <Anchor>a6a7cc5ce4312c556f0a277cb0b2792c8</Anchor>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
             <Name>org.lflang.federated.serialization.FedROS2CPPSerialization</Name>
             <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</Path>
           <Subnodes>
@@ -6180,6 +6251,11 @@
               <Name>isFixedSizeArrayType</Name>
               <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
               <Anchor>a02d728194b4f1ef10b78b4341359792b</Anchor>
+             </Node>
+             <Node>
+              <Name>isPointerType</Name>
+              <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+              <Anchor>aca076f3051ed5843f406dd9e5d99b438</Anchor>
              </Node>
              <Node>
               <Name>isTokenType</Name>
@@ -8037,6 +8113,11 @@
               <Name>isFixedSizeArrayType</Name>
               <Path>classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil.html</Path>
               <Anchor>a02d728194b4f1ef10b78b4341359792b</Anchor>
+             </Node>
+             <Node>
+              <Name>isPointerType</Name>
+              <Path>classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil.html</Path>
+              <Anchor>aca076f3051ed5843f406dd9e5d99b438</Anchor>
              </Node>
              <Node>
               <Name>isTokenType</Name>
@@ -29743,6 +29824,93 @@
                     </Subnodes>
                    </Node>
                    <Node>
+                    <Name>FedProtoCSerialization</Name>
+                    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>generateCompilerExtensionForSupport</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>af397534c7d424acad9681d30143aaa5a</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>generateNetworkDeserializerCode</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>ad413bc7935759b83e361a4e0e4f3e8c2</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>generateNetworkSerializerCode</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a9b06fe522bfccaf2c14b19a0f0116e48</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>generatePortAssignmentCode</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a2238b6426362e441358f697cab92d7ee</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>generatePreambleForSupport</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a6e581ab2a891b7d1cccd775ffd8e5729</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>isCompatible</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>aff4adafbafdeb101be81ed2638016adb</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>protobufCFunctionPrefix</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>ac67b13b30794e6e281746007fb8bacf0</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>serializedBufferLength</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a210f33db0df287b029efac5497a597de</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>serializedBufferVar</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a3b09ac6e6842784809dfdcaea49dac11</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>stripPointer</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a9a6d963b39ea7be7e2f7c15cf5cb49bb</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>deserializedVarName</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>ad26ff751148d3f622edd98d54a6c27bf</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>PROTOBUF_DESTRUCTOR_NAME</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>af537618cee02823279588712336bcb99</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>serializedVarName</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
+                      <Anchor>a6a7cc5ce4312c556f0a277cb0b2792c8</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
+                    <Name>FedProtoCSerializationTest</Name>
+                    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>protobufCFunctionPrefix</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</Path>
+                      <Anchor>a9a6cd07ce795db0e66effcdaa9d293c8</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>stripPointer</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</Path>
+                      <Anchor>a229ab4f682b306d8d77519e2e1bbc263</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
                     <Name>FedROS2CPPSerialization</Name>
                     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</Path>
                   <Subnodes>
@@ -31167,6 +31335,11 @@
                       <Name>isFixedSizeArrayType</Name>
                       <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
                       <Anchor>a02d728194b4f1ef10b78b4341359792b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>isPointerType</Name>
+                      <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</Path>
+                      <Anchor>aca076f3051ed5843f406dd9e5d99b438</Anchor>
                      </Node>
                      <Node>
                       <Name>isTokenType</Name>
@@ -33256,6 +33429,11 @@
                       <Name>isFixedSizeArrayType</Name>
                       <Path>classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil.html</Path>
                       <Anchor>a02d728194b4f1ef10b78b4341359792b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>isPointerType</Name>
+                      <Path>classorg_1_1lflang_1_1generator_1_1python_1_1PyUtil.html</Path>
+                      <Anchor>aca076f3051ed5843f406dd9e5d99b438</Anchor>
                      </Node>
                      <Node>
                       <Name>isTokenType</Name>
@@ -53180,6 +53358,10 @@
             <Path>classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html</Path>
            </Node>
            <Node>
+            <Name>org.lflang.federated.serialization.FedProtoCSerializationTest</Name>
+            <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</Path>
+           </Node>
+           <Node>
             <Name>org.lflang.federated.serialization.FedSerialization</Name>
             <Path>interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html</Path>
           <Subnodes>
@@ -53190,6 +53372,10 @@
              <Node>
               <Name>org.lflang.federated.serialization.FedNativePythonSerialization</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedNativePythonSerialization.html</Path>
+             </Node>
+             <Node>
+              <Name>org.lflang.federated.serialization.FedProtoCSerialization</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
              </Node>
              <Node>
               <Name>org.lflang.federated.serialization.FedROS2CPPSerialization</Name>

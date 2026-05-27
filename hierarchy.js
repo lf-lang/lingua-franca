@@ -292,9 +292,11 @@ var hierarchy =
     ] ],
     [ "org.lflang.federated.launcher.FedLauncherGenerator", "classorg_1_1lflang_1_1federated_1_1launcher_1_1FedLauncherGenerator.html", null ],
     [ "org.lflang.federated.launcher.RtiConfig", "classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html", null ],
+    [ "org.lflang.federated.serialization.FedProtoCSerializationTest", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html", null ],
     [ "org.lflang.federated.serialization.FedSerialization", "interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html", [
       [ "org.lflang.federated.serialization.FedCustomPythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedCustomPythonSerialization.html", null ],
       [ "org.lflang.federated.serialization.FedNativePythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedNativePythonSerialization.html", null ],
+      [ "org.lflang.federated.serialization.FedProtoCSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html", null ],
       [ "org.lflang.federated.serialization.FedROS2CPPSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html", null ]
     ] ],
     [ "org.lflang.federated.serialization.SupportedSerializers", "enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers.html", null ],

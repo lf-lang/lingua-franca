@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-<tagfile doxygen_version="1.16.1">
+<tagfile doxygen_version="1.17.0">
   <compound kind="class">
     <name>org::lflang::analyses::c::AbstractAstVisitor</name>
     <filename>classorg_1_1lflang_1_1analyses_1_1c_1_1AbstractAstVisitor.html</filename>
@@ -13249,6 +13249,120 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::federated::serialization::FedProtoCSerialization</name>
+    <filename>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</filename>
+    <base>org.lflang.federated.serialization.FedSerialization</base>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generateCompilerExtensionForSupport</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>af397534c7d424acad9681d30143aaa5a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generateNetworkDeserializerCode</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>ad413bc7935759b83e361a4e0e4f3e8c2</anchor>
+      <arglist>(String varName, String targetType)</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generateNetworkSerializerCode</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>a9b06fe522bfccaf2c14b19a0f0116e48</anchor>
+      <arglist>(String varName, String originalType)</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generatePortAssignmentCode</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>a2238b6426362e441358f697cab92d7ee</anchor>
+      <arglist>(String receiveRef)</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generatePreambleForSupport</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>a6e581ab2a891b7d1cccd775ffd8e5729</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>isCompatible</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>aff4adafbafdeb101be81ed2638016adb</anchor>
+      <arglist>(GeneratorBase generator)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>serializedBufferLength</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>a210f33db0df287b029efac5497a597de</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>serializedBufferVar</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>a3b09ac6e6842784809dfdcaea49dac11</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>protobufCFunctionPrefix</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>ac67b13b30794e6e281746007fb8bacf0</anchor>
+      <arglist>(String messageType)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>stripPointer</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>a9a6d963b39ea7be7e2f7c15cf5cb49bb</anchor>
+      <arglist>(String type)</arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>deserializedVarName</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html</anchorfile>
+      <anchor>ad26ff751148d3f622edd98d54a6c27bf</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>PROTOBUF_DESTRUCTOR_NAME</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</anchorfile>
+      <anchor>af537618cee02823279588712336bcb99</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>serializedVarName</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html</anchorfile>
+      <anchor>a6a7cc5ce4312c556f0a277cb0b2792c8</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>org::lflang::federated::serialization::FedProtoCSerializationTest</name>
+    <filename>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</filename>
+    <member kind="function">
+      <type>void</type>
+      <name>protobufCFunctionPrefix</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</anchorfile>
+      <anchor>a9a6cd07ce795db0e66effcdaa9d293c8</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>stripPointer</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html</anchorfile>
+      <anchor>a229ab4f682b306d8d77519e2e1bbc263</anchor>
+      <arglist>()</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::federated::serialization::FedROS2CPPSerialization</name>
     <filename>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</filename>
     <base>org.lflang.federated.serialization.FedSerialization</base>
@@ -15422,6 +15536,13 @@
       <name>isFixedSizeArrayType</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a02d728194b4f1ef10b78b4341359792b</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isPointerType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>aca076f3051ed5843f406dd9e5d99b438</anchor>
       <arglist>(InferredType type)</arglist>
     </member>
     <member kind="function" static="yes">
@@ -21149,6 +21270,13 @@
       <name>isFixedSizeArrayType</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
       <anchor>a02d728194b4f1ef10b78b4341359792b</anchor>
+      <arglist>(InferredType type)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isPointerType</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html</anchorfile>
+      <anchor>aca076f3051ed5843f406dd9e5d99b438</anchor>
       <arglist>(InferredType type)</arglist>
     </member>
     <member kind="function" static="yes">
@@ -43190,6 +43318,8 @@
     <filename>namespaceorg_1_1lflang_1_1federated_1_1serialization.html</filename>
     <class kind="class">org::lflang::federated::serialization::FedCustomPythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedNativePythonSerialization</class>
+    <class kind="class">org::lflang::federated::serialization::FedProtoCSerialization</class>
+    <class kind="class">org::lflang::federated::serialization::FedProtoCSerializationTest</class>
     <class kind="class">org::lflang::federated::serialization::FedROS2CPPSerialization</class>
     <class kind="interface">org::lflang::federated::serialization::FedSerialization</class>
     <class kind="enum">org::lflang::federated::serialization::SupportedSerializers</class>
@@ -43629,6 +43759,7 @@
     <class kind="class">org::lflang::federated::launcher::TsBuildConfig</class>
     <class kind="class">org::lflang::federated::serialization::FedCustomPythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedNativePythonSerialization</class>
+    <class kind="class">org::lflang::federated::serialization::FedProtoCSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedROS2CPPSerialization</class>
     <class kind="interface">org::lflang::federated::serialization::FedSerialization</class>
     <class kind="enum">org::lflang::federated::serialization::SupportedSerializers</class>
@@ -44105,6 +44236,12 @@
     <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/federated/validation</dir>
   </compound>
   <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/federated</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/federated/</path>
+    <filename>dir_ca4d2e23db6d13a9b4dd1e2ab234a63a.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/federated/serialization</dir>
+  </compound>
+  <compound kind="dir">
     <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/formatting2</name>
     <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/formatting2/</path>
     <filename>dir_c06b319ba3c9e6934521600218dd0ebf.html</filename>
@@ -44407,6 +44544,7 @@
     <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang</name>
     <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/</path>
     <filename>dir_3480b59bed7025efccbf3e68ac553cf9.html</filename>
+    <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/federated</dir>
     <dir>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/tests</dir>
   </compound>
   <compound kind="dir">
@@ -44719,9 +44857,16 @@
     <filename>dir_0ba6377a9ab5362775c48b3661bbea26.html</filename>
     <file>FedCustomPythonSerialization.java</file>
     <file>FedNativePythonSerialization.java</file>
+    <file>FedProtoCSerialization.java</file>
     <file>FedROS2CPPSerialization.java</file>
     <file>FedSerialization.java</file>
     <file>SupportedSerializers.java</file>
+  </compound>
+  <compound kind="dir">
+    <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/federated/serialization</name>
+    <path>/Users/runner/work/lingua-franca/lingua-franca/core/src/test/java/org/lflang/federated/serialization/</path>
+    <filename>dir_879db75af85120b2000667b1f27d13f3.html</filename>
+    <file>FedProtoCSerializationTest.java</file>
   </compound>
   <compound kind="dir">
     <name>/Users/runner/work/lingua-franca/lingua-franca/cli/base/src</name>

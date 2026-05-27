@@ -16,6 +16,7 @@ var classorg_1_1lflang_1_1generator_1_1c_1_1CUtil =
     [ "getShortenedName", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0c29174af3742014a479fa306936d8f9", null ],
     [ "internalIncludeGuard", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a0f4dc466e59743dbd98e1a715af3f62d", null ],
     [ "isFixedSizeArrayType", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#a02d728194b4f1ef10b78b4341359792b", null ],
+    [ "isPointerType", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#aca076f3051ed5843f406dd9e5d99b438", null ],
     [ "isTokenType", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ad2d5ec78412ce03ca2c39dfb08151e7e", null ],
     [ "multiportWidthExpression", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ac78da991adaeb2198262de57d7b0242e", null ],
     [ "portRef", "classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#abe9ae5ca2df7cfca62039c8e61a1a786", null ],
