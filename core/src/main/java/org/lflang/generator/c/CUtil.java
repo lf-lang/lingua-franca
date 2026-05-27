@@ -760,6 +760,21 @@ public class CUtil {
   }
 
   /**
+   * Given a type for an input or output, return true if it is a pointer type (i.e. ends with one
+   * or more {@code *} characters). Unlike {@link #isTokenType(InferredType)}, this returns false
+   * for variable-length array types such as {@code int[]}.
+   *
+   * @param type The type specification.
+   */
+  public static boolean isPointerType(InferredType type) {
+    if (type.isUndefined()) return false;
+    return type.astType != null
+        && (!type.astType.getStars().isEmpty()
+            || type.astType.getCode() != null
+                && type.astType.getCode().getBody().stripTrailing().endsWith("*"));
+  }
+
+  /**
    * Given a type for an input or output, return true if it is a fixed-size array (declared with
    * `type[int]`). For such types, the memory is allocated in the output struct.
    *
