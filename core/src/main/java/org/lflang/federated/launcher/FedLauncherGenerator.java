@@ -290,20 +290,27 @@ public class FedLauncherGenerator {
     boolean isRemote = host != null && !host.equals("localhost") && !host.equals("0.0.0.0");
 
     String killAuthCommand = "";
+    String sstSetup = "";
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       if (isRemote) {
         String target = getUserHost(user, host);
         killAuthCommand =
-            "        printf \"#### Killing Remote Auth...\\n\"\n"
+            "        printf \"#### Sending quit to Remote Auth...\\n\"\n"
                 + "        ssh "
                 + target
-                + " \"pkill -f auth-server-jar-with-dependencies.jar\" || true\n"
-                + "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
-                + "        kill ${AUTH} || true";
+                + " \"echo 'quit' > auth_input_${FEDERATION_ID}.fifo\" || true\n"
+                + "        ssh "
+                + target
+                + " \"rm -f auth_input_${FEDERATION_ID}.fifo\" || true";
       } else {
         killAuthCommand =
-            "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n"
-                + "        kill ${AUTH} || true";
+            "        printf \"#### Sending quit to Auth...\\n\"\n"
+                + "        echo 'quit' > \"${AUTH_FIFO}\" || true\n"
+                + "        rm -f \"${AUTH_FIFO}\" || true";
+        sstSetup = "\n# Create FIFO for Auth input\n"
+                 + "AUTH_FIFO=\"auth_input_${FEDERATION_ID}.fifo\"\n"
+                 + "mkfifo \"${AUTH_FIFO}\"\n"
+                 + "exec 3<>\"${AUTH_FIFO}\"\n";
       }
     }
     return String.join(
@@ -382,7 +389,7 @@ public class FedLauncherGenerator {
             + fileConfig.name
             + " with Federation ID '$FEDERATION_ID'."
             + ANSI_RESET
-            + "\"");
+            + "\"") + sstSetup;
   }
 
   private String getSSTAuthExecutionCode() {
@@ -393,7 +400,7 @@ public class FedLauncherGenerator {
             + fileConfig.getSSTAuthPath().toString()
             + "/properties/exampleAuth101.properties --password="
             + fileConfig.name
-            + "</dev/null";
+            + " < ${AUTH_FIFO}";
 
     String launchCodeWithLogging = String.join(" ", authLaunchCode, ">& auth.log &");
     String launchCodeWithoutLogging = String.join(" ", authLaunchCode, "&");
@@ -528,7 +535,7 @@ public class FedLauncherGenerator {
               + authBase
               + "/properties/exampleAuth101.properties --password="
               + fileConfig.name
-              + "</dev/null";
+              + " < auth_input_'${FEDERATION_ID}'.fifo";
 
       // Run Auth on the remote host via ssh (like RTI)
       sstAuthLaunch =
@@ -537,6 +544,8 @@ public class FedLauncherGenerator {
               "# Launch the SST Auth on remote host.",
               "echo \"Executing Auth.\"",
               "ssh " + target + " 'mkdir -p log; \\",
+              "    mkfifo auth_input_'${FEDERATION_ID}'.fifo; \\",
+              "    exec 3<>auth_input_'${FEDERATION_ID}'.fifo; \\",
               "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\",
               "    " + authCommand + " 2>&1 | tee -a log/auth.log",
               "' &",
@@ -957,7 +966,7 @@ public class FedLauncherGenerator {
               + fileConfig.getSSTAuthPath().toString()
               + "/properties/exampleAuth101.properties --password="
               + fileConfig.name
-              + "</dev/null";
+              + " < ${AUTH_FIFO}";
       lines.add("    tmux send-keys -t \"$AUTH_PANE\" \"" + authLaunchCode + "\" C-m");
     }
     for (int i = 0; i < numFeds; i++) {
