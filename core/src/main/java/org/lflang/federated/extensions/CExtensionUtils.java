@@ -13,6 +13,7 @@ import org.lflang.ast.ASTUtils;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.federated.serialization.FedProtoCSerialization;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
@@ -535,8 +536,12 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {
-        case NATIVE, PROTO -> {
+        case NATIVE -> {
           // No need to do anything at this point.
+        }
+        case PROTO -> {
+          var protoSerializer = new FedProtoCSerialization();
+          code.pr(protoSerializer.generatePreambleForSupport().toString());
         }
         case ROS2 -> {
           var ROSSerializer = new FedROS2CPPSerialization();
