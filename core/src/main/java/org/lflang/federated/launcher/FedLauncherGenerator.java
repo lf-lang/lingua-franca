@@ -289,12 +289,12 @@ public class FedLauncherGenerator {
     String user = rtiConfig.getUser();
     boolean isRemote = host != null && !host.equals("localhost") && !host.equals("0.0.0.0");
 
-    String killAuthCommand = "";
+    String terminateAuthCommand = "";
     String sstSetup = "";
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       if (isRemote) {
         String target = getUserHost(user, host);
-        killAuthCommand =
+        terminateAuthCommand =
             "        printf \"#### Sending quit to Remote Auth...\\n\"\n"
                 + "        ssh "
                 + target
@@ -303,7 +303,7 @@ public class FedLauncherGenerator {
                 + target
                 + " \"rm -f auth_input_${FEDERATION_ID}.fifo\" || true";
       } else {
-        killAuthCommand =
+        terminateAuthCommand =
             "        printf \"#### Sending quit to Auth...\\n\"\n"
                 + "        echo 'quit' > \"${AUTH_FIFO}\" || true\n"
                 + "        rm -f \"${AUTH_FIFO}\" || true";
@@ -365,7 +365,7 @@ public class FedLauncherGenerator {
         "# Use two distinct traps so we can see which signal causes this.",
         "cleanup() {",
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
-        killAuthCommand,
+        terminateAuthCommand,
         "        exit 0",
         "    else",
         "        printf \"Killing federate %s.\\n\" ${pids[*]}",
@@ -373,7 +373,7 @@ public class FedLauncherGenerator {
         "        kill ${pids[@]} || true",
         "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
         "        kill ${RTI} || true",
-        killAuthCommand,
+        terminateAuthCommand,
         "        exit 1",
         "    fi",
         "}",
