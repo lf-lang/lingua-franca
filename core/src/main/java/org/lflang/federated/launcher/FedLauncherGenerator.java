@@ -415,7 +415,7 @@ public class FedLauncherGenerator {
         "\n# Prompt for the password before starting SST Auth",
         "echo \"Executing Auth.\"",
         "# Launch the SST Auth.",
-        "if [ \"$1\" = \"-l\" ]; then",
+        "if [ \"$LOG_TO_FILE\" = true ]; then",
         launchCodeWithLogging,
         "else",
         launchCodeWithoutLogging,
