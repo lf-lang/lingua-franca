@@ -31,7 +31,7 @@ reactor Sender {
 reactor Receiver {
   input inp
 
-  state count= 0
+  state count = 0
 
   reaction(inp) {=
     unpacked = ProtoHelloWorld.ProtoHelloWorld()
