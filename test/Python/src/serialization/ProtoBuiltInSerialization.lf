@@ -1,15 +1,10 @@
 /**
- * This test showcases automatic protobuf serialization and deserialization in federated C programs.
- * The sender federate sends a ProtoHelloWorld message to the receiver federate using serializer
- * "proto".
+ * This test showcases automatic protobuf serialization and deserialization in federated Python
+ * programs. The sender serializes a ProtoHelloWorld message to bytes using SerializeToString() and
+ * sends it to the receiver using serializer "proto". The receiver deserializes the bytes back into
+ * a ProtoHelloWorld message using ParseFromString().
  *
- * The port type is a pointer (ProtoHelloWorld*); the sender allocates and initializes the message
- * and uses lf_set to transfer ownership. On the receiver, the runtime manages the lifetime of the
- * deserialized message via the standard LF token mechanism and frees it with
- * protobuf_c_message_free_unpacked when the token reference count drops to zero.
- *
- * To run this test, install protoc, protoc-c, and libprotobuf-c. See PersonProtocolBuffers.lf for
- * details.
+ * To run this test, install protoc and the Python protobuf package (pip install protobuf).
  */
 target Python {
   protobufs: ProtoHelloWorld.proto,
@@ -24,7 +19,7 @@ reactor Sender {
   timer t(0, 1 sec)
 
   reaction(t) -> out {=
-    self.count++
+    self.count += 1
     protoHelloWorld = ProtoHelloWorld.ProtoHelloWorld()
     protoHelloWorld.name = "Hello World"
     protoHelloWorld.number = self.count
@@ -41,15 +36,10 @@ reactor Receiver {
   reaction(inp) {=
     unpacked = ProtoHelloWorld.ProtoHelloWorld()
     unpacked.ParseFromString(inp.value)
-    lf_print(
-      "Received: name=\"%s\", number=%d.",
-      unpacked.name,
-      unpacked.number
-    );
-    if (unpacked.number != self.count + 1) {
-      sys.stderr.write("Expected number " + str(self.count + 1) + ".")
-    }
-    self.count++
+    print(f"Received: name=\"{unpacked.name}\", number={unpacked.number}.")
+    if unpacked.number != self.count + 1:
+      sys.stderr.write("Expected number " + str(self.count + 1) + ".\n")
+    self.count += 1
   =}
 }
 

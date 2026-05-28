@@ -285,8 +285,10 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   protected void handleProtoFiles() {
     for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(name);
-      int dotIndex = name.lastIndexOf(".");
-      String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
+      // Extract just the basename (no directory, no extension) for the Python import statement.
+      String basename = Paths.get(name).getFileName().toString();
+      int dotIndex = basename.lastIndexOf(".");
+      String rootFilename = dotIndex > 0 ? basename.substring(0, dotIndex) : basename;
       pythonPreamble.pr("import " + rootFilename + "_pb2 as " + rootFilename);
       protoNames.add(rootFilename);
     }
@@ -327,7 +329,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
     }
     int returnCode = protoc.run();
     if (returnCode == 0) {
-      pythonRequiredModules.add("google-api-python-client");
+      pythonRequiredModules.add("protobuf");
     } else {
       messageReporter.nowhere().error("protoc returns error code " + returnCode);
     }
