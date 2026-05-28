@@ -8,7 +8,6 @@ target Python {
 }
 
 import Count from "../lib/Count.lf"
-
 import Print from "DistributedCount.lf"
 
 federated reactor DistributedCountSST(offset = 200 msec) {

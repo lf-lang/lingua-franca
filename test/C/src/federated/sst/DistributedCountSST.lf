@@ -17,7 +17,6 @@ target C {
 }
 
 import Count from "../../lib/Count.lf"
-
 import Print from "../DistributedCount.lf"
 
 federated reactor DistributedCountSST(offset: time = 200 msec) {
