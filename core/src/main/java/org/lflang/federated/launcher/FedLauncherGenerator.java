@@ -452,7 +452,7 @@ public class FedLauncherGenerator {
       if (isRemote) {
         sstConfigPath = SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "rti.config";
       } else {
-        sstConfigPath = SSTGenerator.getSSTConfig(fileConfig, "rti").toString();
+        sstConfigPath = SSTGenerator.getSSTConfigPath(fileConfig, "rti").toString();
       }
 
       commands.add("                        -sst " + sstConfigPath + " \\");

@@ -41,7 +41,7 @@ public class CBuildConfig extends BuildConfig {
       commandToReturn =
           commandToReturn
               + " -sst "
-              + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString();
+              + SSTGenerator.getSSTConfigPath(fileConfig, federate.name).toString();
     } else if (federate.targetConfig.get(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
       commandToReturn +=

@@ -207,11 +207,11 @@ public class SSTGenerator {
       throw new RuntimeException(e);
     }
 
-    // Generate SST config for the rti.
+    // Generate SST config for the RTI.
     generateSSTConfig("rti", rtiConfig.getHost(), usePermanentDistKey);
     messageReporter
         .nowhere()
-        .info("Generated RTI's SST config into: " + getSSTConfig(fileConfig, "rti").toString());
+        .info("Generated RTI's SST config into: " + getSSTConfigPath(fileConfig, "rti").toString());
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
@@ -220,14 +220,14 @@ public class SSTGenerator {
           .nowhere()
           .info(
               "Federate generated SST config into: "
-                  + getSSTConfig(fileConfig, federate.name).toString());
+                  + getSSTConfigPath(fileConfig, federate.name).toString());
     }
 
     // Copy the configs and credentials of rti and federates, to the src-gen for tar deployments.
     copyAuthAndConfigsAndKeys(federates, usePermanentDistKey);
   }
 
-  public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
+  public static Path getSSTConfigPath(FederationFileConfig fileConfig, String name) {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 

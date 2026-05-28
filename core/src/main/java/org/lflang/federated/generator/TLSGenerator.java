@@ -13,7 +13,8 @@ import org.lflang.util.FileUtil;
 /**
  * TLS related methods (cert/key generation + copy to src-gen).
  *
- * - Generate cert+key for RTI and each federate into: fed-gen/[program]/credentials/[name]/
+ * - Generate cert+key for RTI and each federate into:
+ * fed-gen/[program]/credentials/[name]/
  * - Copy only the needed pair into: src-gen/[entity]/credentials/
  */
 public class TLSGenerator {
@@ -33,7 +34,8 @@ public class TLSGenerator {
   /** Entry point called from generator when comm-type is TLS. */
   public void setupTLS(List<FederateInstance> federates) throws IOException {
 
-    // 1) Generate cert/key for RTI + each federate into fed-gen/[program]/credentials
+    // 1) Generate cert/key for RTI + each federate into
+    // fed-gen/[program]/credentials
     Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/[program]/credentials
     Files.createDirectories(credentialsRoot);
 
@@ -92,7 +94,10 @@ public class TLSGenerator {
   // internals
   // ------------------------------------------------------------
 
-  /** Generate a self-signed cert+key for one entity under credentialsRoot/<entityName>/ */
+  /**
+   * Generate a self-signed cert+key for one entity under
+   * credentialsRoot/<entityName>/
+   */
   private void generateEntityCertAndKey(Path credentialsRoot, String entityName)
       throws IOException {
     Path dir = credentialsRoot.resolve(entityName);
@@ -102,22 +107,21 @@ public class TLSGenerator {
     Path crt = dir.resolve(entityName + ".crt");
 
     // Using openssl to generate:
-    //   - RSA 2048 key (unencrypted) + self-signed cert, CN=<entityName>
+    // - RSA 2048 key (unencrypted) + self-signed cert, CN=<entityName>
     // NOTE: Use unix paths in the shell command.
     String keyStr = FileUtil.toUnixString(key);
     String crtStr = FileUtil.toUnixString(crt);
 
-    String cmd =
-        "openssl req -x509 -newkey rsa:2048 -nodes "
-            + "-keyout "
-            + shellEscape(keyStr)
-            + " "
-            + "-out "
-            + shellEscape(crtStr)
-            + " "
-            + "-days 365 "
-            + "-subj "
-            + shellEscape("/CN=" + entityName);
+    String cmd = "openssl req -x509 -newkey rsa:2048 -nodes "
+        + "-keyout "
+        + shellEscape(keyStr)
+        + " "
+        + "-out "
+        + shellEscape(crtStr)
+        + " "
+        + "-days 365 "
+        + "-subj "
+        + shellEscape("/CN=" + entityName);
 
     messageReporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
     runLocalCommand(cmd, "[TLS Gen " + entityName + "]");
@@ -129,7 +133,7 @@ public class TLSGenerator {
   private void copyTLSCredentialsToSrcGen(List<FederateInstance> federates, Path credentialsRoot)
       throws IOException {
 
-    // Federates: src-gen/<fed>/credentials/  (copy only that fed's key+cert)
+    // Federates: src-gen/<fed>/credentials/ (copy only that fed's key+cert)
     for (FederateInstance fed : federates) {
       Path dst = fileConfig.getSrcGenPath().resolve(fed.name).resolve("credentials");
       Files.createDirectories(dst);
