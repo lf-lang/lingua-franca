@@ -545,8 +545,7 @@ object RustModelBuilder {
         val fullReactorInfos = fullReactor.map {processReactor(it, isInherited=true)}
         val fullReactions = fullReactorInfos.flatMap { it.reactions}
 
-        val allComponents = reactor.allComponents() + fullReactor.flatMap { it.allComponents() }
-        val components = allComponents.map { ReactorComponent.from(it) }.associateBy { it.lfName }
+        val components = reactor.allComponents().map { ReactorComponent.from(it) }.associateBy { it.lfName }
 
         val inheritedFromName = if (isInherited) reactor.name else null
         val reactions = reactor.reactions.map {it.toReactionInfo(components, inheritedFromName )}

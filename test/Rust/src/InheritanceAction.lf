@@ -23,7 +23,7 @@ reactor Test {
 
   reaction(x) {=
     self.count += 1;
-    println!("Recived {}", ctx.get(x).unwrap());
+    println!("Received {}", ctx.get(x).unwrap());
     if ctx.get(x).unwrap() != 42 {
         eprintln!("FAILURE: Expected 42");
         ctx.request_stop(Asap);

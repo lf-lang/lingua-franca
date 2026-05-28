@@ -13,19 +13,25 @@ reactor B extends A {
   input b: u32
 
   reaction(a, b) -> out {=
-    if let Some(output) = ctx.get(out){
-      println!("The Expected output is 3: {}", output);
-    } else {
-      eprintln!("FAILURE: Inherited action not ran");
+    match ctx.get(out) {
+      Some(output) => {
+        assert_eq!(output, 3, "FAILURE: Expected inherited reaction to set out to 3 before B runs");
+        println!("The Expected output is 3: {}", output);
+      }
+      None => {
+        panic!("FAILURE: Inherited action not ran");
+      }
     }
-
     ctx.set(out, ctx.get(a).unwrap() + ctx.get(b).unwrap());
 
-    if let Some(output) = ctx.get(out){
-      println!("The output is: {}", output);
-    } else {
-        eprintln!("FAILURE: No output set");
-        ctx.request_stop(Asap);
+    match ctx.get(out) {
+      Some(output) => {
+        assert_eq!(output, 5, "FAILURE: Expected combined output to be 5 after B runs");
+        println!("The output is: {}", output);
+      }
+      None => {
+        panic!("FAILURE: No output set");
+      }
     }
   =}
 }
