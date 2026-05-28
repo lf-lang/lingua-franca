@@ -112,16 +112,17 @@ public class TLSGenerator {
     String keyStr = FileUtil.toUnixString(key);
     String crtStr = FileUtil.toUnixString(crt);
 
-    String cmd = "openssl req -x509 -newkey rsa:2048 -nodes "
-        + "-keyout "
-        + shellEscape(keyStr)
-        + " "
-        + "-out "
-        + shellEscape(crtStr)
-        + " "
-        + "-days 365 "
-        + "-subj "
-        + shellEscape("/CN=" + entityName);
+    String cmd =
+        "openssl req -x509 -newkey rsa:2048 -nodes "
+            + "-keyout "
+            + shellEscape(keyStr)
+            + " "
+            + "-out "
+            + shellEscape(crtStr)
+            + " "
+            + "-days 365 "
+            + "-subj "
+            + shellEscape("/CN=" + entityName);
 
     messageReporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
     runLocalCommand(cmd, "[TLS Gen " + entityName + "]");

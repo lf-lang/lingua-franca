@@ -173,7 +173,6 @@ public class FedLauncherGenerator {
                 getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
             .append("\n");
         shCode
-            // TODO: Need to fix calling rtiConfig.getDirectory() here
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
       } else {
@@ -618,7 +617,6 @@ public class FedLauncherGenerator {
     String buildShellFileName = "build_" + name + ".sh";
     String tarFileName = name + ".tar.gz";
 
-    // ---- Add this block ----
     String cmakeArgs = "";
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       cmakeArgs = " -DCOMM_TYPE=SST";

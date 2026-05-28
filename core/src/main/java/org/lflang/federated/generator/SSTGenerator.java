@@ -223,7 +223,8 @@ public class SSTGenerator {
                   + getSSTConfigPath(fileConfig, federate.name).toString());
     }
 
-    // Copy the configs and credentials of rti and federates, to the src-gen for tar deployments.
+    // Copy the configs and credentials of rti and federates, to the src-gen for tar
+    // deployments.
     copyAuthAndConfigsAndKeys(federates, usePermanentDistKey);
   }
 
@@ -406,7 +407,8 @@ public class SSTGenerator {
     return o;
   }
 
-  // Creates the policy JSON array to be passed to authConfigGenerator.js via --policy <file>.
+  // Creates the policy JSON array to be passed to authConfigGenerator.js via
+  // --policy <file>.
   private JsonArray generateCommunicationPolicy() {
     JsonArray policies = new JsonArray();
 
@@ -539,8 +541,10 @@ public class SSTGenerator {
   /**
    * Update all .properties files under the given propertiesDir.
    *
-   * @param propertiesDir Path to the ".../sst/auth/properties" directory (parent path only).
-   * @param updateBasePath new base path to use for replacement (must point to ".../sst/auth/" or ".../RTI/auth/")
+   * @param propertiesDir  Path to the ".../sst/auth/properties" directory (parent
+   *                       path only).
+   * @param updateBasePath new base path to use for replacement (must point to
+   *                       ".../sst/auth/" or ".../RTI/auth/")
    */
   private void updatePropertiesFile(Path propertiesDir, String updateBasePath) throws IOException {
     if (propertiesDir == null) {
@@ -590,7 +594,7 @@ public class SSTGenerator {
     String key = line.substring(0, idx + 1);
     String value = line.substring(idx + 1);
 
-    // Case 1: relative "../..."  -> just strip "../"
+    // Case 1: relative "../..." -> just strip "../"
     if (value.startsWith("../")) {
       return key + base + value.substring("../".length());
     }
