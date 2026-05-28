@@ -461,6 +461,7 @@ public class SSTGenerator {
       JsonObject entity =
           createEntity(
               "Federates", "net1." + federateName, "Net1." + federateName, usePermanentDistKey);
+      entity.addProperty("host", federate.host);
       entityList.add(entity);
     }
     return entityList;
