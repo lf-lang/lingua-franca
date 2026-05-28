@@ -10,6 +10,7 @@ import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.federated.serialization.FedCustomPythonSerialization;
 import org.lflang.federated.serialization.FedNativePythonSerialization;
+import org.lflang.federated.serialization.FedProtoPythonSerialization;
 import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.CodeBuilder;
@@ -70,7 +71,7 @@ public class PythonExtension extends CExtension {
 
   @Override
   public String getNetworkBufferType() {
-    return "void*";
+    return "";
   }
 
   @Override
@@ -203,8 +204,19 @@ lf_enqueue_port_absent_reactions(self->base.environment);
         result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
         result.pr("lf_set_token(" + receiveRef + ", token);\n");
       }
-      case PROTO ->
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        value = action.getName();
+        FedProtoPythonSerialization protoDeserializer = new FedProtoPythonSerialization();
+        result.pr(protoDeserializer.generateNetworkDeserializerCode(value, null));
+        result.pr(
+            "lf_token_t* token = lf_new_token((void*)"
+                + receiveRef
+                + ", "
+                + FedSerialization.deserializedVarName
+                + ", 1);\n");
+        result.pr("lf_set_destructor(" + receiveRef + ", python_count_decrement);\n");
+        result.pr("lf_set_token(" + receiveRef + ", token);\n");
+      }
       case ROS2 ->
           throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }
@@ -245,8 +257,15 @@ lf_enqueue_port_absent_reactions(self->base.environment);
         // Decrease the reference count for serialized_pyobject
         result.pr("Py_XDECREF(serialized_pyobject);\n");
       }
-      case PROTO ->
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        var variableToSerialize = sendRef + "->value";
+        FedProtoPythonSerialization protoSerializer = new FedProtoPythonSerialization();
+        lengthExpression = protoSerializer.serializedBufferLength();
+        pointerExpression = protoSerializer.serializedBufferVar();
+        result.pr(protoSerializer.generateNetworkSerializerCode(variableToSerialize, null));
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+      }
       case ROS2 ->
           throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
     }

@@ -12,7 +12,7 @@
  * details.
  */
 target Python {
-  protobufs: [ProtoHelloWorld.proto],
+  protobufs: ProtoHelloWorld.proto,
   timeout: 2 sec
 }
 

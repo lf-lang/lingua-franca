@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -301,10 +302,23 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    */
   @Override
   public void processProtoFile(String filename) {
+    var protoPath = Paths.get(filename);
+    var absProto =
+        (protoPath.isAbsolute() ? protoPath : fileConfig.srcPath.resolve(protoPath))
+            .toAbsolutePath()
+            .normalize();
+    var absSrc = fileConfig.srcPath.toAbsolutePath().normalize();
+    // If the proto file is under srcPath use srcPath as the include root; otherwise (e.g. in
+    // federated builds where the path has ../ components) use the file's own parent directory.
+    Path includeRoot = absProto.startsWith(absSrc) ? absSrc : absProto.getParent();
+
     LFCommand protoc =
         commandFactory.createCommand(
             "protoc",
-            List.of("--python_out=" + fileConfig.getSrcGenPath(), filename),
+            List.of(
+                "--python_out=" + fileConfig.getSrcGenPath(),
+                "-I" + includeRoot,
+                absProto.toString()),
             fileConfig.srcPath);
 
     if (protoc == null) {
