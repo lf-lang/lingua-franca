@@ -47,8 +47,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
+import org.lflang.generator.docker.AuthDockerGenerator;
 import org.lflang.generator.docker.DockerData;
+import org.lflang.generator.docker.FedDeploymentScriptGenerator;
 import org.lflang.generator.docker.FedDockerComposeGenerator;
+import org.lflang.generator.docker.FedKubernetesGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
@@ -60,6 +63,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -67,6 +71,7 @@ import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
@@ -210,7 +215,7 @@ public class FedGenerator {
                     }
                   });
               if (useDocker) {
-                buildUsingDocker(context, subContexts);
+                buildUsingDocker(context, subContexts, federation);
               } else {
                 generateLaunchScript();
               }
@@ -218,6 +223,22 @@ public class FedGenerator {
 
     // Compile an RTI for this federation.
     buildRtiLocally(context);
+
+    // If communication mode is SST, generate configurations for SST.
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      var isKubernetes =
+          context.getTargetConfig().get(DockerProperty.INSTANCE).deployment().equals("kubernetes");
+      var authHost =
+          ((!useDocker || isKubernetes) && federation.getHost() != null)
+              ? federation.getHost().getAddr()
+              : context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
+
+      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig, authHost);
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      TLSGenerator.setupTLS(fileConfig, federates, messageReporter, context);
+    }
 
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
@@ -229,10 +250,42 @@ public class FedGenerator {
    * @param context The main generator context.
    * @param subContexts The context for the federates.
    */
-  private void buildUsingDocker(LFGeneratorContext context, List<SubContext> subContexts) {
+  private void buildUsingDocker(
+      LFGeneratorContext context, List<SubContext> subContexts, Reactor federation) {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
+      if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+          == CommunicationMode.SST) {
+        new AuthDockerGenerator(context).generate();
+      }
+
+      // Check if deployment mode is set to "kubernetes" and confirm if the registry address is
+      // provided in lf code file
+      if (context
+          .getTargetConfig()
+          .get(DockerProperty.INSTANCE)
+          .deployment()
+          .equals("kubernetes")) {
+        if (context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress().isEmpty()) {
+          context
+              .getErrorReporter()
+              .nowhere()
+              .error(
+                  "registry-address must be set in docker options when deployment-type is"
+                      + " kubernetes");
+          return;
+        }
+
+        var kubernetesGen =
+            new FedKubernetesGenerator(
+                context, federates, rtiConfig, federation.getHost().getAddr());
+        kubernetesGen.generate();
+      }
+
+      var launchScriptGen = new FedDeploymentScriptGenerator(context);
+      launchScriptGen.generate();
+
       dockerGen.buildIfRequested();
     } catch (IOException e) {
       context
@@ -249,12 +302,24 @@ public class FedGenerator {
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
 
     var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
-    var configure =
-        LFCommand.get(
-            "cmake",
-            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
-            false,
-            fileConfig.getRtiSrcGenPath());
+
+    var configureArgs = new java.util.ArrayList<String>();
+    configureArgs.add("-Bbuild");
+    configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
+
+    // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      configureArgs.add("-DCOMM_TYPE=SST");
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      configureArgs.add("-DCOMM_TYPE=TLS");
+    }
+
+    configureArgs.add(".");
+
+    var configure = LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
+
     var build =
         LFCommand.get(
             "cmake",
@@ -557,15 +622,16 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
-    if (rtiConfig.getHost().equals("localhost")
-        && federation.getHost() != null
-        && !federation.getHost().getAddr().equals("localhost")) {
-      rtiConfig.setHost(federation.getHost().getAddr());
-    }
 
     if (rtiConfig.getHost().equals("localhost")
         && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
       rtiConfig.setHost("rti");
+    }
+
+    if (rtiConfig.getHost().equals("localhost")
+        && federation.getHost() != null
+        && !federation.getHost().getAddr().equals("localhost")) {
+      rtiConfig.setHost(federation.getHost().getAddr());
     }
   }
 

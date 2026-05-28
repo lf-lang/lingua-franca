@@ -1,0 +1,46 @@
+/**
+ * A simple federated Lingua Franca program to test TLS-based secure communication. This test
+ * verifies that the RTI and federates can successfully establish TLS connections using the
+ * automatically generated certificates and keys.
+ *
+ * Based on the DistributedCount test.
+ *
+ * @author Edward A. Lee
+ * @author Dongha Kim
+ */
+target C {
+  timeout: 5 sec,
+  coordination: centralized,
+  comm-type: TLS
+}
+
+import Count from "../lib/Count.lf"
+
+reactor Print {
+  input in: int
+  state c: int = 1
+
+  reaction(in) {=
+    interval_t elapsed_time = lf_time_logical_elapsed();
+    lf_print("At time " PRINTF_TIME ", received %d", elapsed_time, in->value);
+    if (in->value != self->c) {
+      lf_print_error_and_exit("Expected to receive %d.", self->c);
+    }
+    if (elapsed_time != MSEC(200) + SEC(1) * (self->c - 1) ) {
+      lf_print_error_and_exit("Expected received time to be " PRINTF_TIME ".", MSEC(200) * self->c);
+    }
+    self->c++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->c != 6) {
+      lf_print_error_and_exit("Expected to receive 5 items. Received %d.", self->c - 1);
+    }
+  =}
+}
+
+federated reactor DistributedCountTLS(offset: time = 200 msec) {
+  c = new Count()
+  p = new Print()
+  c.out -> p.in after offset
+}

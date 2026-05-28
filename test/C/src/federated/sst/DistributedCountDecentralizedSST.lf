@@ -1,0 +1,63 @@
+/**
+ * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication in a
+ * decentralized coordination setting.
+ *
+ * To run this test, you must specify the path to your local SST repository. You can do this by
+ * either: 1. Setting the `sst-root-path` target property in the `sst` dictionary. 2. Setting the
+ * `SST_ROOT` environment variable in your system.
+ *
+ * Based on the DistributedCountDecentralized test.
+ *
+ * @author Edward A. Lee
+ * @author Dongha Kim
+ */
+target C {
+  timeout: 5 sec,
+  coordination: decentralized,
+  comm-type: SST,
+  clock-sync: on,
+  clock-sync-options: {
+    local-federates-on: true
+  }
+}
+
+import Count from "../../lib/Count.lf"
+
+reactor Print {
+  input in: int
+  state c: int = 1
+
+  reaction(in) {=
+    interval_t elapsed_time = lf_time_logical_elapsed();
+    printf("At tag " PRINTF_TAG ", received %d. "
+         "The original intended tag of the message was " PRINTF_TAG ".\n",
+        elapsed_time,
+        lf_tag().microstep,
+        in->value,
+        (in->intended_tag.time - lf_time_start()),
+        in->intended_tag.microstep);
+    if (in->value != self->c) {
+      printf("Expected to receive %d.\n", self->c);
+      exit(1);
+    }
+    if (elapsed_time != MSEC(200) + SEC(1) * (self->c - 1)) {
+      printf("Expected received time to be " PRINTF_TIME ".\n", MSEC(200) * self->c);
+      exit(3);
+    }
+    self->c++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->c != 6) {
+      fprintf(stderr, "Expected to receive 5 items.\n");
+      exit(2);
+    }
+    printf("SUCCESS: Successfully received 5 items.\n");
+  =}
+}
+
+federated reactor DistributedCountDecentralizedSST {
+  c = new Count()
+  p = new Print()
+  c.out -> p.in after 200 msec  // Indicating a 'logical' connection with a large enough delay.
+}

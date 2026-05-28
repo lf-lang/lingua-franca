@@ -11,13 +11,17 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
+import org.lflang.federated.generator.SSTGenerator;
+import org.lflang.federated.generator.TLSGenerator;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.DNETProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.type.ClockSyncModeType.ClockSyncMode;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 
 /**
  * Utility class that can be used to create a launcher for federated LF programs.
@@ -98,6 +102,7 @@ public class FedLauncherGenerator {
     shCode.append(getSetupCode()).append("\n");
     shCode.append(getTmuxLaunchCode(federates, rtiConfig)).append("\n");
     String distHeader = getDistHeader();
+
     String host = rtiConfig.getHost();
     String target = host;
 
@@ -111,6 +116,9 @@ public class FedLauncherGenerator {
     // Launch the RTI in the foreground.
     if (host.equals("localhost") || host.equals("0.0.0.0")) {
       // FIXME: the paths below will not work on Windows
+      if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        shCode.append(getSSTAuthExecutionCode()).append("\n");
+      }
       shCode
           .append(
               getLaunchCode(getRtiCommand(fileConfig.getRtiBinPath().toString(), federates, false)))
@@ -165,6 +173,7 @@ public class FedLauncherGenerator {
                 getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
             .append("\n");
         shCode
+            // TODO: Need to fix calling rtiConfig.getDirectory() here
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
       } else {
@@ -182,7 +191,13 @@ public class FedLauncherGenerator {
               + "#### Bringing the RTI back to foreground so it can receive Control-C."
               + "\""
               + "\n");
-      shCode.append("fg %1\n");
+      if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) != CommunicationMode.SST) {
+        // RTI is job %1
+        shCode.append("fg %1\n");
+      } else {
+        // RTI is job %2 (Auth is %1)
+        shCode.append("fg %2\n");
+      }
     }
     // Wait for launched processes to finish
     shCode
@@ -270,6 +285,10 @@ public class FedLauncherGenerator {
   }
 
   private String getSetupCode() {
+    String killAuthCommand =
+        (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
+            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
+            : "";
     return String.join(
         "\n",
         "#!/bin/bash -l",
@@ -322,6 +341,7 @@ public class FedLauncherGenerator {
         "# Use two distinct traps so we can see which signal causes this.",
         "cleanup() {",
         "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
+        killAuthCommand,
         "        exit 0",
         "    else",
         "        printf \"Killing federate %s.\\n\" ${pids[*]}",
@@ -329,6 +349,7 @@ public class FedLauncherGenerator {
         "        kill ${pids[@]} || true",
         "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
         "        kill ${RTI} || true",
+        killAuthCommand,
         "        exit 1",
         "    fi",
         "}",
@@ -345,6 +366,33 @@ public class FedLauncherGenerator {
             + " with Federation ID '$FEDERATION_ID'."
             + ANSI_RESET
             + "\"");
+  }
+
+  private String getSSTAuthExecutionCode() {
+    String authLaunchCode =
+        "java -jar "
+            + fileConfig.getSSTAuthPath().toString()
+            + "/auth-server-jar-with-dependencies.jar -p "
+            + fileConfig.getSSTAuthPath().toString()
+            + "/properties/exampleAuth101.properties --password="
+            + fileConfig.name
+            + "</dev/null";
+
+    String launchCodeWithLogging = String.join(" ", authLaunchCode, ">& auth.log &");
+    String launchCodeWithoutLogging = String.join(" ", authLaunchCode, "&");
+
+    return String.join(
+        "\n",
+        "\n# Prompt for the password before starting SST Auth",
+        "echo \"Executing Auth.\"",
+        "# Launch the SST Auth.",
+        "if [ \"$1\" = \"-l\" ]; then",
+        launchCodeWithLogging,
+        "else",
+        launchCodeWithoutLogging,
+        "fi",
+        "# Store the PID of the Auth",
+        "AUTH=$!");
   }
 
   private String getDistHeader() {
@@ -369,6 +417,30 @@ public class FedLauncherGenerator {
     }
     if (targetConfig.getOrDefault(TracingProperty.INSTANCE).isEnabled()) {
       commands.add("                        -t \\");
+    }
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      String sstConfigPath;
+      if (isRemote) {
+        sstConfigPath = SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "rti.config";
+      } else {
+        sstConfigPath = SSTGenerator.getSSTConfig(fileConfig, "rti").toString();
+      }
+
+      commands.add("                        -sst " + sstConfigPath + " \\");
+    } else if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      String certPath;
+      String keyPath;
+
+      if (isRemote) {
+        certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, "rti");
+        keyPath = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, "rti");
+      } else {
+        certPath = TLSGenerator.getLocalCertPath(fileConfig, "rti").toString();
+        keyPath = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
+      }
+
+      commands.add("                        -tls " + certPath + " " + keyPath + " \\");
     }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
@@ -425,8 +497,39 @@ public class FedLauncherGenerator {
 
   private String getRemoteLaunchCode(
       Object host, Object target, String logFileName, String rtiLaunchString) {
+
+    String sstAuthLaunch = "";
+
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      String authBase = SSTGenerator.getRemoteBasePath(fileConfig, "RTI") + "/auth";
+      String authCommand =
+          "java -jar "
+              + authBase
+              + "/auth-server-jar-with-dependencies.jar -p "
+              + authBase
+              + "/properties/exampleAuth101.properties --password="
+              + fileConfig.name
+              + "</dev/null";
+
+      // Run Auth on the remote host via ssh (like RTI)
+      sstAuthLaunch =
+          String.join(
+              "\n",
+              "# Launch the SST Auth on remote host.",
+              "echo \"Executing Auth.\"",
+              "ssh " + target + " 'mkdir -p log; \\",
+              "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\",
+              "    " + authCommand + " 2>&1 | tee -a log/auth.log",
+              "' &",
+              "# Store the PID of the channel to Auth",
+              "AUTH=$!",
+              "# Wait for Auth to boot up before starting RTI/federates",
+              "sleep 2");
+    }
+
     return String.join(
         "\n",
+        sstAuthLaunch,
         "echo \""
             + ANSI_INFO
             + "#### Launching the runtime infrastructure (RTI) on remote host "
@@ -441,9 +544,9 @@ public class FedLauncherGenerator {
         "ssh " + target + " 'mkdir -p log; \\",
         "    echo \""
             + ANSI_INFO
-            + "-------------- Federation ID: \"${FEDERATION_ID}\""
+            + "-------------- Federation ID: "
             + ANSI_RESET
-            + "\" >> "
+            + "\"'$FEDERATION_ID' >> "
             + logFileName
             + "; \\",
         "    date >> " + logFileName + "; \\",
@@ -456,17 +559,6 @@ public class FedLauncherGenerator {
             + "\" 2>&1 | tee -a "
             + logFileName
             + "; \\",
-        "    # First, check if the RTI is on the PATH",
-        "    if ! command -v RTI &> /dev/null",
-        "    then",
-        "        echo \"" + ANSI_ERROR + "RTI could not be found." + ANSI_RESET + "\"",
-        "        echo \""
-            + ANSI_ERROR
-            + "The source code can be found in org.lflang/src/lib/core/federated/RTI"
-            + ANSI_RESET
-            + "\"",
-        "        exit 1",
-        "    fi",
         "    " + rtiLaunchString + " 2>&1 | tee -a " + logFileName + "' &",
         "# Store the PID of the channel to RTI",
         "RTI=$!",
@@ -492,6 +584,27 @@ public class FedLauncherGenerator {
     String remoteBuildLogFileName = logDirectory + "/build.log";
     String buildShellFileName = "build_" + name + ".sh";
     String tarFileName = name + ".tar.gz";
+
+    // ---- Add this block ----
+    String cmakeArgs = "";
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      cmakeArgs = " -DCOMM_TYPE=SST";
+    } else if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      cmakeArgs = " -DCOMM_TYPE=TLS";
+    }
+
+    // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee
+    // sends to stdout and file.
+    String buildCmdLine =
+        "echo \"rm -rf build && mkdir -p build && cd build && cmake .."
+            + cmakeArgs
+            + " && make 2>&1 | tee -a "
+            + remoteBuildLogFileName
+            + "\" >> "
+            + buildShellFileName
+            + "; ";
+
     return String.join(
         "\n",
         "echo \""
@@ -584,13 +697,7 @@ public class FedLauncherGenerator {
             + "\" >> "
             + buildShellFileName
             + "; "
-            // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee
-            // sens to stdout and file.
-            + "echo \"rm -rf build && mkdir -p build && cd build && cmake .. && make 2>&1 | tee -a "
-            + remoteBuildLogFileName
-            + "\" >> "
-            + buildShellFileName
-            + "; "
+            + buildCmdLine
             + "echo \"mv "
             + name
             + " "
@@ -624,6 +731,23 @@ public class FedLauncherGenerator {
     String runLogFileName = logDirectory + "/" + federate.name + ".log";
     String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
     String executeCommand = binDirectory + "/" + federate.name + " -i '$FEDERATION_ID'";
+
+    if (federate.targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      executeCommand =
+          executeCommand
+              + " -sst "
+              + SSTGenerator.getSSTRemoteBasePath(fileConfig, federate.name)
+              + federate.name
+              + ".config";
+    } else if (federate.targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      String certRemote =
+          "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, federate.name);
+      String keyRemote =
+          "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, federate.name);
+      executeCommand += " -tls " + certRemote + " " + keyRemote;
+    }
 
     return String.join(
         "\n",
@@ -768,6 +892,9 @@ public class FedLauncherGenerator {
     lines.add(
         "    RTI_PANE=$(tmux split-window -f -v -b -l 5 -t \"$SESSION_NAME:0\""
             + " -P -F '#{pane_id}')");
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      lines.add("    AUTH_PANE=$(tmux split-window -h -t \"$RTI_PANE\" -P -F '#{pane_id}')");
+    }
     lines.add("");
 
     // Style pane title bars with a blue background and white text.
@@ -791,6 +918,9 @@ public class FedLauncherGenerator {
     lines.add(
         "    tmux select-pane -t \"$RTI_PANE\" -T"
             + " \"RTI — Ctrl+C to stop | Ctrl+B d to detach and kill\"");
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      lines.add("    tmux select-pane -t \"$AUTH_PANE\" -T \"Auth\"");
+    }
     for (int i = 0; i < numFeds; i++) {
       lines.add(
           "    tmux select-pane -t \"$FED_PANE_" + i + "\" -T \"" + federates.get(i).name + "\"");
@@ -800,6 +930,17 @@ public class FedLauncherGenerator {
     // Launch the RTI and federates. Each federate command sleeps briefly
     // to give the RTI time to start listening before federates connect.
     lines.add("    tmux send-keys -t \"$RTI_PANE\" \"" + rtiCmd + "\" C-m");
+    if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+      String authLaunchCode =
+          "java -jar "
+              + fileConfig.getSSTAuthPath().toString()
+              + "/auth-server-jar-with-dependencies.jar -p "
+              + fileConfig.getSSTAuthPath().toString()
+              + "/properties/exampleAuth101.properties --password="
+              + fileConfig.name
+              + "</dev/null";
+      lines.add("    tmux send-keys -t \"$AUTH_PANE\" \"" + authLaunchCode + "\" C-m");
+    }
     for (int i = 0; i < numFeds; i++) {
       FederateInstance fed = federates.get(i);
       String fedCmd;

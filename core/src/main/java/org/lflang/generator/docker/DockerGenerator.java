@@ -40,6 +40,7 @@ public abstract class DockerGenerator {
     var lfModuleName = context.getFileConfig().name;
     return String.join(
         "\n",
+        generateAdditionalArguments(),
         generateHeader(),
         "FROM " + builderBase() + " AS builder",
         "WORKDIR /lingua-franca/" + lfModuleName,
@@ -53,9 +54,19 @@ public abstract class DockerGenerator {
         generateCopyOfScript(),
         generateCopyOfUserFiles(),
         generateRunForMakingExecutableDir(),
-        generateCopyOfExecutable(),
-        generateEntryPoint(),
+        generateCopyOfExecutable(), // need to add another function after this to copy the sst
+        // code?? Not sure
+        generateCopyOfCredentials(),
+        generateEntryPoint(), // need to update
         "");
+  }
+
+  protected String generateCopyOfCredentials() {
+    return "";
+  }
+
+  protected String generateAdditionalArguments() {
+    return "";
   }
 
   /** Return a RUN command for making a directory to place executables in. */

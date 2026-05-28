@@ -22,6 +22,7 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 
@@ -413,11 +414,28 @@ public class CCmakeGenerator {
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
       cMakeCode.newLine();
     }
-    if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
-      cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
-      cMakeCode.newLine();
+    if (targetConfig.isSupported(CommunicationModeProperty.INSTANCE)) {
+      if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
+        cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
+        cMakeCode.newLine();
+      }
+      if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        // If security is requested, add the auth option.
+        cMakeCode.pr("# Find OpenSSL and link to it");
+        cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+        cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+        cMakeCode.newLine();
+        // If communication mode is SST, find sst package.
+        cMakeCode.pr("# sst-c-api is already linked transitively via reactor-c.");
+      } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+        // TLS requires OpenSSL only
+        cMakeCode.pr("# Find OpenSSL for TLS support");
+        cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+        cMakeCode.pr(
+            "target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
+        cMakeCode.newLine();
+      }
     }
-
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
         && platformOptions.platform() != Platform.ZEPHYR
         && platformOptions.platform() != Platform.FLEXPRET
