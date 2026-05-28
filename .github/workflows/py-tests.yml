@@ -40,6 +40,8 @@ jobs:
       - name: Install dependencies OS X
         run: |
           brew install coreutils
+          brew install openssl
+          brew link openssl --force
         if: ${{ runner.os == 'macOS' }}
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase
@@ -61,6 +63,17 @@ jobs:
         if: ${{ inputs.reactor-c-py-ref }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
+        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
+      - name: Clone SST repository and C library for SST federated tests
+        run: |
+          git clone https://github.com/iotauth/iotauth.git iotauth
+          echo "SST_ROOT=$GITHUB_WORKSPACE/iotauth" >> $GITHUB_ENV
+          cd iotauth
+          git submodule update --init --recursive
+          cd entity/c
+          cmake -S . -B build
+          cmake --build build
+          sudo cmake --install build
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
       - name: Run Python tests
         run: ./gradlew targetTest -Ptarget=Python
