@@ -1,5 +1,6 @@
 /**
- * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication on Python target.
+ * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication on
+ * Python target.
  */
 target Python {
   timeout: 5 sec,

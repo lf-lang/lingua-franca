@@ -19,7 +19,6 @@ target C {
 }
 
 import Count from "../lib/Count.lf"
-
 import Print from "DistributedCountDecentralized.lf"
 
 federated reactor DistributedCountDecentralizedTLS {
