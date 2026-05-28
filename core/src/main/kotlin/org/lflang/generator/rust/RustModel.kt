@@ -541,8 +541,11 @@ object RustModelBuilder {
         reactors.map { processReactor(it, isInherited = false) }
 
     private fun processReactor(reactor: Reactor, isInherited: Boolean): ReactorInfo {
-        val fullReactor = if (isInherited) emptyList() else reactor.superClasses.map {it.toDefinition()}
-        val fullReactorInfos = fullReactor.map {processReactor(it, isInherited=true)}
+        val directParent= ASTUtils.superClasses(reactor)
+            .map { it.toDefinition() }
+            .distinctBy { it.name }
+
+        val fullReactorInfos = directParent.map {processReactor(it, isInherited=true)}
         val fullReactions = fullReactorInfos.flatMap { it.reactions}
 
         val components = reactor.allComponents().map { ReactorComponent.from(it) }.associateBy { it.lfName }
@@ -555,7 +558,10 @@ object RustModelBuilder {
                 .filterIsInstance<ChildPortReference>().toSet()
 
         // fullReactions + reactions allows for the inherited reactions to be ran first as react_0 will run before react_1.
-        val allReactions = ( fullReactions + reactions).mapIndexed { newIdx, info -> info.copy(idx = newIdx) }
+        // distinctBy checks if a reaction was already added during when inheriting multiple things.
+        val allReactions = ( fullReactions + reactions)
+            .distinctBy { it.loc.lfText }
+            .mapIndexed { newIdx, info -> info.copy(idx = newIdx) }
 
         return ReactorInfo(
             lfName = reactor.name,
@@ -564,16 +570,29 @@ object RustModelBuilder {
             },
             globalId = reactor.globalId,
             reactions = allReactions,
-            otherComponents = components.values.toSet()
+            otherComponents = (components.values.toSet()
                     + portReferences
-                    + fullReactorInfos.flatMap { it.otherComponents },
+                    + fullReactorInfos.flatMap { it.otherComponents })
+                .distinctBy { it.lfName }.toSet(),
             isMain = reactor.isMain,
-            typeParamList = reactor.typeParms.map { it.toTypeParamInfo() } + fullReactorInfos.flatMap { it.typeParamList },
-            preambles = reactor.preambles.map { it.code.toText() } + fullReactorInfos.flatMap { it.preambles },
-            stateVars = reactor.stateVars.map {it.toStateVar()} + fullReactorInfos.flatMap { it.stateVars },
-            nestedInstances = reactor.instantiations.map {it.toModel()} + fullReactorInfos.flatMap { it.nestedInstances },
-            connections = reactor.connections + fullReactorInfos.flatMap { it.connections },
-            ctorParams = reactor.parameters.map { it.toCtorParamInfo()} + fullReactorInfos.flatMap { it.ctorParams },
+            typeParamList = (reactor.typeParms.map<TypeParm, TypeParamInfo>{ it.toTypeParamInfo() }
+                    + fullReactorInfos.flatMap { it.typeParamList })
+                .distinctBy { it.lfName },
+            preambles = (reactor.preambles.map { it.code.toText() }
+                    + fullReactorInfos.flatMap { it.preambles })
+                .distinct(),
+            stateVars = (reactor.stateVars.map {it.toStateVar()}
+                    + fullReactorInfos.flatMap { it.stateVars })
+                .distinctBy { it.lfName },
+            nestedInstances = (reactor.instantiations.map {it.toModel()}
+                    + fullReactorInfos.flatMap { it.nestedInstances })
+                .distinctBy { it.lfName },
+            connections = (reactor.connections
+                    + fullReactorInfos.flatMap { it.connections })
+                .distinct(),
+            ctorParams = (reactor.parameters.map { it.toCtorParamInfo()}
+                    + fullReactorInfos.flatMap { it.ctorParams })
+                .distinctBy{ it.lfName },
         )
     }
 
