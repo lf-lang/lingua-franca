@@ -6,11 +6,11 @@ import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
+import org.lflang.target.property.type.BuildTypeType.BuildType;
 import org.lflang.tests.Configurators;
+import org.lflang.tests.RuntimeTest;
 import org.lflang.tests.TestRegistry.TestCategory;
 import org.lflang.tests.Transformers;
-import org.lflang.target.property.type.BuildTypeType.BuildType;
-import org.lflang.tests.RuntimeTest;
 
 /**
  * Collection of tests for the Python target.
