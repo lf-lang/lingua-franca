@@ -111,7 +111,6 @@ public abstract class RuntimeTest extends TestBase {
             // FIXME: also run the multiport tests once these are supported.
             TestCategory.MULTIPORT));
 
-
     runTestsFor(
         List.of(Target.C),
         Message.DESC_AS_FEDERATED,
