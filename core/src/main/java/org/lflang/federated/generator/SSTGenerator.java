@@ -59,11 +59,13 @@ public class SSTGenerator {
       return;
     }
 
-    for (FederateInstance federate : federates) {
-      copySSTSource(federate.name);
+    var dockerEnabled = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
+    if (dockerEnabled) {
+      for (FederateInstance federate : federates) {
+        copySSTCSource(federate.name);
+      }
+      copySstCcopySSTCSourceSource("rti");
     }
-
-    copySSTSource("rti");
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
@@ -251,10 +253,13 @@ public class SSTGenerator {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  private void copySSTSource(String name) {
+  private void copySSTCSource(String name) {
     var destDirBase = context.getFileConfig().getSrcGenPath().resolve(name).resolve("sst-src");
-    var srcDirBase =
-        Path.of(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath()).resolve("entity/c");
+    String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
+    if (sstRootPath == null || sstRootPath.isEmpty()) {
+      sstRootPath = System.getenv("SST_ROOT");
+    }
+    var srcDirBase = Path.of(sstRootPath).resolve("entity/c");
 
     try {
       // Copy the files in the src folder
