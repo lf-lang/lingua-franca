@@ -99,7 +99,7 @@ public class FedLauncherGenerator {
     // var outPath = binGenPath
     StringBuilder shCode = new StringBuilder();
     StringBuilder distCode = new StringBuilder();
-    shCode.append(getSetupCode()).append("\n");
+    shCode.append(getSetupCode(rtiConfig)).append("\n");
     shCode.append(getTmuxLaunchCode(federates, rtiConfig)).append("\n");
     String distHeader = getDistHeader();
 
@@ -173,7 +173,6 @@ public class FedLauncherGenerator {
                 getDistCode(rtiConfig.getDirectory(), federate.name, federate.user, federate.host))
             .append("\n");
         shCode
-            // TODO: Need to fix calling rtiConfig.getDirectory() here
             .append(getFedRemoteLaunchCode(rtiConfig.getDirectory(), federate, federateIndex++))
             .append("\n");
       } else {
@@ -206,7 +205,7 @@ public class FedLauncherGenerator {
                 "\n",
                 "echo \""
                     + ANSI_INFO
-                    + "RTI has exited. Wait for federates to exit."
+                    + "All components launched. Waiting for federates to complete..."
                     + ANSI_RESET
                     + "\"",
                 "# Wait for launched processes to finish.",
@@ -284,88 +283,117 @@ public class FedLauncherGenerator {
     }
   }
 
-  private String getSetupCode() {
-    String killAuthCommand =
-        (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST)
-            ? "        printf \"#### Killing Auth %s.\\n\" ${AUTH}\n        kill ${AUTH} || true"
-            : "";
+  private String getSetupCode(RtiConfig rtiConfig) {
+    String host = rtiConfig.getHost();
+    String user = rtiConfig.getUser();
+    boolean isRemote = host != null && !host.equals("localhost") && !host.equals("0.0.0.0");
+    boolean isSST =
+        targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+
+    String terminateAuthCommand = "";
+    String sstSetup = "";
+    if (isSST) {
+      if (isRemote) {
+        String target = getUserHost(user, host);
+        terminateAuthCommand =
+            "        printf \"#### Sending quit to Remote Auth...\\n\"\n"
+                + "        ssh "
+                + target
+                + " \"echo 'quit' > auth_input_${FEDERATION_ID}.fifo\" || true\n"
+                + "        ssh "
+                + target
+                + " \"rm -f auth_input_${FEDERATION_ID}.fifo\" || true";
+      } else {
+        terminateAuthCommand =
+            "        printf \"#### Sending quit to Auth...\\n\"\n"
+                + "        echo 'quit' > \"${AUTH_FIFO}\" || true\n"
+                + "        rm -f \"${AUTH_FIFO}\" || true";
+        sstSetup =
+            "\n# Create FIFO for Auth input\n"
+                + "AUTH_FIFO=\"auth_input_${FEDERATION_ID}.fifo\"\n"
+                + "mkfifo \"${AUTH_FIFO}\"\n"
+                + "exec 3<>\"${AUTH_FIFO}\"\n";
+      }
+    }
     return String.join(
-        "\n",
-        "#!/bin/bash -l",
-        "# Launcher for federated " + fileConfig.name + ".lf Lingua Franca program.",
-        "# Uncomment to specify to behave as close as possible to the POSIX standard.",
-        "# set -o posix",
-        "",
-        "# Enable job control",
-        "set -m",
-        "shopt -s huponexit",
-        "",
-        "# Parse launcher arguments.",
-        "LOG_TO_FILE=false",
-        "USE_TMUX=false",
-        "SLEEP_TIME=1",
-        "SLEEP_TIME_SET=false",
-        "REMAINING_ARGS=()",
-        "NEXT_IS_SLEEP=false",
-        "for arg in \"$@\"; do",
-        "    if [ \"$NEXT_IS_SLEEP\" = true ]; then",
-        "        SLEEP_TIME=\"$arg\"",
-        "        SLEEP_TIME_SET=true",
-        "        NEXT_IS_SLEEP=false",
-        "    elif [ \"$arg\" = \"--help\" ] || [ \"$arg\" = \"-h\" ]; then",
-        "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N] [-h|--help]"
-            + " [FEDERATE_ARGS...]\"",
-        "        echo \"\"",
-        "        echo \"Launcher options:\"",
-        "        echo \"  -l              Log federate output to files instead of stdout\"",
-        "        echo \"  -x, --tmux      Launch federates and RTI in a tmux session\"",
-        "        echo \"  -s, --sleep N   Seconds to sleep after launching RTI (default: 1,"
-            + " tmux: 2)\"",
-        "        echo \"  -h, --help      Show this help message\"",
-        "        echo \"\"",
-        "        echo \"All other arguments are forwarded to each federate.\"",
-        "        echo \"For available federate parameters, run a federate binary with --help.\"",
-        "        exit 0",
-        "    elif [ \"$arg\" = \"-l\" ]; then",
-        "        LOG_TO_FILE=true",
-        "    elif [ \"$arg\" = \"--tmux\" ] || [ \"$arg\" = \"-x\" ]; then",
-        "        USE_TMUX=true",
-        "    elif [ \"$arg\" = \"--sleep\" ] || [ \"$arg\" = \"-s\" ]; then",
-        "        NEXT_IS_SLEEP=true",
-        "    else",
-        "        REMAINING_ARGS+=(\"$arg\")",
-        "    fi",
-        "done",
-        "",
-        "# Set a trap to kill all background jobs on error or control-C",
-        "# Use two distinct traps so we can see which signal causes this.",
-        "cleanup() {",
-        "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
-        killAuthCommand,
-        "        exit 0",
-        "    else",
-        "        printf \"Killing federate %s.\\n\" ${pids[*]}",
-        "        # The || true clause means this is not an error if kill fails.",
-        "        kill ${pids[@]} || true",
-        "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
-        "        kill ${RTI} || true",
-        killAuthCommand,
-        "        exit 1",
-        "    fi",
-        "}",
-        "",
-        "trap 'cleanup; exit' EXIT",
-        "",
-        "# Create a random 48-byte text ID for this federation.",
-        "# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).",
-        "FEDERATION_ID=`openssl rand -hex 24`",
-        "echo \""
-            + ANSI_INFO
-            + "Federation "
-            + fileConfig.name
-            + " with Federation ID '$FEDERATION_ID'."
-            + ANSI_RESET
-            + "\"");
+            "\n",
+            "#!/bin/bash -l",
+            "# Launcher for federated " + fileConfig.name + ".lf Lingua Franca program.",
+            "# Uncomment to specify to behave as close as possible to the POSIX standard.",
+            "# set -o posix",
+            "",
+            "# Enable job control",
+            "set -m",
+            "shopt -s huponexit",
+            "",
+            "# Parse launcher arguments.",
+            "LOG_TO_FILE=false",
+            "USE_TMUX=false",
+            "SLEEP_TIME=1",
+            "SLEEP_TIME_SET=false",
+            "REMAINING_ARGS=()",
+            "NEXT_IS_SLEEP=false",
+            "for arg in \"$@\"; do",
+            "    if [ \"$NEXT_IS_SLEEP\" = true ]; then",
+            "        SLEEP_TIME=\"$arg\"",
+            "        SLEEP_TIME_SET=true",
+            "        NEXT_IS_SLEEP=false",
+            "    elif [ \"$arg\" = \"--help\" ] || [ \"$arg\" = \"-h\" ]; then",
+            "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N] [-h|--help]"
+                + " [FEDERATE_ARGS...]\"",
+            "        echo \"\"",
+            "        echo \"Launcher options:\"",
+            "        echo \"  -l              Log federate output to files instead of stdout\"",
+            "        echo \"  -x, --tmux      Launch federates and RTI in a tmux session\"",
+            "        echo \"  -s, --sleep N   Seconds to sleep after launching RTI (default: 1,"
+                + " tmux: 2)\"",
+            "        echo \"  -h, --help      Show this help message\"",
+            "        echo \"\"",
+            "        echo \"All other arguments are forwarded to each federate.\"",
+            "        echo \"For available federate parameters, run a federate binary with"
+                + " --help.\"",
+            "        exit 0",
+            "    elif [ \"$arg\" = \"-l\" ]; then",
+            "        LOG_TO_FILE=true",
+            "    elif [ \"$arg\" = \"--tmux\" ] || [ \"$arg\" = \"-x\" ]; then",
+            "        USE_TMUX=true",
+            "    elif [ \"$arg\" = \"--sleep\" ] || [ \"$arg\" = \"-s\" ]; then",
+            "        NEXT_IS_SLEEP=true",
+            "    else",
+            "        REMAINING_ARGS+=(\"$arg\")",
+            "    fi",
+            "done",
+            "",
+            "# Set a trap to kill all background jobs on error or control-C",
+            "# Use two distinct traps so we can see which signal causes this.",
+            "cleanup() {",
+            "    if [ \"$EXITED_SUCCESSFULLY\" = true ] ; then",
+            isSST ? terminateAuthCommand : "",
+            "        exit 0",
+            "    else",
+            "        printf \"Killing federate %s.\\n\" ${pids[*]}",
+            "        # The || true clause means this is not an error if kill fails.",
+            "        kill ${pids[@]} || true",
+            "        printf \"#### Killing RTI %s.\\n\" ${RTI}",
+            "        kill ${RTI} || true",
+            isSST ? terminateAuthCommand : "",
+            "        exit 1",
+            "    fi",
+            "}",
+            "",
+            "trap 'cleanup; exit' EXIT",
+            "",
+            "# Create a random 48-byte text ID for this federation.",
+            "# The likelihood of two federations having the same ID is 1/16,777,216 (1/2^24).",
+            "FEDERATION_ID=`openssl rand -hex 24`",
+            "echo \""
+                + ANSI_INFO
+                + "Federation "
+                + fileConfig.name
+                + " with Federation ID '$FEDERATION_ID'."
+                + ANSI_RESET
+                + "\"")
+        + sstSetup;
   }
 
   private String getSSTAuthExecutionCode() {
@@ -376,7 +404,7 @@ public class FedLauncherGenerator {
             + fileConfig.getSSTAuthPath().toString()
             + "/properties/exampleAuth101.properties --password="
             + fileConfig.name
-            + "</dev/null";
+            + " < ${AUTH_FIFO}";
 
     String launchCodeWithLogging = String.join(" ", authLaunchCode, ">& auth.log &");
     String launchCodeWithoutLogging = String.join(" ", authLaunchCode, "&");
@@ -386,7 +414,7 @@ public class FedLauncherGenerator {
         "\n# Prompt for the password before starting SST Auth",
         "echo \"Executing Auth.\"",
         "# Launch the SST Auth.",
-        "if [ \"$1\" = \"-l\" ]; then",
+        "if [ \"$LOG_TO_FILE\" = true ]; then",
         launchCodeWithLogging,
         "else",
         launchCodeWithoutLogging,
@@ -423,7 +451,7 @@ public class FedLauncherGenerator {
       if (isRemote) {
         sstConfigPath = SSTGenerator.getSSTRemoteBasePath(fileConfig, "RTI") + "rti.config";
       } else {
-        sstConfigPath = SSTGenerator.getSSTConfig(fileConfig, "rti").toString();
+        sstConfigPath = SSTGenerator.getSSTConfigPath(fileConfig, "rti").toString();
       }
 
       commands.add("                        -sst " + sstConfigPath + " \\");
@@ -433,8 +461,10 @@ public class FedLauncherGenerator {
       String keyPath;
 
       if (isRemote) {
-        certPath = "$HOME/" + TLSGenerator.getRelativeRemoteCertPath(fileConfig, "rti");
-        keyPath = "$HOME/" + TLSGenerator.getRelativeRemoteKeyPath(fileConfig, "rti");
+        certPath =
+            "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.crt";
+        keyPath =
+            "$HOME/" + TLSGenerator.getRelativeRemoteCredentialsDir(fileConfig, "RTI") + "/rti.key";
       } else {
         certPath = TLSGenerator.getLocalCertPath(fileConfig, "rti").toString();
         keyPath = TLSGenerator.getLocalKeyPath(fileConfig, "rti").toString();
@@ -509,7 +539,7 @@ public class FedLauncherGenerator {
               + authBase
               + "/properties/exampleAuth101.properties --password="
               + fileConfig.name
-              + "</dev/null";
+              + " < auth_input_'${FEDERATION_ID}'.fifo";
 
       // Run Auth on the remote host via ssh (like RTI)
       sstAuthLaunch =
@@ -518,6 +548,8 @@ public class FedLauncherGenerator {
               "# Launch the SST Auth on remote host.",
               "echo \"Executing Auth.\"",
               "ssh " + target + " 'mkdir -p log; \\",
+              "    mkfifo auth_input_'${FEDERATION_ID}'.fifo; \\",
+              "    exec 3<>auth_input_'${FEDERATION_ID}'.fifo; \\",
               "    echo \"Executing Auth: " + authCommand + "\" 2>&1 | tee -a log/auth.log; \\",
               "    " + authCommand + " 2>&1 | tee -a log/auth.log",
               "' &",
@@ -585,7 +617,6 @@ public class FedLauncherGenerator {
     String buildShellFileName = "build_" + name + ".sh";
     String tarFileName = name + ".tar.gz";
 
-    // ---- Add this block ----
     String cmakeArgs = "";
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
       cmakeArgs = " -DCOMM_TYPE=SST";
@@ -938,7 +969,7 @@ public class FedLauncherGenerator {
               + fileConfig.getSSTAuthPath().toString()
               + "/properties/exampleAuth101.properties --password="
               + fileConfig.name
-              + "</dev/null";
+              + " < ${AUTH_FIFO}";
       lines.add("    tmux send-keys -t \"$AUTH_PANE\" \"" + authLaunchCode + "\" C-m");
     }
     for (int i = 0; i < numFeds; i++) {

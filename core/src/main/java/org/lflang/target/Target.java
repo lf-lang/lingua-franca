@@ -553,8 +553,6 @@ public enum Target {
               CommunicationModeProperty.INSTANCE,
               SSTProperty.INSTANCE,
               CmakeInitIncludeProperty.INSTANCE,
-              CommunicationModeProperty.INSTANCE,
-              SSTProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CompilerProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,

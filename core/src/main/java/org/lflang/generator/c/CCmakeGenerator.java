@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.Target;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
@@ -399,16 +400,28 @@ public class CCmakeGenerator {
         break;
     }
 
+    boolean requiresOpenSSL =
+        targetConfig.get(AuthProperty.INSTANCE)
+            || (targetConfig.isSupported(CommunicationModeProperty.INSTANCE)
+                && targetConfig.isSet(CommunicationModeProperty.INSTANCE)
+                && (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST
+                    || targetConfig.get(CommunicationModeProperty.INSTANCE)
+                        == CommunicationMode.TLS));
+
+    if (requiresOpenSSL) {
+      cMakeCode.pr("if (APPLE)");
+      cMakeCode.pr("    # Apple Silicon Mac");
+      cMakeCode.pr("    if (EXISTS \"/opt/homebrew/opt/openssl\")");
+      cMakeCode.pr("        set(OPENSSL_ROOT_DIR \"/opt/homebrew/opt/openssl\")");
+      cMakeCode.pr("    # Intel Mac");
+      cMakeCode.pr("    elseif (EXISTS \"/usr/local/opt/openssl\")");
+      cMakeCode.pr("        set(OPENSSL_ROOT_DIR \"/usr/local/opt/openssl\")");
+      cMakeCode.pr("    endif()");
+      cMakeCode.pr("endif()");
+    }
+
     if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
-      var osName = System.getProperty("os.name").toLowerCase();
-      // if platform target was set, use given platform instead
-      if (platformOptions.platform() != Platform.AUTO) {
-        osName = platformOptions.platform().toString();
-      }
-      if (osName.contains("mac")) {
-        cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
-      }
       cMakeCode.pr("# Find OpenSSL and link to it");
       cMakeCode.pr("find_package(OpenSSL REQUIRED)");
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
@@ -474,8 +487,9 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // link protobuf
-    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()) {
+    // link protobuf (C only — Python handles protobuf via the Python runtime, not protobuf-c)
+    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()
+        && targetConfig.target != Target.Python) {
       cMakeCode.pr("include(FindPackageHandleStandardArgs)");
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(

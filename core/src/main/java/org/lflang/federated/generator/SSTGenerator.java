@@ -29,13 +29,20 @@ import org.lflang.util.FileUtil;
  * @author Dongha Kim
  */
 public class SSTGenerator {
-  public static void setupSST(
+  private final FederationFileConfig fileConfig;
+  private final MessageReporter messageReporter;
+  private final LFGeneratorContext context;
+
+  public SSTGenerator(
       FederationFileConfig fileConfig,
-      List<FederateInstance> federates,
       MessageReporter messageReporter,
-      LFGeneratorContext context,
-      RtiConfig rtiConfig,
-      String authHost)
+      LFGeneratorContext context) {
+    this.fileConfig = fileConfig;
+    this.messageReporter = messageReporter;
+    this.context = context;
+  }
+
+  public void setupSST(List<FederateInstance> federates, RtiConfig rtiConfig, String authHost)
       throws IOException {
     String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
     if (sstRootPath == null || sstRootPath.isEmpty()) {
@@ -53,10 +60,10 @@ public class SSTGenerator {
     }
 
     for (FederateInstance federate : federates) {
-      copySSTSource(context, federate.name);
+      copySSTSource(federate.name);
     }
 
-    copySSTSource(context, "rti");
+    copySSTSource("rti");
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTCredentialsPath().toFile());
@@ -69,8 +76,7 @@ public class SSTGenerator {
     boolean usePermanentDistKey =
         context.getTargetConfig().get(SSTProperty.INSTANCE).usePermanentDistKey();
     // Generate the graph file content
-    JsonObject graphObject =
-        SSTGenerator.generateGraphFile(federates, rtiConfig, usePermanentDistKey);
+    JsonObject graphObject = generateGraphFile(federates, rtiConfig, usePermanentDistKey);
     // Write the graph object to a JSON file
     try (FileWriter fileWriter = new FileWriter(graphPath.toString())) {
       Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -110,6 +116,8 @@ public class SSTGenerator {
             + graphPath
             + " -p "
             + fileConfig.name
+            + " --policy "
+            + policyPath
             + "\" && "
             + "./cleanAll.sh ; ./generateAll.sh -g "
             + graphPath
@@ -192,15 +200,15 @@ public class SSTGenerator {
 
     // Copy credentials.
     try {
-      SSTGenerator.copyCredentials(fileConfig, sstRepoRootPath);
+      copyCredentials(sstRepoRootPath);
       messageReporter
           .nowhere()
           .info("Credentials copied into: " + fileConfig.getSSTCredentialsPath().toString());
-      SSTGenerator.copyAuthNecessary(fileConfig, sstRepoRootPath);
+      copyAuthNecessary(sstRepoRootPath);
       messageReporter
           .nowhere()
           .info("Auth necessary files copied into: " + fileConfig.getSSTAuthPath().toString());
-      SSTGenerator.updatePropertiesFile(
+      updatePropertiesFile(
           fileConfig.getSSTAuthPath().resolve("properties"),
           fileConfig.getSSTAuthPath().toString());
     } catch (IOException e) {
@@ -211,41 +219,39 @@ public class SSTGenerator {
       try {
         Path srcGenAuthPath = context.getFileConfig().getSrcGenPath().resolve("auth");
         FileUtil.copyDirectoryContents(fileConfig.getSSTAuthPath(), srcGenAuthPath, false);
-        SSTGenerator.updatePropertiesFile(srcGenAuthPath.resolve("properties"), "/auth");
+        updatePropertiesFile(srcGenAuthPath.resolve("properties"), "/auth");
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
     }
 
-    // Generate SST config for the rti.
-    SSTGenerator.generateSSTConfig(
-        fileConfig, "rti", rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
+    // Generate SST config for the RTI.
+    generateSSTConfig("rti", rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
     messageReporter
         .nowhere()
-        .info(
-            "Generated RTI's SST config into: "
-                + SSTGenerator.getSSTConfig(fileConfig, "rti").toString());
+        .info("Generated RTI's SST config into: " + getSSTConfigPath(fileConfig, "rti").toString());
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      SSTGenerator.generateSSTConfig(
-          fileConfig, federate.name, rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
+      generateSSTConfig(
+          federate.name, rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
       messageReporter
           .nowhere()
           .info(
               "Federate generated SST config into: "
-                  + SSTGenerator.getSSTConfig(fileConfig, federate.name).toString());
+                  + getSSTConfigPath(fileConfig, federate.name).toString());
     }
 
-    // Copy the configs and credentials of rti and federates, to the src-gen for tar deployments.
-    SSTGenerator.copyAuthAndConfigsAndKeys(fileConfig, federates, usePermanentDistKey, useDocker);
+    // Copy the configs and credentials of rti and federates, to the src-gen for tar
+    // deployments.
+    copyAuthAndConfigsAndKeys(federates, usePermanentDistKey, useDocker);
   }
 
-  public static Path getSSTConfig(FederationFileConfig fileConfig, String name) {
+  public static Path getSSTConfigPath(FederationFileConfig fileConfig, String name) {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  private static void copySSTSource(LFGeneratorContext context, String name) {
+  private void copySSTSource(String name) {
     var destDirBase = context.getFileConfig().getSrcGenPath().resolve(name).resolve("sst-src");
     var srcDirBase =
         Path.of(context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath()).resolve("entity/c");
@@ -280,13 +286,8 @@ public class SSTGenerator {
     }
   }
 
-  private static void generateSSTConfig(
-      FederationFileConfig fileConfig,
-      String name,
-      String rtiIP,
-      String authIP,
-      boolean useDocker,
-      boolean usePermanentDistKey) {
+  private void generateSSTConfig(
+      String name, String rtiIP, String authIP, boolean useDocker, boolean usePermanentDistKey) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
@@ -403,7 +404,7 @@ public class SSTGenerator {
     }
   }
 
-  private static JsonObject generateGraphFile(
+  private JsonObject generateGraphFile(
       List<FederateInstance> federateInstances, RtiConfig rtiConfig, boolean usePermanentDistKey) {
     JsonObject graphObject = new JsonObject();
 
@@ -438,10 +439,13 @@ public class SSTGenerator {
     // File sharing lists (empty for this example)
     graphObject.add("filesharingLists", new JsonArray());
 
+    // Privilege list (empty for this example)
+    graphObject.add("privilegeList", new JsonArray());
+
     return graphObject;
   }
 
-  private static JsonObject createGroupPolicy(
+  private JsonObject createGroupPolicy(
       String requestingGroup,
       String targetType,
       String target,
@@ -458,11 +462,14 @@ public class SSTGenerator {
     o.addProperty("SessionCryptoSpec", sessionCryptoSpec);
     o.addProperty("AbsoluteValidity", absoluteValidity);
     o.addProperty("RelativeValidity", relativeValidity);
+    o.addProperty("Expiration", "Infinity");
+    o.addProperty("IsDelegated", 0);
     return o;
   }
 
-  // Creates the policy JSON array to be passed to authConfigGenerator.js via --policy <file>.
-  private static JsonArray generateCommunicationPolicy() {
+  // Creates the policy JSON array to be passed to authConfigGenerator.js via
+  // --policy <file>.
+  private JsonArray generateCommunicationPolicy() {
     JsonArray policies = new JsonArray();
 
     policies.add(
@@ -475,7 +482,7 @@ public class SSTGenerator {
     return policies;
   }
 
-  private static JsonObject createAuthEntry(
+  private JsonObject createAuthEntry(
       int id,
       String entityHost,
       String authHost,
@@ -500,7 +507,7 @@ public class SSTGenerator {
     return authEntry;
   }
 
-  private static JsonArray createEntityList(
+  private JsonArray createEntityList(
       List<FederateInstance> federateInstances, RtiConfig rtiConfig, boolean usePermanentDistKey) {
     JsonArray entityList = new JsonArray();
 
@@ -516,12 +523,13 @@ public class SSTGenerator {
       JsonObject entity =
           createEntity(
               "Federates", "net1." + federateName, "Net1." + federateName, usePermanentDistKey);
+      entity.addProperty("host", federate.host);
       entityList.add(entity);
     }
     return entityList;
   }
 
-  private static JsonObject createEntity(
+  private JsonObject createEntity(
       String group, String name, String credentialPrefix, boolean usePermanentDistKey) {
     JsonObject entity = new JsonObject();
     entity.addProperty("group", group);
@@ -549,8 +557,7 @@ public class SSTGenerator {
     return entity;
   }
 
-  private static void copyCredentials(FederationFileConfig fileConfig, Path sstRepoRootPath)
-      throws IOException {
+  private void copyCredentials(Path sstRepoRootPath) throws IOException {
     // Copy auth_certs.
     Path source1 = sstRepoRootPath.resolve("entity").resolve("auth_certs");
     Path destination1 = fileConfig.getSSTCredentialsPath().resolve("auth_certs");
@@ -562,8 +569,7 @@ public class SSTGenerator {
     FileUtil.copyDirectoryContents(source2, destination2, false);
   }
 
-  private static void copyAuthNecessary(FederationFileConfig fileConfig, Path sstRepoRootPath)
-      throws IOException {
+  private void copyAuthNecessary(Path sstRepoRootPath) throws IOException {
     // Copy Auth credentials.
     Path source1 = sstRepoRootPath.resolve("auth").resolve("credentials").resolve("ca");
     Path destination1 = fileConfig.getSSTAuthPath().resolve("credentials").resolve("ca");
@@ -595,11 +601,12 @@ public class SSTGenerator {
   /**
    * Update all .properties files under the given propertiesDir.
    *
-   * @param propertiesDir Path to the ".../sst/auth/properties" directory (parent path only).
-   * @param updateBasePath new base path to use for replacement (must point to ".../sst/auth/" or ".../RTI/auth/")
+   * @param propertiesDir  Path to the ".../sst/auth/properties" directory (parent
+   *                       path only).
+   * @param updateBasePath new base path to use for replacement (must point to
+   *                       ".../sst/auth/" or ".../RTI/auth/")
    */
-  private static void updatePropertiesFile(Path propertiesDir, String updateBasePath)
-      throws IOException {
+  private void updatePropertiesFile(Path propertiesDir, String updateBasePath) throws IOException {
     if (propertiesDir == null) {
       throw new IllegalArgumentException("propertiesDir must not be null");
     }
@@ -640,14 +647,14 @@ public class SSTGenerator {
     }
   }
 
-  private static String updatePath(String line, String base) {
+  private String updatePath(String line, String base) {
     int idx = line.indexOf('=');
     if (idx < 0) return line;
 
     String key = line.substring(0, idx + 1);
     String value = line.substring(idx + 1);
 
-    // Case 1: relative "../..."  -> just strip "../"
+    // Case 1: relative "../..." -> just strip "../"
     if (value.startsWith("../")) {
       return key + base + value.substring("../".length());
     }
@@ -664,11 +671,8 @@ public class SSTGenerator {
     return line;
   }
 
-  private static void copyAuthAndConfigsAndKeys(
-      FederationFileConfig fileConfig,
-      List<FederateInstance> federates,
-      boolean usePermanentDistKey,
-      boolean useDocker)
+  private void copyAuthAndConfigsAndKeys(
+      List<FederateInstance> federates, boolean usePermanentDistKey, boolean useDocker)
       throws IOException {
     // 1. Copy Auth to RTI directory.
     Path auth_src = fileConfig.getSSTAuthPath();
@@ -676,9 +680,8 @@ public class SSTGenerator {
     FileUtil.copyDirectoryContents(auth_src, rti_src, false);
 
     // Update the copied properties to the remote base.
-    SSTGenerator.updatePropertiesFile(
-        rti_src.resolve("properties"),
-        SSTGenerator.getRelativeRemoteBasePath(fileConfig, "RTI") + "/auth/");
+    updatePropertiesFile(
+        rti_src.resolve("properties"), getRelativeRemoteBasePath("RTI") + "/auth/");
 
     // 2. Copy Configs and Keys to src-gen of federates and RTIs.
     Path credentialsRoot = fileConfig.getSSTCredentialsPath(); // .../sst/credentials
@@ -767,7 +770,7 @@ public class SSTGenerator {
 
       // 4) Update the copied configs to the remote base.
       if (!useDocker) {
-        SSTGenerator.updateConfigFile(
+        updateConfigFile(
             dst.resolve(federate.name + ".config"),
             fileConfig.name + "/" + federate.name + "/sst/");
       }
@@ -845,12 +848,11 @@ public class SSTGenerator {
 
     // 4) Update the copied configs to the remote base.
     if (!useDocker) {
-      SSTGenerator.updateConfigFile(
-          rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath(fileConfig, "RTI"));
+      updateConfigFile(rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath("RTI"));
     }
   }
 
-  private static void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
+  private void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
     if (fileToUpdate == null) throw new IllegalArgumentException("fileToUpdate is null");
     if (newBasePath == null || newBasePath.isBlank())
       throw new IllegalArgumentException("newBasePath is null/blank");
@@ -885,8 +887,7 @@ public class SSTGenerator {
     }
   }
 
-  private static String replaceConfigPathBaseKeepTail(
-      String fullLine, String keyPrefix, String base) {
+  private String replaceConfigPathBaseKeepTail(String fullLine, String keyPrefix, String base) {
     String value = fullLine.substring(keyPrefix.length()).trim().replace("\\", "/");
 
     int idx = value.indexOf("credentials/");
@@ -908,13 +909,11 @@ public class SSTGenerator {
     return getRemoteBasePath(fileConfig, entityName) + "/sst/";
   }
 
-  private static String getRelativeRemoteBasePath(
-      FederationFileConfig fileConfig, String entityName) {
+  private String getRelativeRemoteBasePath(String entityName) {
     return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName;
   }
 
-  private static String getRelativeSSTRemoteBasePath(
-      FederationFileConfig fileConfig, String entityName) {
+  private String getRelativeSSTRemoteBasePath(String entityName) {
     return "LinguaFrancaRemote/" + fileConfig.name + "/" + entityName + "/sst/";
   }
 }

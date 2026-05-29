@@ -224,7 +224,8 @@ public class FedGenerator {
     // Compile an RTI for this federation.
     buildRtiLocally(context);
 
-    // If communication mode is SST, generate configurations for SST.
+    // Generate SST configurations/credentials or TLS credentials depending on the
+    // mode.
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       var isKubernetes =
@@ -234,10 +235,11 @@ public class FedGenerator {
               ? federation.getHost().getAddr()
               : context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
 
-      SSTGenerator.setupSST(fileConfig, federates, messageReporter, context, rtiConfig, authHost);
+      new SSTGenerator(fileConfig, messageReporter, context)
+          .setupSST(federates, rtiConfig, authHost);
     } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
-      TLSGenerator.setupTLS(fileConfig, federates, messageReporter, context);
+      new TLSGenerator(fileConfig, messageReporter, context).setupTLS(federates);
     }
 
     context.finish(Status.COMPILED, codeMapMap);
@@ -307,7 +309,8 @@ public class FedGenerator {
     configureArgs.add("-Bbuild");
     configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
 
-    // If communication mode is SST, the RTI must be built with -DCOMM_TYPE=SST.
+    // If communication mode is SST or TLS, the RTI must be built with -DCOMM_TYPE=SST or
+    // -DCOMM_TYPE=TLS.
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       configureArgs.add("-DCOMM_TYPE=SST");
@@ -622,16 +625,19 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
-
     if (rtiConfig.getHost().equals("localhost")
         && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
       rtiConfig.setHost("rti");
     }
 
-    if (rtiConfig.getHost().equals("localhost")
-        && federation.getHost() != null
-        && !federation.getHost().getAddr().equals("localhost")) {
-      rtiConfig.setHost(federation.getHost().getAddr());
+    if (federation.getHost() != null) {
+      if (rtiConfig.getHost().equals("localhost")
+          && !federation.getHost().getAddr().equals("localhost")) {
+        rtiConfig.setHost(federation.getHost().getAddr());
+      }
+      if (rtiConfig.getUser() == null) {
+        rtiConfig.setUser(federation.getHost().getUser());
+      }
     }
   }
 

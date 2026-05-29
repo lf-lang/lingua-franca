@@ -13,33 +13,42 @@ import org.lflang.util.FileUtil;
 /**
  * TLS related methods (cert/key generation + copy to src-gen).
  *
- * - Generate cert+key for RTI and each federate into: fed-gen/[program]/credentials/[name]/
+ * - Generate cert+key for RTI and each federate into:
+ * fed-gen/[program]/credentials/[name]/
  * - Copy only the needed pair into: src-gen/[entity]/credentials/
  */
 public class TLSGenerator {
+  private final FederationFileConfig fileConfig;
+  private final MessageReporter messageReporter;
+  private final LFGeneratorContext context;
+
+  public TLSGenerator(
+      FederationFileConfig fileConfig,
+      MessageReporter messageReporter,
+      LFGeneratorContext context) {
+    this.fileConfig = fileConfig;
+    this.messageReporter = messageReporter;
+    this.context = context;
+  }
 
   /** Entry point called from generator when comm-type is TLS. */
-  public static void setupTLS(
-      FederationFileConfig fileConfig,
-      List<FederateInstance> federates,
-      MessageReporter messageReporter,
-      LFGeneratorContext context)
-      throws IOException {
+  public void setupTLS(List<FederateInstance> federates) throws IOException {
 
-    // 1) Generate cert/key for RTI + each federate into fed-gen/[program]/credentials
+    // 1) Generate cert/key for RTI + each federate into
+    // fed-gen/[program]/credentials
     Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/[program]/credentials
     Files.createDirectories(credentialsRoot);
 
     // RTI
-    generateEntityCertAndKey(credentialsRoot, "rti", messageReporter);
+    generateEntityCertAndKey(credentialsRoot, "rti");
 
     // Federates
     for (FederateInstance fed : federates) {
-      generateEntityCertAndKey(credentialsRoot, fed.name, messageReporter);
+      generateEntityCertAndKey(credentialsRoot, fed.name);
     }
 
     // 2) Copy into src-gen for tar deployments (only what each needs)
-    copyTLSCredentialsToSrcGen(fileConfig, federates, credentialsRoot);
+    copyTLSCredentialsToSrcGen(federates, credentialsRoot);
   }
 
   /** fed-gen/[program]/credentials */
@@ -85,9 +94,12 @@ public class TLSGenerator {
   // internals
   // ------------------------------------------------------------
 
-  /** Generate a self-signed cert+key for one entity under credentialsRoot/<entityName>/ */
-  private static void generateEntityCertAndKey(
-      Path credentialsRoot, String entityName, MessageReporter reporter) throws IOException {
+  /**
+   * Generate a self-signed cert+key for one entity under
+   * credentialsRoot/<entityName>/
+   */
+  private void generateEntityCertAndKey(Path credentialsRoot, String entityName)
+      throws IOException {
     Path dir = credentialsRoot.resolve(entityName);
     Files.createDirectories(dir);
 
@@ -95,7 +107,7 @@ public class TLSGenerator {
     Path crt = dir.resolve(entityName + ".crt");
 
     // Using openssl to generate:
-    //   - RSA 2048 key (unencrypted) + self-signed cert, CN=<entityName>
+    // - RSA 2048 key (unencrypted) + self-signed cert, CN=<entityName>
     // NOTE: Use unix paths in the shell command.
     String keyStr = FileUtil.toUnixString(key);
     String crtStr = FileUtil.toUnixString(crt);
@@ -112,16 +124,17 @@ public class TLSGenerator {
             + "-subj "
             + shellEscape("/CN=" + entityName);
 
-    reporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
-    runLocalCommand(cmd, reporter, "[TLS Gen " + entityName + "]");
-    reporter.nowhere().info("Successfully generated TLS credentials for " + entityName + ".");
+    messageReporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
+    runLocalCommand(cmd, "[TLS Gen " + entityName + "]");
+    messageReporter
+        .nowhere()
+        .info("Successfully generated TLS credentials for " + entityName + ".");
   }
 
-  private static void copyTLSCredentialsToSrcGen(
-      FederationFileConfig fileConfig, List<FederateInstance> federates, Path credentialsRoot)
+  private void copyTLSCredentialsToSrcGen(List<FederateInstance> federates, Path credentialsRoot)
       throws IOException {
 
-    // Federates: src-gen/<fed>/credentials/  (copy only that fed's key+cert)
+    // Federates: src-gen/<fed>/credentials/ (copy only that fed's key+cert)
     for (FederateInstance fed : federates) {
       Path dst = fileConfig.getSrcGenPath().resolve(fed.name).resolve("credentials");
       Files.createDirectories(dst);
@@ -146,8 +159,7 @@ public class TLSGenerator {
     FileUtil.copyDirectoryContents(rtiSrcDir, rtiDst, false);
   }
 
-  private static void runLocalCommand(String bashCommand, MessageReporter reporter, String tag)
-      throws IOException {
+  private void runLocalCommand(String bashCommand, String tag) throws IOException {
     ProcessBuilder pb = new ProcessBuilder("bash", "-c", bashCommand);
     pb.redirectErrorStream(true);
     Process p = pb.start();
@@ -159,7 +171,7 @@ public class TLSGenerator {
         if (line.matches("^[\\.\\+\\*\\- ]+$")) {
           continue;
         }
-        reporter.nowhere().info(tag + " " + line);
+        messageReporter.nowhere().info(tag + " " + line);
       }
     }
 

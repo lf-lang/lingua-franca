@@ -58,8 +58,9 @@ jobs:
         run: |
           git clone https://github.com/iotauth/iotauth.git iotauth
           echo "SST_ROOT=$GITHUB_WORKSPACE/iotauth" >> $GITHUB_ENV
-          git clone https://github.com/iotauth/sst-c-api.git sst-c-api
-          cd sst-c-api
+          cd iotauth
+          git submodule update --init --recursive
+          cd entity/c
           cmake -S . -B build
           cmake --build build
           sudo cmake --install build
