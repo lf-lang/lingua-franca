@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -179,7 +180,8 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
         "# so that these names will be assumed present without having to compile and install.",
         "# pylint: disable=no-name-in-module, import-error",
         "from " + pyModuleName + " import (",
-        "    Tag, action_capsule_t, port_capsule, request_stop, start",
+        "    Tag, action_capsule_t, port_capsule, get_fed_maxwait, request_stop, set_fed_maxwait,"
+            + " start",
         ")",
         "# pylint: disable=c-extension-no-member",
         "import " + pyModuleName + " as lf",
@@ -284,8 +286,10 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   protected void handleProtoFiles() {
     for (String name : targetConfig.get(ProtobufsProperty.INSTANCE)) {
       this.processProtoFile(name);
-      int dotIndex = name.lastIndexOf(".");
-      String rootFilename = dotIndex > 0 ? name.substring(0, dotIndex) : name;
+      // Extract just the basename (no directory, no extension) for the Python import statement.
+      String basename = Paths.get(name).getFileName().toString();
+      int dotIndex = basename.lastIndexOf(".");
+      String rootFilename = dotIndex > 0 ? basename.substring(0, dotIndex) : basename;
       pythonPreamble.pr("import " + rootFilename + "_pb2 as " + rootFilename);
       protoNames.add(rootFilename);
     }
@@ -301,10 +305,23 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
    */
   @Override
   public void processProtoFile(String filename) {
+    var protoPath = Paths.get(filename);
+    var absProto =
+        (protoPath.isAbsolute() ? protoPath : fileConfig.srcPath.resolve(protoPath))
+            .toAbsolutePath()
+            .normalize();
+    var absSrc = fileConfig.srcPath.toAbsolutePath().normalize();
+    // If the proto file is under srcPath use srcPath as the include root; otherwise (e.g. in
+    // federated builds where the path has ../ components) use the file's own parent directory.
+    Path includeRoot = absProto.startsWith(absSrc) ? absSrc : absProto.getParent();
+
     LFCommand protoc =
         commandFactory.createCommand(
             "protoc",
-            List.of("--python_out=" + fileConfig.getSrcGenPath(), filename),
+            List.of(
+                "--python_out=" + fileConfig.getSrcGenPath(),
+                "-I" + includeRoot,
+                absProto.toString()),
             fileConfig.srcPath);
 
     if (protoc == null) {
@@ -313,7 +330,7 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
     }
     int returnCode = protoc.run();
     if (returnCode == 0) {
-      pythonRequiredModules.add("google-api-python-client");
+      pythonRequiredModules.add("protobuf");
     } else {
       messageReporter.nowhere().error("protoc returns error code " + returnCode);
     }

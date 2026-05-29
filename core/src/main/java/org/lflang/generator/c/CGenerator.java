@@ -14,6 +14,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -1684,26 +1685,102 @@ public class CGenerator extends GeneratorBase {
    * <p>Run, if possible, the proto-c protocol buffer code generator to produce the required .h and
    * .c files.
    *
+   * <p>The path of a .proto file relative to its include root is preserved in the names of the
+   * generated .pb-c.c and .pb-c.h files (mirroring protoc-c's own output convention). This
+   * prevents two .proto files with the same basename in different subdirectories from clobbering
+   * each other and keeps the {@code #include} directives in sync with the actual file locations.
+   *
    * @param filename Name of the file to process.
    */
   public void processProtoFile(String filename) {
-    var protoc =
-        commandFactory.createCommand(
-            "protoc-c",
-            List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
-            fileConfig.srcPath);
+    var info = resolveProtoFile(filename);
+    var generatedCAbs = fileConfig.getSrcGenPath().resolve(info.generatedBase() + ".pb-c.c");
+    var parent = generatedCAbs.getParent();
+    if (parent != null) {
+      try {
+        Files.createDirectories(parent);
+      } catch (IOException e) {
+        messageReporter
+            .nowhere()
+            .error("Could not create output directory for protobuf generation: " + e.getMessage());
+        return;
+      }
+    }
+    var protocArgs = new ArrayList<String>();
+    protocArgs.add("--c_out=" + this.fileConfig.getSrcGenPath());
+    protocArgs.add("-I" + info.includeRoot());
+    protocArgs.add(info.includeRoot().resolve(info.relativeProto()).toString());
+    var protoc = commandFactory.createCommand("protoc-c", protocArgs, fileConfig.srcPath);
     if (protoc == null) {
       messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
     }
     var returnCode = protoc.run();
     if (returnCode == 0) {
-      var nameSansProto = filename.substring(0, filename.length() - 6);
-      targetConfig.compileAdditionalSources.add(
-          fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
+      targetConfig.compileAdditionalSources.add(generatedCAbs.toString());
     } else {
       messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
+  }
+
+  /**
+   * Information about a .proto file resolved against a stable include root.
+   *
+   * @param includeRoot Directory passed to {@code protoc-c} via {@code -I}.
+   * @param relativeProto Path of the .proto file relative to {@code includeRoot} (including the
+   *     {@code .proto} extension).
+   * @param generatedBase Path of the generated files relative to {@code srcGenPath}, without any
+   *     extension (e.g. {@code "sub/Foo"} for {@code "sub/Foo.proto"}). Always uses {@code /} as
+   *     the separator so it can be embedded directly in {@code #include} directives.
+   */
+  private record ProtoFileInfo(Path includeRoot, Path relativeProto, String generatedBase) {}
+
+  /**
+   * Resolve a .proto filename (as listed in the {@code protobufs} target property) into an include
+   * root and a relative path.
+   *
+   * <p>If the .proto file is located under the LF source directory, that directory is used as the
+   * include root and the subdirectory structure is preserved in the generated files. Otherwise
+   * (e.g. an absolute path, or a relative path with {@code ..} components pointing outside
+   * {@code srcPath} as happens in federated builds), the file's own parent directory is used as
+   * the include root and only the basename is preserved. This keeps {@code protoc-c}'s output
+   * path in sync with the {@code #include} directives we generate.
+   */
+  private ProtoFileInfo resolveProtoFile(String filename) {
+    var protoPath = Paths.get(filename);
+    var absProto =
+        (protoPath.isAbsolute() ? protoPath : fileConfig.srcPath.resolve(protoPath))
+            .toAbsolutePath()
+            .normalize();
+    var absSrc = fileConfig.srcPath.toAbsolutePath().normalize();
+
+    Path includeRoot;
+    Path relativeProto;
+    if (absProto.startsWith(absSrc)) {
+      includeRoot = absSrc;
+      relativeProto = absSrc.relativize(absProto);
+    } else {
+      includeRoot = absProto.getParent();
+      relativeProto = Paths.get(absProto.getFileName().toString());
+    }
+
+    var leaf = relativeProto.getFileName().toString();
+    if (leaf.endsWith(".proto")) {
+      leaf = leaf.substring(0, leaf.length() - ".proto".length());
+    }
+    var parent = relativeProto.getParent();
+    var generatedBase =
+        (parent == null ? leaf : parent.resolve(leaf).toString()).replace(File.separatorChar, '/');
+    return new ProtoFileInfo(includeRoot, relativeProto, generatedBase);
+  }
+
+  /**
+   * Return the path (without extension) of the generated protobuf-c files for a given .proto
+   * filename, relative to {@code srcGenPath}. Uses forward slashes so the result can be embedded
+   * directly in {@code #include} directives.
+   */
+  private String protoIncludeBase(String filename) {
+    return resolveProtoFile(filename).generatedBase();
   }
 
   /**
@@ -2251,12 +2328,7 @@ public class CGenerator extends GeneratorBase {
 
     // Also generate includes for all the .proto files that are used.
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      var dotIndex = file.lastIndexOf(".");
-      var rootFilename = file;
-      if (dotIndex > 0) {
-        rootFilename = file.substring(0, dotIndex);
-      }
-      builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+      builder.pr("#include " + addDoubleQuotes(protoIncludeBase(file) + ".pb-c.h"));
     }
 
     builder.pr("#endif // " + guard);
