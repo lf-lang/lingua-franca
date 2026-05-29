@@ -19,6 +19,7 @@ import java.util.List;
 import org.lflang.MessageReporter;
 import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.SSTProperty;
 import org.lflang.util.FileUtil;
 
@@ -41,7 +42,8 @@ public class SSTGenerator {
     this.context = context;
   }
 
-  public void setupSST(List<FederateInstance> federates, RtiConfig rtiConfig) throws IOException {
+  public void setupSST(List<FederateInstance> federates, RtiConfig rtiConfig, String authHost)
+      throws IOException {
     String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
     if (sstRootPath == null || sstRootPath.isEmpty()) {
       sstRootPath = System.getenv("SST_ROOT");
@@ -55,6 +57,14 @@ public class SSTGenerator {
               "`comm-type: SST` requires a path to the SST repository. Please either set the"
                   + " `sst-root-path` target property or set the `SST_ROOT` environment variable.");
       return;
+    }
+
+    var dockerEnabled = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
+    if (dockerEnabled) {
+      for (FederateInstance federate : federates) {
+        copySSTCSource(federate.name);
+      }
+      copySstCcopySSTCSourceSource("rti");
     }
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
@@ -206,16 +216,27 @@ public class SSTGenerator {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
+    if (useDocker) {
+      try {
+        Path srcGenAuthPath = context.getFileConfig().getSrcGenPath().resolve("auth");
+        FileUtil.copyDirectoryContents(fileConfig.getSSTAuthPath(), srcGenAuthPath, false);
+        updatePropertiesFile(srcGenAuthPath.resolve("properties"), "/auth");
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
     // Generate SST config for the RTI.
-    generateSSTConfig("rti", rtiConfig.getHost(), usePermanentDistKey);
+    generateSSTConfig("rti", rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
     messageReporter
         .nowhere()
         .info("Generated RTI's SST config into: " + getSSTConfigPath(fileConfig, "rti").toString());
 
     // Generate SST config for the federates.
     for (FederateInstance federate : federates) {
-      generateSSTConfig(federate.name, rtiConfig.getHost(), usePermanentDistKey);
+      generateSSTConfig(
+          federate.name, rtiConfig.getHost(), authHost, useDocker, usePermanentDistKey);
       messageReporter
           .nowhere()
           .info(
@@ -225,31 +246,74 @@ public class SSTGenerator {
 
     // Copy the configs and credentials of rti and federates, to the src-gen for tar
     // deployments.
-    copyAuthAndConfigsAndKeys(federates, usePermanentDistKey);
+    copyAuthAndConfigsAndKeys(federates, usePermanentDistKey, useDocker);
   }
 
   public static Path getSSTConfigPath(FederationFileConfig fileConfig, String name) {
     return fileConfig.getSSTConfigPath().resolve(name + ".config");
   }
 
-  private void generateSSTConfig(String name, String authAndRtiIP, boolean usePermanentDistKey) {
+  private void copySSTCSource(String name) {
+    var destDirBase = context.getFileConfig().getSrcGenPath().resolve(name).resolve("sst-src");
+    String sstRootPath = context.getTargetConfig().get(SSTProperty.INSTANCE).rootPath();
+    if (sstRootPath == null || sstRootPath.isEmpty()) {
+      sstRootPath = System.getenv("SST_ROOT");
+    }
+    var srcDirBase = Path.of(sstRootPath).resolve("entity/c");
+
+    try {
+      // Copy the files in the src folder
+      var destDir = destDirBase.resolve("src");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      var srcDir = srcDirBase.resolve("src");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // Copy the test files
+      destDir = destDirBase.resolve("tests");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("tests");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // copy cmake
+      destDir = destDirBase.resolve("cmake");
+      FileUtil.createDirectoryIfDoesNotExist(destDir.toFile());
+      srcDir = srcDirBase.resolve("cmake");
+      FileUtil.copyDirectoryContents(srcDir, destDir, false);
+
+      // copy CMakeLists.txt
+      FileUtil.copyFile(
+          srcDirBase.resolve("CMakeLists.txt"), destDirBase.resolve("CMakeLists.txt"));
+    } catch (IOException e) {
+      context
+          .getErrorReporter()
+          .nowhere()
+          .error("Error while copying sst files: " + e.getMessage());
+    }
+  }
+
+  private void generateSSTConfig(
+      String name, String rtiIP, String authIP, boolean useDocker, boolean usePermanentDistKey) {
     // Values to fill in
     String entityName = "net1." + name;
     int authID = 101;
     String sessionkey_encryptionMode = "AES_128_CBC";
     int hmacMode = 1;
     String pubkeyRoot =
-        fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString()
-            + File.separator
-            + "Auth"
-            + authID
-            + "EntityCert.pem";
+        useDocker
+            ? "sst/credentials/auth_certs/Auth101EntityCert.pem"
+            : fileConfig.getSSTCredentialsPath().resolve("auth_certs").toString()
+                + File.separator
+                + "Auth"
+                + authID
+                + "EntityCert.pem";
     String privkeyRoot =
-        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
-            + File.separator
-            + "Net1."
-            + name
-            + "Key.pem";
+        useDocker
+            ? "sst/credentials/keys/net1/Net1." + name + "Key.pem"
+            : fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+                + File.separator
+                + "Net1."
+                + name
+                + "Key.pem";
     String cipherkeyRoot =
         fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
             + File.separator
@@ -262,12 +326,13 @@ public class SSTGenerator {
             + "Net1."
             + name
             + "MacKey.key";
-    if ("localhost".equals(authAndRtiIP)) {
-      authAndRtiIP = "127.0.0.1";
+    if ("localhost".equals(rtiIP)) {
+      rtiIP = "127.0.0.1";
+      authIP = "127.0.0.1";
     }
-    String authIpAddress = authAndRtiIP;
+    String authIpAddress = authIP;
     int authPortNumber = 21900;
-    String entityServerIpAddress = authAndRtiIP;
+    String entityServerIpAddress = rtiIP;
     int entityServerPortNumber = 15045;
     String networkProtocol = "TCP";
 
@@ -612,7 +677,8 @@ public class SSTGenerator {
   }
 
   private void copyAuthAndConfigsAndKeys(
-      List<FederateInstance> federates, boolean usePermanentDistKey) throws IOException {
+      List<FederateInstance> federates, boolean usePermanentDistKey, boolean useDocker)
+      throws IOException {
     // 1. Copy Auth to RTI directory.
     Path auth_src = fileConfig.getSSTAuthPath();
     Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
@@ -659,6 +725,17 @@ public class SSTGenerator {
         Path macKeyRel = credentialsRoot.relativize(macKeyFile);
         Path macKeyDst = dstCredentialsRoot.resolve(macKeyRel);
         FileUtil.copyFile(macKeyFile, macKeyDst);
+
+        // Also copy the .pem private key — needed for auth server authentication
+        String pemKeySuffix = federate.name + "Key.pem";
+        List<Path> pemKeyMatches = FileUtil.globFilesEndsWith(keysRoot, pemKeySuffix);
+        if (!pemKeyMatches.isEmpty()) {
+          Path pemKeyFile = pemKeyMatches.get(0);
+          Path pemKeyRel = credentialsRoot.relativize(pemKeyFile);
+          Path pemKeyDst = dstCredentialsRoot.resolve(pemKeyRel);
+          Files.createDirectories(pemKeyDst.getParent());
+          FileUtil.copyFile(pemKeyFile, pemKeyDst, false);
+        }
       } else {
         String keySuffix = federate.name + "Key.pem";
         List<Path> keyMatches = FileUtil.globFilesEndsWith(keysRoot, keySuffix);
@@ -696,8 +773,12 @@ public class SSTGenerator {
         FileUtil.copyDirectory(authCertsRoot, dstCredentialsRoot, false);
       }
 
-      updateConfigFile(
-          dst.resolve(federate.name + ".config"), fileConfig.name + "/" + federate.name + "/sst/");
+      // 4) Update the copied configs to the remote base.
+      if (!useDocker) {
+        updateConfigFile(
+            dst.resolve(federate.name + ".config"),
+            fileConfig.name + "/" + federate.name + "/sst/");
+      }
     }
 
     // =========================
@@ -729,6 +810,16 @@ public class SSTGenerator {
       Path macKeyRel = credentialsRoot.relativize(macKeyFile);
       Path macKeyDst = rtiCredentialsDst.resolve(macKeyRel);
       FileUtil.copyFile(macKeyFile, macKeyDst);
+
+      // Also copy the .pem private key — needed for auth server authentication
+      List<Path> rtiPemMatches = FileUtil.globFilesEndsWith(keysRoot, "rtiKey.pem");
+      if (!rtiPemMatches.isEmpty()) {
+        Path rtiPemFile = rtiPemMatches.get(0);
+        Path rtiPemRel = credentialsRoot.relativize(rtiPemFile);
+        Path rtiPemDst = rtiCredentialsDst.resolve(rtiPemRel);
+        Files.createDirectories(rtiPemDst.getParent());
+        FileUtil.copyFile(rtiPemFile, rtiPemDst, true);
+      }
     } else {
       String rtiKeySuffix = "rtiKey.pem";
       List<Path> rtiKeyMatches = FileUtil.globFilesEndsWith(keysRoot, rtiKeySuffix);
@@ -761,7 +852,9 @@ public class SSTGenerator {
     }
 
     // 4) Update the copied configs to the remote base.
-    updateConfigFile(rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath("RTI"));
+    if (!useDocker) {
+      updateConfigFile(rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath("RTI"));
+    }
   }
 
   private void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {
