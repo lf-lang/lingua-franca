@@ -502,7 +502,7 @@ public class CExtension implements FedTargetExtension {
                 + receivingPortID
                 + ", "
                 + connection.getDstFederate().id
-                + ", (long long) lf_time_logical_elapsed());",
+                + ", lf_time_logical_elapsed());",
             "if (" + sendRef + " == NULL || !" + sendRef + "->is_present) {",
             "LF_PRINT_LOG(\"The output port is NULL or it is not present.\");",
             "    lf_send_port_absent_to_federate("
@@ -524,11 +524,12 @@ public class CExtension implements FedTargetExtension {
   /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
   protected final void writePreambleFile(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
-    String cPreamble = makePreamble(federate, rtiConfig, messageReporter);
+    String cPreamble = makePreamble(federate, allFederates, rtiConfig, messageReporter);
     String relPath = getPreamblePath(federate);
     Path fedPreamblePath = fileConfig.getSrcPath().resolve(relPath);
     Files.createDirectories(fedPreamblePath.getParent());
@@ -544,11 +545,12 @@ public class CExtension implements FedTargetExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
-    writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
+    writePreambleFile(federate, allFederates, fileConfig, rtiConfig, messageReporter);
     var includes = new CodeBuilder();
     includes.pr(
         """
@@ -574,7 +576,10 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate the preamble to setup federated execution in C. */
   protected String makePreamble(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
 
     var code = new CodeBuilder();
 
@@ -591,15 +596,33 @@ public class CExtension implements FedTargetExtension {
     // that handles incoming network messages destined to the specified
     // port. This will only be used if there are federates.
     int numOfNetworkActions = federate.networkMessageActions.size();
+    int numZDCNetworkActions = federate.zeroDelayCycleNetworkMessageActions.size();
     code.pr(
         """
         interval_t _lf_action_delay_table[%1$s];
         lf_action_base_t* _lf_action_table[%1$s];
         size_t _lf_action_table_size = %1$s;
-        lf_action_base_t* _lf_zero_delay_cycle_action_table[%2$s];
-        size_t _lf_zero_delay_cycle_action_table_size = %2$s;
         """
-            .formatted(numOfNetworkActions, federate.zeroDelayCycleNetworkMessageActions.size()));
+            .formatted(numOfNetworkActions));
+    if (numZDCNetworkActions > 0) {
+      code.pr(
+          """
+          lf_action_base_t* _lf_zero_delay_cycle_action_table[%1$s];
+          size_t _lf_zero_delay_cycle_action_table_size = %1$s;
+          uint16_t _lf_zero_delay_cycle_upstream_ids[%1$s];
+          bool _lf_zero_delay_cycle_upstream_disconnected[%1$s] = { false };
+          """
+              .formatted(numZDCNetworkActions));
+    } else {
+      // Make sure these symbols are defined, even though only size will be used.
+      code.pr(
+          """
+          lf_action_base_t** _lf_zero_delay_cycle_action_table = NULL;
+          size_t _lf_zero_delay_cycle_action_table_size = 0;
+          uint16_t* _lf_zero_delay_cycle_upstream_ids = NULL;
+          bool* _lf_zero_delay_cycle_upstream_disconnected = NULL;
+          """);
+    }
 
     int numOfNetworkReactions = federate.networkReceiverReactions.size();
     code.pr(
@@ -626,7 +649,7 @@ public class CExtension implements FedTargetExtension {
             """
                 .formatted(numOfSTAAOffsets)));
 
-    code.pr(generateExecutablePreamble(federate, rtiConfig, messageReporter));
+    code.pr(generateExecutablePreamble(federate, allFederates, rtiConfig, messageReporter));
 
     code.pr(generateSTAAInitialization(federate));
 
@@ -680,12 +703,15 @@ public class CExtension implements FedTargetExtension {
 
   /** Generate code for an executed preamble. */
   private String generateExecutablePreamble(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
 
     code.pr(generateCodeForPhysicalActions(federate, messageReporter));
 
-    code.pr(generateCodeToInitializeFederate(federate, rtiConfig, messageReporter));
+    code.pr(generateCodeToInitializeFederate(federate, allFederates, rtiConfig, messageReporter));
     return """
            void _lf_executable_preamble(environment_t* env) {
            %s
@@ -715,7 +741,10 @@ public class CExtension implements FedTargetExtension {
    * @return The generated code
    */
   private String generateCodeToInitializeFederate(
-      FederateInstance federate, RtiConfig rtiConfig, MessageReporter messageReporter) {
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      RtiConfig rtiConfig,
+      MessageReporter messageReporter) {
     CodeBuilder code = new CodeBuilder();
     code.pr("// ***** Start initializing the federated execution. */");
     code.pr(
@@ -767,24 +796,38 @@ public class CExtension implements FedTargetExtension {
     }
     // Set global variable identifying the federate.
     code.pr("_lf_my_fed_id = " + federate.id + ";");
+    // Set indicator variable that specifies whether the federate is transient or not.
+    code.pr("_fed.is_transient = " + federate.isTransient + ";");
 
     // We keep separate record for incoming and outgoing p2p connections to allow incoming traffic
     // to be processed in a separate
     // thread without requiring a mutex lock.
     var numberOfInboundConnections = federate.inboundP2PConnections.size();
     var numberOfOutboundConnections = federate.outboundP2PConnections.size();
+    var numberOfInboundConnectionsToTransients =
+        (int) federate.inboundP2PConnections.stream().filter(f -> f.isTransient).count();
+    var numberOfOutboundConnectionsToTransients =
+        (int) federate.outboundP2PConnections.stream().filter(f -> f.isTransient).count();
 
     code.pr(
         String.join(
             "\n",
             "_fed.number_of_inbound_p2p_connections = " + numberOfInboundConnections + ";",
-            "_fed.number_of_outbound_p2p_connections = " + numberOfOutboundConnections + ";"));
+            "_fed.number_of_outbound_p2p_connections = " + numberOfOutboundConnections + ";",
+            "_fed.number_of_inbound_p2p_transients = "
+                + numberOfInboundConnectionsToTransients
+                + ";",
+            "_fed.number_of_outbound_p2p_transients = "
+                + numberOfOutboundConnectionsToTransients
+                + ";"));
+
     code.pr(
         String.join(
             "\n",
             "// Initialize the array of network abstractions for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.net_for_inbound_p2p_connections[i] = NULL;",
+            "    _fed.inbound_p2p_connection_is_transient[i] = false;",
             "}"));
     code.pr(
         String.join(
@@ -793,6 +836,7 @@ public class CExtension implements FedTargetExtension {
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.net_for_outbound_p2p_connections[i] = NULL;",
             "}"));
+
     var clockSyncOptions = federate.targetConfig.getOrDefault(ClockSyncOptionsProperty.INSTANCE);
     // If a test clock offset has been specified, insert code to set it here.
     if (clockSyncOptions.testOffset != null) {
@@ -834,13 +878,21 @@ public class CExtension implements FedTargetExtension {
               "// This is done in a separate thread because this thread will call",
               "// lf_connect_to_federate for each outbound connection at the same",
               "// time that the new thread is listening for such connections for inbound",
-              "// connections. The thread will live until all connections have been established.",
+              "// connections. The thread will live until all connections have been established,",
+              "// or if outbound connections are transient, until the end of the execution.",
               "lf_thread_create(&_fed.inbound_p2p_handling_thread_id,"
                   + " lf_handle_p2p_connections_from_federates, env);"));
     }
 
     for (FederateInstance remoteFederate : federate.outboundP2PConnections) {
-      code.pr("lf_connect_to_federate(" + remoteFederate.id + ");");
+      code.pr(
+          "lf_connect_to_federate(" + remoteFederate.id + ", " + remoteFederate.isTransient + ");");
+      code.pr(
+          "_fed.outbound_p2p_connection_is_transient["
+              + remoteFederate.id
+              + "] = "
+              + remoteFederate.isTransient
+              + ";");
     }
     return code.getCode();
   }

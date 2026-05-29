@@ -1080,6 +1080,57 @@ public class LinguaFrancaValidationTest {
     }
   }
 
+  @Test
+  public void testTransientAttributeOnFederateInstantiation() throws Exception {
+    Model model =
+        parseWithoutError(
+            """
+            target C
+            reactor Foo {}
+            federated reactor {
+              @transient
+              foo = new Foo()
+              bar = new Foo()
+            }
+            """);
+    validator.assertNoIssues(model);
+  }
+
+  @Test
+  public void testTransientAttributeRejectedOnMainReactor() throws Exception {
+    Model model =
+        parseWithoutError(
+            """
+            target C
+            @transient
+            main reactor {}
+            """);
+    validator.assertError(
+        model,
+        LfPackage.eINSTANCE.getAttribute(),
+        null,
+        "The @transient attribute can only be applied to a federate instantiation.");
+  }
+
+  @Test
+  public void testTransientAttributeRejectedOnInput() throws Exception {
+    Model model =
+        parseWithoutError(
+            """
+            target C
+            reactor R {
+              @transient
+              input x: int
+            }
+            main reactor {}
+            """);
+    validator.assertError(
+        model,
+        LfPackage.eINSTANCE.getAttribute(),
+        null,
+        "The @transient attribute can only be applied to a federate instantiation.");
+  }
+
   /** Tests for state and parameter declarations, including native lists. */
   @Test
   public void stateAndParameterDeclarationsInC() throws Exception {

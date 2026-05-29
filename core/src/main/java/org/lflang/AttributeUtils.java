@@ -187,6 +187,11 @@ public class AttributeUtils {
     return findAttributeByName(node, "sparse") != null;
   }
 
+  /** Return true if the node has an {@code @transient} attribute. */
+  public static boolean isTransient(Instantiation node) {
+    return findAttributeByName(node, "transient") != null;
+  }
+
   /**
    * Return true if the reactor is marked to be a federate.
    *
