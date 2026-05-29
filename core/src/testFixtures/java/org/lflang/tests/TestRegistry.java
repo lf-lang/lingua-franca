@@ -324,6 +324,7 @@ public class TestRegistry {
     MULTIPORT(true, "", TestLevel.EXECUTION),
     /** Tests about federated execution. */
     FEDERATED(true, "", TestLevel.EXECUTION),
+    FEDERATED_SST(true, "federated" + File.separator + "sst", TestLevel.EXECUTION),
     /** Tests about specific target properties. */
     PROPERTIES(true, "", TestLevel.EXECUTION),
     /** Tests concerning modal reactors */
