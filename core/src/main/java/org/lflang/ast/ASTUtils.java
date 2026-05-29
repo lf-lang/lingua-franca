@@ -534,7 +534,6 @@ public class ASTUtils {
    *
    * @param definition The reactor definition.
    * @param feature The structural feature to collect.
-   * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
    * @return A list of all elements of type T found
    */
   public static <T extends EObject> List<T> collectElements(
@@ -550,7 +549,6 @@ public class ASTUtils {
    * @param feature The structual model elements to collect.
    * @param includeSuperClasses Whether to include elements in super classes.
    * @param includeModes Whether to include elements in modes.
-   * @param <T> The type of elements to collect (e.g., Port, Timer, etc.)
    * @return A list of all elements of type T found
    */
   @SuppressWarnings("unchecked")

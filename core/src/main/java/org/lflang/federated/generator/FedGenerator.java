@@ -181,6 +181,7 @@ public class FedGenerator {
           fedEmitter.generateFederate(
               context,
               federate,
+              federates,
               federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
