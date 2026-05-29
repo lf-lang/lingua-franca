@@ -198,19 +198,21 @@ public class FedASTUtils {
     if (connection.serializer == SupportedSerializers.NATIVE) {
       action.setType(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType()));
     } else {
-      Type action_type = factory.createType();
       String bufferType =
           FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
               .getNetworkBufferType();
-      // Split trailing '*' into the stars list to match the LF grammar:
-      //   id=DottedName (stars+='*')*
-      String baseType = bufferType;
-      while (baseType.endsWith("*")) {
-        baseType = baseType.substring(0, baseType.length() - 1).trim();
-        action_type.getStars().add("*");
+      if (bufferType != null && !bufferType.isEmpty()) {
+        Type action_type = factory.createType();
+        // Split trailing '*' into the stars list to match the LF grammar:
+        //   id=DottedName (stars+='*')*
+        String baseType = bufferType;
+        while (baseType.endsWith("*")) {
+          baseType = baseType.substring(0, baseType.length() - 1).trim();
+          action_type.getStars().add("*");
+        }
+        action_type.setId(baseType);
+        action.setType(action_type);
       }
-      action_type.setId(baseType);
-      action.setType(action_type);
     }
 
     // The connection is 'physical' if it uses the ~> notation.
