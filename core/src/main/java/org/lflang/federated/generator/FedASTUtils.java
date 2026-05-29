@@ -258,8 +258,11 @@ public class FedASTUtils {
       Resource resource,
       MessageReporter messageReporter) {
     LfFactory factory = LfFactory.eINSTANCE;
+    // Use the destination federate's target extension for the receiver reactor.
+    // (Using srcFederate here was a latent bug that only surfaces in Polyglot where
+    // src and dst federates may have different targets.)
     var extension =
-        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target);
+        FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target);
     Type type = EcoreUtil.copy(connection.getDestinationPortInstance().getDefinition().getType());
 
     VarRef sourceRef = factory.createVarRef(); // source fed

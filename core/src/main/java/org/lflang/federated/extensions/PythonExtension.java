@@ -18,9 +18,11 @@ import org.lflang.generator.python.PyUtil;
 import org.lflang.lf.Action;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
+import org.lflang.lf.Port;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.VarRef;
+import org.lflang.target.Target;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
 /**
@@ -206,8 +208,74 @@ lf_enqueue_port_absent_reactions(self->base.environment);
       }
       case PROTO -> {
         value = action.getName();
-        FedProtoPythonSerialization protoDeserializer = new FedProtoPythonSerialization();
-        result.pr(protoDeserializer.generateNetworkDeserializerCode(value, null));
+        var srcTarget = connection.getSrcFederate().targetConfig.target;
+        if (srcTarget == Target.C || srcTarget == Target.CCPP) {
+          // C sender uses raw protobuf bytes (protobuf-c format, no type header).
+          // Derive the proto class name from the typed C source port (e.g., ProtoHelloWorld*).
+          Port srcPort = connection.getSourcePortInstance().getDefinition();
+          String protoClassName =
+              (srcPort.getType() != null && srcPort.getType().getId() != null)
+                  ? srcPort.getType().getId()
+                  : null;
+          if (protoClassName == null || protoClassName.isEmpty()) {
+            messageReporter
+                .at(receivingPort.getVariable())
+                .error(
+                    "Python proto deserialization from a C sender requires the C source port to"
+                        + " have a typed proto port (e.g., 'output out: ProtoHelloWorld*').");
+          } else {
+            String moduleName = protoClassName + "_pb2";
+            result.pr(
+                "PyObject* _lf_proto_modules = PyImport_GetModuleDict();\n"
+                    + "PyObject* _lf_proto_module = PyDict_GetItemString(_lf_proto_modules, \""
+                    + moduleName
+                    + "\");\n"
+                    + "if (_lf_proto_module == NULL || _lf_proto_module == Py_None) {\n"
+                    + "    lf_print_error_and_exit(\"Proto module "
+                    + moduleName
+                    + " not found in sys.modules.\");\n"
+                    + "}\n"
+                    + "PyObject* _lf_proto_cls = PyObject_GetAttrString(_lf_proto_module, \""
+                    + protoClassName
+                    + "\");\n"
+                    + "if (_lf_proto_cls == NULL) {\n"
+                    + "    if (PyErr_Occurred()) PyErr_Print();\n"
+                    + "    lf_print_error_and_exit(\"Failed to get class "
+                    + protoClassName
+                    + " from module "
+                    + moduleName
+                    + ".\");\n"
+                    + "}\n"
+                    + "PyObject* "
+                    + FedSerialization.deserializedVarName
+                    + " = PyObject_CallNoArgs(_lf_proto_cls);\n"
+                    + "Py_XDECREF(_lf_proto_cls);\n"
+                    + "if ("
+                    + FedSerialization.deserializedVarName
+                    + " == NULL) {\n"
+                    + "    if (PyErr_Occurred()) PyErr_Print();\n"
+                    + "    lf_print_error_and_exit(\"Failed to create proto instance.\");\n"
+                    + "}\n"
+                    + "PyObject* _lf_proto_bytes_raw = PyBytes_FromStringAndSize((char*)"
+                    + value
+                    + "->token->value, "
+                    + value
+                    + "->token->length);\n"
+                    + "PyObject* _lf_parse_result = PyObject_CallMethod("
+                    + FedSerialization.deserializedVarName
+                    + ", \"ParseFromString\", \"O\", _lf_proto_bytes_raw);\n"
+                    + "Py_XDECREF(_lf_proto_bytes_raw);\n"
+                    + "if (_lf_parse_result == NULL) {\n"
+                    + "    if (PyErr_Occurred()) PyErr_Print();\n"
+                    + "    lf_print_error_and_exit(\"Failed to parse proto message from bytes.\");\n"
+                    + "}\n"
+                    + "Py_XDECREF(_lf_parse_result);\n");
+          }
+        } else {
+          // Python sender uses a self-describing wire format with the type name embedded.
+          FedProtoPythonSerialization protoDeserializer = new FedProtoPythonSerialization();
+          result.pr(protoDeserializer.generateNetworkDeserializerCode(value, null));
+        }
         result.pr(
             "lf_token_t* token = lf_new_token((void*)"
                 + receiveRef
@@ -259,13 +327,39 @@ lf_enqueue_port_absent_reactions(self->base.environment);
       }
       case PROTO -> {
         var variableToSerialize = sendRef + "->value";
-        FedProtoPythonSerialization protoSerializer = new FedProtoPythonSerialization();
-        lengthExpression = protoSerializer.serializedBufferLength();
-        pointerExpression = protoSerializer.serializedBufferVar();
-        result.pr(protoSerializer.generateNetworkSerializerCode(variableToSerialize, null));
-        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
-        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
-        result.pr("free(" + FedProtoPythonSerialization.BUF_VAR + ");\n");
+        var dstTarget = connection.getDstFederate().targetConfig.target;
+        if (dstTarget == Target.C || dstTarget == Target.CCPP) {
+          // C receiver expects raw protobuf bytes (protobuf-c format, no type header).
+          result.pr(
+              "PyObject* serialized_pyobject = PyObject_CallMethod("
+                  + variableToSerialize
+                  + ", \"SerializeToString\", NULL);\n"
+                  + "if (serialized_pyobject == NULL) {\n"
+                  + "    if (PyErr_Occurred()) PyErr_Print();\n"
+                  + "    lf_print_error_and_exit(\"Failed to call SerializeToString on proto"
+                  + " object.\");\n"
+                  + "}\n"
+                  + "char* serialized_message_buf;\n"
+                  + "Py_ssize_t serialized_message_len;\n"
+                  + "if (PyBytes_AsStringAndSize(serialized_pyobject, &serialized_message_buf,"
+                  + " &serialized_message_len) == -1) {\n"
+                  + "    if (PyErr_Occurred()) PyErr_Print();\n"
+                  + "    lf_print_error_and_exit(\"Failed to extract bytes from serialized"
+                  + " proto.\");\n"
+                  + "}\n");
+          result.pr("size_t _lf_message_length = (size_t)serialized_message_len;");
+          result.pr(sendingFunction + "(" + commonArgs + ", (unsigned char*)serialized_message_buf);\n");
+          result.pr("Py_XDECREF(serialized_pyobject);\n");
+        } else {
+          // Python receiver: use self-describing format with type name embedded.
+          FedProtoPythonSerialization protoSerializer = new FedProtoPythonSerialization();
+          lengthExpression = protoSerializer.serializedBufferLength();
+          pointerExpression = protoSerializer.serializedBufferVar();
+          result.pr(protoSerializer.generateNetworkSerializerCode(variableToSerialize, null));
+          result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+          result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+          result.pr("free(" + FedProtoPythonSerialization.BUF_VAR + ");\n");
+        }
       }
       case ROS2 ->
           throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
