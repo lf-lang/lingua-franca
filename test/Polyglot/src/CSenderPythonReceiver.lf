@@ -1,0 +1,46 @@
+/**
+ * TODO
+ */
+target Polyglot {
+  protobufs: [ProtoHelloWorld.proto],
+  timeout: 2 sec
+}
+
+@language(C)
+reactor Sender {
+  output out: ProtoHelloWorld*
+
+  state count: int = 0
+
+  timer t(0, 1 sec)
+
+  reaction(t) -> out {=
+    self->count++;
+    ProtoHelloWorld* msg = (ProtoHelloWorld*)malloc(sizeof(ProtoHelloWorld));
+    proto_hello_world__init(msg);
+    msg->name = "Hello World";
+    msg->number = self->count;
+    lf_set(out, msg);
+  =}
+}
+
+@language(Python)
+reactor Receiver {
+  input inp
+
+  state count = 0
+
+  reaction(inp) {=
+    print(f"Received: name=\"{inp.value.name}\", number={inp.value.number}.")
+    if inp.value.number != self.count + 1:
+      sys.stderr.write("Expected number " + str(self.count + 1) + ".\n")
+    self.count += 1
+  =}
+}
+
+federated reactor {
+  sender = new Sender()
+  receiver = new Receiver()
+
+  sender.out -> receiver.in after 100 msec serializer "proto"
+}
