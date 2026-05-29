@@ -570,10 +570,9 @@ object RustModelBuilder {
             },
             globalId = reactor.globalId,
             reactions = allReactions,
-            otherComponents = (components.values.toSet()
+            otherComponents = components.values.toSet()
                     + portReferences
-                    + fullReactorInfos.flatMap { it.otherComponents })
-                .distinctBy { it.lfName }.toSet(),
+                    + fullReactorInfos.flatMap { it.otherComponents },
             isMain = reactor.isMain,
             typeParamList = (reactor.typeParms.map<TypeParm, TypeParamInfo>{ it.toTypeParamInfo() }
                     + fullReactorInfos.flatMap { it.typeParamList })
