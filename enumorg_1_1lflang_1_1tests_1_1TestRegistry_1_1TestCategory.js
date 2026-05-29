@@ -10,6 +10,7 @@ var enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory =
     [ "DOCKER_FEDERATED", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ace4b30cd4db5537c9f80ac10b2e9d80d", null ],
     [ "ENCLAVE", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#af3e9cc963a217c389d1ee8a5489e7a3e", null ],
     [ "FEDERATED", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ad91680a166aefb9ec3a531936c80af16", null ],
+    [ "FEDERATED_SST", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ab1170edab62803de6a68b14dbe9f39b6", null ],
     [ "FLEXPRET", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a6e7e31138650497b277736fbf779e355", null ],
     [ "GENERICS", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a5cad19e5a4e776dc0996aebba6dbebd4", null ],
     [ "isCommon", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a3d1b0739dcd6ce8917c5fc5ce1904021", null ],

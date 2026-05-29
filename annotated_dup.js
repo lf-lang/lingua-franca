@@ -130,7 +130,9 @@ var annotated_dup =
             [ "FedTargetEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedTargetEmitter.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedTargetEmitter" ],
             [ "FedUtils", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedUtils.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedUtils" ],
             [ "LineAdjustingMessageReporter", "classorg_1_1lflang_1_1federated_1_1generator_1_1LineAdjustingMessageReporter.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1LineAdjustingMessageReporter" ],
-            [ "SynchronizedMessageReporter", "classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter" ]
+            [ "SSTGenerator", "classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator" ],
+            [ "SynchronizedMessageReporter", "classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter" ],
+            [ "TLSGenerator", "classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html", "classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator" ]
           ] ],
           [ "launcher", "namespaceorg_1_1lflang_1_1federated_1_1launcher.html", [
             [ "BuildConfig", "classorg_1_1lflang_1_1federated_1_1launcher_1_1BuildConfig.html", "classorg_1_1lflang_1_1federated_1_1launcher_1_1BuildConfig" ],
@@ -342,6 +344,7 @@ var annotated_dup =
             [ "SchedulerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SchedulerProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1SchedulerProperty" ],
             [ "SingleFileProjectProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SingleFileProjectProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1SingleFileProjectProperty" ],
             [ "SingleThreadedProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SingleThreadedProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1SingleThreadedProperty" ],
+            [ "SSTProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty" ],
             [ "StringListProperty", "classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty" ],
             [ "StringProperty", "classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1StringProperty" ],
             [ "TargetProperty", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty" ],

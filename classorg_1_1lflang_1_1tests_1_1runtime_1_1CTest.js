@@ -16,6 +16,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest =
     [ "runDockerFederatedTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#af1d6d00e0fb45d9cbde6177f50f81519", null ],
     [ "runDockerTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a37771c66887d11cfb7962ba4e8ccadf8", null ],
     [ "runEnclaveTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a39c1bf504d318ecfaceb1d6f47d29b2e", null ],
+    [ "runFederatedSSTTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a16d287649b72ff8fa94ac7e37adac7de", null ],
     [ "runFederatedTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a4dbba3ff54fa4c1084c264dd03de58a9", null ],
     [ "runGenericsTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a926ec8e4a14431a5f43b644f3fa59e5b", null ],
     [ "runModalTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a9d53f79a2041991958056082669078d2", null ],

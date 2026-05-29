@@ -4090,6 +4090,36 @@
               <Anchor>a1c3b3a2bc51b9e1fb31706b6561a09fc</Anchor>
              </Node>
              <Node>
+              <Name>getSSTAuthPath</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+              <Anchor>a20639daf6373e9c47fb8c51739775880</Anchor>
+             </Node>
+             <Node>
+              <Name>getSSTConfigPath</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+              <Anchor>a69d5336f54e4884b5f73a108e69e317e</Anchor>
+             </Node>
+             <Node>
+              <Name>getSSTCredentialsPath</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+              <Anchor>aa05c8b1ae59a4b1a7ddcd0a830dfabdb</Anchor>
+             </Node>
+             <Node>
+              <Name>getSSTGraphsPath</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+              <Anchor>a0267161ee0cf547f96b6ed1b05486ac7</Anchor>
+             </Node>
+             <Node>
+              <Name>getSSTPath</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+              <Anchor>ab0eaf823c702f02ff526bd8ea881f851</Anchor>
+             </Node>
+             <Node>
+              <Name>getSSTPolicyPath</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+              <Anchor>a422fa9380b60fd6a80fd090d60399f96</Anchor>
+             </Node>
+             <Node>
               <Name>getSubPkgPath</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
               <Anchor>aae6b918b653bb024955b75d657b7c0ff</Anchor>
@@ -14229,6 +14259,11 @@
               <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
              </Node>
              <Node>
+              <Name>runFederatedSSTTests</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
+              <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+             </Node>
+             <Node>
               <Name>runFederatedTests</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
               <Anchor>a6b74cef8752158e81b94c93ec33950a5</Anchor>
@@ -14559,6 +14594,11 @@
               <Name>runEnclaveTests</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
               <Anchor>a39c1bf504d318ecfaceb1d6f47d29b2e</Anchor>
+             </Node>
+             <Node>
+              <Name>runFederatedSSTTests</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+              <Anchor>a16d287649b72ff8fa94ac7e37adac7de</Anchor>
              </Node>
              <Node>
               <Name>runFederatedTests</Name>
@@ -15029,6 +15069,11 @@
               <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
              </Node>
              <Node>
+              <Name>runFederatedSSTTests</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
+              <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+             </Node>
+             <Node>
               <Name>runFederatedTests</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
               <Anchor>ad0d85e78679fef1a79e0e0b87dd9b0c8</Anchor>
@@ -15235,6 +15280,11 @@
               <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
              </Node>
              <Node>
+              <Name>runFederatedSSTTests</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
+              <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+             </Node>
+             <Node>
               <Name>runFederatedTests</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
               <Anchor>adb7cc4cb97c859aad645135d2395ae56</Anchor>
@@ -15439,6 +15489,11 @@
               <Name>runEnclaveTests</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
               <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
+             </Node>
+             <Node>
+              <Name>runFederatedSSTTests</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
+              <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
              </Node>
              <Node>
               <Name>runFederatedTests</Name>
@@ -15650,6 +15705,11 @@
               <Name>runEnclaveTests</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
               <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
+             </Node>
+             <Node>
+              <Name>runFederatedSSTTests</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
+              <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
              </Node>
              <Node>
               <Name>runFederatedTests</Name>
@@ -16265,6 +16325,11 @@
                 <Name>FEDERATED</Name>
                 <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
                 <Anchor>ad91680a166aefb9ec3a531936c80af16</Anchor>
+               </Node>
+               <Node>
+                <Name>FEDERATED_SST</Name>
+                <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+                <Anchor>ab1170edab62803de6a68b14dbe9f39b6</Anchor>
                </Node>
                <Node>
                 <Name>FLEXPRET</Name>
@@ -29194,6 +29259,36 @@
                       <Anchor>a1c3b3a2bc51b9e1fb31706b6561a09fc</Anchor>
                      </Node>
                      <Node>
+                      <Name>getSSTAuthPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+                      <Anchor>a20639daf6373e9c47fb8c51739775880</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTConfigPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+                      <Anchor>a69d5336f54e4884b5f73a108e69e317e</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTCredentialsPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+                      <Anchor>aa05c8b1ae59a4b1a7ddcd0a830dfabdb</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTGraphsPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+                      <Anchor>a0267161ee0cf547f96b6ed1b05486ac7</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+                      <Anchor>ab0eaf823c702f02ff526bd8ea881f851</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTPolicyPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+                      <Anchor>a422fa9380b60fd6a80fd090d60399f96</Anchor>
+                     </Node>
+                     <Node>
                       <Name>getSubPkgPath</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
                       <Anchor>aae6b918b653bb024955b75d657b7c0ff</Anchor>
@@ -29444,6 +29539,37 @@
                     </Subnodes>
                    </Node>
                    <Node>
+                    <Name>SSTGenerator</Name>
+                    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>SSTGenerator</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+                      <Anchor>ac46e4090db498dd2b74fbd9a647cb3a5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getRemoteBasePath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+                      <Anchor>a8baf4748e3bb7630be7d7042682b0d41</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTConfigPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+                      <Anchor>aa7b70df939d0f39fbe142981ae12bd0c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getSSTRemoteBasePath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+                      <Anchor>ab95f7154a53069cb192e1c5bba783180</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>setupSST</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+                      <Anchor>a710302132d41b2091288c8581d3d73b0</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
                     <Name>SynchronizedMessageReporter</Name>
                     <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter.html</Path>
                   <Subnodes>
@@ -29526,6 +29652,57 @@
                       <Name>wrap</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter.html</Path>
                       <Anchor>a365b78fc2a5d81158e450ea7aea5821b</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
+                    <Name>TLSGenerator</Name>
+                    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>TLSGenerator</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>ab60f977bd5e8dbfe1ea72abb982ad2f1</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getLocalCertPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>a2a2aa1d8013c24b43bfbc40e27288766</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getLocalCredentialsRoot</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>a1b352f25eb34d97e5eca200b8a2552dc</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getLocalEntityCredentialsDir</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>af341dad50ace29b41e4bc5bee11a8411</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getLocalKeyPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>ad3d43452a06997979b3d40452f73fdd7</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getRelativeRemoteCertPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>a67c1fd0ef271a7e48155418564973914</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getRelativeRemoteCredentialsDir</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>a975a7c6e87dc28286a393ebfb1aafb51</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getRelativeRemoteKeyPath</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>a3e1669f381f27fa0981a34762d1f596c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>setupTLS</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+                      <Anchor>a8d5c32b9e188a22232447d36c5930b50</Anchor>
                      </Node>
                     </Subnodes>
                    </Node>
@@ -39349,9 +39526,19 @@
                           <Anchor>ab67c9c1c03e7186a779a2be3b70e60f6</Anchor>
                          </Node>
                          <Node>
+                          <Name>SST</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>a2916aa39281b87be918225d55f05bb54</Anchor>
+                         </Node>
+                         <Node>
                           <Name>TCP</Name>
                           <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
                           <Anchor>af3f864fd4b26e2c9990c1c265afae86e</Anchor>
+                         </Node>
+                         <Node>
+                          <Name>TLS</Name>
+                          <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+                          <Anchor>a504ffb91362afb7ab541654056af3d84</Anchor>
                          </Node>
                         </Subnodes>
                        </Node>
@@ -39528,6 +39715,11 @@
                         <Name>PLATFORM_DICT</Name>
                         <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</Path>
                         <Anchor>ada29ca1e43a3c46fd558172b0d98549f</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>SST_DICT</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</Path>
+                        <Anchor>a89cc856c70004d16b93b6fb954dc6500</Anchor>
                        </Node>
                        <Node>
                         <Name>TRACE_PLUGIN_DICT</Name>
@@ -44626,6 +44818,158 @@
                     </Subnodes>
                    </Node>
                    <Node>
+                    <Name>SSTProperty</Name>
+                    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>SSTOption</Name>
+                      <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                    <Subnodes>
+                       <Node>
+                        <Name>SSTOption</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>a434591aecc77d63ae784600f600bcad7</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>getType</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>aa4f2d6f0fcae3a0bb079b84677c85908</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>toString</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>af121eef83220737e4b9c7289ba51250b</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>option</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>acf96ce24b6996b58cb4219babb518e79</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>ROOT_PATH</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>a1ca9961120242afe3e1fb788350db25e</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>type</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>aac569d6cdade118f3dcbae5d1dfb41ef</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>USE_PERMANENT_DIST_KEY</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+                        <Anchor>a1cc2709c0ea40c03f42073448a437cc6</Anchor>
+                       </Node>
+                      </Subnodes>
+                     </Node>
+                     <Node>
+                      <Name>astElementFromConfig</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>checkType</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>equals</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromAst</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a31ff2bea2b3f9f86e3dae0512eaf778d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromJSON</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a6ea8d28c66022bbd5875682f42242f0b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>hashCode</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>initialValue</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a7bd6f951491e96ca283396895da27b22</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederation</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromImport</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>name</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a6e09cf4c0b76b6221d9df10cdc2185f7</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>override</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>SSTOptions</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>aa7eb79f1fb68c5d2b079cd0786adc971</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>ac3520f2c5150986ad3c67a8d37710cde</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>update</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>validate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>INSTANCE</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>a82ae66a27dfe6c589d6383b1277a2dc8</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>type</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+                      <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
                     <Name>StringListProperty</Name>
                     <Path>classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html</Path>
                   <Subnodes>
@@ -47828,6 +48172,11 @@
                       <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
                      </Node>
                      <Node>
+                      <Name>runFederatedSSTTests</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
+                      <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+                     </Node>
+                     <Node>
                       <Name>runFederatedTests</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
                       <Anchor>a6b74cef8752158e81b94c93ec33950a5</Anchor>
@@ -48158,6 +48507,11 @@
                       <Name>runEnclaveTests</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
                       <Anchor>a39c1bf504d318ecfaceb1d6f47d29b2e</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>runFederatedSSTTests</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+                      <Anchor>a16d287649b72ff8fa94ac7e37adac7de</Anchor>
                      </Node>
                      <Node>
                       <Name>runFederatedTests</Name>
@@ -48628,6 +48982,11 @@
                       <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
                      </Node>
                      <Node>
+                      <Name>runFederatedSSTTests</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
+                      <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+                     </Node>
+                     <Node>
                       <Name>runFederatedTests</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
                       <Anchor>ad0d85e78679fef1a79e0e0b87dd9b0c8</Anchor>
@@ -48834,6 +49193,11 @@
                       <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
                      </Node>
                      <Node>
+                      <Name>runFederatedSSTTests</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
+                      <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+                     </Node>
+                     <Node>
                       <Name>runFederatedTests</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
                       <Anchor>adb7cc4cb97c859aad645135d2395ae56</Anchor>
@@ -49038,6 +49402,11 @@
                       <Name>runEnclaveTests</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
                       <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>runFederatedSSTTests</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
+                      <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
                      </Node>
                      <Node>
                       <Name>runFederatedTests</Name>
@@ -49790,6 +50159,11 @@
                     <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
                    </Node>
                    <Node>
+                    <Name>runFederatedSSTTests</Name>
+                    <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
+                    <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
+                   </Node>
+                   <Node>
                     <Name>runFederatedTests</Name>
                     <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
                     <Anchor>adb7cc4cb97c859aad645135d2395ae56</Anchor>
@@ -50277,6 +50651,11 @@
                       <Name>FEDERATED</Name>
                       <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
                       <Anchor>ad91680a166aefb9ec3a531936c80af16</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>FEDERATED_SST</Name>
+                      <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+                      <Anchor>ab1170edab62803de6a68b14dbe9f39b6</Anchor>
                      </Node>
                      <Node>
                       <Name>FLEXPRET</Name>
@@ -53454,6 +53833,14 @@
             <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FedUtils.html</Path>
            </Node>
            <Node>
+            <Name>org.lflang.federated.generator.SSTGenerator</Name>
+            <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+           </Node>
+           <Node>
+            <Name>org.lflang.federated.generator.TLSGenerator</Name>
+            <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+           </Node>
+           <Node>
             <Name>org.lflang.federated.launcher.BuildConfig</Name>
             <Path>classorg_1_1lflang_1_1federated_1_1launcher_1_1BuildConfig.html</Path>
           <Subnodes>
@@ -54424,6 +54811,16 @@
             </Subnodes>
            </Node>
            <Node>
+            <Name>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Name>
+            <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+          <Subnodes>
+             <Node>
+              <Name>org.lflang.target.property.SSTProperty</Name>
+              <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+             </Node>
+            </Subnodes>
+           </Node>
+           <Node>
             <Name>org.lflang.target.property.TargetProperty&lt; String, PrimitiveType &gt;</Name>
             <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
           <Subnodes>
@@ -54528,6 +54925,10 @@
              <Node>
               <Name>org.lflang.target.property.PlatformProperty.PlatformOption</Name>
               <Path>enumorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty_1_1PlatformOption.html</Path>
+             </Node>
+             <Node>
+              <Name>org.lflang.target.property.SSTProperty.SSTOption</Name>
+              <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
              </Node>
              <Node>
               <Name>org.lflang.target.property.TracePluginProperty.TracePluginOption</Name>

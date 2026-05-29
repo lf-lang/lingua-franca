@@ -12333,6 +12333,48 @@
       <arglist>()</arglist>
     </member>
     <member kind="function">
+      <type>Path</type>
+      <name>getSSTAuthPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
+      <anchor>a20639daf6373e9c47fb8c51739775880</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>Path</type>
+      <name>getSSTConfigPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
+      <anchor>a69d5336f54e4884b5f73a108e69e317e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>Path</type>
+      <name>getSSTCredentialsPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
+      <anchor>aa05c8b1ae59a4b1a7ddcd0a830dfabdb</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>Path</type>
+      <name>getSSTGraphsPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
+      <anchor>a0267161ee0cf547f96b6ed1b05486ac7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>Path</type>
+      <name>getSSTPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
+      <anchor>ab0eaf823c702f02ff526bd8ea881f851</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>Path</type>
+      <name>getSSTPolicyPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
+      <anchor>a422fa9380b60fd6a80fd090d60399f96</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
       <type>void</type>
       <name>relativizePaths</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</anchorfile>
@@ -12682,6 +12724,45 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::federated::generator::SSTGenerator</name>
+    <filename>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</filename>
+    <member kind="function">
+      <type>void</type>
+      <name>setupSST</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</anchorfile>
+      <anchor>a710302132d41b2091288c8581d3d73b0</anchor>
+      <arglist>(List&lt; FederateInstance &gt; federates, RtiConfig rtiConfig)</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>SSTGenerator</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</anchorfile>
+      <anchor>ac46e4090db498dd2b74fbd9a647cb3a5</anchor>
+      <arglist>(FederationFileConfig fileConfig, MessageReporter messageReporter, LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getRemoteBasePath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</anchorfile>
+      <anchor>a8baf4748e3bb7630be7d7042682b0d41</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static Path</type>
+      <name>getSSTConfigPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</anchorfile>
+      <anchor>aa7b70df939d0f39fbe142981ae12bd0c</anchor>
+      <arglist>(FederationFileConfig fileConfig, String name)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getSSTRemoteBasePath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</anchorfile>
+      <anchor>ab95f7154a53069cb192e1c5bba783180</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::federated::generator::SynchronizedMessageReporter</name>
     <filename>classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter.html</filename>
     <base>org.lflang.MessageReporterBase</base>
@@ -12796,6 +12877,73 @@
       <anchorfile>classorg_1_1lflang_1_1MessageReporterBase.html</anchorfile>
       <anchor>a365b78fc2a5d81158e450ea7aea5821b</anchor>
       <arglist>(Stage2 e)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>org::lflang::federated::generator::TLSGenerator</name>
+    <filename>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</filename>
+    <member kind="function">
+      <type>void</type>
+      <name>setupTLS</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>a8d5c32b9e188a22232447d36c5930b50</anchor>
+      <arglist>(List&lt; FederateInstance &gt; federates)</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>TLSGenerator</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>ab60f977bd5e8dbfe1ea72abb982ad2f1</anchor>
+      <arglist>(FederationFileConfig fileConfig, MessageReporter messageReporter, LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static Path</type>
+      <name>getLocalCertPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>a2a2aa1d8013c24b43bfbc40e27288766</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static Path</type>
+      <name>getLocalCredentialsRoot</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>a1b352f25eb34d97e5eca200b8a2552dc</anchor>
+      <arglist>(FederationFileConfig fileConfig)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static Path</type>
+      <name>getLocalEntityCredentialsDir</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>af341dad50ace29b41e4bc5bee11a8411</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static Path</type>
+      <name>getLocalKeyPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>ad3d43452a06997979b3d40452f73fdd7</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getRelativeRemoteCertPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>a67c1fd0ef271a7e48155418564973914</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getRelativeRemoteCredentialsDir</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>a975a7c6e87dc28286a393ebfb1aafb51</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getRelativeRemoteKeyPath</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</anchorfile>
+      <anchor>a3e1669f381f27fa0981a34762d1f596c</anchor>
+      <arglist>(FederationFileConfig fileConfig, String entityName)</arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -32571,6 +32719,213 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::target::property::SSTProperty</name>
+    <filename>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</filename>
+    <base>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</base>
+    <class kind="enum">org::lflang::target::property::SSTProperty::SSTOption</class>
+    <member kind="function">
+      <type>Optional&lt; Element &gt;</type>
+      <name>astElementFromConfig</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a6a5c01889646675b2403aba03a9561b1</anchor>
+      <arglist>(TargetConfig config)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>checkType</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ad2943097a2b239aecb9c0bf4eb2968f6</anchor>
+      <arglist>(KeyValuePair pair, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>equals</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a204b717061ca87ddd71cbc866440af5c</anchor>
+      <arglist>(Object obj)</arglist>
+    </member>
+    <member kind="function">
+      <type>SSTOptions</type>
+      <name>fromAst</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>a31ff2bea2b3f9f86e3dae0512eaf778d</anchor>
+      <arglist>(Element node, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function">
+      <type>int</type>
+      <name>hashCode</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a29acc44b1e353f4638f22bb3289d7338</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>SSTOptions</type>
+      <name>initialValue</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>a7bd6f951491e96ca283396895da27b22</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromFederate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a887afc08ede48190976f784b8769b7ea</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromFederation</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a033370849eef3120afd46c4845863e2d</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>loadFromImport</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ab53684f78f96af96841c92187f131488</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>name</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>a6e09cf4c0b76b6221d9df10cdc2185f7</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>final void</type>
+      <name>override</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a2a3ae8487cf2df37b7e3c98a9d594685</anchor>
+      <arglist>(TargetConfig config, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>record</type>
+      <name>SSTOptions</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>aa7eb79f1fb68c5d2b079cd0786adc971</anchor>
+      <arglist>(String rootPath, boolean usePermanentDistKey)</arglist>
+    </member>
+    <member kind="function">
+      <type>Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>ac3520f2c5150986ad3c67a8d37710cde</anchor>
+      <arglist>(SSTOptions value)</arglist>
+    </member>
+    <member kind="function">
+      <type>abstract Element</type>
+      <name>toAstElement</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a7f6fdee8910285230340bcd7a52f3ade</anchor>
+      <arglist>(T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a80cded89b1d2808e307cd4b9991f887b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>update</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a74548a3778514c9c3757ee031dae825c</anchor>
+      <arglist>(TargetConfig config, T value)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>validate</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>a05712b0e4f6256710f969dfd27a097f3</anchor>
+      <arglist>(TargetConfig config, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="variable">
+      <type>final S</type>
+      <name>type</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ae91c05dae9df2fc924ba84e4072e2087</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final SSTProperty</type>
+      <name>INSTANCE</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>a82ae66a27dfe6c589d6383b1277a2dc8</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>T</type>
+      <name>fromJSON</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
+      <anchor>ac340310011200e10f311d2fe985be828</anchor>
+      <arglist>(JsonElement element, MessageReporter reporter)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>SSTOptions</type>
+      <name>fromString</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</anchorfile>
+      <anchor>a6ea8d28c66022bbd5875682f42242f0b</anchor>
+      <arglist>(String string, MessageReporter reporter)</arglist>
+    </member>
+  </compound>
+  <compound kind="enum">
+    <name>org::lflang::target::property::SSTProperty::SSTOption</name>
+    <filename>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</filename>
+    <base>org.lflang.target.property.type.DictionaryType.DictionaryElement</base>
+    <member kind="function">
+      <type>TargetPropertyType</type>
+      <name>getType</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>aa4f2d6f0fcae3a0bb079b84677c85908</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>SSTOption</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>a434591aecc77d63ae784600f600bcad7</anchor>
+      <arglist>(String option, PrimitiveType type)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>toString</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>af121eef83220737e4b9c7289ba51250b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="variable">
+      <type>final String</type>
+      <name>option</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>acf96ce24b6996b58cb4219babb518e79</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>ROOT_PATH</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>a1ca9961120242afe3e1fb788350db25e</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>final PrimitiveType</type>
+      <name>type</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>aac569d6cdade118f3dcbae5d1dfb41ef</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>USE_PERMANENT_DIST_KEY</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</anchorfile>
+      <anchor>a1cc2709c0ea40c03f42073448a437cc6</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::target::property::StringListProperty</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html</filename>
     <base>org.lflang.target.property.TargetProperty&lt; List&lt; String &gt;, UnionType &gt;</base>
@@ -33982,9 +34337,23 @@
     </member>
     <member kind="variable">
       <type></type>
+      <name>SST</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>a2916aa39281b87be918225d55f05bb54</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
       <name>TCP</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
       <anchor>af3f864fd4b26e2c9990c1c265afae86e</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>TLS</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</anchorfile>
+      <anchor>a504ffb91362afb7ab541654056af3d84</anchor>
       <arglist></arglist>
     </member>
   </compound>
@@ -34155,6 +34524,13 @@
       <name>PLATFORM_DICT</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</anchorfile>
       <anchor>ada29ca1e43a3c46fd558172b0d98549f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>SST_DICT</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</anchorfile>
+      <anchor>a89cc856c70004d16b93b6fb954dc6500</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable">
@@ -38559,6 +38935,13 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>abf3a57a094ea7f875fb1b6c54abbfc58</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>runFederatedTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</anchorfile>
       <anchor>a6b74cef8752158e81b94c93ec33950a5</anchor>
@@ -39013,6 +39396,13 @@
       <name>runEnclaveTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</anchorfile>
       <anchor>a39c1bf504d318ecfaceb1d6f47d29b2e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</anchorfile>
+      <anchor>a16d287649b72ff8fa94ac7e37adac7de</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -39662,6 +40052,13 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>abf3a57a094ea7f875fb1b6c54abbfc58</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>runFederatedTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</anchorfile>
       <anchor>ad0d85e78679fef1a79e0e0b87dd9b0c8</anchor>
@@ -39936,6 +40333,13 @@
       <name>runEnclaveTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
       <anchor>a38341fb78c02a6b7f767be18683fc4ce</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>abf3a57a094ea7f875fb1b6c54abbfc58</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -40225,6 +40629,13 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>abf3a57a094ea7f875fb1b6c54abbfc58</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>runFederatedTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</anchorfile>
       <anchor>a11753bc36220409cadcb8705dedefee0</anchor>
@@ -40506,6 +40917,13 @@
       <name>runEnclaveTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
       <anchor>a38341fb78c02a6b7f767be18683fc4ce</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>abf3a57a094ea7f875fb1b6c54abbfc58</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -41471,6 +41889,13 @@
       <name>FEDERATED</name>
       <anchorfile>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</anchorfile>
       <anchor>ad91680a166aefb9ec3a531936c80af16</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>FEDERATED_SST</name>
+      <anchorfile>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</anchorfile>
+      <anchor>ab1170edab62803de6a68b14dbe9f39b6</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable">
@@ -43383,7 +43808,9 @@
     <class kind="class">org::lflang::federated::generator::FedTargetEmitter</class>
     <class kind="class">org::lflang::federated::generator::FedUtils</class>
     <class kind="class">org::lflang::federated::generator::LineAdjustingMessageReporter</class>
+    <class kind="class">org::lflang::federated::generator::SSTGenerator</class>
     <class kind="class">org::lflang::federated::generator::SynchronizedMessageReporter</class>
+    <class kind="class">org::lflang::federated::generator::TLSGenerator</class>
   </compound>
   <compound kind="namespace">
     <name>org::lflang::federated::launcher</name>
@@ -43625,6 +44052,7 @@
     <class kind="class">org::lflang::target::property::SchedulerProperty</class>
     <class kind="class">org::lflang::target::property::SingleFileProjectProperty</class>
     <class kind="class">org::lflang::target::property::SingleThreadedProperty</class>
+    <class kind="class">org::lflang::target::property::SSTProperty</class>
     <class kind="class">org::lflang::target::property::StringListProperty</class>
     <class kind="class">org::lflang::target::property::StringProperty</class>
     <class kind="class">org::lflang::target::property::TargetProperty</class>
@@ -44349,7 +44777,9 @@
     <file>FedTargetEmitter.java</file>
     <file>FedUtils.java</file>
     <file>LineAdjustingMessageReporter.java</file>
+    <file>SSTGenerator.java</file>
     <file>SynchronizedMessageReporter.java</file>
+    <file>TLSGenerator.java</file>
   </compound>
   <compound kind="dir">
     <name>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator</name>
@@ -44860,6 +45290,7 @@
     <file>SchedulerProperty.java</file>
     <file>SingleFileProjectProperty.java</file>
     <file>SingleThreadedProperty.java</file>
+    <file>SSTProperty.java</file>
     <file>StringListProperty.java</file>
     <file>StringProperty.java</file>
     <file>TargetProperty.java</file>

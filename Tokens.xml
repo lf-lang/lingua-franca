@@ -1316,12 +1316,30 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::federated::generator::SSTGenerator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.federated.generator.SSTGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::federated::generator::SynchronizedMessageReporter</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
       <Scope>org.lflang.federated.generator.SynchronizedMessageReporter</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SynchronizedMessageReporter.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::federated::generator::TLSGenerator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -3158,6 +3176,24 @@
       <Scope>org.lflang.target.property.SingleThreadedProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1SingleThreadedProperty.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::target::property::SSTProperty</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>org::lflang::target::property::SSTProperty::SSTOption</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -7309,6 +7345,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>astElementFromConfig</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
@@ -11627,6 +11673,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>checkType</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
@@ -16543,6 +16599,16 @@
       <Name>equals</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>equals</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Scheduler, SchedulerType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -17034,6 +17100,16 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
     <Anchor>ad91680a166aefb9ec3a531936c80af16</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>FEDERATED_SST</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.tests.TestRegistry.TestCategory</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+    <Anchor>ab1170edab62803de6a68b14dbe9f39b6</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -18055,6 +18131,17 @@
       <Name>fromAst</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>a31ff2bea2b3f9f86e3dae0512eaf778d</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.StringListProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html</Path>
@@ -18283,6 +18370,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a933963905148cf092a184ae81ef47311</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromAst</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a933963905148cf092a184ae81ef47311</Anchor>
@@ -18537,6 +18634,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromJSON</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
@@ -18915,6 +19022,17 @@
       <Name>fromString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>a6ea8d28c66022bbd5875682f42242f0b</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.StringListProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html</Path>
@@ -19143,6 +19261,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a24adaa91451dc8f91a17a08242c56f81</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>fromString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a24adaa91451dc8f91a17a08242c56f81</Anchor>
@@ -24672,6 +24800,50 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>getLocalCertPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>a2a2aa1d8013c24b43bfbc40e27288766</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getLocalCredentialsRoot</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>a1b352f25eb34d97e5eca200b8a2552dc</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getLocalEntityCredentialsDir</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>af341dad50ace29b41e4bc5bee11a8411</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getLocalKeyPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>ad3d43452a06997979b3d40452f73fdd7</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>getLocalPath</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -26092,6 +26264,50 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>getRelativeRemoteCertPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>a67c1fd0ef271a7e48155418564973914</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getRelativeRemoteCredentialsDir</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>a975a7c6e87dc28286a393ebfb1aafb51</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getRelativeRemoteKeyPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>a3e1669f381f27fa0981a34762d1f596c</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getRemoteBasePath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.SSTGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+    <Anchor>a8baf4748e3bb7630be7d7042682b0d41</Anchor>
+    <DeclaredIn>SSTGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>getResource</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
@@ -26617,6 +26833,94 @@
     <Path>classorg_1_1lflang_1_1tests_1_1LFTest.html</Path>
     <Anchor>acfaaead1d3119e5d24ca42a924ab33c3</Anchor>
     <DeclaredIn>LFTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTAuthPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederationFileConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+    <Anchor>a20639daf6373e9c47fb8c51739775880</Anchor>
+    <DeclaredIn>FederationFileConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTConfigPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederationFileConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+    <Anchor>a69d5336f54e4884b5f73a108e69e317e</Anchor>
+    <DeclaredIn>FederationFileConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTConfigPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.SSTGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+    <Anchor>aa7b70df939d0f39fbe142981ae12bd0c</Anchor>
+    <DeclaredIn>SSTGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTCredentialsPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederationFileConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+    <Anchor>aa05c8b1ae59a4b1a7ddcd0a830dfabdb</Anchor>
+    <DeclaredIn>FederationFileConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTGraphsPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederationFileConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+    <Anchor>a0267161ee0cf547f96b6ed1b05486ac7</Anchor>
+    <DeclaredIn>FederationFileConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederationFileConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+    <Anchor>ab0eaf823c702f02ff526bd8ea881f851</Anchor>
+    <DeclaredIn>FederationFileConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTPolicyPath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederationFileConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html</Path>
+    <Anchor>a422fa9380b60fd6a80fd090d60399f96</Anchor>
+    <DeclaredIn>FederationFileConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getSSTRemoteBasePath</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.federated.generator.SSTGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+    <Anchor>ab95f7154a53069cb192e1c5bba783180</Anchor>
+    <DeclaredIn>SSTGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -27354,6 +27658,17 @@
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty_1_1PlatformOption.html</Path>
     <Anchor>a7d3c73eb1c65231fe45def73f23cd9d1</Anchor>
     <DeclaredIn>PlatformProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getType</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>aa4f2d6f0fcae3a0bb079b84677c85908</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -28256,6 +28571,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>hashCode</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
@@ -29573,6 +29898,17 @@
       <Name>initialValue</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>a7bd6f951491e96ca283396895da27b22</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.StringListProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html</Path>
@@ -29812,6 +30148,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ad2c7f85f75eb09fc6c90f25daadc180e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>initialValue</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ad2c7f85f75eb09fc6c90f25daadc180e</Anchor>
@@ -30372,6 +30718,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1SingleThreadedProperty.html</Path>
     <Anchor>a8236da04869f222466afbfb61dddf2cc</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>INSTANCE</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>a82ae66a27dfe6c589d6383b1277a2dc8</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -32553,6 +32909,16 @@
       <Name>loadFromFederate</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromFederate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Scheduler, SchedulerType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -32765,6 +33131,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromFederation</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
@@ -33019,6 +33395,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>loadFromImport</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
@@ -34874,6 +35260,17 @@
       <Name>name</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>a6e09cf4c0b76b6221d9df10cdc2185f7</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; T, S extends TargetPropertyType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -35091,6 +35488,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a377e5e754300aea66587e195a3f3fc39</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a377e5e754300aea66587e195a3f3fc39</Anchor>
@@ -36167,6 +36574,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>option</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>acf96ce24b6996b58cb4219babb518e79</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>Option&lt; T &gt;</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -36809,6 +37226,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>override</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
@@ -40328,6 +40755,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ROOT_PATH</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>a1ca9961120242afe3e1fb788350db25e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>rootNodes</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -40919,6 +41356,28 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
     <Anchor>a38341fb78c02a6b7f767be18683fc4ce</Anchor>
+    <DeclaredIn>RuntimeTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runFederatedSSTTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.CTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+    <Anchor>a16d287649b72ff8fa94ac7e37adac7de</Anchor>
+    <DeclaredIn>CTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runFederatedSSTTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.RuntimeTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
+    <Anchor>abf3a57a094ea7f875fb1b6c54abbfc58</Anchor>
     <DeclaredIn>RuntimeTest.java</DeclaredIn>
   </Token>
   <Token>
@@ -42338,6 +42797,28 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>setupSST</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.SSTGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+    <Anchor>a710302132d41b2091288c8581d3d73b0</Anchor>
+    <DeclaredIn>SSTGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>setupTLS</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>a8d5c32b9e188a22232447d36c5930b50</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>setupTranstions</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -43023,6 +43504,59 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FedConnectionInstance.html</Path>
     <Anchor>a46d26e790c5dde4f89a373a33374279e</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SST</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>a2916aa39281b87be918225d55f05bb54</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SST_DICT</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.type.DictionaryType</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1DictionaryType.html</Path>
+    <Anchor>a89cc856c70004d16b93b6fb954dc6500</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SSTGenerator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.SSTGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1SSTGenerator.html</Path>
+    <Anchor>ac46e4090db498dd2b74fbd9a647cb3a5</Anchor>
+    <DeclaredIn>SSTGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SSTOption</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>a434591aecc77d63ae784600f600bcad7</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>SSTOptions</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>aa7eb79f1fb68c5d2b079cd0786adc971</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44381,6 +44915,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>abfdae3bad81323c6cc18146a7be72380</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TargetProperty</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>abfdae3bad81323c6cc18146a7be72380</Anchor>
@@ -45934,6 +46478,27 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>TLS</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.type.CommunicationModeType.CommunicationMode</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1CommunicationModeType_1_1CommunicationMode.html</Path>
+    <Anchor>a504ffb91362afb7ab541654056af3d84</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>TLSGenerator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.TLSGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1TLSGenerator.html</Path>
+    <Anchor>ab60f977bd5e8dbfe1ea72abb982ad2f1</Anchor>
+    <DeclaredIn>TLSGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>toAbsolutePath</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -46179,6 +46744,17 @@
       <Name>toAstElement</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1SSTProperty.html</Path>
+    <Anchor>ac3520f2c5150986ad3c67a8d37710cde</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.StringListProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1StringListProperty.html</Path>
@@ -46407,6 +46983,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toAstElement</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
@@ -47109,6 +47695,17 @@
       <Name>toString</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>af121eef83220737e4b9c7289ba51250b</Anchor>
+    <DeclaredIn>SSTProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; T, S extends TargetPropertyType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -47532,6 +48129,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>toString</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
@@ -48256,6 +48863,16 @@
       <Name>type</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>aac569d6cdade118f3dcbae5d1dfb41ef</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>type</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; T, S extends TargetPropertyType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -48487,6 +49104,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>data</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>type</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
@@ -49410,6 +50037,16 @@
       <Name>update</Name>
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>update</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; Scheduler, SchedulerType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
@@ -49506,6 +50143,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1LinguaFrancaSynthesis.html</Path>
     <Anchor>adbafd82f4620fca5310b03cc53e6b4f2</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>USE_PERMANENT_DIST_KEY</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.SSTProperty.SSTOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html</Path>
+    <Anchor>a1cc2709c0ea40c03f42073448a437cc6</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -49901,6 +50548,16 @@
       <APILanguage>unknown</APILanguage>
       <Type>instm</Type>
       <Scope>org.lflang.target.property.TargetProperty&lt; List&lt; Path &gt;, UnionType &gt;</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
+    <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>unknown</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.TargetProperty&lt; SSTOptions, DictionaryType &gt;</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</Path>
     <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>

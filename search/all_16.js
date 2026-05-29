@@ -27,10 +27,11 @@ var searchData=
   ['updatemodelinfo_24',['updateModelInfo',['../classorg_1_1lflang_1_1validation_1_1LFValidator.html#ac35c86e13b3defd4c18b0821b4554558',1,'org::lflang::validation::LFValidator']]],
   ['upstreamconnections_25',['upstreamConnections',['../classorg_1_1lflang_1_1generator_1_1PortInstance.html#adf58939a10e2807ca35cfa7464a87e97',1,'org::lflang::generator::PortInstance']]],
   ['use_5falternative_5fdash_5fpattern_26',['USE_ALTERNATIVE_DASH_PATTERN',['../classorg_1_1lflang_1_1diagram_1_1synthesis_1_1LinguaFrancaSynthesis.html#adbafd82f4620fca5310b03cc53e6b4f2',1,'org::lflang::diagram::synthesis::LinguaFrancaSynthesis']]],
-  ['used_5freserved_5fkeyword_27',['USED_RESERVED_KEYWORD',['../classorg_1_1lflang_1_1LFSyntaxErrorMessageProvider.html#ac7fe1a72f4c2fd7e258ed2973247a2cc',1,'org::lflang::LFSyntaxErrorMessageProvider']]],
-  ['usehierarchicalbin_28',['useHierarchicalBin',['../classorg_1_1lflang_1_1FileConfig.html#ac86a63029d65b24543f6ed15a4cc1423',1,'org::lflang::FileConfig']]],
-  ['user_29',['user',['../classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aad0ce08e5cc8e02b63a2209a49c541d6',1,'org::lflang::federated::generator::FederateInstance']]],
-  ['user_5fthreads_30',['USER_THREADS',['../enumorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty_1_1PlatformOption.html#a0027df4f7d6bb5a171f513a97e3506ef',1,'org::lflang::target::property::PlatformProperty::PlatformOption']]],
-  ['utilities_31',['Utilities',['../group__Utilities.html',1,'']]],
-  ['utilityextensions_32',['UtilityExtensions',['../classorg_1_1lflang_1_1diagram_1_1synthesis_1_1util_1_1UtilityExtensions.html',1,'org::lflang::diagram::synthesis::util']]]
+  ['use_5fpermanent_5fdist_5fkey_27',['USE_PERMANENT_DIST_KEY',['../enumorg_1_1lflang_1_1target_1_1property_1_1SSTProperty_1_1SSTOption.html#a1cc2709c0ea40c03f42073448a437cc6',1,'org::lflang::target::property::SSTProperty::SSTOption']]],
+  ['used_5freserved_5fkeyword_28',['USED_RESERVED_KEYWORD',['../classorg_1_1lflang_1_1LFSyntaxErrorMessageProvider.html#ac7fe1a72f4c2fd7e258ed2973247a2cc',1,'org::lflang::LFSyntaxErrorMessageProvider']]],
+  ['usehierarchicalbin_29',['useHierarchicalBin',['../classorg_1_1lflang_1_1FileConfig.html#ac86a63029d65b24543f6ed15a4cc1423',1,'org::lflang::FileConfig']]],
+  ['user_30',['user',['../classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aad0ce08e5cc8e02b63a2209a49c541d6',1,'org::lflang::federated::generator::FederateInstance']]],
+  ['user_5fthreads_31',['USER_THREADS',['../enumorg_1_1lflang_1_1target_1_1property_1_1PlatformProperty_1_1PlatformOption.html#a0027df4f7d6bb5a171f513a97e3506ef',1,'org::lflang::target::property::PlatformProperty::PlatformOption']]],
+  ['utilities_32',['Utilities',['../group__Utilities.html',1,'']]],
+  ['utilityextensions_33',['UtilityExtensions',['../classorg_1_1lflang_1_1diagram_1_1synthesis_1_1util_1_1UtilityExtensions.html',1,'org::lflang::diagram::synthesis::util']]]
 ];

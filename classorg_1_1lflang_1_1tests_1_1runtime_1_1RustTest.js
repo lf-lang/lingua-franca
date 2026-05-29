@@ -16,6 +16,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest =
     [ "runDockerFederatedTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#a1c38e986f0dbc5879a169fbb1904bc0a", null ],
     [ "runDockerTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#ad9413ff2e793fd6ab11b3cf66fcecbc8", null ],
     [ "runEnclaveTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#a38341fb78c02a6b7f767be18683fc4ce", null ],
+    [ "runFederatedSSTTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#abf3a57a094ea7f875fb1b6c54abbfc58", null ],
     [ "runFederatedTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#adb7cc4cb97c859aad645135d2395ae56", null ],
     [ "runGenericsTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#ad4c165b293b84442d04a095d75fdcecb", null ],
     [ "runModalTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#a3fb18e17b3116e83075cdbc478804fef", null ],
