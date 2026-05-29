@@ -1,8 +1,9 @@
 /**
  * This test showcases automatic protobuf serialization and deserialization in federated Python
- * programs. The sender serializes a ProtoHelloWorld message to bytes using SerializeToString() and
- * sends it to the receiver using serializer "proto". The receiver deserializes the bytes back into
- * a ProtoHelloWorld message using ParseFromString().
+ * programs. The sender sets the port with a proto object and the generated code calls
+ * SerializeToString() transparently before sending. On the receiver side, the generated code
+ * reconstructs the proto object via ParseFromString() so the reaction receives the original proto
+ * object directly via inp.value.
  *
  * To run this test, install protoc and the Python protobuf package (pip install protobuf).
  */
@@ -23,8 +24,7 @@ reactor Sender {
     protoHelloWorld = ProtoHelloWorld.ProtoHelloWorld()
     protoHelloWorld.name = "Hello World"
     protoHelloWorld.number = self.count
-    msg = protoHelloWorld.SerializeToString()
-    out.set(msg)
+    out.set(protoHelloWorld)
   =}
 }
 
@@ -34,10 +34,8 @@ reactor Receiver {
   state count = 0
 
   reaction(inp) {=
-    unpacked = ProtoHelloWorld.ProtoHelloWorld()
-    unpacked.ParseFromString(inp.value)
-    print(f"Received: name=\"{unpacked.name}\", number={unpacked.number}.")
-    if unpacked.number != self.count + 1:
+    print(f"Received: name=\"{inp.value.name}\", number={inp.value.number}.")
+    if inp.value.number != self.count + 1:
       sys.stderr.write("Expected number " + str(self.count + 1) + ".\n")
     self.count += 1
   =}

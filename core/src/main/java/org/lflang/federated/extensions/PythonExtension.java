@@ -265,6 +265,7 @@ lf_enqueue_port_absent_reactions(self->base.environment);
         result.pr(protoSerializer.generateNetworkSerializerCode(variableToSerialize, null));
         result.pr("size_t _lf_message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");\n");
+        result.pr("free(" + FedProtoPythonSerialization.BUF_VAR + ");\n");
       }
       case ROS2 ->
           throw new UnsupportedOperationException("ROS2 serialization is not supported yet.");
