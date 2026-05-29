@@ -1066,16 +1066,18 @@ public class LinguaFrancaValidationTest {
   @Test
   public void testFederationSupport() throws Exception {
     for (Target target : Target.values()) {
+      // The Polyglot target requires a @language annotation on every non-federated reactor.
+      String languageAnnotation = (target == Target.Polyglot) ? "@language(C)\n" : "";
       Model model =
           parseWithoutError(
               """
                   target %s
-                  reactor Foo {}
+                  %sreactor Foo {}
                   federated reactor {
                     foo = new Foo()
                   }
               """
-                  .formatted(target));
+                  .formatted(target, languageAnnotation));
 
       if (target.supportsFederated()) {
         validator.assertNoIssues(model);
