@@ -1,15 +1,13 @@
 /**
- * Test a sender-receiver network system that relies on microsteps being taken
- * into account. The purpose of this test is to check whether the
- * functionalities pertinent to dynamic maxwait adjustments are present and
- * functioning to a degree.
+ * Test a sender-receiver network system that relies on microsteps being taken into account. The
+ * purpose of this test is to check whether the functionalities pertinent to dynamic maxwait
+ * adjustments are present and functioning to a degree.
  *
- * This version of the test does not use a centralized coordinator to advance
- * tag. Therefore, the receiver will rely on an maxwait (initially zero) to
- * wait long enough for messages to arrive before advancing its tag. In this
- * test, the maxwait is initially zero and gradually raised every time an STP
- * violation is perceived until no STP violation is observed. Therefore, the
- * exact outcome of the test will depend on actual runtime timing.
+ * This version of the test does not use a centralized coordinator to advance tag. Therefore, the
+ * receiver will rely on an maxwait (initially zero) to wait long enough for messages to arrive
+ * before advancing its tag. In this test, the maxwait is initially zero and gradually raised every
+ * time an STP violation is perceived until no STP violation is observed. Therefore, the exact
+ * outcome of the test will depend on actual runtime timing.
  *
  * @author Soroush Bateni
  */
@@ -21,13 +19,10 @@ target Python {
 import Sender from "../lib/LoopedActionSender.lf"
 import Receiver from "DistributedLoopedAction.lf"
 
-reactor MaxwaitReceiver(
-  take_a_break_after = 10,
-  break_interval = 400 msec
-) {
+reactor MaxwaitReceiver(take_a_break_after=10, break_interval = 400 msec) {
   input inp
   state last_time_updated_maxwait = 0
-  r = new Receiver(take_a_break_after = 10, break_interval = 400 msec)
+  r = new Receiver(take_a_break_after=10, break_interval = 400 msec)
   timer t(0, 1 msec)  # Force advancement of logical time
 
   reaction(inp) -> r.inp {=
@@ -55,12 +50,9 @@ reactor MaxwaitReceiver(
 }
 
 federated reactor DistributedLoopedActionDecentralized {
-  sender = new Sender(take_a_break_after = 10, break_interval = 400 msec)
+  sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
   @maxwait(0)
-  maxwaitReceiver = new MaxwaitReceiver(
-    take_a_break_after = 10,
-    break_interval = 400 msec
-  )
+  maxwaitReceiver = new MaxwaitReceiver(take_a_break_after=10, break_interval = 400 msec)
 
   sender.out -> maxwaitReceiver.inp
 }
