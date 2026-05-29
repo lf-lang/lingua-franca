@@ -60,6 +60,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -67,6 +68,7 @@ import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
@@ -219,6 +221,16 @@ public class FedGenerator {
     // Compile an RTI for this federation.
     buildRtiLocally(context);
 
+    // Generate SST configurations/credentials or TLS credentials depending on the
+    // mode.
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      new SSTGenerator(fileConfig, messageReporter, context).setupSST(federates, rtiConfig);
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      new TLSGenerator(fileConfig, messageReporter, context).setupTLS(federates);
+    }
+
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
   }
@@ -249,12 +261,25 @@ public class FedGenerator {
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
 
     var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
-    var configure =
-        LFCommand.get(
-            "cmake",
-            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
-            false,
-            fileConfig.getRtiSrcGenPath());
+
+    var configureArgs = new java.util.ArrayList<String>();
+    configureArgs.add("-Bbuild");
+    configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
+
+    // If communication mode is SST or TLS, the RTI must be built with -DCOMM_TYPE=SST or
+    // -DCOMM_TYPE=TLS.
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      configureArgs.add("-DCOMM_TYPE=SST");
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      configureArgs.add("-DCOMM_TYPE=TLS");
+    }
+
+    configureArgs.add(".");
+
+    var configure = LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
+
     var build =
         LFCommand.get(
             "cmake",
@@ -557,10 +582,14 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
-    if (rtiConfig.getHost().equals("localhost")
-        && federation.getHost() != null
-        && !federation.getHost().getAddr().equals("localhost")) {
-      rtiConfig.setHost(federation.getHost().getAddr());
+    if (federation.getHost() != null) {
+      if (rtiConfig.getHost().equals("localhost")
+          && !federation.getHost().getAddr().equals("localhost")) {
+        rtiConfig.setHost(federation.getHost().getAddr());
+      }
+      if (rtiConfig.getUser() == null) {
+        rtiConfig.setUser(federation.getHost().getUser());
+      }
     }
 
     if (rtiConfig.getHost().equals("localhost")
