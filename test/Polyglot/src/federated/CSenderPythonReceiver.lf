@@ -1,0 +1,60 @@
+/**
+ * A Polyglot federated program demonstrating cross-language protobuf serialization from a C
+ * federate to a Python federate. The Sender federate (C) allocates and initializes a
+ * ProtoHelloWorld message using protobuf-c and sends it over a federated connection with
+ * serializer "proto". The Receiver federate (Python) receives the raw protobuf bytes and
+ * deserializes them into a ProtoHelloWorld Python object via ParseFromString(), which is invoked
+ * by the generated C infrastructure rather than user reaction code.
+ *
+ * <p>Each top-level reactor is annotated with @language to specify its implementation language.
+ * The lfc compiles each federate independently using its designated target (C or Python), while
+ * sharing common Polyglot target properties such as protobufs and timeout.
+ *
+ * <p>To run this test, install protoc, protoc-c, libprotobuf-c, and the Python protobuf package
+ * (pip install protobuf).
+ *
+ * @author Hokeun Kim
+ */
+target Polyglot {
+  protobufs: [ProtoHelloWorld.proto],
+  timeout: 2 sec
+}
+
+@language(C)
+reactor Sender {
+  output out: ProtoHelloWorld*
+
+  state count: int = 0
+
+  timer t(0, 1 sec)
+
+  reaction(t) -> out {=
+    self->count++;
+    ProtoHelloWorld* msg = (ProtoHelloWorld*)malloc(sizeof(ProtoHelloWorld));
+    proto_hello_world__init(msg);
+    msg->name = "Hello World";
+    msg->number = self->count;
+    lf_set(out, msg);
+  =}
+}
+
+@language(Python)
+reactor Receiver {
+  input inp
+
+  state count = 0
+
+  reaction(inp) {=
+    print(f"Received: name=\"{inp.value.name}\", number={inp.value.number}.")
+    if inp.value.number != self.count + 1:
+      sys.stderr.write("Expected number " + str(self.count + 1) + ".\n")
+    self.count += 1
+  =}
+}
+
+federated reactor {
+  sender = new Sender()
+  receiver = new Receiver()
+
+  sender.out -> receiver.inp after 100 msec serializer "proto"
+}
