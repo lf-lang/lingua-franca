@@ -27,6 +27,9 @@ on:
       run_misc:
         description: 'Return true if the build should be run'
         value: ${{ jobs.check.outputs.run_misc == 'true' && jobs.check.outputs.skip != 'true' }}
+      run_polyglot:
+        description: 'Return true if Polyglot tests should be run'
+        value: ${{ jobs.check.outputs.run_polyglot == 'true' && jobs.check.outputs.skip != 'true' }}
 
 jobs:
   check:
@@ -40,6 +43,7 @@ jobs:
       run_rs: ${{ steps.do.outputs.changed_rs == 1 || !github.event.pull_request.draft }}
       run_ts: ${{ steps.do.outputs.changed_ts == 1|| !github.event.pull_request.draft }}
       run_tracing: ${{ steps.do.outputs.changed_tracing == 1 || !github.event.pull_request.draft }}
+      run_polyglot: ${{ steps.do.outputs.changed_polyglot == 1 || !github.event.pull_request.draft }}
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -59,6 +63,7 @@ jobs:
           ./check-diff.sh master "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
           ./check-diff.sh master "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
           ./check-diff.sh master "util/tracing" tracing
+          ./check-diff.sh master "lflang/generator/polyglot\|test/Polyglot" polyglot
           ./check-diff.sh master ".*" any
         shell: bash
         working-directory: .github/scripts
@@ -112,4 +117,5 @@ jobs:
           echo '| rs      | `${{ steps.do.outputs.changed_rs == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
           echo '| ts      | `${{ steps.do.outputs.changed_ts == 1 }}`      |' >> $GITHUB_STEP_SUMMARY
           echo '| tracing | `${{ steps.do.outputs.changed_tracing == 1 }}` |' >> $GITHUB_STEP_SUMMARY
+          echo '| polyglot | `${{ steps.do.outputs.changed_polyglot == 1 }}` |' >> $GITHUB_STEP_SUMMARY
         if: ${{ steps.should-skip.outputs.skip != 'true' && steps.do.outputs.changed_any != 0 && github.event.pull_request.draft}}
