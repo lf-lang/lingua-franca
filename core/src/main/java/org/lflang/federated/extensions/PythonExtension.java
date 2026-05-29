@@ -1,7 +1,6 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
-
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -281,7 +280,8 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + "Py_XDECREF(_lf_parse_result);\n");
         } else {
           // Both ports are untyped (Python-to-Python): the sender embeds the type name in the
-          // wire format so the receiver can reconstruct the class without a compile-time annotation.
+          // wire format so the receiver can reconstruct the class without a compile-time
+          // annotation.
           FedProtoPythonSerialization protoDeserializer = new FedProtoPythonSerialization();
           result.pr(protoDeserializer.generateNetworkDeserializerCode(value, null));
         }
