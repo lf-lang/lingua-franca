@@ -1415,6 +1415,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::federated::serialization::FedProtoPythonSerialization</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::federated::serialization::FedROS2CPPSerialization</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -7937,6 +7946,16 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1BooleanProperty.html</Path>
     <Anchor>ac37f12c87fa21098807a5e1dee252757</Anchor>
     <DeclaredIn>BooleanProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>BUF_VAR</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>a77f1c5499c6ee18c5ff3a810c4ac6b30</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -19476,6 +19495,17 @@
       <Name>generateCompilerExtensionForSupport</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>a00e69532b369b25743a83be613179011</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generateCompilerExtensionForSupport</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.federated.serialization.FedROS2CPPSerialization</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</Path>
@@ -20440,6 +20470,17 @@
       <Name>generateNetworkDeserializerCode</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>a489f893a0facc721d014a15534c59b2c</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generateNetworkDeserializerCode</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.federated.serialization.FedROS2CPPSerialization</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</Path>
@@ -20577,6 +20618,17 @@
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
     <Anchor>a9b06fe522bfccaf2c14b19a0f0116e48</Anchor>
     <DeclaredIn>FedProtoCSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generateNetworkSerializerCode</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>ac26f8bc86b0382f3d0e7fc9781c79987</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -20808,6 +20860,17 @@
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
     <Anchor>a6e581ab2a891b7d1cccd775ffd8e5729</Anchor>
     <DeclaredIn>FedProtoCSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generatePreambleForSupport</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>a380a138d3771527a2d5970eb8d735f55</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -30776,6 +30839,17 @@
       <Name>isCompatible</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>af0a9a37bddf949ad698677095cfaa249</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>isCompatible</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.federated.serialization.FedROS2CPPSerialization</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</Path>
@@ -31888,6 +31962,16 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1util_1_1LayoutPostProcessing.html</Path>
     <Anchor>aa52252dc8de88f1dde7f811eced24455</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>LEN_VAR</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>ad512d45a5cef58cd59937c31fbdeacbf</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -41673,6 +41757,17 @@
       <Name>serializedBufferLength</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>a1ef62efd69ce5b26348aa4727655f9f5</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>serializedBufferLength</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.federated.serialization.FedROS2CPPSerialization</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</Path>
@@ -41722,6 +41817,17 @@
     <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html</Path>
     <Anchor>a3b09ac6e6842784809dfdcaea49dac11</Anchor>
     <DeclaredIn>FedProtoCSerialization.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>serializedBufferVar</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.serialization.FedProtoPythonSerialization</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</Path>
+    <Anchor>a2ef17ce1f56d165fa047b3758cee1a4e</Anchor>
+    <DeclaredIn>FedProtoPythonSerialization.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

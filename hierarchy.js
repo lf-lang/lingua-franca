@@ -297,6 +297,7 @@ var hierarchy =
       [ "org.lflang.federated.serialization.FedCustomPythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedCustomPythonSerialization.html", null ],
       [ "org.lflang.federated.serialization.FedNativePythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedNativePythonSerialization.html", null ],
       [ "org.lflang.federated.serialization.FedProtoCSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html", null ],
+      [ "org.lflang.federated.serialization.FedProtoPythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html", null ],
       [ "org.lflang.federated.serialization.FedROS2CPPSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html", null ]
     ] ],
     [ "org.lflang.federated.serialization.SupportedSerializers", "enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers.html", null ],

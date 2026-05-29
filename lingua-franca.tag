@@ -13363,6 +13363,88 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::federated::serialization::FedProtoPythonSerialization</name>
+    <filename>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</filename>
+    <base>org.lflang.federated.serialization.FedSerialization</base>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generateCompilerExtensionForSupport</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>a00e69532b369b25743a83be613179011</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generateNetworkDeserializerCode</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>a489f893a0facc721d014a15534c59b2c</anchor>
+      <arglist>(String varName, String targetType)</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generateNetworkSerializerCode</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>ac26f8bc86b0382f3d0e7fc9781c79987</anchor>
+      <arglist>(String varName, String originalType)</arglist>
+    </member>
+    <member kind="function">
+      <type>StringBuilder</type>
+      <name>generatePreambleForSupport</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>a380a138d3771527a2d5970eb8d735f55</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
+      <name>isCompatible</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>af0a9a37bddf949ad698677095cfaa249</anchor>
+      <arglist>(GeneratorBase generator)</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>serializedBufferLength</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>a1ef62efd69ce5b26348aa4727655f9f5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>serializedBufferVar</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>a2ef17ce1f56d165fa047b3758cee1a4e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>BUF_VAR</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>a77f1c5499c6ee18c5ff3a810c4ac6b30</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>deserializedVarName</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html</anchorfile>
+      <anchor>ad26ff751148d3f622edd98d54a6c27bf</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>LEN_VAR</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html</anchorfile>
+      <anchor>ad512d45a5cef58cd59937c31fbdeacbf</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>serializedVarName</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html</anchorfile>
+      <anchor>a6a7cc5ce4312c556f0a277cb0b2792c8</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::federated::serialization::FedROS2CPPSerialization</name>
     <filename>classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html</filename>
     <base>org.lflang.federated.serialization.FedSerialization</base>
@@ -43320,6 +43402,7 @@
     <class kind="class">org::lflang::federated::serialization::FedNativePythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedProtoCSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedProtoCSerializationTest</class>
+    <class kind="class">org::lflang::federated::serialization::FedProtoPythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedROS2CPPSerialization</class>
     <class kind="interface">org::lflang::federated::serialization::FedSerialization</class>
     <class kind="enum">org::lflang::federated::serialization::SupportedSerializers</class>
@@ -43760,6 +43843,7 @@
     <class kind="class">org::lflang::federated::serialization::FedCustomPythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedNativePythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedProtoCSerialization</class>
+    <class kind="class">org::lflang::federated::serialization::FedProtoPythonSerialization</class>
     <class kind="class">org::lflang::federated::serialization::FedROS2CPPSerialization</class>
     <class kind="interface">org::lflang::federated::serialization::FedSerialization</class>
     <class kind="enum">org::lflang::federated::serialization::SupportedSerializers</class>
@@ -44858,6 +44942,7 @@
     <file>FedCustomPythonSerialization.java</file>
     <file>FedNativePythonSerialization.java</file>
     <file>FedProtoCSerialization.java</file>
+    <file>FedProtoPythonSerialization.java</file>
     <file>FedROS2CPPSerialization.java</file>
     <file>FedSerialization.java</file>
     <file>SupportedSerializers.java</file>

@@ -145,6 +145,7 @@ var annotated_dup =
             [ "FedNativePythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedNativePythonSerialization.html", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedNativePythonSerialization" ],
             [ "FedProtoCSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization" ],
             [ "FedProtoCSerializationTest", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest.html", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerializationTest" ],
+            [ "FedProtoPythonSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization.html", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoPythonSerialization" ],
             [ "FedROS2CPPSerialization", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization.html", "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedROS2CPPSerialization" ],
             [ "FedSerialization", "interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization.html", "interfaceorg_1_1lflang_1_1federated_1_1serialization_1_1FedSerialization" ],
             [ "SupportedSerializers", "enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers.html", "enumorg_1_1lflang_1_1federated_1_1serialization_1_1SupportedSerializers" ]
