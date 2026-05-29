@@ -23,7 +23,10 @@ public class FederateTargetConfig extends TargetConfig {
    * @param federateResource The resource in which to find the reactor class of the federate.
    */
   public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
-    this(context, federateResource, Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)));
+    this(
+        context,
+        federateResource,
+        Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)));
   }
 
   /**

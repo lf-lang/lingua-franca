@@ -1,6 +1,7 @@
 package org.lflang.tests.runtime;
 
 import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
 import org.lflang.tests.RuntimeTest;
@@ -36,6 +37,15 @@ public class PolyglotTest extends RuntimeTest {
   @Override
   public void runTargetSpecificTests() {
     super.runTargetSpecificTests();
+  }
+
+  @Test
+  @Disabled(
+      "Polyglot tests are already federated; runAsFederated applies C target tests which is not"
+          + " applicable here")
+  @Override
+  public void runAsFederated() {
+    super.runAsFederated();
   }
 
   @Test

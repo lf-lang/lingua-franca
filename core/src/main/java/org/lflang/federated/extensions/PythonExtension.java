@@ -267,7 +267,8 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                     + "Py_XDECREF(_lf_proto_bytes_raw);\n"
                     + "if (_lf_parse_result == NULL) {\n"
                     + "    if (PyErr_Occurred()) PyErr_Print();\n"
-                    + "    lf_print_error_and_exit(\"Failed to parse proto message from bytes.\");\n"
+                    + "    lf_print_error_and_exit(\"Failed to parse proto message from"
+                    + " bytes.\");\n"
                     + "}\n"
                     + "Py_XDECREF(_lf_parse_result);\n");
           }
@@ -348,7 +349,8 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + " proto.\");\n"
                   + "}\n");
           result.pr("size_t _lf_message_length = (size_t)serialized_message_len;");
-          result.pr(sendingFunction + "(" + commonArgs + ", (unsigned char*)serialized_message_buf);\n");
+          result.pr(
+              sendingFunction + "(" + commonArgs + ", (unsigned char*)serialized_message_buf);\n");
           result.pr("Py_XDECREF(serialized_pyobject);\n");
         } else {
           // Python receiver: use self-describing format with type name embedded.

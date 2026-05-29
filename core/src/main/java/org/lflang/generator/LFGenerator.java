@@ -100,7 +100,8 @@ public class LFGenerator extends AbstractGenerator {
                   + " target.");
       case Polyglot ->
           throw new RuntimeException(
-              "Polyglot programs must use a 'federated reactor' and are compiled via FedGenerator.");
+              "Polyglot programs must use a 'federated reactor' and are compiled via"
+                  + " FedGenerator.");
     };
   }
 

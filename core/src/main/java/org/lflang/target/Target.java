@@ -638,8 +638,8 @@ public enum Target {
               ProtobufsProperty.INSTANCE,
               RuntimeVersionProperty.INSTANCE);
       case UC -> config.register(ClockSyncModeProperty.INSTANCE, PlatformProperty.INSTANCE);
-      // Polyglot registers properties common to both C and Python that may appear in the
-      // target block of a Polyglot program.
+        // Polyglot registers properties common to both C and Python that may appear in the
+        // target block of a Polyglot program.
       case Polyglot ->
           config.register(
               AuthProperty.INSTANCE,

@@ -1404,9 +1404,7 @@ public class LFValidator extends BaseLFValidator {
     var container = attr.eContainer();
     if (!(container instanceof org.lflang.lf.Reactor reactor)) {
       error(
-          "@language must be placed on a reactor definition.",
-          attr,
-          Literals.ATTRIBUTE__ATTR_NAME);
+          "@language must be placed on a reactor definition.", attr, Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
     if (reactor.isFederated() || reactor.isMain()) {
@@ -1418,19 +1416,16 @@ public class LFValidator extends BaseLFValidator {
     }
     // The value must be a recognized, federation-capable target (C or Python for now).
     String langName = AttributeUtils.getAttributeValue(reactor, "language");
-    var langOpt = (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
+    var langOpt =
+        (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
     if (langOpt.isEmpty()) {
       error(
-          "Unknown language: '"
-              + langName
-              + "'. Supported languages are: C, Python.",
+          "Unknown language: '" + langName + "'. Supported languages are: C, Python.",
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
     } else if (!langOpt.get().supportsFederated()) {
       error(
-          "Target '"
-              + langName
-              + "' does not support federated execution.",
+          "Target '" + langName + "' does not support federated execution.",
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
     }

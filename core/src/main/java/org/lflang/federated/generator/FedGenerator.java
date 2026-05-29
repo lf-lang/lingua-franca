@@ -27,10 +27,10 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
-import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
@@ -718,14 +718,16 @@ public class FedGenerator {
     if (mainTarget == Target.Polyglot) {
       Reactor reactorDef = ASTUtils.toDefinition(instantiation.getReactorClass());
       String langName = AttributeUtils.getAttributeValue(reactorDef, "language");
-      var langOpt = (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
+      var langOpt =
+          (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
       if (langOpt.isEmpty()) {
         messageReporter
             .at(instantiation)
             .error(
                 "Reactor '"
                     + reactorDef.getName()
-                    + "' must have a @language(C) or @language(Python) annotation in Polyglot mode.");
+                    + "' must have a @language(C) or @language(Python) annotation in Polyglot"
+                    + " mode.");
         federateTarget = Target.C; // fallback to avoid NPE
       } else {
         federateTarget = langOpt.get();
