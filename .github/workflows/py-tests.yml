@@ -45,6 +45,9 @@ jobs:
         if: ${{ runner.os == 'macOS' }}
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase
+      - name: Install Python protobuf package
+        run: pip3 install protobuf
+        if: ${{ runner.os == 'Linux' }}
       - name: Install Google API Python Client
         run: pip3 install --upgrade google-api-python-client
       - name: Check out specific ref of reactor-c
