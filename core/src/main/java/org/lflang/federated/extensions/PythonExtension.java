@@ -1,6 +1,7 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
