@@ -30,6 +30,7 @@ import org.eclipse.xtext.util.RuntimeIOException;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
+import org.lflang.AttributeUtils;
 import org.lflang.ast.ASTUtils;
 import org.lflang.federated.launcher.FedLauncherGenerator;
 import org.lflang.federated.launcher.RtiConfig;
@@ -390,7 +391,8 @@ public class FedGenerator {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
-        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
+        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP, Target.Polyglot)
+            .contains(target);
     if (!targetOK) {
       messageReporter
           .at(targetDecl)
@@ -708,11 +710,34 @@ public class FedGenerator {
     // Create one federate instance for each instance in a bank of reactors.
     List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
 
+    var resource = instantiation.getReactorClass().eResource();
+    // For the Polyglot target, resolve the per-federate compilation target from the
+    // reactor's @language annotation; otherwise use the target declared in the resource.
+    Target federateTarget;
+    var mainTarget = Target.fromDecl(GeneratorUtils.findTargetDecl(resource));
+    if (mainTarget == Target.Polyglot) {
+      Reactor reactorDef = ASTUtils.toDefinition(instantiation.getReactorClass());
+      String langName = AttributeUtils.getAttributeValue(reactorDef, "language");
+      var langOpt = (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
+      if (langOpt.isEmpty()) {
+        messageReporter
+            .at(instantiation)
+            .error(
+                "Reactor '"
+                    + reactorDef.getName()
+                    + "' must have a @language(C) or @language(Python) annotation in Polyglot mode.");
+        federateTarget = Target.C; // fallback to avoid NPE
+      } else {
+        federateTarget = langOpt.get();
+      }
+    } else {
+      federateTarget = mainTarget;
+    }
+
     for (int i = 0; i < bankWidth; i++) {
       // Assign an integer ID to the federate.
       int federateID = federates.size();
-      var resource = instantiation.getReactorClass().eResource();
-      var federateTargetConfig = new FederateTargetConfig(context, resource);
+      var federateTargetConfig = new FederateTargetConfig(context, resource, federateTarget);
       FederateInstance federateInstance =
           new FederateInstance(
               instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);

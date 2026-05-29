@@ -69,6 +69,10 @@ public class LFGenerator extends AbstractGenerator {
             throw new RuntimeException(
                 "Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC"
                     + " target.");
+        case Polyglot ->
+            throw new RuntimeException(
+                "Polyglot programs must use a 'federated reactor'. No non-federated Polyglot"
+                    + " programs are supported.");
       };
     } catch (IOException e) {
       throw new RuntimeException(
@@ -94,6 +98,9 @@ public class LFGenerator extends AbstractGenerator {
           throw new RuntimeException(
               "Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC"
                   + " target.");
+      case Polyglot ->
+          throw new RuntimeException(
+              "Polyglot programs must use a 'federated reactor' and are compiled via FedGenerator.");
     };
   }
 

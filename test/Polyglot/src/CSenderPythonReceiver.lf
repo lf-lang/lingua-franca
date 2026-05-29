@@ -42,5 +42,5 @@ federated reactor {
   sender = new Sender()
   receiver = new Receiver()
 
-  sender.out -> receiver.in after 100 msec serializer "proto"
+  sender.out -> receiver.inp after 100 msec serializer "proto"
 }

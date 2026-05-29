@@ -335,7 +335,14 @@ public enum Target {
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
       Arrays.asList("self", "true", "false")),
-  UC("uC", true, Target.C.keywords);
+  UC("uC", true, Target.C.keywords),
+  /**
+   * A meta-target for multi-language federated programs. Each reactor must carry a
+   * {@code @language(C)} or {@code @language(Python)} annotation. The main reactor must be a
+   * {@code federated reactor}. The lfc resolves each federate's actual target from its annotation
+   * before compiling.
+   */
+  Polyglot("Polyglot", false, Collections.emptyList());
 
   /** String representation of this target. */
   private final String displayName;
@@ -412,7 +419,7 @@ public enum Target {
   /** Return true if the target supports federated execution. */
   public boolean supportsFederated() {
     return switch (this) {
-      case C, CCPP, Python, TS, UC -> true;
+      case C, CCPP, Python, TS, UC, Polyglot -> true;
       default -> false;
     };
   }
@@ -631,6 +638,20 @@ public enum Target {
               ProtobufsProperty.INSTANCE,
               RuntimeVersionProperty.INSTANCE);
       case UC -> config.register(ClockSyncModeProperty.INSTANCE, PlatformProperty.INSTANCE);
+      // Polyglot registers properties common to both C and Python that may appear in the
+      // target block of a Polyglot program.
+      case Polyglot ->
+          config.register(
+              AuthProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
+              ClockSyncOptionsProperty.INSTANCE,
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              FilesProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE);
     }
   }
 }

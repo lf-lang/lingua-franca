@@ -1206,6 +1206,27 @@ public class LFValidator extends BaseLFValidator {
 
       FedValidator.validateFederatedReactor(reactor, this.errorReporter);
     }
+
+    // Polyglot-specific checks.
+    if (target == Target.Polyglot) {
+      if (reactor.isMain() && !reactor.isFederated()) {
+        // The main reactor in a Polyglot program must be a federated reactor.
+        error(
+            "The Polyglot target requires a 'federated reactor' declaration.",
+            Literals.REACTOR__MAIN);
+      }
+      if (!reactor.isFederated() && !reactor.isMain()) {
+        // Every non-federated reactor must declare its language via @language.
+        String lang = AttributeUtils.getAttributeValue(reactor, "language");
+        if (lang == null) {
+          error(
+              "Reactor '"
+                  + reactor.getName()
+                  + "' must have a @language(C) or @language(Python) annotation in Polyglot mode.",
+              Literals.REACTOR_DECL__NAME);
+        }
+      }
+    }
   }
 
   /** Check if the requested serialization is supported. */
@@ -1282,6 +1303,12 @@ public class LFValidator extends BaseLFValidator {
     if (type == null) {
       return;
     }
+    // For the Polyglot target, skip file-level type checks. Each reactor in a Polyglot program
+    // declares its own language via @language, and per-federate compilation validates types for
+    // the actual target language (C or Python).
+    if (this.target == Target.Polyglot) {
+      return;
+    }
     if (this.target == Target.Python) {
       error("Types are not allowed in the Python target", Literals.TYPE__ID);
     }
@@ -1341,6 +1368,11 @@ public class LFValidator extends BaseLFValidator {
   @Check(CheckType.FAST)
   public void checkAttributes(Attribute attr) {
     String name = attr.getAttrName().toString();
+    // @language is handled separately (uses a bare-ID parameter not a quoted string).
+    if (name.equals("language")) {
+      checkLanguageAttribute(attr);
+      return;
+    }
     AttributeSpec spec = AttributeSpec.ATTRIBUTE_SPECS_BY_NAME.get(name);
     if (spec == null) {
       error("Unknown attribute: " + name, Literals.ATTRIBUTE__ATTR_NAME);
@@ -1356,6 +1388,51 @@ public class LFValidator extends BaseLFValidator {
     }
     if (GLOBAL_ATTRIBUTE_NAMES.contains(name)) {
       checkGlobalAttribute(attr);
+    }
+  }
+
+  private void checkLanguageAttribute(Attribute attr) {
+    // @language is only meaningful in Polyglot programs.
+    if (target != Target.Polyglot) {
+      error(
+          "@language is only allowed with the Polyglot target.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    // Must be placed on a non-federated reactor definition (not on the main/federated reactor).
+    var container = attr.eContainer();
+    if (!(container instanceof org.lflang.lf.Reactor reactor)) {
+      error(
+          "@language must be placed on a reactor definition.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    if (reactor.isFederated() || reactor.isMain()) {
+      error(
+          "@language cannot be placed on the federated reactor itself.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    // The value must be a recognized, federation-capable target (C or Python for now).
+    String langName = AttributeUtils.getAttributeValue(reactor, "language");
+    var langOpt = (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
+    if (langOpt.isEmpty()) {
+      error(
+          "Unknown language: '"
+              + langName
+              + "'. Supported languages are: C, Python.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    } else if (!langOpt.get().supportsFederated()) {
+      error(
+          "Target '"
+              + langName
+              + "' does not support federated execution.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
     }
   }
 
