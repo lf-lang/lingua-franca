@@ -1,12 +1,11 @@
 target Rust
 
 reactor Foo {
-  input in: u32
+  input inp: u32
   output out: u32
 
-  reaction(in) -> out {=
-    // r#in is a special variable for rust as `in` is a keyword in Rust
-    ctx.set(out, ctx.get(r#in).unwrap());
+  reaction(inp) -> out {=
+    ctx.set(out, ctx.get(inp).unwrap());
   =}
 }
 
@@ -17,14 +16,14 @@ reactor Blank {
 }
 
 reactor Parent {
-  input in: u32
+  input inp: u32
   output out: u32
   f = new Foo()
 }
 
 reactor Child extends Parent {
-  reaction(startup) -> f.in {=
-    ctx.set(f__in, 42);
+  reaction(startup) -> f.inp {=
+    ctx.set(f__inp, 42);
   =}
 
   reaction(f.out) {=
