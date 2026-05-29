@@ -1,5 +1,19 @@
 /**
- * TODO
+ * A Polyglot federated program demonstrating cross-language protobuf serialization from a Python
+ * federate to a C federate. The Sender federate (Python) constructs a ProtoHelloWorld object and
+ * sets it on an output port; the generated C infrastructure calls SerializeToString() and sends
+ * the raw protobuf bytes over a federated connection with serializer "proto". The Receiver
+ * federate (C) deserializes the bytes using protobuf-c's __unpack() and accesses the message
+ * fields directly as a C struct.
+ *
+ * <p>Each top-level reactor is annotated with @language to specify its implementation language.
+ * The lfc compiles each federate independently using its designated target (Python or C), while
+ * sharing common Polyglot target properties such as protobufs and timeout.
+ *
+ * <p>To run this test, install protoc, protoc-c, libprotobuf-c, and the Python protobuf package
+ * (pip install protobuf).
+ *
+ * @author Hokeun Kim
  */
 target Polyglot {
   protobufs: [ProtoHelloWorld.proto],
