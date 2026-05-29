@@ -9,6 +9,7 @@ import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.Target;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
@@ -486,8 +487,9 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // link protobuf
-    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()) {
+    // link protobuf (C only — Python handles protobuf via the Python runtime, not protobuf-c)
+    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()
+        && targetConfig.target != Target.Python) {
       cMakeCode.pr("include(FindPackageHandleStandardArgs)");
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(
