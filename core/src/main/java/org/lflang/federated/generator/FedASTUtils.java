@@ -199,7 +199,7 @@ public class FedASTUtils {
       action.setType(EcoreUtil.copy(connection.getSourcePortInstance().getDefinition().getType()));
     } else {
       String bufferType =
-          FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
+          FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target)
               .getNetworkBufferType();
       if (bufferType != null && !bufferType.isEmpty()) {
         Type action_type = factory.createType();

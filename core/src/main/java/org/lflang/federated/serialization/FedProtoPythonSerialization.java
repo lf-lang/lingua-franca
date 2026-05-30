@@ -75,11 +75,9 @@ public class FedProtoPythonSerialization implements FedSerialization {
             + " Dropping outgoing message.\");\n");
     code.append("    return;\n");
     code.append("}\n");
-    code.append("char* _lf_proto_raw;\n");
-    code.append("Py_ssize_t _lf_proto_raw_len;\n");
+    code.append("Py_buffer _lf_proto_view;\n");
     code.append(
-        "if (PyBytes_AsStringAndSize(_lf_proto_bytes, &_lf_proto_raw, &_lf_proto_raw_len)"
-            + " == -1) {\n");
+        "if (PyObject_GetBuffer(_lf_proto_bytes, &_lf_proto_view, PyBUF_SIMPLE) == -1) {\n");
     code.append("    if (PyErr_Occurred()) PyErr_Print();\n");
     code.append("    Py_XDECREF(_lf_proto_bytes);\n");
     code.append(
@@ -87,6 +85,8 @@ public class FedProtoPythonSerialization implements FedSerialization {
             + " Dropping outgoing message.\");\n");
     code.append("    return;\n");
     code.append("}\n");
+    code.append("const char* _lf_proto_raw = (const char*)_lf_proto_view.buf;\n");
+    code.append("Py_ssize_t _lf_proto_raw_len = (Py_ssize_t)_lf_proto_view.len;\n");
     // Get the fully-qualified type name from DESCRIPTOR.full_name.
     code.append(
         "PyObject* _lf_descriptor = PyObject_GetAttrString(" + varName + ", \"DESCRIPTOR\");\n");
@@ -117,6 +117,7 @@ public class FedProtoPythonSerialization implements FedSerialization {
     code.append("memcpy(" + BUF_VAR + " + 4, _lf_full_name, _lf_name_len);\n");
     code.append(
         "memcpy(" + BUF_VAR + " + 4 + _lf_name_len, _lf_proto_raw, (size_t)_lf_proto_raw_len);\n");
+    code.append("PyBuffer_Release(&_lf_proto_view);\n");
     code.append("Py_XDECREF(_lf_full_name_obj);\n");
     code.append("Py_XDECREF(_lf_proto_bytes);\n");
     return code;

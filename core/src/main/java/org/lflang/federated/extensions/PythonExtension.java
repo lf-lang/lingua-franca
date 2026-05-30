@@ -361,19 +361,19 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + " Dropping outgoing message.\");\n"
                   + "    return;\n"
                   + "}\n"
-                  + "char* serialized_message_buf;\n"
-                  + "Py_ssize_t serialized_message_len;\n"
-                  + "if (PyBytes_AsStringAndSize(serialized_pyobject, &serialized_message_buf,"
-                  + " &serialized_message_len) == -1) {\n"
+                  + "Py_buffer _lf_serialized_view;\n"
+                  + "if (PyObject_GetBuffer(serialized_pyobject, &_lf_serialized_view,"
+                  + " PyBUF_SIMPLE) == -1) {\n"
                   + "    if (PyErr_Occurred()) PyErr_Print();\n"
                   + "    Py_XDECREF(serialized_pyobject);\n"
                   + "    lf_print_warning(\"Failed to extract bytes from serialized proto."
                   + " Dropping outgoing message.\");\n"
                   + "    return;\n"
                   + "}\n");
-          result.pr("size_t _lf_message_length = (size_t)serialized_message_len;");
+          result.pr("size_t _lf_message_length = (size_t)_lf_serialized_view.len;");
           result.pr(
-              sendingFunction + "(" + commonArgs + ", (unsigned char*)serialized_message_buf);\n");
+              sendingFunction + "(" + commonArgs + ", (unsigned char*)_lf_serialized_view.buf);\n");
+          result.pr("PyBuffer_Release(&_lf_serialized_view);\n");
           result.pr("Py_XDECREF(serialized_pyobject);\n");
         } else {
           // Destination port is untyped (Python receiver): embed the type name in the wire format
