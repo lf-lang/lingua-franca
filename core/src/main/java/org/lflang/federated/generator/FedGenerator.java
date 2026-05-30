@@ -52,6 +52,7 @@ import org.lflang.generator.docker.DockerData;
 import org.lflang.generator.docker.FedDockerComposeGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -747,6 +748,16 @@ public class FedGenerator {
     if (mainTarget == Target.Polyglot) {
       Reactor reactorDef = ASTUtils.toDefinition(instantiation.getReactorClass());
       String langName = AttributeUtils.getAttributeValue(reactorDef, "language");
+      // For imported reactors with no @language annotation, infer the language from the target
+      // declared in the source file they were imported from.
+      if (langName == null && instantiation.getReactorClass() instanceof ImportedReactor) {
+        var sourceTarget = Target.fromDecl(GeneratorUtils.findTargetDecl(reactorDef.eResource()));
+        if (sourceTarget == Target.C || sourceTarget == Target.CCPP) {
+          langName = "C";
+        } else if (sourceTarget == Target.Python) {
+          langName = "Python";
+        }
+      }
       var langOpt =
           (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
       if (langOpt.isEmpty()) {
@@ -756,7 +767,7 @@ public class FedGenerator {
                 "Reactor '"
                     + reactorDef.getName()
                     + "' must have a @language(C) or @language(Python) annotation in Polyglot"
-                    + " mode.");
+                    + " mode, or be imported from a file with target C or Python.");
         federateTarget = Target.C; // fallback to avoid NPE
       } else {
         federateTarget = langOpt.get();

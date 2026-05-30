@@ -1,15 +1,5 @@
 /**
- * This test showcases automatic protobuf serialization and deserialization in federated C programs.
- * The sender federate sends a ProtoHelloWorld message to the receiver federate using serializer
- * "proto".
- *
- * The port type is a pointer (ProtoHelloWorld*); the sender allocates and initializes the message
- * and uses lf_set to transfer ownership. On the receiver, the runtime manages the lifetime of the
- * deserialized message via the standard LF token mechanism and frees it with
- * protobuf_c_message_free_unpacked when the token reference count drops to zero.
- *
- * To run this test, install protoc, protoc-c, and libprotobuf-c. See PersonProtocolBuffers.lf for
- * details.
+ * TODO to be imported..
  */
 target C {
   protobufs: [ProtoHelloWorld.proto],
@@ -49,11 +39,4 @@ reactor Receiver {
     }
     self->count++;
   =}
-}
-
-federated reactor {
-  sender = new Sender()
-  receiver = new Receiver()
-
-  sender.out -> receiver.in after 100 msec serializer "proto"
 }

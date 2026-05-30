@@ -1,0 +1,19 @@
+/**
+ * TODO
+ *
+ * @author Hokeun Kim
+ */
+target Polyglot {
+  protobufs: [ProtoHelloWorld.proto],
+  timeout: 2 sec
+}
+
+import PythonSender from "PythonProtoSenderReceiver.lf"
+import CReceiver from "CProtoSenderReceiver.lf"
+
+federated reactor {
+  sender = new PythonSender()
+  receiver = new CReceiver()
+
+  sender.out -> receiver.in after 100 msec serializer "proto"
+}
