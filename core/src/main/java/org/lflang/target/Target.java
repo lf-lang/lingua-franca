@@ -337,10 +337,11 @@ public enum Target {
       Arrays.asList("self", "true", "false")),
   UC("uC", true, Target.C.keywords),
   /**
-   * A meta-target for multi-language federated programs. Each reactor must carry a
-   * {@code @language(C)} or {@code @language(Python)} annotation. The main reactor must be a
-   * {@code federated reactor}. The lfc resolves each federate's actual target from its annotation
-   * before compiling.
+   * A meta-target for multi-language federated programs. Each reactor must either carry a
+   * {@code @language(C)} or {@code @language(Python)} annotation, or be imported from a file that
+   * declares {@code target C} or {@code target Python} (in which case the language is inferred from
+   * the source file). The main reactor must be a {@code federated reactor}. The lfc resolves each
+   * federate's actual target from its annotation or from the imported file's declared target.
    */
   Polyglot("Polyglot", false, Collections.emptyList());
 

@@ -699,6 +699,57 @@ public class LFValidator extends BaseLFValidator {
         error("Variable-width banks are not supported.", Literals.INSTANTIATION__WIDTH_SPEC);
       }
     }
+
+    // Polyglot-specific instantiation checks.
+    if (target == Target.Polyglot) {
+      Reactor enclosing = (Reactor) instantiation.eContainer();
+      var instantiatedLang = polyglotReactorLanguage(reactor);
+      if (enclosing.isFederated()) {
+        // Top-level federate: language must be known (either @language or imported from C/Python).
+        if (instantiatedLang.isEmpty()) {
+          error(
+              "Reactor '"
+                  + reactor.getName()
+                  + "' must have a @language(C) or @language(Python) annotation in Polyglot"
+                  + " mode, or be imported from a file with target C or Python.",
+              Literals.INSTANTIATION__REACTOR_CLASS);
+        }
+      } else {
+        // Nested instantiation: reactor language must match the enclosing reactor's language.
+        var enclosingLang = polyglotReactorLanguage(enclosing);
+        if (enclosingLang.isPresent()
+            && instantiatedLang.isPresent()
+            && enclosingLang.get() != instantiatedLang.get()) {
+          error(
+              "Cannot instantiate a "
+                  + instantiatedLang.get().getDisplayName()
+                  + " reactor inside a "
+                  + enclosingLang.get().getDisplayName()
+                  + " reactor in Polyglot mode.",
+              Literals.INSTANTIATION__REACTOR_CLASS);
+        }
+      }
+    }
+  }
+
+  /**
+   * Return the effective compilation target of a reactor in a Polyglot program. Returns {@link
+   * Target#C} for a reactor with {@code @language(C)} or imported from a {@code target C} file,
+   * {@link Target#Python} for the Python equivalents, and an empty optional if the language cannot
+   * be determined (e.g., the reactor is locally defined in the Polyglot file without an
+   * annotation).
+   */
+  private Optional<Target> polyglotReactorLanguage(Reactor reactor) {
+    String langAttr = AttributeUtils.getAttributeValue(reactor, "language");
+    if (langAttr != null) {
+      return Target.forName(langAttr);
+    }
+    // Infer from the source file's target declaration.
+    var targetDecl = GeneratorUtils.findTargetDecl(reactor.eResource());
+    if (targetDecl == null) return Optional.empty();
+    return Target.forName(targetDecl.getName())
+        .filter(t -> t == Target.C || t == Target.CCPP || t == Target.Python)
+        .map(t -> t == Target.CCPP ? Target.C : t);
   }
 
   @Check(CheckType.FAST)
@@ -1216,13 +1267,16 @@ public class LFValidator extends BaseLFValidator {
             Literals.REACTOR__MAIN);
       }
       if (!reactor.isFederated() && !reactor.isMain()) {
-        // Every non-federated reactor must declare its language via @language.
+        // Every non-federated reactor must declare its language via @language, unless it is
+        // imported from a file that itself declares target C or target Python (in which case the
+        // language is implied by the source file).
         String lang = AttributeUtils.getAttributeValue(reactor, "language");
-        if (lang == null) {
+        if (lang == null && polyglotReactorLanguage(reactor).isEmpty()) {
           error(
               "Reactor '"
                   + reactor.getName()
-                  + "' must have a @language(C) or @language(Python) annotation in Polyglot mode.",
+                  + "' must have a @language(C) or @language(Python) annotation in Polyglot"
+                  + " mode, or be imported from a file with target C or Python.",
               Literals.REACTOR_DECL__NAME);
         }
       }
