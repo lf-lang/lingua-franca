@@ -42,7 +42,13 @@ jobs:
           brew install coreutils
           brew install openssl
           brew link openssl --force
+          brew install protobuf
         if: ${{ runner.os == 'macOS' }}
+      - name: Install Protobuf compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+        if: ${{ runner.os == 'Linux' }}
       - name: Install LinguaFrancaBase
         run: pip3 install LinguaFrancaBase
       - name: Install Python protobuf package
