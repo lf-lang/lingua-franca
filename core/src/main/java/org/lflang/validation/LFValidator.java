@@ -1423,9 +1423,9 @@ public class LFValidator extends BaseLFValidator {
           "Unknown language: '" + langName + "'. Supported languages are: C, Python.",
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
-    } else if (!langOpt.get().supportsFederated()) {
+    } else if (langOpt.get() != Target.C && langOpt.get() != Target.Python) {
       error(
-          "Target '" + langName + "' does not support federated execution.",
+          "Unsupported language: '" + langName + "'. Supported languages are: C, Python.",
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
     }
