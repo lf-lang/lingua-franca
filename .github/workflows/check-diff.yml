@@ -63,7 +63,7 @@ jobs:
           ./check-diff.sh master "lflang/generator/rust\|resources/lib/rs\|test/Rust" rs
           ./check-diff.sh master "lflang/generator/ts\|resources/lib/ts\|test/TypeScript" ts
           ./check-diff.sh master "util/tracing" tracing
-          ./check-diff.sh master "lflang/generator/polyglot\|test/Polyglot" polyglot
+          ./check-diff.sh master "lflang/federated\|lflang/target\|lflang/validation\|LinguaFranca.xtext\|AttributeUtils.java\|test/Polyglot" polyglot
           ./check-diff.sh master ".*" any
         shell: bash
         working-directory: .github/scripts
