@@ -71,7 +71,9 @@ public class FedProtoPythonSerialization implements FedSerialization {
     code.append("if (_lf_proto_bytes == NULL) {\n");
     code.append("    if (PyErr_Occurred()) PyErr_Print();\n");
     code.append(
-        "    lf_print_error_and_exit(\"Failed to call SerializeToString on proto object.\");\n");
+        "    lf_print_warning(\"Failed to call SerializeToString on proto object."
+            + " Dropping outgoing message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     code.append("char* _lf_proto_raw;\n");
     code.append("Py_ssize_t _lf_proto_raw_len;\n");
@@ -79,8 +81,11 @@ public class FedProtoPythonSerialization implements FedSerialization {
         "if (PyBytes_AsStringAndSize(_lf_proto_bytes, &_lf_proto_raw, &_lf_proto_raw_len)"
             + " == -1) {\n");
     code.append("    if (PyErr_Occurred()) PyErr_Print();\n");
+    code.append("    Py_XDECREF(_lf_proto_bytes);\n");
     code.append(
-        "    lf_print_error_and_exit(\"Failed to extract bytes from serialized proto.\");\n");
+        "    lf_print_warning(\"Failed to extract bytes from serialized proto."
+            + " Dropping outgoing message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     // Get the fully-qualified type name from DESCRIPTOR.full_name.
     code.append(
@@ -134,14 +139,17 @@ public class FedProtoPythonSerialization implements FedSerialization {
         "const unsigned char* _lf_wire = (const unsigned char*)" + varName + "->token->value;\n");
     code.append("size_t _lf_wire_len = (size_t)" + varName + "->token->length;\n");
     code.append("if (_lf_wire_len < 4) {\n");
-    code.append("    lf_print_error_and_exit(\"Proto wire format too short.\");\n");
+    code.append("    lf_print_warning(\"Proto wire format too short. Dropping message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     code.append(
         "size_t _lf_full_name_len = ((size_t)_lf_wire[0] << 24) | ((size_t)_lf_wire[1] << 16)"
             + " | ((size_t)_lf_wire[2] << 8) | (size_t)_lf_wire[3];\n");
     code.append("if (_lf_wire_len < 4 + _lf_full_name_len) {\n");
     code.append(
-        "    lf_print_error_and_exit(\"Proto wire format: name length exceeds buffer.\");\n");
+        "    lf_print_warning(\"Proto wire format: name length exceeds buffer."
+            + " Dropping message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     code.append("const unsigned char* _lf_proto_data = _lf_wire + 4 + _lf_full_name_len;\n");
     code.append("size_t _lf_proto_data_len = _lf_wire_len - 4 - _lf_full_name_len;\n");
@@ -172,14 +180,17 @@ public class FedProtoPythonSerialization implements FedSerialization {
     code.append("if (_lf_cls == NULL) {\n");
     code.append("    if (PyErr_Occurred()) PyErr_Print();\n");
     code.append(
-        "    lf_print_error_and_exit(\"Failed to get proto class from symbol database.\");\n");
+        "    lf_print_warning(\"Failed to get proto class from symbol database."
+            + " Dropping message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     // Create an instance and populate it from the wire bytes.
     code.append("PyObject* " + deserializedVarName + " = PyObject_CallNoArgs(_lf_cls);\n");
     code.append("Py_XDECREF(_lf_cls);\n");
     code.append("if (" + deserializedVarName + " == NULL) {\n");
     code.append("    if (PyErr_Occurred()) PyErr_Print();\n");
-    code.append("    lf_print_error_and_exit(\"Failed to create proto instance.\");\n");
+    code.append("    lf_print_warning(\"Failed to create proto instance. Dropping message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     code.append(
         "PyObject* _lf_proto_bytes_obj = PyBytes_FromStringAndSize((const char*)_lf_proto_data,"
@@ -191,7 +202,11 @@ public class FedProtoPythonSerialization implements FedSerialization {
     code.append("Py_XDECREF(_lf_proto_bytes_obj);\n");
     code.append("if (_lf_parse_result == NULL) {\n");
     code.append("    if (PyErr_Occurred()) PyErr_Print();\n");
-    code.append("    lf_print_error_and_exit(\"Failed to parse proto message from bytes.\");\n");
+    code.append("    Py_XDECREF(" + deserializedVarName + ");\n");
+    code.append(
+        "    lf_print_warning(\"Failed to parse proto message from bytes."
+            + " Dropping message.\");\n");
+    code.append("    return;\n");
     code.append("}\n");
     code.append("Py_XDECREF(_lf_parse_result);\n");
     return code;

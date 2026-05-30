@@ -247,11 +247,12 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + "\");\n"
                   + "if (_lf_proto_cls == NULL) {\n"
                   + "    if (PyErr_Occurred()) PyErr_Print();\n"
-                  + "    lf_print_error_and_exit(\"Failed to get class "
+                  + "    lf_print_warning(\"Failed to get class "
                   + protoClassName
                   + " from module "
                   + moduleName
-                  + ".\");\n"
+                  + ". Dropping message.\");\n"
+                  + "    return;\n"
                   + "}\n"
                   + "PyObject* "
                   + FedSerialization.deserializedVarName
@@ -261,7 +262,9 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + FedSerialization.deserializedVarName
                   + " == NULL) {\n"
                   + "    if (PyErr_Occurred()) PyErr_Print();\n"
-                  + "    lf_print_error_and_exit(\"Failed to create proto instance.\");\n"
+                  + "    lf_print_warning(\"Failed to create proto instance. Dropping"
+                  + " message.\");\n"
+                  + "    return;\n"
                   + "}\n"
                   + "PyObject* _lf_proto_bytes_raw = PyBytes_FromStringAndSize((char*)"
                   + value
@@ -274,8 +277,12 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + "Py_XDECREF(_lf_proto_bytes_raw);\n"
                   + "if (_lf_parse_result == NULL) {\n"
                   + "    if (PyErr_Occurred()) PyErr_Print();\n"
-                  + "    lf_print_error_and_exit(\"Failed to parse proto message from"
-                  + " bytes.\");\n"
+                  + "    Py_XDECREF("
+                  + FedSerialization.deserializedVarName
+                  + ");\n"
+                  + "    lf_print_warning(\"Failed to parse proto message from bytes."
+                  + " Dropping message.\");\n"
+                  + "    return;\n"
                   + "}\n"
                   + "Py_XDECREF(_lf_parse_result);\n");
         } else {
@@ -350,16 +357,19 @@ lf_enqueue_port_absent_reactions(self->base.environment);
                   + ", \"SerializeToString\", NULL);\n"
                   + "if (serialized_pyobject == NULL) {\n"
                   + "    if (PyErr_Occurred()) PyErr_Print();\n"
-                  + "    lf_print_error_and_exit(\"Failed to call SerializeToString on proto"
-                  + " object.\");\n"
+                  + "    lf_print_warning(\"Failed to call SerializeToString on proto object."
+                  + " Dropping outgoing message.\");\n"
+                  + "    return;\n"
                   + "}\n"
                   + "char* serialized_message_buf;\n"
                   + "Py_ssize_t serialized_message_len;\n"
                   + "if (PyBytes_AsStringAndSize(serialized_pyobject, &serialized_message_buf,"
                   + " &serialized_message_len) == -1) {\n"
                   + "    if (PyErr_Occurred()) PyErr_Print();\n"
-                  + "    lf_print_error_and_exit(\"Failed to extract bytes from serialized"
-                  + " proto.\");\n"
+                  + "    Py_XDECREF(serialized_pyobject);\n"
+                  + "    lf_print_warning(\"Failed to extract bytes from serialized proto."
+                  + " Dropping outgoing message.\");\n"
+                  + "    return;\n"
                   + "}\n");
           result.pr("size_t _lf_message_length = (size_t)serialized_message_len;");
           result.pr(
