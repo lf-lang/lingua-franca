@@ -107,6 +107,7 @@ public abstract class RuntimeTest extends TestBase {
         EnumSet.of(
             TestCategory.CONCURRENT,
             TestCategory.FEDERATED,
+            TestCategory.FEDERATED_SST,
             // FIXME: also run the multiport tests once these are supported.
             TestCategory.MULTIPORT));
 
@@ -250,6 +251,7 @@ public abstract class RuntimeTest extends TestBase {
         category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
+            || category == TestCategory.FEDERATED_SST
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER
             || category == TestCategory.ENCLAVE
