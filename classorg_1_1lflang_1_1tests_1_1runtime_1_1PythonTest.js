@@ -22,6 +22,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest =
     [ "runModalTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#a3fb18e17b3116e83075cdbc478804fef", null ],
     [ "runMultiportTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#a215eeb06ec17970edc483a065dd3d22d", null ],
     [ "runNoInliningTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#a15dace8210c1f0d9c4dea63696ae7938", null ],
+    [ "runSerializationTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#a99b26969a0dcdb3efdfc9d4482d85884", null ],
     [ "runSingleTestAndPrintResults", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#ab92abba6f078f75ef0933f7d3e2b2183", null ],
     [ "runTargetSpecificTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#a716b174ba6f3138bc0c9185df40a63da", null ],
     [ "runTestsAndPrintResults", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html#aff3ae7508377e27da65c5deaf4c31534", null ],

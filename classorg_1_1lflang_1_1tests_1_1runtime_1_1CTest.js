@@ -22,6 +22,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest =
     [ "runModalTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a9d53f79a2041991958056082669078d2", null ],
     [ "runMultiportTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#aa6615a17e1459067aec6b65d30b97a71", null ],
     [ "runNoInliningTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a93e9f8ef51a2b01c230a9579a08adc6c", null ],
+    [ "runSerializationTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#adcd1d47df69936ea684070632314e41c", null ],
     [ "runSingleTestAndPrintResults", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#ab92abba6f078f75ef0933f7d3e2b2183", null ],
     [ "runTargetSpecificTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a1c104b6e687b2c6ffd72216f943229ec", null ],
     [ "runTestsAndPrintResults", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#aff3ae7508377e27da65c5deaf4c31534", null ],

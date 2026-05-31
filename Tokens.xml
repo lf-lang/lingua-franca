@@ -3881,6 +3881,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::tests::runtime::PolyglotTest</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::tests::runtime::PythonTest</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -17131,6 +17140,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html</Path>
     <Anchor>a88ae1650807780acaddfa566401e343d</Anchor>
+    <DeclaredIn>FederateTargetConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>FederateTargetConfig</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.federated.generator.FederateTargetConfig</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html</Path>
+    <Anchor>aa6bfaa3f2f6562fdf21c6ede1088a1fb</Anchor>
     <DeclaredIn>FederateTargetConfig.java</DeclaredIn>
   </Token>
   <Token>
@@ -36004,6 +36024,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>NO_SERIALIZATION_SUPPORT</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.tests.TestBase.Message</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
+    <Anchor>a23e3ca3d84a0734dccb78f1de60a752a</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>NO_SINGLE_THREADED_SUPPORT</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -38146,6 +38176,27 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1python_1_1PythonTypes.html</Path>
     <Anchor>ac1d14d5226fa1213ff7ef21d7a1b95b8</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>Polyglot</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.Target</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
+    <Anchor>ad9ebe7bbe660a79d481464ed97c4d357</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>PolyglotTest</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+    <Anchor>af7f623db6a3279926cc2c05e5b52a8a9</Anchor>
+    <DeclaredIn>PolyglotTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -41033,6 +41084,17 @@
       <Name>runAsFederated</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+    <Anchor>aa6d225eeb797f819546b7b312452ddc5</Anchor>
+    <DeclaredIn>PolyglotTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runAsFederated</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.tests.runtime.PythonTest</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
@@ -41082,6 +41144,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
     <Anchor>a5af7486e56a40a7c983c9cbb8546d063</Anchor>
     <DeclaredIn>CTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runBasicTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+    <Anchor>af8985a34eb29eefc73c02cdbf8f646b4</Anchor>
+    <DeclaredIn>PolyglotTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -41407,6 +41480,17 @@
       <Name>runFederatedTests</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+    <Anchor>aea6f9cff40ced567a988e75616019da0</Anchor>
+    <DeclaredIn>PolyglotTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runFederatedTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.tests.runtime.PythonTest</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
@@ -41625,6 +41709,28 @@
       <Name>runSerializationTests</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.CTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+    <Anchor>adcd1d47df69936ea684070632314e41c</Anchor>
+    <DeclaredIn>CTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runSerializationTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PythonTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
+    <Anchor>a99b26969a0dcdb3efdfc9d4482d85884</Anchor>
+    <DeclaredIn>PythonTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runSerializationTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.tests.serialization.SerializationTest</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html</Path>
@@ -41685,6 +41791,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
     <Anchor>a1c104b6e687b2c6ffd72216f943229ec</Anchor>
     <DeclaredIn>CTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runTargetSpecificTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+    <Anchor>a1a4b0a36715cbbafca1d6f67c184a88f</Anchor>
+    <DeclaredIn>PolyglotTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44232,6 +44349,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
     <Anchor>a3f025ab5109d4181a88df82807263d5d</Anchor>
     <DeclaredIn>CTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>supportsFederatedExecution</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PolyglotTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+    <Anchor>aaab7857de856ac3e3d08c3faa443ebbc</Anchor>
+    <DeclaredIn>PolyglotTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

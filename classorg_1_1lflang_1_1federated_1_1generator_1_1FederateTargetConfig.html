@@ -137,6 +137,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:aaf8134830c5a082ad1c623473befa9ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construct a <span class="tt">TargetDecl</span> by extracting the fields of the given <span class="tt"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html" title="A class for keeping the current target configuration.">TargetConfig</a></span>.  <br /></td></tr>
 <tr class="memitem:a88ae1650807780acaddfa566401e343d" id="r_a88ae1650807780acaddfa566401e343d"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a88ae1650807780acaddfa566401e343d">FederateTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, Resource federateResource)</td></tr>
 <tr class="memdesc:a88ae1650807780acaddfa566401e343d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a configuration for a federate given a main context and the resource in which the class of the federate is specified.  <br /></td></tr>
+<tr class="memitem:aa6bfaa3f2f6562fdf21c6ede1088a1fb" id="r_aa6bfaa3f2f6562fdf21c6ede1088a1fb"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#aa6bfaa3f2f6562fdf21c6ede1088a1fb">FederateTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, Resource federateResource, <a class="el" href="enumorg_1_1lflang_1_1target_1_1Target.html">Target</a> overrideTarget)</td></tr>
+<tr class="memdesc:aa6bfaa3f2f6562fdf21c6ede1088a1fb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create a configuration for a federate with an explicitly supplied target, overriding the target declared in the resource.  <br /></td></tr>
 <tr class="memitem:a7226771f2feddfad60c6c28705b4d4f7" id="r_a7226771f2feddfad60c6c28705b4d4f7"><td class="memItemLeft">Optional&lt; TargetProperty&lt;?, ?&gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html#a7226771f2feddfad60c6c28705b4d4f7">forName</a> (String name)</td></tr>
 <tr class="memdesc:a7226771f2feddfad60c6c28705b4d4f7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the target property in this target config that matches the given string.  <br /></td></tr>
 <tr class="memitem:afe71fa9ae573c8f999eee32f336ac60a" id="r_afe71fa9ae573c8f999eee32f336ac60a"><td class="memItemLeft">List&lt; TargetProperty&lt;?, ?&gt; &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html#afe71fa9ae573c8f999eee32f336ac60a">getAssignedProperties</a> ()</td></tr>
@@ -223,7 +225,7 @@ Package Functions</h2></td></tr>
 <dl class="section author"><dt>Author</dt><dd>Marten Lohstroh </dd></dl>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a88ae1650807780acaddfa566401e343d" name="a88ae1650807780acaddfa566401e343d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a88ae1650807780acaddfa566401e343d">&#9670;&#160;</a></span>FederateTargetConfig()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a88ae1650807780acaddfa566401e343d">&#9670;&#160;</a></span>FederateTargetConfig() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -246,6 +248,43 @@ Package Functions</h2></td></tr>
   <table class="params">
     <tr><td class="paramname">context</td><td>The generator context. </td></tr>
     <tr><td class="paramname">federateResource</td><td>The resource in which to find the reactor class of the federate. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="aa6bfaa3f2f6562fdf21c6ede1088a1fb" name="aa6bfaa3f2f6562fdf21c6ede1088a1fb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa6bfaa3f2f6562fdf21c6ede1088a1fb">&#9670;&#160;</a></span>FederateTargetConfig() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">org.lflang.federated.generator.FederateTargetConfig.FederateTargetConfig </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a></td>          <td class="paramname"><span class="paramname"><em>context</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Resource</td>          <td class="paramname"><span class="paramname"><em>federateResource</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="enumorg_1_1lflang_1_1target_1_1Target.html">Target</a></td>          <td class="paramname"><span class="paramname"><em>overrideTarget</em></span>&#160;)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create a configuration for a federate with an explicitly supplied target, overriding the target declared in the resource. </p>
+<p>Used by the Polyglot target, where the federation-level target is <code class="JavaDocCode">Polyglot</code> but each federate compiles with the target from its <code class="JavaDocCode">@language</code> annotation.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">context</td><td>The generator context. </td></tr>
+    <tr><td class="paramname">federateResource</td><td>The resource in which to find the reactor class of the federate. </td></tr>
+    <tr><td class="paramname">overrideTarget</td><td>The actual compilation target to use for this federate. </td></tr>
   </table>
   </dd>
 </dl>

@@ -650,6 +650,7 @@ var hierarchy =
         [ "org.lflang.tests.RuntimeTest", "classorg_1_1lflang_1_1tests_1_1RuntimeTest.html", [
           [ "org.lflang.tests.runtime.CTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html", null ],
           [ "org.lflang.tests.runtime.CppTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html", null ],
+          [ "org.lflang.tests.runtime.PolyglotTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html", null ],
           [ "org.lflang.tests.runtime.PythonTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html", null ],
           [ "org.lflang.tests.runtime.RustTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html", null ],
           [ "org.lflang.tests.runtime.TypeScriptTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html", null ]

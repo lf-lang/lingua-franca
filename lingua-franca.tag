@@ -11985,6 +11985,13 @@
       <arglist>(LFGeneratorContext context, Resource federateResource)</arglist>
     </member>
     <member kind="function">
+      <type></type>
+      <name>FederateTargetConfig</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html</anchorfile>
+      <anchor>aa6bfaa3f2f6562fdf21c6ede1088a1fb</anchor>
+      <arglist>(LFGeneratorContext context, Resource federateResource, Target overrideTarget)</arglist>
+    </member>
+    <member kind="function">
       <type>Optional&lt; TargetProperty&lt;?, ?&gt; &gt;</type>
       <name>forName</name>
       <anchorfile>classorg_1_1lflang_1_1target_1_1TargetConfig.html</anchorfile>
@@ -35721,6 +35728,13 @@
     </member>
     <member kind="variable">
       <type></type>
+      <name>Polyglot</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1Target.html</anchorfile>
+      <anchor>ad9ebe7bbe660a79d481464ed97c4d357</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
       <name>Python</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1Target.html</anchorfile>
       <anchor>a82a66f8f4b5c432cac502108e46bf6e2</anchor>
@@ -39442,6 +39456,13 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>runSerializationTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</anchorfile>
+      <anchor>adcd1d47df69936ea684070632314e41c</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>runTargetSpecificTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</anchorfile>
       <anchor>a1c104b6e687b2c6ffd72216f943229ec</anchor>
@@ -39998,6 +40019,298 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::tests::runtime::PolyglotTest</name>
+    <filename>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</filename>
+    <base>org.lflang.tests.RuntimeTest</base>
+    <member kind="function">
+      <type></type>
+      <name>PolyglotTest</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</anchorfile>
+      <anchor>af7f623db6a3279926cc2c05e5b52a8a9</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runAsFederated</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</anchorfile>
+      <anchor>aa6d225eeb797f819546b7b312452ddc5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runBasicTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</anchorfile>
+      <anchor>af8985a34eb29eefc73c02cdbf8f646b4</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runConcurrentTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a54ba745c485e7b16e43bc00b431ab6bf</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runDockerFederatedTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a1c38e986f0dbc5879a169fbb1904bc0a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runDockerTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>ad9413ff2e793fd6ab11b3cf66fcecbc8</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runEnclaveTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a38341fb78c02a6b7f767be18683fc4ce</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runFederatedSSTTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>abf3a57a094ea7f875fb1b6c54abbfc58</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runFederatedTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</anchorfile>
+      <anchor>aea6f9cff40ced567a988e75616019da0</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runGenericsTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a27377b800bc57a612c04de9868d27b67</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runModalTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a3fb18e17b3116e83075cdbc478804fef</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runMultiportTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a8e49f1aa20ec390f7e8a3db488e74777</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runNoInliningTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a15dace8210c1f0d9c4dea63696ae7938</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runTargetSpecificTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</anchorfile>
+      <anchor>a1a4b0a36715cbbafca1d6f67c184a88f</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runWithThreadingOff</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>aa761e2df9c6a3b152b105d29f8cf2d6a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>compatibleWithThreadingOff</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>aab6c0b1f08e0e439dd301d628a8548ae</anchor>
+      <arglist>(TestCategory category)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static TestLevel</type>
+      <name>pathToLevel</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a9538c294f1910e14c75d49476ec1c159</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static void</type>
+      <name>runSingleTestAndPrintResults</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ab92abba6f078f75ef0933f7d3e2b2183</anchor>
+      <arglist>(LFTest test, Class&lt;? extends TestBase &gt; testClass, TestLevel level)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>stackTraceToString</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a28c9f1fdc57f9826c56b1bb335516259</anchor>
+      <arglist>(Throwable t)</arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>THICK_LINE</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a663eca380d65c526a5dc4d4f37dc42f7</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>THIN_LINE</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac30e35f8c8edd2ca1f2b26e03ddf6ec6</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>void</type>
+      <name>applyDefaultConfiguration</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>acbbd37d213419ddbc3ee9a577b86b895</anchor>
+      <arglist>(TargetConfig config)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>ProcessBuilder</type>
+      <name>getExecCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ab7eb2f2d3c228ab7984b5a2df5cbe589</anchor>
+      <arglist>(LFTest test)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>GeneratorArguments</type>
+      <name>getGeneratorArguments</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>final void</type>
+      <name>runTestsAndPrintResults</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>aff3ae7508377e27da65c5deaf4c31534</anchor>
+      <arglist>(Target target, Predicate&lt; TestCategory &gt; selected, TestLevel level, Transformer transformer, Configurator configurator, boolean copy)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>void</type>
+      <name>runTestsFor</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a0b6820b95f35eff2cf460e32920bf015</anchor>
+      <arglist>(List&lt; Target &gt; subset, String description, Predicate&lt; TestCategory &gt; selected, Transformer transformer, Configurator configurator, TestLevel level, boolean copy)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>void</type>
+      <name>runTestsForTargets</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a1ebac2651a6dd6b8044d96eb597402d6</anchor>
+      <arglist>(String description, Predicate&lt; TestCategory &gt; selected, Transformer transformer, Configurator configurator, TestLevel level, boolean copy)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>boolean</type>
+      <name>supportsDockerOption</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a8ac7196674344bb76bca35abb0a3528d</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>boolean</type>
+      <name>supportsEnclaves</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a07cf00afc85e28b36eea44a4591e370b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>boolean</type>
+      <name>supportsFederatedExecution</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</anchorfile>
+      <anchor>aaab7857de856ac3e3d08c3faa443ebbc</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>boolean</type>
+      <name>supportsGenericTypes</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
+      <anchor>a016b8abdbd507ba5ce4cbb4bd493bdbf</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>boolean</type>
+      <name>supportsSingleThreadedExecution</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>acf8d6dd5602a2cd1575379119f5909e2</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected" static="yes">
+      <type>static boolean</type>
+      <name>isLinux</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>aacafa215f9876c94aa4fa896429a5e43</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected" static="yes">
+      <type>static boolean</type>
+      <name>isMac</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a349bc196ce85c7b24927a28b0db751b0</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected" static="yes">
+      <type>static boolean</type>
+      <name>isWindows</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ab4c75980dccb274f675d183201afde3b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected" static="yes">
+      <type>static void</type>
+      <name>printTestHeader</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac847b48162a5aa845f798a78465ff5fb</anchor>
+      <arglist>(Target target, String description)</arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>JavaIoFileSystemAccess</type>
+      <name>fileAccess</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ad9cea2a81034b6aba70301c2b728b5cf</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>LFGenerator</type>
+      <name>generator</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac2d0777be07d4c6f9590aadae07a3483</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>Provider&lt; ResourceSet &gt;</type>
+      <name>resourceSetProvider</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>af44aa1c33c4a2f62a385ae18d2a09541</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>TestRegistry</type>
+      <name>testRegistry</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>a0267f19ce7ff14b1a410e2a39b7989c2</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>IResourceValidator</type>
+      <name>validator</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>afc6768563083e4403de7f0d1dd375f68</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::tests::runtime::PythonTest</name>
     <filename>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</filename>
     <base>org.lflang.tests.RuntimeTest</base>
@@ -40090,6 +40403,13 @@
       <name>runNoInliningTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
       <anchor>a15dace8210c1f0d9c4dea63696ae7938</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runSerializationTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</anchorfile>
+      <anchor>a99b26969a0dcdb3efdfc9d4482d85884</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -41682,6 +42002,13 @@
       <name>NO_FEDERATION_SUPPORT</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</anchorfile>
       <anchor>a435a7e61b314dc28e63d8cab4c681114</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>NO_SERIALIZATION_SUPPORT</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</anchorfile>
+      <anchor>a23e3ca3d84a0734dccb78f1de60a752a</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable" static="yes">
@@ -44140,6 +44467,7 @@
     <class kind="class">org::lflang::tests::runtime::CTest</class>
     <class kind="class">org::lflang::tests::runtime::CVerifierTest</class>
     <class kind="class">org::lflang::tests::runtime::CZephyrTest</class>
+    <class kind="class">org::lflang::tests::runtime::PolyglotTest</class>
     <class kind="class">org::lflang::tests::runtime::PythonTest</class>
     <class kind="class">org::lflang::tests::runtime::RustTest</class>
     <class kind="class">org::lflang::tests::runtime::TypeScriptTest</class>
@@ -44435,6 +44763,7 @@
     <class kind="class">org::lflang::tests::runtime::CTest</class>
     <class kind="class">org::lflang::tests::runtime::CVerifierTest</class>
     <class kind="class">org::lflang::tests::runtime::CZephyrTest</class>
+    <class kind="class">org::lflang::tests::runtime::PolyglotTest</class>
     <class kind="class">org::lflang::tests::runtime::PythonTest</class>
     <class kind="class">org::lflang::tests::runtime::RustTest</class>
     <class kind="class">org::lflang::tests::runtime::TypeScriptTest</class>
@@ -45342,6 +45671,7 @@
     <file>CTest.java</file>
     <file>CVerifierTest.java</file>
     <file>CZephyrTest.java</file>
+    <file>PolyglotTest.java</file>
     <file>PythonTest.java</file>
     <file>RustTest.java</file>
     <file>TypeScriptTest.java</file>

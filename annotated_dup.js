@@ -391,6 +391,7 @@ var annotated_dup =
             [ "CTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest" ],
             [ "CVerifierTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest" ],
             [ "CZephyrTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest" ],
+            [ "PolyglotTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest" ],
             [ "PythonTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest" ],
             [ "RustTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest" ],
             [ "TypeScriptTest", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest" ]

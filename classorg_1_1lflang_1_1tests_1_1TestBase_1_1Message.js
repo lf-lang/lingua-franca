@@ -24,6 +24,7 @@ var classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message =
     [ "NO_DOCKER_TEST_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#a30e5c11fad945892e9889ce4b6250305", null ],
     [ "NO_ENCLAVE_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#acfd09c519a2bee406ff2842e39a32c43", null ],
     [ "NO_FEDERATION_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#a435a7e61b314dc28e63d8cab4c681114", null ],
+    [ "NO_SERIALIZATION_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#a23e3ca3d84a0734dccb78f1de60a752a", null ],
     [ "NO_SINGLE_THREADED_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#aba3bd5b7d98439257469f5dcf602ae85", null ],
     [ "NO_WINDOWS_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#ae8542dcf2171503d52cb53b2c0d08bc7", null ]
 ];

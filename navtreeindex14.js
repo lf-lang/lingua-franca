@@ -1,5 +1,6 @@
 var NAVTREEINDEX14 =
 {
+"classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html#a10593c5858555005cc21f0e641c995fd":[4,4,54,4],
 "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html#a10c743ff5b53b021aafc46a9f25cd1ff":[4,4,54,1],
 "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html#a1ea7d8ae12e432f6e70693eb0538c353":[4,4,54,5],
 "classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec.html#a2c02beeffe723533f2a72b2a305e02e2":[4,4,54,7],
@@ -248,6 +249,5 @@ var NAVTREEINDEX14 =
 "classorg_1_1lflang_1_1target_1_1property_1_1BooleanProperty.html#ad2943097a2b239aecb9c0bf4eb2968f6":[5,0,0,0,10,0,2,2],
 "classorg_1_1lflang_1_1target_1_1property_1_1BooleanProperty.html#ae91c05dae9df2fc924ba84e4072e2087":[5,0,0,0,10,0,2,19],
 "classorg_1_1lflang_1_1target_1_1property_1_1BuildCommandsProperty.html":[5,0,0,0,10,0,3],
-"classorg_1_1lflang_1_1target_1_1property_1_1BuildCommandsProperty.html#a033370849eef3120afd46c4845863e2d":[5,0,0,0,10,0,3,9],
-"classorg_1_1lflang_1_1target_1_1property_1_1BuildCommandsProperty.html#a038284fd42dd14781e9df482fe2fa1d9":[5,0,0,0,10,0,3,11]
+"classorg_1_1lflang_1_1target_1_1property_1_1BuildCommandsProperty.html#a033370849eef3120afd46c4845863e2d":[5,0,0,0,10,0,3,9]
 };

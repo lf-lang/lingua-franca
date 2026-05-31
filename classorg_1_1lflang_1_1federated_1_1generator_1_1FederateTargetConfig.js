@@ -1,6 +1,7 @@
 var classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig =
 [
     [ "FederateTargetConfig", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html#a88ae1650807780acaddfa566401e343d", null ],
+    [ "FederateTargetConfig", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html#aa6bfaa3f2f6562fdf21c6ede1088a1fb", null ],
     [ "extractProperties", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html#a532170c040b7a446fdc1a8b969457784", null ],
     [ "extractTargetDecl", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html#aaf8134830c5a082ad1c623473befa9ac", null ],
     [ "forName", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html#a7226771f2feddfad60c6c28705b4d4f7", null ],

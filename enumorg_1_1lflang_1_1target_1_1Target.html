@@ -183,6 +183,8 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:ab0752bfa65983dbaef56bde9b037d9be" id="r_ab0752bfa65983dbaef56bde9b037d9be"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ab0752bfa65983dbaef56bde9b037d9be">C</a></td></tr>
 <tr class="memitem:af67769ff82aad1868ac2f1dfce27558c" id="r_af67769ff82aad1868ac2f1dfce27558c"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#af67769ff82aad1868ac2f1dfce27558c">CCPP</a> =(&quot;CCpp&quot;, true, Target.C.keywords)</td></tr>
 <tr class="memitem:a4aeea177497099be0b6795577488642a" id="r_a4aeea177497099be0b6795577488642a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a4aeea177497099be0b6795577488642a">CPP</a></td></tr>
+<tr class="memitem:ad9ebe7bbe660a79d481464ed97c4d357" id="r_ad9ebe7bbe660a79d481464ed97c4d357"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#ad9ebe7bbe660a79d481464ed97c4d357">Polyglot</a> =(&quot;Polyglot&quot;, false, Collections.emptyList())</td></tr>
+<tr class="memdesc:ad9ebe7bbe660a79d481464ed97c4d357"><td class="mdescLeft">&#160;</td><td class="mdescRight">A meta-target for multi-language federated programs.  <br /></td></tr>
 <tr class="memitem:a82a66f8f4b5c432cac502108e46bf6e2" id="r_a82a66f8f4b5c432cac502108e46bf6e2"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a82a66f8f4b5c432cac502108e46bf6e2">Python</a></td></tr>
 <tr class="memitem:a894b6fea99e1802169c3c4571d11c9ba" id="r_a894b6fea99e1802169c3c4571d11c9ba"><td class="memItemLeft">final boolean&#160;</td><td class="memItemRight"><a class="el" href="#a894b6fea99e1802169c3c4571d11c9ba">requiresTypes</a></td></tr>
 <tr class="memdesc:a894b6fea99e1802169c3c4571d11c9ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Whether or not this target requires types.  <br /></td></tr>
@@ -918,6 +920,23 @@ Static Public Attributes</h2></td></tr>
 <div class="line">          <span class="stringliteral">&quot;xor&quot;</span>,</div>
 <div class="line">          <span class="stringliteral">&quot;xor_eq&quot;</span>))</div>
 </div><!-- fragment -->
+</div>
+</div>
+<a id="ad9ebe7bbe660a79d481464ed97c4d357" name="ad9ebe7bbe660a79d481464ed97c4d357"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad9ebe7bbe660a79d481464ed97c4d357">&#9670;&#160;</a></span>Polyglot</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">org.lflang.target.Target.Polyglot =(&quot;Polyglot&quot;, false, Collections.emptyList())</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>A meta-target for multi-language federated programs. </p>
+<p>Each reactor must either carry a <code class="JavaDocCode">@language(C)</code> or <code class="JavaDocCode">@language(Python)</code> annotation, or be imported from a file that declares <code class="JavaDocCode">target C</code> or <code class="JavaDocCode">target Python</code> (in which case the language is inferred from the source file). The main reactor must be a <code class="JavaDocCode">federated reactor</code>. The lfc resolves each federate's actual target from its annotation or from the imported file's declared target. </p>
+
 </div>
 </div>
 <a id="a82a66f8f4b5c432cac502108e46bf6e2" name="a82a66f8f4b5c432cac502108e46bf6e2"></a>

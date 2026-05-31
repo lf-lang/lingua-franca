@@ -26,6 +26,7 @@ var enumorg_1_1lflang_1_1target_1_1Target =
     [ "C", "enumorg_1_1lflang_1_1target_1_1Target.html#ab0752bfa65983dbaef56bde9b037d9be", null ],
     [ "CCPP", "enumorg_1_1lflang_1_1target_1_1Target.html#af67769ff82aad1868ac2f1dfce27558c", null ],
     [ "CPP", "enumorg_1_1lflang_1_1target_1_1Target.html#a4aeea177497099be0b6795577488642a", null ],
+    [ "Polyglot", "enumorg_1_1lflang_1_1target_1_1Target.html#ad9ebe7bbe660a79d481464ed97c4d357", null ],
     [ "Python", "enumorg_1_1lflang_1_1target_1_1Target.html#a82a66f8f4b5c432cac502108e46bf6e2", null ],
     [ "requiresTypes", "enumorg_1_1lflang_1_1target_1_1Target.html#a894b6fea99e1802169c3c4571d11c9ba", null ],
     [ "Rust", "enumorg_1_1lflang_1_1target_1_1Target.html#a9c71884938b080113f1b513fa937f13f", null ],
