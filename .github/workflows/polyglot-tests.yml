@@ -1,4 +1,4 @@
-name: Python tests
+name: Polyglot tests
 
 on:
   workflow_call:
@@ -12,17 +12,10 @@ on:
       reactor-c-py-ref:
         required: false
         type: string
-      all-platforms:
-        required: false
-        default: true
-        type: boolean
 
 jobs:
   regular-tests:
-    strategy:
-      matrix:
-        platform: ${{ (inputs.all-platforms && fromJSON('["ubuntu-24.04", "macos-latest", "windows-latest"]')) || fromJSON('["ubuntu-24.04"]') }}
-    runs-on: ${{ matrix.platform }}
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out lingua-franca repository
         uses: actions/checkout@v3
@@ -37,25 +30,12 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
-      - name: Install dependencies OS X
-        run: |
-          brew install coreutils
-          brew install openssl
-          brew link openssl --force
-          brew install protobuf
-        if: ${{ runner.os == 'macOS' }}
-      - name: Install Protobuf compiler
+      - name: Install Protobuf (Ubuntu)
         run: |
           sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-        if: ${{ runner.os == 'Linux' }}
-      - name: Install LinguaFrancaBase
-        run: pip3 install LinguaFrancaBase
-      - name: Install Python protobuf package
-        run: pip3 install protobuf
-        if: ${{ runner.os == 'Linux' }}
-      - name: Install Google API Python Client
-        run: pip3 install --upgrade google-api-python-client
+          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+      - name: Install LinguaFrancaBase and Python protobuf package
+        run: pip3 install LinguaFrancaBase protobuf
       - name: Check out specific ref of reactor-c
         uses: actions/checkout@v3
         with:
@@ -72,20 +52,8 @@ jobs:
         if: ${{ inputs.reactor-c-py-ref }}
       - name: Install RTI
         uses: ./.github/actions/install-rti
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Clone SST repository and C library for SST federated tests
-        run: |
-          git clone https://github.com/iotauth/iotauth.git iotauth
-          echo "SST_ROOT=$GITHUB_WORKSPACE/iotauth" >> $GITHUB_ENV
-          cd iotauth
-          git submodule update --init --recursive
-          cd entity/c
-          cmake -S . -B build
-          cmake --build build
-          sudo cmake --install build
-        if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Run Python tests
-        run: ./gradlew targetTest -Ptarget=Python
+      - name: Run Polyglot tests
+        run: ./gradlew targetTest -Ptarget=Polyglot
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:

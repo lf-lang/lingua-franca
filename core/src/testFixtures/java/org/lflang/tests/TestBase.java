@@ -128,6 +128,8 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
     public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
     public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
+    public static final String NO_SERIALIZATION_SUPPORT =
+        "Serialization tests require protobuf and ROS2, which are only set up on Linux in CI.";
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";
