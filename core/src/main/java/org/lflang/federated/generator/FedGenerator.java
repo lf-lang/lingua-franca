@@ -27,6 +27,7 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
@@ -54,6 +55,7 @@ import org.lflang.generator.docker.FedDockerComposeGenerator;
 import org.lflang.generator.docker.FedKubernetesGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -458,7 +460,8 @@ public class FedGenerator {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
-        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
+        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP, Target.Polyglot)
+            .contains(target);
     if (!targetOK) {
       messageReporter
           .at(targetDecl)
@@ -780,11 +783,46 @@ public class FedGenerator {
     // Create one federate instance for each instance in a bank of reactors.
     List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
 
+    var resource = instantiation.getReactorClass().eResource();
+    // For the Polyglot target, resolve the per-federate compilation target from the
+    // reactor's @language annotation; otherwise use the target declared in the resource.
+    Target federateTarget;
+    var mainTarget = Target.fromDecl(GeneratorUtils.findTargetDecl(resource));
+    if (mainTarget == Target.Polyglot) {
+      Reactor reactorDef = ASTUtils.toDefinition(instantiation.getReactorClass());
+      String langName = AttributeUtils.getAttributeValue(reactorDef, "language");
+      // For imported reactors with no @language annotation, infer the language from the target
+      // declared in the source file they were imported from.
+      if (langName == null && instantiation.getReactorClass() instanceof ImportedReactor) {
+        var sourceTarget = Target.fromDecl(GeneratorUtils.findTargetDecl(reactorDef.eResource()));
+        if (sourceTarget == Target.C || sourceTarget == Target.CCPP) {
+          langName = "C";
+        } else if (sourceTarget == Target.Python) {
+          langName = "Python";
+        }
+      }
+      var langOpt =
+          (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
+      if (langOpt.isEmpty()) {
+        messageReporter
+            .at(instantiation)
+            .error(
+                "Reactor '"
+                    + reactorDef.getName()
+                    + "' must have a @language(C) or @language(Python) annotation in Polyglot"
+                    + " mode, or be imported from a file with target C or Python.");
+        federateTarget = Target.C; // fallback to avoid NPE
+      } else {
+        federateTarget = langOpt.get();
+      }
+    } else {
+      federateTarget = mainTarget;
+    }
+
     for (int i = 0; i < bankWidth; i++) {
       // Assign an integer ID to the federate.
       int federateID = federates.size();
-      var resource = instantiation.getReactorClass().eResource();
-      var federateTargetConfig = new FederateTargetConfig(context, resource);
+      var federateTargetConfig = new FederateTargetConfig(context, resource, federateTarget);
       FederateInstance federateInstance =
           new FederateInstance(
               instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);

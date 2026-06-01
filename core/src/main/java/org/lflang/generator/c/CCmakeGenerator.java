@@ -246,6 +246,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("    if(LCOV_BIN MATCHES \"lcov$\")");
     cMakeCode.pr(
         "      set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage\")");
+    cMakeCode.pr("      set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} --coverage\")");
     cMakeCode.pr("    else()");
     cMakeCode.pr(
         "      message(\"Not producing code coverage information since lcov was not found\")");
