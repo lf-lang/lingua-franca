@@ -64,7 +64,7 @@ public class SSTGenerator {
       for (FederateInstance federate : federates) {
         copySSTCSource(federate.name);
       }
-      copySstCcopySSTCSourceSource("rti");
+      copySSTCSource("rti");
     }
 
     FileUtil.createDirectoryIfDoesNotExist(fileConfig.getSSTConfigPath().toFile());
