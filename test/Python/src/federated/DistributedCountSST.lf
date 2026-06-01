@@ -1,0 +1,18 @@
+/**
+ * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication on
+ * Python target.
+ */
+target Python {
+  timeout: 5 sec,
+  coordination: centralized,
+  comm-type: SST
+}
+
+import Count from "../lib/Count.lf"
+import Print from "DistributedCount.lf"
+
+federated reactor DistributedCountSST(offset = 200 msec) {
+  c = new Count()
+  p = new Print()
+  c.out -> p.inp after offset
+}
