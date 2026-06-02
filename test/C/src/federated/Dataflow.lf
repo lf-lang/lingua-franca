@@ -33,8 +33,6 @@ reactor Server {
   reaction(startup) -> server_message {=
     lf_print("Server Startup!");
     lf_set(server_message, 0);
-    // After startup, reset the maxwait to forever.
-    lf_set_fed_maxwait(FOREVER);
   =}
 
   reaction(client_message1, client_message2) -> server_message {=
@@ -58,7 +56,6 @@ reactor Server {
 federated reactor {
   client1 = new Client()
   client2 = new Client()
-  @maxwait(0)
   server = new Server()
   server.server_message -> client1.server_message
   client1.client_message -> server.client_message1 after 0
