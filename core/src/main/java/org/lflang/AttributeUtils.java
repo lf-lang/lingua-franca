@@ -342,9 +342,12 @@ public class AttributeUtils {
     if (attr != null) {
       // The attribute is expected to have a single argument of type Time or the literal "0".
       // The validator checks this.
-      final var time = attr.getAttrParms().get(0).getTime();
+      final var parm = attr.getAttrParms().get(0);
+      final var time = parm.getTime();
       if (time != null) {
         return ASTUtils.toTimeValue(time);
+      } else if ("0".equals(parm.getValue())) {
+        return TimeValue.ZERO;
       }
     }
     return TimeValue.FOREVER;
