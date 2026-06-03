@@ -1,8 +1,8 @@
 /**
  * This tests that the precedence order of reaction invocation is kept when a feedback loop is
- * present in decentralized coordination. The Looper reactors have maxwait of zero, so
- * they can advance their time to the timer time immediately. Their second reaction, however, has
- * larger absent_after (100 ms), so they stall to wait for input. The test ensures that their third
+ * present in decentralized coordination. The Looper reactors have maxwait of zero, so they can
+ * advance their time to the timer time immediately. Their second reaction, however, has larger
+ * absent_after (100 ms), so they stall to wait for input. The test ensures that their third
  * reaction is not invoked before the second.
  *
  * To tolerate timing variability (particularly in the CI tests), if the third reaction is invoked
