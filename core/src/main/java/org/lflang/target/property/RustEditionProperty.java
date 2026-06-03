@@ -1,7 +1,6 @@
 package org.lflang.target.property;
 
 import java.util.List;
-
 import org.lflang.MessageReporter;
 import org.lflang.lf.LfPackage.Literals;
 import org.lflang.target.TargetConfig;
@@ -11,10 +10,10 @@ import org.lflang.target.TargetConfig;
  */
 public final class RustEditionProperty extends StringProperty {
 
-  //** Singleton target property instance. */
+  // ** Singleton target property instance. */
   public static final RustEditionProperty INSTANCE = new RustEditionProperty();
 
-  //** List of valid editions */
+  // ** List of valid editions */
   private static final List<String> VALID_EDITIONS = List.of("2015", "2018", "2021", "2024");
 
   private RustEditionProperty() {
@@ -32,8 +31,12 @@ public final class RustEditionProperty extends StringProperty {
     if (!edition.isEmpty() && !VALID_EDITIONS.contains(edition)) {
       reporter
           .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
-          .error("Edition: " + edition + " is not a valid edition. " +
-              "Please use one of the following: " + String.join(", ", VALID_EDITIONS));
+          .error(
+              "edition: "
+                  + edition
+                  + " is not a valid edition. "
+                  + "Please use one of the following: "
+                  + String.join(", ", VALID_EDITIONS));
     }
   }
 }
