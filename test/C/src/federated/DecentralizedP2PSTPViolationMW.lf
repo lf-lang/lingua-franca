@@ -66,8 +66,7 @@ reactor Delay(STP_offset: time = forever, delay: time = 250 ms) {
 federated reactor {
   @maxwait(0)
   a = new Platform(period = 500 ms)
-  // Prevent advancing to the stop time prematurely.
-  d = new Delay(delay = 250 ms)
+  d = new Delay(delay = 250 ms)  // Prevent advancing to the stop time prematurely.
   a.out -> d.in
   d.out -> a.in
 }

@@ -64,9 +64,11 @@ reactor Gather {
 
 federated reactor {
   pi = new[4] Pi()
-  @maxwait(0) // Needed to react to the logical action despite unknown inputs.
+  // Needed to react to the logical action despite unknown inputs.
+  @maxwait(0)
   g = new Gather()
-  @absent_after(forever) // Wait for inputs.
+  // Wait for inputs.
+  @absent_after(forever)
   pi.out -> g.in
   (g.next)+ -> pi.trigger
 }
