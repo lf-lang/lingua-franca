@@ -1750,28 +1750,23 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   }
 
   private Iterable<KNode> createMaxWaitComment(EObject element, KNode targetNode) {
-    if (getBooleanValue(SHOW_USER_LABELS)) {
+    if (getBooleanValue(SHOW_USER_LABELS) && AttributeUtils.hasMaxWait(element)) {
       TimeValue maxWait = AttributeUtils.getMaxWait(element);
+      KNode comment = _kNodeExtensions.createNode();
+      setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+      String commentText = "maxwait: " + maxWait.toString();
+      KRoundedRectangle commentFigure =
+          _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
+      _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
 
-      // FOREVER is the default (returned when there is no @maxwait annotation, or when the
-      // annotation explicitly specifies forever), so omit the comment for that case.
-      if (!maxWait.equals(TimeValue.FOREVER)) {
-        KNode comment = _kNodeExtensions.createNode();
-        setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
-        String commentText = "maxwait: " + maxWait.toString();
-        KRoundedRectangle commentFigure =
-            _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
-        _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
+      // connect
+      KEdge edge = _kEdgeExtensions.createEdge();
+      edge.setSource(comment);
+      edge.setTarget(targetNode);
+      _linguaFrancaStyleExtensions.maxWaitCommentStyle(
+          _linguaFrancaShapeExtensions.addCommentPolyline(edge));
 
-        // connect
-        KEdge edge = _kEdgeExtensions.createEdge();
-        edge.setSource(comment);
-        edge.setTarget(targetNode);
-        _linguaFrancaStyleExtensions.maxWaitCommentStyle(
-            _linguaFrancaShapeExtensions.addCommentPolyline(edge));
-
-        return List.of(comment);
-      }
+      return List.of(comment);
     }
     return List.of();
   }

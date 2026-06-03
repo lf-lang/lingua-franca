@@ -330,6 +330,15 @@ public class AttributeUtils {
   }
 
   /**
+   * Return true if the given node has an explicit `@maxwait` attribute.
+   *
+   * @param node The AST node (Instantiation or Connection).
+   */
+  public static boolean hasMaxWait(EObject node) {
+    return findAttributeByName(node, "maxwait") != null;
+  }
+
+  /**
    * Return the value of the `@maxwait` attribute of the given node or TimeValue.FOREVER if it does
    * not have one. FOREVER is the default because, under decentralized coordination, a federate
    * without an explicit `@maxwait` will wait indefinitely for inputs to become known before
