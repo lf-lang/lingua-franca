@@ -349,11 +349,11 @@ public class FedLauncherGenerator {
                 + " tmux: 2)\"",
             "        echo \"  -h, --help      Show this help message\"",
             "        echo \"\"",
-        "        echo \"tmux: This launcher enables mouse mode (pane focus, resize, scroll).\"",
-        "        echo \"      To copy text to the clipboard, hold Shift or Function while dragging"
-            + " to select\"",
-        "        echo \"      (most terminals), or press Ctrl+b then [ to enter copy mode.\"",
-        "        echo \"\"",
+            "        echo \"tmux: This launcher enables mouse mode (pane focus, resize, scroll).\"",
+            "        echo \"      To copy text to the clipboard, hold Shift or Function while"
+                + " dragging to select\"",
+            "        echo \"      (most terminals), or press Ctrl+b then [ to enter copy mode.\"",
+            "        echo \"\"",
             "        echo \"All other arguments are forwarded to each federate.\"",
             "        echo \"For available federate parameters, run a federate binary with"
                 + " --help.\"",
