@@ -259,7 +259,7 @@ public class FedGenerator {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
-      if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+      if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
           == CommunicationMode.SST) {
         new AuthDockerGenerator(context).generate();
       }

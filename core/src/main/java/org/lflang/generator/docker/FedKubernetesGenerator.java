@@ -43,7 +43,7 @@ public class FedKubernetesGenerator {
 
     List<String> sections = new ArrayList<>();
 
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       sections.add(generateAuthPod(federationName.toLowerCase(), registryAddress));
       sections.add(generateAuthService(federationName.toLowerCase()));
@@ -104,7 +104,7 @@ public class FedKubernetesGenerator {
   private String generateRtiPod(
       String federation, String host, String registryAddress, int federateCount) {
     var isSST =
-        context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var rtiHostAliases =
         isSST
             ? """
@@ -188,7 +188,7 @@ initContainers:
   private String generatePerEntityContent(
       String federation, String host, String registryAddress, String entityName) {
     var isSST =
-        context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var entityInitContainers =
         isSST
             ? """
@@ -237,7 +237,7 @@ initContainers:
   }
 
   private String getHostNames() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return "- \"rti\"\n                - \"auth\"";
     }

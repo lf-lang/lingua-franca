@@ -22,7 +22,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
 
   @Override
   protected String generateDockerFileContent() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return super.generateDockerFileContent();
     }
@@ -37,7 +37,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
 
   @Override
   protected String generateCopyOfCredentials() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return "COPY sst/ ./sst/";
     }
@@ -46,7 +46,7 @@ public class RtiDockerGenerator extends CDockerGenerator {
 
   @Override
   public List<String> defaultEntryPoint() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return List.of("/usr/local/bin/RTI", "-sst", "./sst/rti.config");
     }

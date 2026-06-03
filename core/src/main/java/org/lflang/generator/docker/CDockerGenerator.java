@@ -37,7 +37,7 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected String builderBase() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return "sst-builder";
     }
@@ -47,7 +47,7 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected String generateAdditionalArguments() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return String.join(
           "\n",
@@ -62,7 +62,7 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected String generateCopyOfCredentials() {
-    if (context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       return "COPY /sst/ ./sst/";
     }
@@ -74,7 +74,7 @@ public class CDockerGenerator extends DockerGenerator {
   public List<String> defaultEntryPoint() {
     var name = context.getFileConfig().name;
     var isSST =
-        context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     if (isSST) {
       return List.of("./bin/" + name, "-sst", "./sst/" + name + ".config");
     }
@@ -86,7 +86,7 @@ public class CDockerGenerator extends DockerGenerator {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var isSST =
-        context.getTargetConfig().get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
 
     if (isSST) {
       return "# (Dependencies already installed in sst-builder stage)";
@@ -112,7 +112,7 @@ public class CDockerGenerator extends DockerGenerator {
               context.getErrorReporter(),
               context.getTargetConfig().target == Target.CCPP);
       var isSST =
-          context.getTargetConfig().get(CommunicationModeProperty.INSTANCE)
+          context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
               == CommunicationMode.SST;
       var commFlag = isSST ? " -DCOMM_TYPE=SST" : "";
       var srcDir = "src-gen";
