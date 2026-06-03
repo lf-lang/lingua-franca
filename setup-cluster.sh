@@ -38,24 +38,24 @@ def print_header(msg):
 def parse_yaml(file_path):
     with open(file_path, 'r') as f:
         lines = f.readlines()
-    
+
     config = {}
     current_section = None
     current_worker = None
-    
+
     for line in lines:
         # Strip comments and whitespace
         line = line.split('#')[0].strip()
         if not line:
             continue
-        
+
         # Check for start of sections
         if line.endswith(':'):
             current_section = line[:-1].strip()
             if current_section == 'workers':
                 config['workers'] = []
             continue
-        
+
         # Check for list items under workers
         if line.startswith('-'):
             current_worker = {}
@@ -63,12 +63,12 @@ def parse_yaml(file_path):
                 config['workers'] = []
             config['workers'].append(current_worker)
             line = line[1:].strip()
-            
+
         if ':' in line:
             parts = line.split(':', 1)
             key = parts[0].strip()
             val = parts[1].strip().strip('"').strip("'")
-            
+
             if current_section == 'workers':
                 if current_worker is not None:
                     current_worker[key] = val
@@ -119,7 +119,7 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
     print(f"\n{Colors.WARNING}{Colors.BOLD}!!! WARNING !!!{Colors.ENDC}")
     print(f"{Colors.WARNING}This will completely uninstall k3s Server from the control plane, k3s Agents from all workers, and delete the private registry container.{Colors.ENDC}")
     print(f"{Colors.WARNING}All your Kubernetes workloads, configurations, and data will be permanently deleted.{Colors.ENDC}")
-    
+
     try:
         response = input(f"{Colors.WARNING}Are you sure you want to completely purge the cluster? (y/N): {Colors.ENDC}").strip().lower()
         if response not in ['y', 'yes']:
@@ -130,16 +130,16 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
         sys.exit(0)
 
     print_header("Tearing Down and Cleaning Up Kubernetes Cluster")
-    
+
     # 1. Worker Nodes Cleanup
     print_header("Step 1: Cleaning Up Worker Nodes")
     for worker in workers:
         w_host = worker.get('host')
         w_ip = worker.get('ip')
         w_user = worker.get('user', 'ubuntu')
-        
+
         print_info(f"Connecting to worker node {w_host} ({w_ip}) as user '{w_user}'...")
-        
+
         # Uninstall k3s-agent
         try:
             print_info("Uninstalling k3s-agent...")
@@ -147,7 +147,7 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
             print_pass(f"k3s-agent uninstalled successfully on {w_host}.")
         except Exception as e:
             print_warn(f"Failed to uninstall k3s-agent on {w_host} (it might have already been removed): {e}")
-            
+
         # Remove registries.yaml
         try:
             print_info("Removing containerd registries config...")
@@ -155,7 +155,7 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
             print_pass(f"registries.yaml removed on {w_host}.")
         except Exception as e:
             print_warn(f"Failed to remove registries.yaml on {w_host}: {e}")
-            
+
     # 2. Control Plane Cleanup
     print_header("Step 2: Cleaning Up k3s Control Plane")
     print_info(f"Connecting to control plane host {cp_ip} as user '{cp_user}'...")
@@ -165,7 +165,7 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
         print_pass("k3s server uninstalled successfully.")
     except Exception as e:
         print_warn(f"Failed to uninstall k3s server on control plane (it might have already been removed): {e}")
-        
+
     # 3. Registry Cleanup
     print_header("Step 3: Cleaning Up Private Registry")
     print_info(f"Connecting to registry host {reg_ip} as user '{reg_user}'...")
@@ -176,17 +176,17 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
         print_pass("Private Docker registry container removed successfully.")
     except Exception as e:
         print_warn(f"Failed to remove private registry container: {e}")
-        
+
     # 4. Dev Machine Cleanup
     print_header("Step 4: Cleaning Up Dev Machine Configuration")
-    
+
     # Remove insecure-registries entry from local daemon.json
     try:
         daemon_json_path = os.path.expanduser("~/.docker/daemon.json")
         if os.path.exists(daemon_json_path):
             with open(daemon_json_path, 'r') as f:
                 daemon_data = json.load(f)
-            
+
             insecure_list = daemon_data.get("insecure-registries", [])
             reg_entry = f"{reg_ip}:{reg_port}"
             if reg_entry in insecure_list:
@@ -194,7 +194,7 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
                 # If the list is empty, delete the key to keep it clean
                 if not insecure_list:
                     del daemon_data["insecure-registries"]
-                
+
                 with open(daemon_json_path, 'w') as f:
                     json.dump(daemon_data, f, indent=4)
                 print_pass(f"Removed {reg_entry} from insecure-registries in local daemon.json.")
@@ -204,7 +204,7 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
             print_info("Local daemon.json does not exist. Skipping.")
     except Exception as e:
         print_warn(f"Failed to clean up local daemon.json: {e}")
-        
+
     # Remove local kubeconfig (~/.kube/config)
     try:
         local_kubeconfig = os.path.expanduser("~/.kube/config")
@@ -215,14 +215,14 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
             print_info("Local kubeconfig (~/.kube/config) does not exist.")
     except Exception as e:
         print_warn(f"Failed to remove local kubeconfig: {e}")
-        
+
     print_header("Cluster Teardown Completed Successfully")
     print_info("All k3s server/agents, registrations, and private registry container resources have been cleaned up.")
     print_warn("IMPORTANT: If you are running Docker Desktop on macOS, you MUST manually restart Docker Desktop to apply insecure-registries cleanup!")
 
 def cleanup_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
     print_header("Performing Lightweight Cluster Cleanup (Keeping Infrastructure)")
-    
+
     # 1. Clean up local unused/stopped Docker builders and images
     print_header("Step 1: Cleaning Up Local Dev Machine Docker Resources")
     try:
@@ -231,7 +231,7 @@ def cleanup_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers)
         print_pass("Local dev machine Docker images pruned.")
     except Exception as e:
         print_warn(f"Failed to prune local docker resources: {e}")
-        
+
     # 2. Clean up Kubernetes workloads on the cluster
     print_header("Step 2: Cleaning Up Lingua Franca Kubernetes Deployments")
     try:
@@ -257,7 +257,7 @@ def cleanup_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers)
             print_info("Local kubeconfig (~/.kube/config) not found. Skipping Kubernetes workloads cleanup.")
     except Exception as e:
         print_warn(f"Failed to clean up Kubernetes namespaces: {e}")
-        
+
     print_header("Lightweight Cluster Cleanup Completed")
     print_info("Kubernetes cluster (k3s), private registry server, and developer connections are preserved and fully ready for redeployment!")
 
@@ -265,34 +265,34 @@ def main():
     if len(sys.argv) < 2:
         print(f"Usage: {sys.argv[0]} <cluster.yaml> [--clean | --purge]")
         sys.exit(1)
-        
+
     config_file = sys.argv[1]
     if not os.path.exists(config_file):
         print_fail(f"Configuration file not found: {config_file}")
         sys.exit(1)
-        
+
     print_info(f"Parsing configuration file: {config_file}...")
     try:
         config = parse_yaml(config_file)
     except Exception as e:
         print_fail(f"Failed to parse YAML: {e}")
         sys.exit(1)
-        
+
     # Extract Registry details
     reg_ip = config.get('registry', {}).get('ip')
     reg_port = config.get('registry', {}).get('port', '5000')
-    
+
     # Extract Control Plane details
     cp_ip = config.get('controlPlane', {}).get('ip')
     cp_user = config.get('controlPlane', {}).get('user', 'ubuntu')
-    
+
     # Extract Worker Nodes list
     workers = config.get('workers', [])
-    
+
     if not cp_ip or not reg_ip:
         print_fail("Invalid configuration: controlPlane IP and registry IP must be defined.")
         sys.exit(1)
-        
+
     # Determine the SSH user to connect to the registry
     reg_user = cp_user
     if config.get('registry', {}).get('host') != config.get('controlPlane', {}).get('host'):
@@ -301,11 +301,11 @@ def main():
             if w.get('ip') == reg_ip:
                 reg_user = w.get('user', 'ubuntu')
                 break
-                
+
     # Check if --clean or --purge is specified
     is_clean = len(sys.argv) >= 3 and sys.argv[2] == '--clean'
     is_purge = len(sys.argv) >= 3 and sys.argv[2] == '--purge'
-    
+
     if is_clean:
         cleanup_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers)
         sys.exit(0)
@@ -317,7 +317,7 @@ def main():
     # Phase 0: Prerequisite checks on Dev Machine
     # ==========================================
     print_header("Phase 0: Prerequisite Checks on Dev Machine")
-    
+
     # Check if kubectl is installed locally
     if shutil_which := getattr(os, 'P_WAIT', None):  # simple check
         try:
@@ -326,7 +326,7 @@ def main():
         except Exception:
             print_fail("kubectl is not installed locally. Please install it before running this script.")
             sys.exit(1)
-            
+
     # Check if Docker is installed locally
     try:
         run_local("command -v docker", capture=True)
@@ -346,9 +346,9 @@ def main():
     # Phase 1: Setup Private Registry
     # ==========================================
     print_header("Phase 1: Setup Private Registry")
-    
+
     print_info(f"Connecting to registry host {reg_ip} as user '{reg_user}'...")
-    
+
     # Check if Docker is installed on registry host
     try:
         docker_installed = run_ssh(reg_user, reg_ip, "command -v docker", capture=True)
@@ -393,9 +393,9 @@ def main():
     # Phase 2: Setup Control Plane (k3s Server)
     # ==========================================
     print_header("Phase 2: Setup k3s Control Plane")
-    
+
     print_info(f"Connecting to control plane host {cp_ip} as user '{cp_user}'...")
-    
+
     # Install k3s server on control plane
     try:
         k3s_installed = run_ssh(cp_user, cp_ip, "command -v k3s", capture=True)
@@ -445,21 +445,21 @@ def main():
     # Phase 3 & 4: Setup Worker Nodes & Registry Config
     # ==========================================
     print_header("Phase 3 & 4: Setup Worker Nodes & registries.yaml")
-    
+
     for worker in workers:
         w_host = worker.get('host')
         w_ip = worker.get('ip')
         w_user = worker.get('user', 'ubuntu')
         w_lf_host = worker.get('lfHost')
-        
+
         print_info(f"Provisioning worker node {w_host} ({w_ip}) as user '{w_user}'...")
-        
+
         # Check cgroups memory limits on Raspberry Pi/Linux worker nodes
         try:
             cmdline = run_ssh(w_user, w_ip, "cat /proc/cmdline", capture=True)
             if "cgroup_enable=memory" not in cmdline or "cgroup_memory=1" not in cmdline:
                 print_warn(f"cgroups memory limits are disabled on worker {w_host} ({w_ip}).")
-                
+
                 # Check for standard config file locations
                 cmdline_path = None
                 for path in ["/boot/firmware/cmdline.txt", "/boot/cmdline.txt"]:
@@ -467,7 +467,7 @@ def main():
                     if exists == 'yes':
                         cmdline_path = path
                         break
-                
+
                 if cmdline_path:
                     # Verify if it's already written but waiting for reboot
                     file_content = run_ssh(w_user, w_ip, f"cat {cmdline_path}", capture=True)
@@ -505,7 +505,7 @@ def main():
         except Exception as e:
             print_fail(f"Failed to join worker node {w_host} to the cluster: {e}")
             sys.exit(1)
-            
+
         # Configure containerd registry mirror mapping
         try:
             print_info("Configuring containerd insecure registry mirror in registries.yaml...")
@@ -523,7 +523,7 @@ def main():
         except Exception as e:
             print_fail(f"Failed to configure registries.yaml on worker {w_host}: {e}")
             sys.exit(1)
-            
+
         # Intermediate test: Verify Worker node can reach the registry container
         try:
             print_info(f"Testing registry reachability from inside worker node {w_host}...")
@@ -539,19 +539,19 @@ def main():
     # Phase 5: Configure kubectl on Dev Machine
     # ==========================================
     print_header("Phase 5: Configure local kubectl (kubeconfig)")
-    
+
     # Save retrieved k3s.yaml to local ~/.kube/config
     try:
         kube_dir = os.path.expanduser("~/.kube")
         os.makedirs(kube_dir, exist_ok=True)
         local_kubeconfig = os.path.join(kube_dir, "config")
-        
+
         # Replace 127.0.0.1 in server endpoint with the remote control plane IP
         patched_kubeconfig = kubeconfig_data.replace("127.0.0.1", cp_ip)
-        
+
         with open(local_kubeconfig, "w") as f:
             f.write(patched_kubeconfig)
-            
+
         os.chmod(local_kubeconfig, 0o600)
         print_pass(f"Successfully configured local kubeconfig at: {local_kubeconfig}")
     except Exception as e:
@@ -571,13 +571,13 @@ def main():
     # Phase 6: Configure Insecure Registry on Dev Machine
     # ==========================================
     print_header("Phase 6: Configure Insecure Registry on Dev Machine")
-    
+
     # Configure insecure registries in daemon.json
     try:
         docker_config_dir = os.path.expanduser("~/.docker")
         os.makedirs(docker_config_dir, exist_ok=True)
         daemon_json_path = os.path.join(docker_config_dir, "daemon.json")
-        
+
         daemon_data = {}
         if os.path.exists(daemon_json_path):
             try:
@@ -585,7 +585,7 @@ def main():
                     daemon_data = json.load(f)
             except Exception:
                 daemon_data = {}
-                
+
         # Ensure insecure-registries list exists and contains the registry address
         insecure_list = daemon_data.setdefault("insecure-registries", [])
         reg_entry = f"{reg_ip}:{reg_port}"
@@ -596,7 +596,7 @@ def main():
             print_pass(f"Added {reg_entry} to insecure-registries in local {daemon_json_path}.")
         else:
             print_pass(f"{reg_entry} is already present in local insecure-registries.")
-            
+
         print_warn(f"IMPORTANT: If you are running Docker Desktop on macOS, you MUST manually restart Docker Desktop for these changes to take effect!")
     except Exception as e:
         print_fail(f"Failed to configure local insecure registry settings: {e}")
@@ -605,7 +605,7 @@ def main():
     # Phase 7: Label Worker Nodes
     # ==========================================
     print_header("Phase 7: Match and Label Kubernetes Worker Nodes")
-    
+
     # Retrieve nodes metadata from Kubernetes API
     try:
         nodes_json_str = run_local("kubectl get nodes -o json", capture=True)
@@ -613,20 +613,20 @@ def main():
     except Exception as e:
         print_fail(f"Failed to retrieve node list from Kubernetes: {e}")
         sys.exit(1)
-        
+
     k8s_nodes = nodes_data.get('items', [])
-    
+
     # Map each worker defined in cluster.yaml to its actual Kubernetes node name
     for worker in workers:
         w_host = worker.get('host')
         w_ip = worker.get('ip')
         w_lf_host = worker.get('lfHost')
         matched_node_name = None
-        
+
         for node in k8s_nodes:
             metadata = node.get('metadata', {})
             addresses = node.get('status', {}).get('addresses', [])
-            
+
             # Match by Hostname or InternalIP
             is_match = False
             for addr in addresses:
@@ -635,15 +635,15 @@ def main():
                 if addr_val == w_ip or addr_val == w_host:
                     is_match = True
                     break
-                    
+
             if is_match:
                 matched_node_name = metadata.get('name')
                 break
-                
+
         if not matched_node_name:
             # Fall back to matching by host string directly
             matched_node_name = w_host
-            
+
         print_info(f"Labeling node '{matched_node_name}' as lf-host={w_lf_host}...")
         try:
             # Add nodeSelector tag matching Lingua Franca at clause specifications
@@ -651,7 +651,7 @@ def main():
             print_pass(f"Successfully labeled node '{matched_node_name}' with lf-host={w_lf_host}.")
         except Exception as e:
             print_fail(f"Failed to label node '{matched_node_name}': {e}")
-            
+
     # Print final verification report
     print_header("Final Kubernetes Cluster Deployment Status")
     try:
