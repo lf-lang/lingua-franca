@@ -206,6 +206,11 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   }
 
   @Override
+  protected String getBuildContext(DockerData data) {
+    return data.serviceName;
+  }
+
+  @Override
   protected String getDockerFilePath(DockerData data) {
     return "";
   }
