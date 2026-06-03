@@ -27,6 +27,7 @@ import org.eclipse.xtext.generator.JavaIoFileSystemAccess;
 import org.eclipse.xtext.resource.XtextResource;
 import org.eclipse.xtext.resource.XtextResourceSet;
 import org.eclipse.xtext.util.RuntimeIOException;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.LFStandaloneSetup;
 import org.lflang.MessageReporter;
@@ -51,6 +52,7 @@ import org.lflang.generator.docker.DockerData;
 import org.lflang.generator.docker.FedDockerComposeGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
+import org.lflang.lf.ImportedReactor;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
@@ -60,6 +62,7 @@ import org.lflang.lf.VarRef;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.AuthProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CoordinationProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.DockerProperty.DockerOptions;
@@ -67,6 +70,7 @@ import org.lflang.target.property.KeepaliveProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.NoCompileProperty;
 import org.lflang.target.property.PlatformProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
 import org.lflang.util.FileUtil;
@@ -220,6 +224,16 @@ public class FedGenerator {
     // Compile an RTI for this federation.
     buildRtiLocally(context);
 
+    // Generate SST configurations/credentials or TLS credentials depending on the
+    // mode.
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      new SSTGenerator(fileConfig, messageReporter, context).setupSST(federates, rtiConfig);
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      new TLSGenerator(fileConfig, messageReporter, context).setupTLS(federates);
+    }
+
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
   }
@@ -250,12 +264,25 @@ public class FedGenerator {
     String cores = String.valueOf(Runtime.getRuntime().availableProcessors());
 
     var clean = LFCommand.get("rm", List.of("-rf", "build"), false, fileConfig.getRtiSrcGenPath());
-    var configure =
-        LFCommand.get(
-            "cmake",
-            List.of("-Bbuild", "-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath(), "."),
-            false,
-            fileConfig.getRtiSrcGenPath());
+
+    var configureArgs = new java.util.ArrayList<String>();
+    configureArgs.add("-Bbuild");
+    configureArgs.add("-DCMAKE_INSTALL_PREFIX=" + fileConfig.getGenPath());
+
+    // If communication mode is SST or TLS, the RTI must be built with -DCOMM_TYPE=SST or
+    // -DCOMM_TYPE=TLS.
+    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.SST) {
+      configureArgs.add("-DCOMM_TYPE=SST");
+    } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+        == CommunicationMode.TLS) {
+      configureArgs.add("-DCOMM_TYPE=TLS");
+    }
+
+    configureArgs.add(".");
+
+    var configure = LFCommand.get("cmake", configureArgs, false, fileConfig.getRtiSrcGenPath());
+
     var build =
         LFCommand.get(
             "cmake",
@@ -391,7 +418,8 @@ public class FedGenerator {
     TargetDecl targetDecl = GeneratorUtils.findTargetDecl(resource);
     var target = Target.fromDecl(targetDecl);
     var targetOK =
-        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP).contains(target);
+        List.of(Target.C, Target.Python, Target.TS, Target.CPP, Target.CCPP, Target.Polyglot)
+            .contains(target);
     if (!targetOK) {
       messageReporter
           .at(targetDecl)
@@ -558,10 +586,14 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
-    if (rtiConfig.getHost().equals("localhost")
-        && federation.getHost() != null
-        && !federation.getHost().getAddr().equals("localhost")) {
-      rtiConfig.setHost(federation.getHost().getAddr());
+    if (federation.getHost() != null) {
+      if (rtiConfig.getHost().equals("localhost")
+          && !federation.getHost().getAddr().equals("localhost")) {
+        rtiConfig.setHost(federation.getHost().getAddr());
+      }
+      if (rtiConfig.getUser() == null) {
+        rtiConfig.setUser(federation.getHost().getUser());
+      }
     }
 
     if (rtiConfig.getHost().equals("localhost")
@@ -709,11 +741,46 @@ public class FedGenerator {
     // Create one federate instance for each instance in a bank of reactors.
     List<FederateInstance> federateInstances = new ArrayList<>(bankWidth);
 
+    var resource = instantiation.getReactorClass().eResource();
+    // For the Polyglot target, resolve the per-federate compilation target from the
+    // reactor's @language annotation; otherwise use the target declared in the resource.
+    Target federateTarget;
+    var mainTarget = Target.fromDecl(GeneratorUtils.findTargetDecl(resource));
+    if (mainTarget == Target.Polyglot) {
+      Reactor reactorDef = ASTUtils.toDefinition(instantiation.getReactorClass());
+      String langName = AttributeUtils.getAttributeValue(reactorDef, "language");
+      // For imported reactors with no @language annotation, infer the language from the target
+      // declared in the source file they were imported from.
+      if (langName == null && instantiation.getReactorClass() instanceof ImportedReactor) {
+        var sourceTarget = Target.fromDecl(GeneratorUtils.findTargetDecl(reactorDef.eResource()));
+        if (sourceTarget == Target.C || sourceTarget == Target.CCPP) {
+          langName = "C";
+        } else if (sourceTarget == Target.Python) {
+          langName = "Python";
+        }
+      }
+      var langOpt =
+          (langName != null) ? Target.forName(langName) : java.util.Optional.<Target>empty();
+      if (langOpt.isEmpty()) {
+        messageReporter
+            .at(instantiation)
+            .error(
+                "Reactor '"
+                    + reactorDef.getName()
+                    + "' must have a @language(C) or @language(Python) annotation in Polyglot"
+                    + " mode, or be imported from a file with target C or Python.");
+        federateTarget = Target.C; // fallback to avoid NPE
+      } else {
+        federateTarget = langOpt.get();
+      }
+    } else {
+      federateTarget = mainTarget;
+    }
+
     for (int i = 0; i < bankWidth; i++) {
       // Assign an integer ID to the federate.
       int federateID = federates.size();
-      var resource = instantiation.getReactorClass().eResource();
-      var federateTargetConfig = new FederateTargetConfig(context, resource);
+      var federateTargetConfig = new FederateTargetConfig(context, resource, federateTarget);
       FederateInstance federateInstance =
           new FederateInstance(
               instantiation, federateID, i, bankWidth, federateTargetConfig, messageReporter);

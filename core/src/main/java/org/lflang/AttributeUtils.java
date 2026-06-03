@@ -140,7 +140,12 @@ public class AttributeUtils {
     if (attr == null || attr.getAttrParms().isEmpty()) {
       return null;
     }
-    return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    var parm = attr.getAttrParms().get(0);
+    // When a bare identifier is used (e.g., @language(C)), value is null and name holds the ID.
+    if (parm.getValue() != null) {
+      return StringUtil.removeQuotes(parm.getValue());
+    }
+    return parm.getName();
   }
 
   /**

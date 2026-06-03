@@ -1,0 +1,22 @@
+/**
+ * A Polyglot federated program that imports C and Python protobuf reactor definitions from the
+ * shared library in src/lib. The PythonSender reactor (Python) sends a ProtoHelloWorld object; the
+ * CReceiver reactor (C) receives and validates it. Proto bindings are generated from the protobufs
+ * target property declared here.
+ *
+ * @author Hokeun Kim
+ */
+target Polyglot {
+  protobufs: [ProtoHelloWorld.proto],
+  timeout: 2 sec
+}
+
+import PythonSender from "../lib/PythonProtoSenderReceiver.lf"
+import CReceiver from "../lib/CProtoSenderReceiver.lf"
+
+federated reactor {
+  sender = new PythonSender()
+  receiver = new CReceiver()
+
+  sender.out -> receiver.in after 100 msec serializer "proto"
+}

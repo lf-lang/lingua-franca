@@ -234,7 +234,7 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? (value=Literal | time=Time);
+    (name=ID '=')? (value=Literal | time=Time) | name=ID;
 
 /////////// For target parameters
 
