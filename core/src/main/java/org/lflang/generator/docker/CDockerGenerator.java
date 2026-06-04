@@ -62,9 +62,15 @@ public class CDockerGenerator extends DockerGenerator {
 
   @Override
   protected String generateCopyOfCredentials() {
-    if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
-        == CommunicationMode.SST) {
+    var config = context.getTargetConfig();
+    var isSST = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+    var isTLS = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS;
+
+    if (isSST) {
       return "COPY /sst/ ./sst/";
+    }
+    if (isTLS) {
+      return "COPY credentials/ /lingua-franca/credentials/";
     }
 
     return "";
@@ -76,8 +82,14 @@ public class CDockerGenerator extends DockerGenerator {
     var isSST =
         context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
             == CommunicationMode.SST;
+    var isTLS =
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.TLS;
     if (isSST) {
       return List.of("./bin/" + name, "-sst", "./sst/" + name + ".config");
+    }
+    if (isTLS) {
+      return List.of("./bin/" + name, "-tls", "credentials/" + name + ".crt", "credentials/" + name + ".key");
     }
     return List.of("./bin/" + context.getFileConfig().name);
   }
@@ -95,10 +107,27 @@ public class CDockerGenerator extends DockerGenerator {
     }
 
     if (builderBase().equals(defaultImage())) {
+      var isTLS =
+          context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+              == CommunicationMode.TLS;
+      if (isTLS) {
+        return "RUN set -ex && apk add --no-cache %s musl-dev cmake make openssl-dev".formatted(compiler);
+      }
       return "RUN set -ex && apk add --no-cache %s musl-dev cmake make".formatted(compiler);
     } else {
       return "# (Skipping installation of build dependencies; custom base image.)";
     }
+  }
+
+  @Override
+  protected String generateRunForMakingExecutableDir() {
+    var isTLS =
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.TLS;
+    if (isTLS) {
+      return "RUN mkdir -p bin && apk add --no-cache openssl";
+    }
+    return super.generateRunForMakingExecutableDir();
   }
 
   @Override
