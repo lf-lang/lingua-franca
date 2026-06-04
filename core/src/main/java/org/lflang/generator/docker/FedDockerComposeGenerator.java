@@ -169,7 +169,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                       depends_on:
                           - rti
               """;
-    var command = "                    command: \"-r rti -i ${FEDERATION_ID}\"";
+    var command = "        command: \"-r rti -i ${FEDERATION_ID}\"";
     return """
            %s\
            %s\
