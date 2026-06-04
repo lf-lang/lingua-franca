@@ -212,7 +212,8 @@ public abstract class DockerGenerator {
           ". scripts/"
               + StringEscapeUtils.escapeXSI(script)
               + " && "
-              + entryPoint().stream().collect(Collectors.joining(" ")));
+              + entryPoint().stream().collect(Collectors.joining(" "))
+              + " \"$@\"");
     }
     return entryPoint();
   }
