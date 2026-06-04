@@ -14,7 +14,7 @@ public final class RustEditionProperty extends StringProperty {
   public static final RustEditionProperty INSTANCE = new RustEditionProperty();
 
   // ** List of valid editions */
-  private static final List<String> VALID_EDITIONS = List.of("2015", "2018", "2021", "2024");
+  private static final List<String> VALID_EDITIONS = List.of("2018", "2021", "2024");
 
   private RustEditionProperty() {
     super();
