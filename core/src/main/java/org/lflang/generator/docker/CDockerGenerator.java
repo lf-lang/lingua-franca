@@ -89,7 +89,8 @@ public class CDockerGenerator extends DockerGenerator {
       return List.of("./bin/" + name, "-sst", "./sst/" + name + ".config");
     }
     if (isTLS) {
-      return List.of("./bin/" + name, "-tls", "credentials/" + name + ".crt", "credentials/" + name + ".key");
+      return List.of(
+          "./bin/" + name, "-tls", "credentials/" + name + ".crt", "credentials/" + name + ".key");
     }
     return List.of("./bin/" + context.getFileConfig().name);
   }
@@ -111,7 +112,8 @@ public class CDockerGenerator extends DockerGenerator {
           context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
               == CommunicationMode.TLS;
       if (isTLS) {
-        return "RUN set -ex && apk add --no-cache %s musl-dev cmake make openssl-dev".formatted(compiler);
+        return "RUN set -ex && apk add --no-cache %s musl-dev cmake make openssl-dev"
+            .formatted(compiler);
       }
       return "RUN set -ex && apk add --no-cache %s musl-dev cmake make".formatted(compiler);
     } else {
