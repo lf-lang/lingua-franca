@@ -53,7 +53,7 @@ public class CDockerGenerator extends DockerGenerator {
           "\n",
           "FROM " + defaultImage() + " AS sst-builder",
           "RUN set -ex && apk add --no-cache gcc musl-dev cmake make openssl-dev",
-          "COPY /sst-src/ /sst-src/",
+          "COPY sst-src/ /sst-src/",
           "WORKDIR /sst-build",
           "RUN cmake -DBUILD_TESTING=OFF /sst-src && make && make install");
     }
@@ -67,7 +67,7 @@ public class CDockerGenerator extends DockerGenerator {
     var isTLS = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS;
 
     if (isSST) {
-      return "COPY /sst/ ./sst/";
+      return "COPY sst/ ./sst/";
     }
     if (isTLS) {
       return "COPY credentials/ /lingua-franca/credentials/";
