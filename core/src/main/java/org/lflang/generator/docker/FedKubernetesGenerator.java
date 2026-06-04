@@ -104,7 +104,8 @@ public class FedKubernetesGenerator {
   private String generateRtiPod(
       String federation, String host, String registryAddress, int federateCount) {
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
     var rtiHostAliases =
         isSST
             ? """
@@ -188,7 +189,8 @@ initContainers:
   private String generatePerEntityContent(
       String federation, String host, String registryAddress, String entityName) {
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
     var entityInitContainers =
         isSST
             ? """

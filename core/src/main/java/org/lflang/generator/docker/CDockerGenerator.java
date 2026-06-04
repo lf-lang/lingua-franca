@@ -74,7 +74,8 @@ public class CDockerGenerator extends DockerGenerator {
   public List<String> defaultEntryPoint() {
     var name = context.getFileConfig().name;
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
     if (isSST) {
       return List.of("./bin/" + name, "-sst", "./sst/" + name + ".config");
     }
@@ -86,7 +87,8 @@ public class CDockerGenerator extends DockerGenerator {
     var config = context.getTargetConfig();
     var compiler = config.target == Target.CCPP ? "g++" : "gcc";
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
 
     if (isSST) {
       return "# (Dependencies already installed in sst-builder stage)";

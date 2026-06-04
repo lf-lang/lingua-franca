@@ -40,7 +40,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
     var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
     var registryAddress = context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress();
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
 
     var rtiImg =
         deploymentType.equals("kubernetes")
@@ -129,7 +130,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   @Override
   protected String getServiceDescription(DockerData data) {
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
     var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
 
     if (deploymentType.equals("kubernetes")) {
@@ -177,7 +179,8 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   @Override
   protected String generateDockerNetwork(String networkName) {
     var isSST =
-        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
+        context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+            == CommunicationMode.SST;
     var subnet = context.getTargetConfig().get(DockerProperty.INSTANCE).subnet();
     var deploymentType = context.getTargetConfig().get(DockerProperty.INSTANCE).deployment();
     if (isSST && deploymentType.equals("compose")) {
