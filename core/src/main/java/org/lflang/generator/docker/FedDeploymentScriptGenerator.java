@@ -50,17 +50,21 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
         deploymentType.equals("kubernetes")
             ? """
               cleanup() {
-                  kubectl delete -f %s-pods.yaml --ignore-not-found
+                  # Remove the temporary pod configuration file.
                   rm -f %s-pods-temp.yaml
+                  # Delete the Kubernetes namespace to remove all deployed pods and services.
                   kubectl delete namespace %s --ignore-not-found
+                  # Clean up local docker images created for this federation.
                   %s
               }
               trap cleanup EXIT
               """
-                .formatted(federationName, federationName, federationName.toLowerCase(), dockerImageCleanup)
+                .formatted(federationName, federationName.toLowerCase(), dockerImageCleanup)
             : """
               cleanup() {
+                  # Tear down docker compose services.
                   docker compose down
+                  # Clean up local docker images.
                   %s
               }
               trap cleanup EXIT
@@ -110,11 +114,14 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
 
     var logStreaming =
         """
+        # Wait for all pods in the namespace to become ready.
         echo "Waiting for pods to start..."
         kubectl wait --for=condition=Ready pods --all -n %s --timeout=60s
+        # Stream logs from all running pods (except the auth pod) in the background.
         for pod in $(kubectl get pods -n %s -o name | grep -v auth); do
             kubectl logs -f -n %s $pod &
         done
+        # Wait for all background log streaming processes to finish (exits when pods terminate).
         wait
         """
             .formatted(
@@ -127,19 +134,23 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
             ? kubectlCheck
                 + podFileCheck
                 + """
-                  docker compose build
-                  docker compose push
-                  kubectl wait --for=delete namespace/%s --timeout=120s 2>/dev/null || true
-                  kubectl create namespace %s
-                  # Generate a random 48-byte text ID for this federation.
-                  FEDERATION_ID=$(openssl rand -hex 24)
-                  echo "Federation ID: ${FEDERATION_ID}"
-                  # Replace the placeholder in the pods YAML with the generated ID.
-                  # A temporary file is used to avoid overwriting the original template.
-                  sed -e "s/FEDERATION_ID_PLACEHOLDER/${FEDERATION_ID}/g" %s-pods.yaml > %s-pods-temp.yaml
-                  # Apply the temporary YAML file with the concrete federation ID.
-                  kubectl apply -f %s-pods-temp.yaml
-                  """
+# Build docker images using docker-compose.yml.
+docker compose build
+# Push the built docker images to the local registry.
+docker compose push
+# Wait for the old namespace to be fully deleted if it is still terminating.
+kubectl wait --for=delete namespace/%s --timeout=120s 2>/dev/null || true
+# Create a fresh namespace for this deployment.
+kubectl create namespace %s
+# Generate a random 48-byte text ID for this federation.
+FEDERATION_ID=$(openssl rand -hex 24)
+echo "Federation ID: ${FEDERATION_ID}"
+# Replace the placeholder in the pods YAML with the generated ID.
+# A temporary file is used to avoid overwriting the original template.
+sed -e "s/FEDERATION_ID_PLACEHOLDER/${FEDERATION_ID}/g" %s-pods.yaml > %s-pods-temp.yaml
+# Apply the temporary YAML file with the concrete federation ID.
+kubectl apply -f %s-pods-temp.yaml
+"""
                     .formatted(
                         federationName.toLowerCase(),
                         federationName.toLowerCase(),
@@ -148,7 +159,9 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
                         federationName)
                 + logStreaming
             : """
+              # Build docker compose services.
               docker compose build
+              # Start docker compose services.
               docker compose up
               """;
 
