@@ -51,12 +51,13 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
             ? """
               cleanup() {
                   kubectl delete -f %s-pods.yaml --ignore-not-found
+                  rm -f %s-pods-temp.yaml
                   kubectl delete namespace %s --ignore-not-found
                   %s
               }
               trap cleanup EXIT
               """
-                .formatted(federationName, federationName.toLowerCase(), dockerImageCleanup)
+                .formatted(federationName, federationName, federationName.toLowerCase(), dockerImageCleanup)
             : """
               cleanup() {
                   docker compose down
@@ -130,12 +131,19 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
                   docker compose push
                   kubectl wait --for=delete namespace/%s --timeout=120s 2>/dev/null || true
                   kubectl create namespace %s
-                  kubectl delete -f %s-pods.yaml --ignore-not-found
-                  kubectl apply -f %s-pods.yaml
+                  # Generate a random 48-byte text ID for this federation.
+                  FEDERATION_ID=$(openssl rand -hex 24)
+                  echo "Federation ID: ${FEDERATION_ID}"
+                  # Replace the placeholder in the pods YAML with the generated ID.
+                  # A temporary file is used to avoid overwriting the original template.
+                  sed -e "s/FEDERATION_ID_PLACEHOLDER/${FEDERATION_ID}/g" %s-pods.yaml > %s-pods-temp.yaml
+                  # Apply the temporary YAML file with the concrete federation ID.
+                  kubectl apply -f %s-pods-temp.yaml
                   """
                     .formatted(
                         federationName.toLowerCase(),
                         federationName.toLowerCase(),
+                        federationName,
                         federationName,
                         federationName)
                 + logStreaming

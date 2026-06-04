@@ -145,7 +145,7 @@ initContainers:
                        - name: rti
                          image: "%s/%s-rti:latest"
                          imagePullPolicy: Always
-                         args: ["-i", "1", "-n", "%d"]
+                         args: ["-i", "FEDERATION_ID_PLACEHOLDER", "-n", "%d"]
 
            """
         .formatted(
@@ -221,7 +221,7 @@ initContainers:
                        - name: %s
                          image: "%s/%s-%s:latest"
                          imagePullPolicy: Always
-                         args: ["-r", "rti"]
+                         args: ["-r", "rti", "-i", "FEDERATION_ID_PLACEHOLDER"]
 
            """
         .formatted(

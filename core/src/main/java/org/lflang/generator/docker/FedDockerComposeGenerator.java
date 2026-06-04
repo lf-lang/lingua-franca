@@ -56,7 +56,7 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
         """
                 image: "%s"
                 hostname: "rti"
-                command: "-i 1 %s -n %s"
+                command: "-i ${FEDERATION_ID} %s -n %s"
                 container_name: "%s-rti"
         """
             .formatted(rtiImg, tracing, services.size(), containerName.toLowerCase());
@@ -169,11 +169,13 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
                       depends_on:
                           - rti
               """;
+    var command = "                    command: \"-r rti -i ${FEDERATION_ID}\"";
     return """
+           %s\
            %s\
            %s
            """
-        .formatted(super.getServiceDescription(data), dependsOn);
+        .formatted(super.getServiceDescription(data), dependsOn, command);
   }
 
   @Override

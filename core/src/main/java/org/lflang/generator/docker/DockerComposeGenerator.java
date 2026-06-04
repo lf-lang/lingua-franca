@@ -191,6 +191,7 @@ public class DockerComposeGenerator {
         """
         #!/bin/bash
         set -euo pipefail
+        export FEDERATION_ID=$(openssl rand -hex 24)
         cd $(dirname "$0")
         cd "%s/%s"
         docker compose -f docker-compose.yml %s up --abort-on-container-failure
