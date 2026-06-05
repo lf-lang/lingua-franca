@@ -23,7 +23,7 @@ public class FedDeploymentScriptGenerator {
 
     var scriptContent =
         generateDeploymentLaunchScript(srcGenPath.toString(), deploymentType, federationName);
-    var scriptPath = context.getFileConfig().binPath.resolve(federationName + "_deploy");
+    var scriptPath = context.getFileConfig().binPath.resolve(federationName);
 
     FileUtil.writeToFile(scriptContent, scriptPath);
     Files.setPosixFilePermissions(
@@ -40,6 +40,9 @@ public class FedDeploymentScriptGenerator {
 
   private String generateDeploymentLaunchScript(
       String srcGenPath, String deploymentType, String federationName) {
+    var hasOverride = Files.exists(context.getFileConfig().getSrcGenPath().resolve("docker-compose-override.yml"));
+    var overrideArg = hasOverride ? "-f docker-compose.yml -f docker-compose-override.yml" : "-f docker-compose.yml";
+
     var dockerImageCleanup =
         """
 docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{print $1}') 2>/dev/null || true
@@ -63,17 +66,26 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
             : """
               cleanup() {
                   # Tear down docker compose services.
-                  docker compose down
+                  docker compose %s down
                   # Clean up local docker images.
                   %s
               }
               trap cleanup EXIT
               """
-                .formatted(dockerImageCleanup);
+                .formatted(overrideArg, dockerImageCleanup);
 
     var header =
         """
         #!/bin/bash
+        BUILD=false
+        for arg in "$@"; do
+            case "$arg" in
+                -b|--build)
+                    BUILD=true
+                    ;;
+            esac
+        done
+        export FEDERATION_ID=$(openssl rand -hex 24)
         cd %s
         """
                 .formatted(srcGenPath)
@@ -134,16 +146,16 @@ docker rmi $(docker images --format "{{.ID}} {{.Repository}}" | grep %s | awk '{
             ? kubectlCheck
                 + podFileCheck
                 + """
-# Build docker images using docker-compose.yml.
-docker compose build
+# Build docker images using docker-compose.yml if requested.
+if [ "$BUILD" = true ]; then
+    docker compose %s build
+fi
 # Push the built docker images to the local registry.
-docker compose push
+docker compose %s push
 # Wait for the old namespace to be fully deleted if it is still terminating.
 kubectl wait --for=delete namespace/%s --timeout=120s 2>/dev/null || true
 # Create a fresh namespace for this deployment.
 kubectl create namespace %s
-# Generate a random 48-byte text ID for this federation.
-FEDERATION_ID=$(openssl rand -hex 24)
 echo "Federation ID: ${FEDERATION_ID}"
 # Replace the placeholder in the pods YAML with the generated ID.
 # A temporary file is used to avoid overwriting the original template.
@@ -152,6 +164,8 @@ sed -e "s/FEDERATION_ID_PLACEHOLDER/${FEDERATION_ID}/g" %s-pods.yaml > %s-pods-t
 kubectl apply -f %s-pods-temp.yaml
 """
                     .formatted(
+                        overrideArg,
+                        overrideArg,
                         federationName.toLowerCase(),
                         federationName.toLowerCase(),
                         federationName,
@@ -159,11 +173,14 @@ kubectl apply -f %s-pods-temp.yaml
                         federationName)
                 + logStreaming
             : """
-              # Build docker compose services.
-              docker compose build
+              # Build docker compose services if requested.
+              if [ "$BUILD" = true ]; then
+                  docker compose %s build
+              fi
               # Start docker compose services.
-              docker compose up
-              """;
+              docker compose %s up --abort-on-container-failure
+              """
+              .formatted(overrideArg, overrideArg);
 
     return header + dockerCheck + composeFileCheck + deploySteps;
   }

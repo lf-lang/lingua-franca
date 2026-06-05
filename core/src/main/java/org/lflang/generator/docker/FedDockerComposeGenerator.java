@@ -219,4 +219,9 @@ public class FedDockerComposeGenerator extends DockerComposeGenerator {
   protected String getDockerFilePath(DockerData data) {
     return "";
   }
+
+  @Override
+  public void createLauncher() {
+    // Do nothing because FedDeploymentScriptGenerator generates the main launcher script.
+  }
 }
