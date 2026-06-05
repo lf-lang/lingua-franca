@@ -219,7 +219,10 @@ public class FedGenerator {
               try {
                 setupSstOrTls(context, federation);
               } catch (IOException e) {
-                context.getErrorReporter().nowhere().error("SST/TLS setup failed: " + e.getMessage());
+                context
+                    .getErrorReporter()
+                    .nowhere()
+                    .error("SST/TLS setup failed: " + e.getMessage());
               }
               if (useDocker) {
                 buildUsingDocker(context, subContexts, federation);

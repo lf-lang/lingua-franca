@@ -1,9 +1,6 @@
 package org.lflang.generator.docker;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -180,10 +177,7 @@ public class DockerComposeGenerator {
     try {
       new FedDeploymentScriptGenerator(context).generate();
     } catch (IOException e) {
-      context
-          .getErrorReporter()
-          .nowhere()
-          .warning("Unable to write launcher with error: " + e);
+      context.getErrorReporter().nowhere().warning("Unable to write launcher with error: " + e);
     }
   }
 

@@ -40,8 +40,13 @@ public class FedDeploymentScriptGenerator {
 
   private String generateDeploymentLaunchScript(
       String srcGenPath, String deploymentType, String federationName) {
-    var hasOverride = Files.exists(context.getFileConfig().getSrcGenPath().resolve("docker-compose-override.yml"));
-    var overrideArg = hasOverride ? "-f docker-compose.yml -f docker-compose-override.yml" : "-f docker-compose.yml";
+    var hasOverride =
+        Files.exists(
+            context.getFileConfig().getSrcGenPath().resolve("docker-compose-override.yml"));
+    var overrideArg =
+        hasOverride
+            ? "-f docker-compose.yml -f docker-compose-override.yml"
+            : "-f docker-compose.yml";
 
     var dockerImageCleanup =
         """
@@ -180,7 +185,7 @@ kubectl apply -f %s-pods-temp.yaml
               # Start docker compose services.
               docker compose %s up --abort-on-container-failure
               """
-              .formatted(overrideArg, overrideArg);
+                .formatted(overrideArg, overrideArg);
 
     return header + dockerCheck + composeFileCheck + deploySteps;
   }
