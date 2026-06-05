@@ -216,6 +216,11 @@ public class FedGenerator {
                           .error("Failure during code generation of " + c.getFileConfig().srcFile);
                     }
                   });
+              try {
+                setupSstOrTls(context, federation);
+              } catch (IOException e) {
+                context.getErrorReporter().nowhere().error("SST/TLS setup failed: " + e.getMessage());
+              }
               if (useDocker) {
                 buildUsingDocker(context, subContexts, federation);
               } else {
@@ -226,8 +231,12 @@ public class FedGenerator {
     // Compile an RTI for this federation.
     buildRtiLocally(context);
 
-    // Generate SST configurations/credentials or TLS credentials depending on the
-    // mode.
+    context.finish(Status.COMPILED, codeMapMap);
+    return context.getErrorReporter().getErrorsOccurred();
+  }
+
+  private void setupSstOrTls(LFGeneratorContext context, Reactor federation) throws IOException {
+    var useDocker = targetConfig.get(DockerProperty.INSTANCE).enabled();
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
       var isKubernetes =
@@ -243,9 +252,6 @@ public class FedGenerator {
         == CommunicationMode.TLS) {
       new TLSGenerator(fileConfig, messageReporter, context).setupTLS(federates);
     }
-
-    context.finish(Status.COMPILED, codeMapMap);
-    return context.getErrorReporter().getErrorsOccurred();
   }
 
   /**
