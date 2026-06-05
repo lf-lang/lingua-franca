@@ -177,44 +177,13 @@ public class DockerComposeGenerator {
 
   /** Create a launcher script that invokes Docker. */
   public void createLauncher() {
-    var fileConfig = context.getFileConfig();
-    var packageRoot = fileConfig.srcPkgPath;
-    var srcGenPath = fileConfig.getSrcGenPath();
-    var binPath = fileConfig.binPath;
-    FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
-    var file = binPath.resolve(fileConfig.name).toFile();
-
-    final var relPath =
-        FileUtil.toUnixString(fileConfig.binPath.relativize(fileConfig.getOutPath()));
-
-    var script =
-        """
-        #!/bin/bash
-        set -euo pipefail
-        export FEDERATION_ID=$(openssl rand -hex 24)
-        cd $(dirname "$0")
-        cd "%s/%s"
-        docker compose -f docker-compose.yml %s up --abort-on-container-failure
-        """
-            .formatted(
-                relPath,
-                packageRoot.relativize(srcGenPath),
-                Files.exists(fileConfig.getSrcGenPath().resolve("docker-compose-override.yml"))
-                    ? "-f docker-compose-override.yml"
-                    : "");
-    var messageReporter = context.getErrorReporter();
     try {
-      var writer = new BufferedWriter(new FileWriter(file));
-      writer.write(script);
-      writer.close();
+      new FedDeploymentScriptGenerator(context).generate();
     } catch (IOException e) {
-      messageReporter
+      context
+          .getErrorReporter()
           .nowhere()
-          .warning("Unable to write launcher to " + file.getAbsolutePath() + " with error: " + e);
-    }
-
-    if (!file.setExecutable(true, false)) {
-      messageReporter.nowhere().warning("Unable to make launcher script executable.");
+          .warning("Unable to write launcher with error: " + e);
     }
   }
 
