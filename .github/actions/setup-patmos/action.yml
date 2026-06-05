@@ -32,7 +32,7 @@ runs:
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
-        cd misc && git checkout f424e13c
+        cd misc && git checkout a465118
         cd ..
         ./misc/build.sh -qm toolchain1
         patmos-clang --version
