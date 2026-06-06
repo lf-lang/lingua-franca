@@ -7019,6 +7019,13 @@
     </member>
     <member kind="function" static="yes">
       <type>static boolean</type>
+      <name>hasMaxWait</name>
+      <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
+      <anchor>a62c3dc4215c9e679c41787804694977c</anchor>
+      <arglist>(EObject node)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
       <name>isEnclave</name>
       <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
       <anchor>a4b28498531bd12bdb006c6038cbdaeba</anchor>

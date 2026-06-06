@@ -28657,6 +28657,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>hasMaxWait</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.AttributeUtils</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+    <Anchor>a62c3dc4215c9e679c41787804694977c</Anchor>
+    <DeclaredIn>AttributeUtils.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>hasModalReactors</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>

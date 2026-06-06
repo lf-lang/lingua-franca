@@ -158,11 +158,13 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a7679041b34d82526d983636c48a84dca" id="r_a7679041b34d82526d983636c48a84dca"><td class="memItemLeft">static Map&lt; String, String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a7679041b34d82526d983636c48a84dca">getLayoutOption</a> (EObject node)</td></tr>
 <tr class="memdesc:a7679041b34d82526d983636c48a84dca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the layout attributes for the given element or null if there is no such attribute.  <br /></td></tr>
 <tr class="memitem:a7b332bce66295c7bfa55fcd0a449fa13" id="r_a7b332bce66295c7bfa55fcd0a449fa13"><td class="memItemLeft">static <a class="el" href="classorg_1_1lflang_1_1TimeValue.html">TimeValue</a>&#160;</td><td class="memItemRight"><a class="el" href="#a7b332bce66295c7bfa55fcd0a449fa13">getMaxWait</a> (EObject node)</td></tr>
-<tr class="memdesc:a7b332bce66295c7bfa55fcd0a449fa13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one.  <br /></td></tr>
+<tr class="memdesc:a7b332bce66295c7bfa55fcd0a449fa13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a5e82b8ef45dbb2221d78cac2aa0c6c8c" title="A time value representing FOREVER which is greater than any other time value.">TimeValue.FOREVER</a> if it does not have one.  <br /></td></tr>
 <tr class="memitem:af8f04c78d4f4ee91a13cd551f68dcf89" id="r_af8f04c78d4f4ee91a13cd551f68dcf89"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#af8f04c78d4f4ee91a13cd551f68dcf89">getPortSide</a> (EObject node)</td></tr>
 <tr class="memdesc:af8f04c78d4f4ee91a13cd551f68dcf89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">@side</span> attribute for the given node (presumably a port) or null if there is no such attribute.  <br /></td></tr>
 <tr class="memitem:a32478a716122f24fa20c8e66ecbe6ba5" id="r_a32478a716122f24fa20c8e66ecbe6ba5"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a32478a716122f24fa20c8e66ecbe6ba5">hasCBody</a> (Reaction reaction)</td></tr>
 <tr class="memdesc:a32478a716122f24fa20c8e66ecbe6ba5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the reaction is marked to have a C code body.  <br /></td></tr>
+<tr class="memitem:a62c3dc4215c9e679c41787804694977c" id="r_a62c3dc4215c9e679c41787804694977c"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a62c3dc4215c9e679c41787804694977c">hasMaxWait</a> (EObject node)</td></tr>
+<tr class="memdesc:a62c3dc4215c9e679c41787804694977c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the given node has an explicit <span class="tt">@maxwait</span> attribute.  <br /></td></tr>
 <tr class="memitem:a4b28498531bd12bdb006c6038cbdaeba" id="r_a4b28498531bd12bdb006c6038cbdaeba"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a4b28498531bd12bdb006c6038cbdaeba">isEnclave</a> (Instantiation node)</td></tr>
 <tr class="memdesc:a4b28498531bd12bdb006c6038cbdaeba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the specified instance has an <span class="tt">@enclave</span> attribute.  <br /></td></tr>
 <tr class="memitem:ac9f26d728910c2d87d47dccffa8affc9" id="r_ac9f26d728910c2d87d47dccffa8affc9"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#ac9f26d728910c2d87d47dccffa8affc9">isEnclaveConnection</a> (Instantiation node)</td></tr>
@@ -684,7 +686,8 @@ Alexander Schulz-Rosengarten </dd></dl>
 </table>
 </div><div class="memdoc">
 
-<p>Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a68c759a054b43a1e14ce0a035571bb29" title="A time value equal to zero.">TimeValue.ZERO</a> if does not have one. </p>
+<p>Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a5e82b8ef45dbb2221d78cac2aa0c6c8c" title="A time value representing FOREVER which is greater than any other time value.">TimeValue.FOREVER</a> if it does not have one. </p>
+<p>FOREVER is the default because, under decentralized coordination, a federate without an explicit <span class="tt">@maxwait</span> will wait indefinitely for inputs to become known before declaring them absent.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">node</td><td>The AST node (Instantiation or Connection). </td></tr>
@@ -760,6 +763,39 @@ Alexander Schulz-Rosengarten </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the reaction is marked to have a C code body. </dd></dl>
+
+</div>
+</div>
+<a id="a62c3dc4215c9e679c41787804694977c" name="a62c3dc4215c9e679c41787804694977c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a62c3dc4215c9e679c41787804694977c">&#9670;&#160;</a></span>hasMaxWait()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.AttributeUtils.hasMaxWait </td>
+          <td>(</td>
+          <td class="paramtype">EObject</td>          <td class="paramname"><span class="paramname"><em>node</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return true if the given node has an explicit <span class="tt">@maxwait</span> attribute. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">node</td><td>The AST node (Instantiation or Connection). </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

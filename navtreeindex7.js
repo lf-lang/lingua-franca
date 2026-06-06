@@ -1,5 +1,6 @@
 var NAVTREEINDEX7 =
 {
+"classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a05f0aa5951980e38175fe14e789758e6":[4,3,9,2],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f119bf8898184d899461ea0c62116bd":[4,3,9,32],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f800b9c19e9a05c6666e9d09547a50a":[4,3,9,21],
 "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a1823e46b5758701c421f719ee9ac5b40":[4,3,9,24],
@@ -248,6 +249,5 @@ var NAVTREEINDEX7 =
 "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#a6a7cc5ce4312c556f0a277cb0b2792c8":[4,3,29,12],
 "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#a6e581ab2a891b7d1cccd775ffd8e5729":[4,3,29,4],
 "classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#a9a6d963b39ea7be7e2f7c15cf5cb49bb":[4,3,29,9],
-"classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#a9b06fe522bfccaf2c14b19a0f0116e48":[4,3,29,2],
-"classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#ac67b13b30794e6e281746007fb8bacf0":[4,3,29,6]
+"classorg_1_1lflang_1_1federated_1_1serialization_1_1FedProtoCSerialization.html#a9b06fe522bfccaf2c14b19a0f0116e48":[4,3,29,2]
 };

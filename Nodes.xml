@@ -18711,6 +18711,11 @@
               <Anchor>a32478a716122f24fa20c8e66ecbe6ba5</Anchor>
              </Node>
              <Node>
+              <Name>hasMaxWait</Name>
+              <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+              <Anchor>a62c3dc4215c9e679c41787804694977c</Anchor>
+             </Node>
+             <Node>
               <Name>isEnclave</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
               <Anchor>a4b28498531bd12bdb006c6038cbdaeba</Anchor>
@@ -52335,6 +52340,11 @@
                   <Name>hasCBody</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
                   <Anchor>a32478a716122f24fa20c8e66ecbe6ba5</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>hasMaxWait</Name>
+                  <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+                  <Anchor>a62c3dc4215c9e679c41787804694977c</Anchor>
                  </Node>
                  <Node>
                   <Name>isEnclave</Name>
