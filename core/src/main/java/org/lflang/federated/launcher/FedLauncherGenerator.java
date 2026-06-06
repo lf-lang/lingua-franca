@@ -420,7 +420,9 @@ public class FedLauncherGenerator {
         launchCodeWithoutLogging,
         "fi",
         "# Store the PID of the Auth",
-        "AUTH=$!");
+        "AUTH=$!",
+        "# Wait for Auth to boot up before starting RTI/federates",
+        "sleep 2");
   }
 
   private String getDistHeader() {
