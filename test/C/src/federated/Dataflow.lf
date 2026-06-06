@@ -1,5 +1,4 @@
 target C {
-  build-type: debug,
   coordination: decentralized  // logging: debug
 }
 
