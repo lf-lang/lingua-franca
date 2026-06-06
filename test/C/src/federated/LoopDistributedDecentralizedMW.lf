@@ -90,7 +90,9 @@ reactor Looper(incr: int = 1, delay: time = 0 msec) {
 }
 
 federated reactor {
+  @maxwait(0)
   left = new Looper()
+  @maxwait(0)
   right = new Looper(incr=-1)
   @absent_after(100 ms)
   left.out -> right.in
