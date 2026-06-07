@@ -363,6 +363,15 @@ public class AttributeUtils {
   }
 
   /**
+   * Return true if the given node has an explicit `@absent_after` attribute.
+   *
+   * @param node The AST node (a Connection).
+   */
+  public static boolean hasAbsentAfter(EObject node) {
+    return findAttributeByName(node, "absent_after") != null;
+  }
+
+  /**
    * Return the value of the `@absent_after` attribute of the given node or TimeValue.ZERO if does not
    * have one.
    *

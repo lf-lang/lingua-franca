@@ -1335,8 +1335,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
               }
               // Add absent_after annotation if present
-              TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
-              if (!absentAfter.equals(TimeValue.ZERO)) {
+              if (AttributeUtils.hasAbsentAfter(connection)) {
+                TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
                 KLabel absentAfterLabel =
                     _kLabelExtensions.addCenterEdgeLabel(
                         edge, "absent_after: " + absentAfter.toString());
