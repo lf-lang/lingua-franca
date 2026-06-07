@@ -18706,6 +18706,11 @@
               <Anchor>af8f04c78d4f4ee91a13cd551f68dcf89</Anchor>
              </Node>
              <Node>
+              <Name>hasAbsentAfter</Name>
+              <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+              <Anchor>a0333bd1b839edefe8400624913d175e0</Anchor>
+             </Node>
+             <Node>
               <Name>hasCBody</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
               <Anchor>a32478a716122f24fa20c8e66ecbe6ba5</Anchor>
@@ -52335,6 +52340,11 @@
                   <Name>getPortSide</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
                   <Anchor>af8f04c78d4f4ee91a13cd551f68dcf89</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>hasAbsentAfter</Name>
+                  <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+                  <Anchor>a0333bd1b839edefe8400624913d175e0</Anchor>
                  </Node>
                  <Node>
                   <Name>hasCBody</Name>

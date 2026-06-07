@@ -28220,6 +28220,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>hasAbsentAfter</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.AttributeUtils</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+    <Anchor>a0333bd1b839edefe8400624913d175e0</Anchor>
+    <DeclaredIn>AttributeUtils.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>hasAfterDelayParamName</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>

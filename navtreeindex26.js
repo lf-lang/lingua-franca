@@ -1,5 +1,6 @@
 var NAVTREEINDEX26 =
 {
+"interfaceorg_1_1lflang_1_1generator_1_1c_1_1CReactorHeaderFileGenerator_1_1GenerateAuxiliaryStructs.html#a5bc6a15b504e3a45bd8cc4cdbd70e112":[4,4,20,0,0],
 "interfaceorg_1_1lflang_1_1generator_1_1c_1_1CUtil_1_1ReportCommandErrors.html":[4,4,26,0],
 "interfaceorg_1_1lflang_1_1generator_1_1c_1_1CUtil_1_1ReportCommandErrors.html#a5ec0cce0770bc1f3a24ed4e7cf75d4fa":[4,4,26,0,0],
 "interfaceorg_1_1lflang_1_1graph_1_1Graph.html":[5,0,0,0,7,2],

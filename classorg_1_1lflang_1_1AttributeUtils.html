@@ -161,6 +161,8 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:a7b332bce66295c7bfa55fcd0a449fa13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the value of the <span class="tt">@maxwait</span> attribute of the given node or <a class="el" href="classorg_1_1lflang_1_1TimeValue.html#a5e82b8ef45dbb2221d78cac2aa0c6c8c" title="A time value representing FOREVER which is greater than any other time value.">TimeValue.FOREVER</a> if it does not have one.  <br /></td></tr>
 <tr class="memitem:af8f04c78d4f4ee91a13cd551f68dcf89" id="r_af8f04c78d4f4ee91a13cd551f68dcf89"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#af8f04c78d4f4ee91a13cd551f68dcf89">getPortSide</a> (EObject node)</td></tr>
 <tr class="memdesc:af8f04c78d4f4ee91a13cd551f68dcf89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the <span class="tt">@side</span> attribute for the given node (presumably a port) or null if there is no such attribute.  <br /></td></tr>
+<tr class="memitem:a0333bd1b839edefe8400624913d175e0" id="r_a0333bd1b839edefe8400624913d175e0"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a0333bd1b839edefe8400624913d175e0">hasAbsentAfter</a> (EObject node)</td></tr>
+<tr class="memdesc:a0333bd1b839edefe8400624913d175e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the given node has an explicit <span class="tt">@absent_after</span> attribute.  <br /></td></tr>
 <tr class="memitem:a32478a716122f24fa20c8e66ecbe6ba5" id="r_a32478a716122f24fa20c8e66ecbe6ba5"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a32478a716122f24fa20c8e66ecbe6ba5">hasCBody</a> (Reaction reaction)</td></tr>
 <tr class="memdesc:a32478a716122f24fa20c8e66ecbe6ba5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the reaction is marked to have a C code body.  <br /></td></tr>
 <tr class="memitem:a62c3dc4215c9e679c41787804694977c" id="r_a62c3dc4215c9e679c41787804694977c"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a62c3dc4215c9e679c41787804694977c">hasMaxWait</a> (EObject node)</td></tr>
@@ -728,6 +730,39 @@ Alexander Schulz-Rosengarten </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The port side of the node or null if there is no such attribute. </dd></dl>
+
+</div>
+</div>
+<a id="a0333bd1b839edefe8400624913d175e0" name="a0333bd1b839edefe8400624913d175e0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0333bd1b839edefe8400624913d175e0">&#9670;&#160;</a></span>hasAbsentAfter()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.AttributeUtils.hasAbsentAfter </td>
+          <td>(</td>
+          <td class="paramtype">EObject</td>          <td class="paramname"><span class="paramname"><em>node</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return true if the given node has an explicit <span class="tt">@absent_after</span> attribute. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">node</td><td>The AST node (a Connection). </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
