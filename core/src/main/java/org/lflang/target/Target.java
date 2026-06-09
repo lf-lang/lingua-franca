@@ -428,7 +428,7 @@ public enum Target {
   /** Return true if the target supports reactor inheritance (extends keyword). */
   public boolean supportsInheritance() {
     return switch (this) {
-      case C, CCPP, Python, Rust -> true;
+      case C, UC, CCPP, Python, Rust -> true;
       default -> false;
     };
   }
@@ -436,7 +436,7 @@ public enum Target {
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {
     return switch (this) {
-      case C, CCPP, CPP, Python, Rust, TS -> true;
+      case C, UC, CCPP, CPP, Python, Rust, TS -> true;
       default -> false;
     };
   }

@@ -778,9 +778,10 @@ public class CExtension implements FedTargetExtension {
           code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
         else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
       } else {
-        // Check for an annotation on the federate instantiation.
+        // Check for an annotation on the federate instantiation. The default is FOREVER
+        // (matching the C runtime default), so only emit code when the value differs.
         var maxwait = AttributeUtils.getMaxWait(federate.instantiation);
-        if (maxwait != TimeValue.ZERO) {
+        if (!maxwait.equals(TimeValue.FOREVER)) {
           code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(maxwait) + ");");
         }
       }
