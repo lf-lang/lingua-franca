@@ -333,20 +333,32 @@ public class FedLauncherGenerator {
             "SLEEP_TIME_SET=false",
             "REMAINING_ARGS=()",
             "NEXT_IS_SLEEP=false",
+            "# The -m/--start-time-multiple option is handled by the RTI, not the",
+            "# federates, so it is collected here and forwarded to the RTI command.",
+            "RTI_START_TIME_MULTIPLE=\"\"",
+            "STM_REMAINING=0",
             "for arg in \"$@\"; do",
             "    if [ \"$NEXT_IS_SLEEP\" = true ]; then",
             "        SLEEP_TIME=\"$arg\"",
             "        SLEEP_TIME_SET=true",
             "        NEXT_IS_SLEEP=false",
+            "    elif [ \"$STM_REMAINING\" -gt 0 ]; then",
+            "        RTI_START_TIME_MULTIPLE=\"$RTI_START_TIME_MULTIPLE $arg\"",
+            "        STM_REMAINING=$((STM_REMAINING - 1))",
             "    elif [ \"$arg\" = \"--help\" ] || [ \"$arg\" = \"-h\" ]; then",
-            "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N] [-h|--help]"
-                + " [FEDERATE_ARGS...]\"",
+            "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N]"
+                + " [-m|--start-time-multiple VALUE UNITS] [-h|--help] [FEDERATE_ARGS...]\"",
             "        echo \"\"",
             "        echo \"Launcher options:\"",
             "        echo \"  -l              Log federate output to files instead of stdout\"",
             "        echo \"  -x, --tmux      Launch federates and RTI in a tmux session\"",
             "        echo \"  -s, --sleep N   Seconds to sleep after launching RTI (default: 1,"
                 + " tmux: 2)\"",
+            "        echo \"  -m, --start-time-multiple VALUE UNITS\"",
+            "        echo \"                  Delay the federation start so the starting logical"
+                + " time\"",
+            "        echo \"                  is a multiple of the given time (forwarded to the"
+                + " RTI)\"",
             "        echo \"  -h, --help      Show this help message\"",
             "        echo \"\"",
             "        echo \"All other arguments are forwarded to each federate.\"",
@@ -359,6 +371,9 @@ public class FedLauncherGenerator {
             "        USE_TMUX=true",
             "    elif [ \"$arg\" = \"--sleep\" ] || [ \"$arg\" = \"-s\" ]; then",
             "        NEXT_IS_SLEEP=true",
+            "    elif [ \"$arg\" = \"--start-time-multiple\" ] || [ \"$arg\" = \"-m\" ]; then",
+            "        RTI_START_TIME_MULTIPLE=\"-m\"",
+            "        STM_REMAINING=2",
             "    else",
             "        REMAINING_ARGS+=(\"$arg\")",
             "    fi",
@@ -476,6 +491,16 @@ public class FedLauncherGenerator {
     }
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
+    }
+    // Forward the -m/--start-time-multiple option (if any) given to the launch
+    // script to the RTI. The RTI_START_TIME_MULTIPLE shell variable is set in the
+    // launcher setup code and expands to either nothing or "-m <value> <units>".
+    // For a remote RTI, the variable is expanded locally (outside the single
+    // quotes of the ssh command), mirroring how ${FEDERATION_ID} is handled.
+    if (isRemote) {
+      commands.add("                        '${RTI_START_TIME_MULTIPLE}' \\");
+    } else {
+      commands.add("                        ${RTI_START_TIME_MULTIPLE} \\");
     }
     commands.addAll(
         List.of(
