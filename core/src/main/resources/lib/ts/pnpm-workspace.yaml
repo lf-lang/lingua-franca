@@ -1,3 +1,1 @@
-onlyBuiltDependencies:
-  - '@lf-lang/reactor-ts'
-  - 'microtime'
+dangerouslyAllowAllBuilds: true
