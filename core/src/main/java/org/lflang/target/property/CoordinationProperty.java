@@ -4,7 +4,6 @@ import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
 import org.lflang.lf.LfPackage.Literals;
-import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.CoordinationModeType;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
