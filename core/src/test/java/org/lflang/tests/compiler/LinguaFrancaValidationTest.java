@@ -1102,7 +1102,7 @@ public class LinguaFrancaValidationTest {
                 }
                 main reactor {}
             """),
-        LfPackage.eINSTANCE.getTargetDecl(),
+        LfPackage.eINSTANCE.getKeyValuePair(),
         null,
         TestBase.Message.NO_DECENTRALIZED_COORDINATION_SUPPORT);
   }

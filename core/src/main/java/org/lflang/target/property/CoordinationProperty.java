@@ -3,6 +3,9 @@ package org.lflang.target.property;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.Element;
+import org.lflang.lf.LfPackage.Literals;
+import org.lflang.target.Target;
+import org.lflang.target.TargetConfig;
 import org.lflang.target.property.type.CoordinationModeType;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 
@@ -33,6 +36,19 @@ public final class CoordinationProperty
   @Override
   protected CoordinationMode fromString(String string, MessageReporter reporter) {
     return ((CoordinationModeType) this.type).forName(string);
+  }
+
+  @Override
+  public void validate(TargetConfig config, MessageReporter reporter) {
+    if (config.get(this) == CoordinationMode.DECENTRALIZED
+        && !config.target.supportsDecentralizedCoordination()) {
+      reporter
+          .at(config.lookup(this), Literals.KEY_VALUE_PAIR__VALUE)
+          .error(
+              "The "
+                  + config.target.getDisplayName()
+                  + " target does not support decentralized coordination.");
+    }
   }
 
   @Override
