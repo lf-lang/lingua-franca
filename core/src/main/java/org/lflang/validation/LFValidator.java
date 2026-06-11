@@ -119,6 +119,8 @@ import org.lflang.lf.WidthSpec;
 import org.lflang.lf.WidthTerm;
 import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.CoordinationProperty;
+import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.FileUtil;
 
 /**
@@ -1328,6 +1330,19 @@ public class LFValidator extends BaseLFValidator {
     String lfFileName = FileUtil.nameWithoutExtension(target.eResource());
     if (Character.isDigit(lfFileName.charAt(0))) {
       errorReporter.nowhere().error("LF file names must not start with a number");
+    }
+    if (targetOpt.isPresent() && targetOpt.get() == Target.TS && target.getConfig() != null) {
+      for (var pair : target.getConfig().getPairs()) {
+        if (CoordinationProperty.INSTANCE.name().equals(pair.getName())) {
+          String value = ASTUtils.elementToSingleString(pair.getValue());
+          if (CoordinationMode.DECENTRALIZED.toString().equals(value)) {
+            error(
+                "The TypeScript target does not support decentralized coordination.",
+                Literals.TARGET_DECL__CONFIG);
+          }
+          break;
+        }
+      }
     }
   }
 
