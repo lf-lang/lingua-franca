@@ -350,7 +350,8 @@ public class FedLauncherGenerator {
             "            fi",
             "        else",
             "            if ! [[ \"$arg\" =~ ^[a-zA-Z]+$ ]]; then",
-            "                echo \"Error: --start-time-multiple/-m UNITS must be alphabetic (e.g., s, ms).\" >&2",
+            "                echo \"Error: --start-time-multiple/-m UNITS must be alphabetic (e.g.,"
+                + " s, ms).\" >&2",
             "                exit 1",
             "            fi",
             "        fi",
