@@ -20,6 +20,7 @@ var classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message =
     [ "DESC_TARGET_SPECIFIC", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#aa957e2d482aae0e11bd589c8ec508b02", null ],
     [ "DESC_VERIFIER", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#ab57972d6317b57f765f96e27cc6b9118", null ],
     [ "DESC_ZEPHYR", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#a68c908c9a135d87e40633bb53dee4ab0", null ],
+    [ "NO_DECENTRALIZED_COORDINATION_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#a3fcd5dd4b3c27ed06db2b5e4e8824c26", null ],
     [ "NO_DOCKER_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#aa0d8beea63a6eb9b82048e6936cf6139", null ],
     [ "NO_DOCKER_TEST_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#a30e5c11fad945892e9889ce4b6250305", null ],
     [ "NO_ENCLAVE_SUPPORT", "classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html#acfd09c519a2bee406ff2842e39a32c43", null ],

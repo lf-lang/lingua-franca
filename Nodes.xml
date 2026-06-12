@@ -8801,6 +8801,11 @@
               <Anchor>af0ce8a2f8d67ee5e5aacc0208cfc3802</Anchor>
              </Node>
              <Node>
+              <Name>supportsDecentralizedCoordination</Name>
+              <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
+              <Anchor>a48f496ef747cd59985b53bf33056f28f</Anchor>
+             </Node>
+             <Node>
               <Name>supportsEnclaves</Name>
               <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
               <Anchor>ae7fc130c9d940beb842392e828e073d2</Anchor>
@@ -12583,6 +12588,11 @@
               <Anchor>ac9c06daa20c4d740a8540dd60cd0d7b4</Anchor>
              </Node>
              <Node>
+              <Name>testDecentralizedCoordinationNotSupportedForTypeScript</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a87c8b88f874283b36029873490067ba5</Anchor>
+             </Node>
+             <Node>
               <Name>testFederatedHasInput</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
               <Anchor>a2ae3614d1f951f3867c77028de8d211a</Anchor>
@@ -16297,6 +16307,11 @@
                 <Name>DESC_ZEPHYR</Name>
                 <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
                 <Anchor>a68c908c9a135d87e40633bb53dee4ab0</Anchor>
+               </Node>
+               <Node>
+                <Name>NO_DECENTRALIZED_COORDINATION_SUPPORT</Name>
+                <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
+                <Anchor>a3fcd5dd4b3c27ed06db2b5e4e8824c26</Anchor>
                </Node>
                <Node>
                 <Name>NO_DOCKER_SUPPORT</Name>
@@ -42348,7 +42363,7 @@
                      <Node>
                       <Name>validate</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1CoordinationProperty.html</Path>
-                      <Anchor>a05712b0e4f6256710f969dfd27a097f3</Anchor>
+                      <Anchor>aca44e48d566c18e7e68e8e1284fa05ee</Anchor>
                      </Node>
                      <Node>
                       <Name>INSTANCE</Name>
@@ -46289,6 +46304,11 @@
                     <Anchor>af0ce8a2f8d67ee5e5aacc0208cfc3802</Anchor>
                    </Node>
                    <Node>
+                    <Name>supportsDecentralizedCoordination</Name>
+                    <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
+                    <Anchor>a48f496ef747cd59985b53bf33056f28f</Anchor>
+                   </Node>
+                   <Node>
                     <Name>supportsEnclaves</Name>
                     <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
                     <Anchor>ae7fc130c9d940beb842392e828e073d2</Anchor>
@@ -46965,6 +46985,11 @@
                       <Name>testCppMutableInput</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
                       <Anchor>ac9c06daa20c4d740a8540dd60cd0d7b4</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>testDecentralizedCoordinationNotSupportedForTypeScript</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a87c8b88f874283b36029873490067ba5</Anchor>
                      </Node>
                      <Node>
                       <Name>testFederatedHasInput</Name>
@@ -50869,6 +50894,11 @@
                       <Name>DESC_ZEPHYR</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
                       <Anchor>a68c908c9a135d87e40633bb53dee4ab0</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>NO_DECENTRALIZED_COORDINATION_SUPPORT</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
+                      <Anchor>a3fcd5dd4b3c27ed06db2b5e4e8824c26</Anchor>
                      </Node>
                      <Node>
                       <Name>NO_DOCKER_SUPPORT</Name>

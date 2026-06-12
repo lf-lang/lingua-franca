@@ -792,6 +792,7 @@ var group__Generator =
       [ "match", "enumorg_1_1lflang_1_1target_1_1Target.html#ab150b01b88f3b8775fe8d039d323a780", null ],
       [ "match", "enumorg_1_1lflang_1_1target_1_1Target.html#a4f7a74641145d6830a2da337df32bf33", null ],
       [ "setsKeepAliveOptionAutomatically", "enumorg_1_1lflang_1_1target_1_1Target.html#af0ce8a2f8d67ee5e5aacc0208cfc3802", null ],
+      [ "supportsDecentralizedCoordination", "enumorg_1_1lflang_1_1target_1_1Target.html#a48f496ef747cd59985b53bf33056f28f", null ],
       [ "supportsEnclaves", "enumorg_1_1lflang_1_1target_1_1Target.html#ae7fc130c9d940beb842392e828e073d2", null ],
       [ "supportsFederated", "enumorg_1_1lflang_1_1target_1_1Target.html#ab1d0115dec1e46478fb9800b8fc0fa08", null ],
       [ "supportsInheritance", "enumorg_1_1lflang_1_1target_1_1Target.html#ad4a7cbe4fc47986bb93dbda7fb712276", null ],

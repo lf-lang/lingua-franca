@@ -29004,8 +29004,8 @@
     <member kind="function">
       <type>void</type>
       <name>validate</name>
-      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html</anchorfile>
-      <anchor>a05712b0e4f6256710f969dfd27a097f3</anchor>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1CoordinationProperty.html</anchorfile>
+      <anchor>aca44e48d566c18e7e68e8e1284fa05ee</anchor>
       <arglist>(TargetConfig config, MessageReporter reporter)</arglist>
     </member>
     <member kind="variable">
@@ -35637,6 +35637,13 @@
     </member>
     <member kind="function">
       <type>boolean</type>
+      <name>supportsDecentralizedCoordination</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1Target.html</anchorfile>
+      <anchor>a48f496ef747cd59985b53bf33056f28f</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>boolean</type>
       <name>supportsEnclaves</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1Target.html</anchorfile>
       <anchor>ae7fc130c9d940beb842392e828e073d2</anchor>
@@ -36568,6 +36575,13 @@
       <name>testCppMutableInput</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
       <anchor>ac9c06daa20c4d740a8540dd60cd0d7b4</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>testDecentralizedCoordinationNotSupportedForTypeScript</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a87c8b88f874283b36029873490067ba5</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -41988,6 +42002,13 @@
       <name>DESC_ZEPHYR</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</anchorfile>
       <anchor>a68c908c9a135d87e40633bb53dee4ab0</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
+      <name>NO_DECENTRALIZED_COORDINATION_SUPPORT</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</anchorfile>
+      <anchor>a3fcd5dd4b3c27ed06db2b5e4e8824c26</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable" static="yes">

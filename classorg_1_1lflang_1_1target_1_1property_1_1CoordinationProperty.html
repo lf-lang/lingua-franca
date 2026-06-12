@@ -156,8 +156,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a80cded89b1d2808e307cd4b9991f887b" id="r_a80cded89b1d2808e307cd4b9991f887b"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a80cded89b1d2808e307cd4b9991f887b">toString</a> ()</td></tr>
 <tr class="memitem:a74548a3778514c9c3757ee031dae825c" id="r_a74548a3778514c9c3757ee031dae825c"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a74548a3778514c9c3757ee031dae825c">update</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a74548a3778514c9c3757ee031dae825c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the given configuration using the given value.  <br /></td></tr>
-<tr class="memitem:a05712b0e4f6256710f969dfd27a097f3" id="r_a05712b0e4f6256710f969dfd27a097f3"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a05712b0e4f6256710f969dfd27a097f3">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
-<tr class="memdesc:a05712b0e4f6256710f969dfd27a097f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override this method to implement additional checks.  <br /></td></tr>
+<tr class="memitem:aca44e48d566c18e7e68e8e1284fa05ee" id="r_aca44e48d566c18e7e68e8e1284fa05ee"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#aca44e48d566c18e7e68e8e1284fa05ee">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -649,17 +648,14 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a05712b0e4f6256710f969dfd27a097f3" name="a05712b0e4f6256710f969dfd27a097f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a05712b0e4f6256710f969dfd27a097f3">&#9670;&#160;</a></span>validate()</h2>
+<a id="aca44e48d566c18e7e68e8e1284fa05ee" name="aca44e48d566c18e7e68e8e1284fa05ee"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aca44e48d566c18e7e68e8e1284fa05ee">&#9670;&#160;</a></span>validate()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.validate </td>
+          <td class="memname">void org.lflang.target.property.CoordinationProperty.validate </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>config</em></span>, </td>
         </tr>
@@ -669,23 +665,7 @@ Protected Member Functions</h2></td></tr>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>reporter</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
-
-<p>Override this method to implement additional checks. </p>
-<p>The base implementation does nothing.</p>
-<p>This method is meant to perform additional validation above and beyond checking target support and type checking which are done automatically.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">config</td><td>The target configuration to check against. </td></tr>
-    <tr><td class="paramname">reporter</td><td>A reporter for reporting errors. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>

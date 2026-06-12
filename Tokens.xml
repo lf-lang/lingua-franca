@@ -35986,6 +35986,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>NO_DECENTRALIZED_COORDINATION_SUPPORT</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.tests.TestBase.Message</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
+    <Anchor>a3fcd5dd4b3c27ed06db2b5e4e8824c26</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>NO_DOCKER_SUPPORT</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -44242,6 +44252,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>supportsDecentralizedCoordination</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.Target</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
+    <Anchor>a48f496ef747cd59985b53bf33056f28f</Anchor>
+    <DeclaredIn>Target.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>supportsDockerOption</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -45406,6 +45427,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
     <Anchor>ac9c06daa20c4d740a8540dd60cd0d7b4</Anchor>
+    <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>testDecentralizedCoordinationNotSupportedForTypeScript</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>a87c8b88f874283b36029873490067ba5</Anchor>
     <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
   </Token>
   <Token>
@@ -50354,6 +50386,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1rust_1_1CargoDependencySpec_1_1CargoDependenciesPropertyType.html</Path>
     <Anchor>aa0b402dc01b5bc85ed99fa59e5fce3e6</Anchor>
     <DeclaredIn>CargoDependencySpec.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.CoordinationProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1CoordinationProperty.html</Path>
+    <Anchor>aca44e48d566c18e7e68e8e1284fa05ee</Anchor>
+    <DeclaredIn>CoordinationProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

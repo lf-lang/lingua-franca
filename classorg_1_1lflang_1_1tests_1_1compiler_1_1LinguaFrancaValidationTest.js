@@ -44,6 +44,7 @@ var classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest =
     [ "stateAndParameterDeclarationsInC", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#aea8a8c65c2e1cc842ad174a321d525c7", null ],
     [ "targetCodeInTimeArgument", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a57d8f5a40fbdf263002da18054a15aed", null ],
     [ "testCppMutableInput", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ac9c06daa20c4d740a8540dd60cd0d7b4", null ],
+    [ "testDecentralizedCoordinationNotSupportedForTypeScript", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a87c8b88f874283b36029873490067ba5", null ],
     [ "testFederatedHasInput", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a2ae3614d1f951f3867c77028de8d211a", null ],
     [ "testFederatedHasOutput", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a5c926b9edeb78acbfc3b13c715a64d3a", null ],
     [ "testFederationSupport", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a7e684d515295a510d20a9f1f26530912", null ],
