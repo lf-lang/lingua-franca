@@ -390,6 +390,12 @@ public class FedLauncherGenerator {
             "    fi",
             "done",
             "",
+            "# Fail fast if -m/--start-time-multiple was given without both VALUE and UNITS.",
+            "if [ \"$STM_REMAINING\" -ne 0 ]; then",
+            "    echo \"Error: -m/--start-time-multiple requires two arguments: VALUE UNITS\" >&2",
+            "    exit 1",
+            "fi",
+            "",
             "# Set a trap to kill all background jobs on error or control-C",
             "# Use two distinct traps so we can see which signal causes this.",
             "cleanup() {",
@@ -560,7 +566,20 @@ public class FedLauncherGenerator {
         "# Wait for the RTI to boot up before",
         "# starting federates (this could be done by waiting for a specific output",
         "# from the RTI, but here we use sleep)",
-        "sleep $SLEEP_TIME");
+        "sleep $SLEEP_TIME",
+        "# If the RTI exited (e.g. due to an invalid argument), do not launch the",
+        "# federates. Abort with an error so the failure is not silently ignored.",
+        "if ! kill -0 $RTI 2>/dev/null; then",
+        "    wait $RTI",
+        "    RTI_EXIT_CODE=$?",
+        "    echo \""
+            + ANSI_ERROR
+            + "#### RTI failed to launch (exit code $RTI_EXIT_CODE)."
+            + " Not launching federates."
+            + ANSI_RESET
+            + "\" >&2",
+        "    exit $RTI_EXIT_CODE",
+        "fi");
   }
 
   private String getRemoteLaunchCode(
@@ -635,7 +654,20 @@ public class FedLauncherGenerator {
         "# Wait for the RTI to boot up before",
         "# starting federates (this could be done by waiting for a specific output",
         "# from the RTI, but here we use sleep)",
-        "sleep 5");
+        "sleep 5",
+        "# If the RTI exited (e.g. due to an invalid argument), do not launch the",
+        "# federates. Abort with an error so the failure is not silently ignored.",
+        "if ! kill -0 $RTI 2>/dev/null; then",
+        "    wait $RTI",
+        "    RTI_EXIT_CODE=$?",
+        "    echo \""
+            + ANSI_ERROR
+            + "#### RTI failed to launch (exit code $RTI_EXIT_CODE)."
+            + " Not launching federates."
+            + ANSI_RESET
+            + "\" >&2",
+        "    exit $RTI_EXIT_CODE",
+        "fi");
   }
 
   /**
