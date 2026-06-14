@@ -425,6 +425,14 @@ public enum Target {
     };
   }
 
+  /** Return true if the target supports decentralized coordination. */
+  public boolean supportsDecentralizedCoordination() {
+    return switch (this) {
+      case C, CCPP, Python, Polyglot -> true;
+      default -> false;
+    };
+  }
+
   /** Return true if the target supports reactor inheritance (extends keyword). */
   public boolean supportsInheritance() {
     return switch (this) {

@@ -333,20 +333,44 @@ public class FedLauncherGenerator {
             "SLEEP_TIME_SET=false",
             "REMAINING_ARGS=()",
             "NEXT_IS_SLEEP=false",
+            "# The -m/--start-time-multiple option is handled by the RTI, not the",
+            "# federates, so it is collected here and forwarded to the RTI command.",
+            "RTI_START_TIME_MULTIPLE=\"\"",
+            "STM_REMAINING=0",
             "for arg in \"$@\"; do",
             "    if [ \"$NEXT_IS_SLEEP\" = true ]; then",
             "        SLEEP_TIME=\"$arg\"",
             "        SLEEP_TIME_SET=true",
             "        NEXT_IS_SLEEP=false",
+            "    elif [ \"$STM_REMAINING\" -gt 0 ]; then",
+            "        if [ \"$STM_REMAINING\" -eq 2 ]; then",
+            "            if ! [[ \"$arg\" =~ ^[0-9]+([.][0-9]+)?$ ]]; then",
+            "                echo \"Error: --start-time-multiple/-m VALUE must be a number.\" >&2",
+            "                exit 1",
+            "            fi",
+            "        else",
+            "            if ! [[ \"$arg\" =~ ^[a-zA-Z]+$ ]]; then",
+            "                echo \"Error: --start-time-multiple/-m UNITS must be alphabetic (e.g.,"
+                + " s, ms).\" >&2",
+            "                exit 1",
+            "            fi",
+            "        fi",
+            "        RTI_START_TIME_MULTIPLE=\"$RTI_START_TIME_MULTIPLE $arg\"",
+            "        STM_REMAINING=$((STM_REMAINING - 1))",
             "    elif [ \"$arg\" = \"--help\" ] || [ \"$arg\" = \"-h\" ]; then",
-            "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N] [-h|--help]"
-                + " [FEDERATE_ARGS...]\"",
+            "        echo \"Usage: $0 [-l] [-x|--tmux] [-s|--sleep N]"
+                + " [-m|--start-time-multiple VALUE UNITS] [-h|--help] [FEDERATE_ARGS...]\"",
             "        echo \"\"",
             "        echo \"Launcher options:\"",
             "        echo \"  -l              Log federate output to files instead of stdout\"",
             "        echo \"  -x, --tmux      Launch federates and RTI in a tmux session\"",
             "        echo \"  -s, --sleep N   Seconds to sleep after launching RTI (default: 1,"
                 + " tmux: 2)\"",
+            "        echo \"  -m, --start-time-multiple VALUE UNITS\"",
+            "        echo \"                  Delay the federation start so the starting logical"
+                + " time\"",
+            "        echo \"                  is a multiple of the given time (forwarded to the"
+                + " RTI)\"",
             "        echo \"  -h, --help      Show this help message\"",
             "        echo \"\"",
             "        echo \"All other arguments are forwarded to each federate.\"",
@@ -359,10 +383,19 @@ public class FedLauncherGenerator {
             "        USE_TMUX=true",
             "    elif [ \"$arg\" = \"--sleep\" ] || [ \"$arg\" = \"-s\" ]; then",
             "        NEXT_IS_SLEEP=true",
+            "    elif [ \"$arg\" = \"--start-time-multiple\" ] || [ \"$arg\" = \"-m\" ]; then",
+            "        RTI_START_TIME_MULTIPLE=\"-m\"",
+            "        STM_REMAINING=2",
             "    else",
             "        REMAINING_ARGS+=(\"$arg\")",
             "    fi",
             "done",
+            "",
+            "# Fail fast if -m/--start-time-multiple was given without both VALUE and UNITS.",
+            "if [ \"$STM_REMAINING\" -ne 0 ]; then",
+            "    echo \"Error: -m/--start-time-multiple requires two arguments: VALUE UNITS\" >&2",
+            "    exit 1",
+            "fi",
             "",
             "# Set a trap to kill all background jobs on error or control-C",
             "# Use two distinct traps so we can see which signal causes this.",
@@ -477,6 +510,16 @@ public class FedLauncherGenerator {
     if (!targetConfig.getOrDefault(DNETProperty.INSTANCE)) {
       commands.add("                        -d \\");
     }
+    // Forward the -m/--start-time-multiple option (if any) given to the launch
+    // script to the RTI. The RTI_START_TIME_MULTIPLE shell variable is set in the
+    // launcher setup code and expands to either nothing or "-m <value> <units>".
+    // For a remote RTI, the variable is expanded locally (outside the single
+    // quotes of the ssh command), mirroring how ${FEDERATION_ID} is handled.
+    if (isRemote) {
+      commands.add("                        '${RTI_START_TIME_MULTIPLE}' \\");
+    } else {
+      commands.add("                        ${RTI_START_TIME_MULTIPLE} \\");
+    }
     commands.addAll(
         List.of(
             "                        -n " + federates.size() + " \\",
@@ -524,7 +567,20 @@ public class FedLauncherGenerator {
         "# Wait for the RTI to boot up before",
         "# starting federates (this could be done by waiting for a specific output",
         "# from the RTI, but here we use sleep)",
-        "sleep $SLEEP_TIME");
+        "sleep $SLEEP_TIME",
+        "# If the RTI exited (e.g. due to an invalid argument), do not launch the",
+        "# federates. Abort with an error so the failure is not silently ignored.",
+        "if ! kill -0 $RTI 2>/dev/null; then",
+        "    wait $RTI",
+        "    RTI_EXIT_CODE=$?",
+        "    echo \""
+            + ANSI_ERROR
+            + "#### RTI failed to launch (exit code $RTI_EXIT_CODE)."
+            + " Not launching federates."
+            + ANSI_RESET
+            + "\" >&2",
+        "    exit $RTI_EXIT_CODE",
+        "fi");
   }
 
   private String getRemoteLaunchCode(
@@ -599,7 +655,20 @@ public class FedLauncherGenerator {
         "# Wait for the RTI to boot up before",
         "# starting federates (this could be done by waiting for a specific output",
         "# from the RTI, but here we use sleep)",
-        "sleep 5");
+        "sleep 5",
+        "# If the RTI exited (e.g. due to an invalid argument), do not launch the",
+        "# federates. Abort with an error so the failure is not silently ignored.",
+        "if ! kill -0 $RTI 2>/dev/null; then",
+        "    wait $RTI",
+        "    RTI_EXIT_CODE=$?",
+        "    echo \""
+            + ANSI_ERROR
+            + "#### RTI failed to launch (exit code $RTI_EXIT_CODE)."
+            + " Not launching federates."
+            + ANSI_RESET
+            + "\" >&2",
+        "    exit $RTI_EXIT_CODE",
+        "fi");
   }
 
   /**

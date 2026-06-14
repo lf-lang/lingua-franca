@@ -40,6 +40,7 @@ import org.lflang.target.property.type.StringDictionaryType;
 import org.lflang.target.property.type.TargetPropertyType;
 import org.lflang.target.property.type.UnionType;
 import org.lflang.tests.LFInjectorProvider;
+import org.lflang.tests.TestBase;
 import org.lflang.util.StringUtil;
 
 /**
@@ -1089,6 +1090,21 @@ public class LinguaFrancaValidationTest {
             "The " + target.getDisplayName() + " target does not support federated execution.");
       }
     }
+  }
+
+  @Test
+  public void testDecentralizedCoordinationNotSupportedForTypeScript() throws Exception {
+    validator.assertError(
+        parseWithoutError(
+            """
+                target TypeScript {
+                  coordination: decentralized
+                }
+                main reactor {}
+            """),
+        LfPackage.eINSTANCE.getKeyValuePair(),
+        null,
+        TestBase.Message.NO_DECENTRALIZED_COORDINATION_SUPPORT);
   }
 
   /** Tests for state and parameter declarations, including native lists. */
