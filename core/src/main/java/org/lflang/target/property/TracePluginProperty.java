@@ -40,6 +40,12 @@ public final class TracePluginProperty
      * {@code /opt/myplugin;/home/me/myplugin/install}.
      */
     public String paths;
+
+    /**
+     * Optional endpoint URL for the trace plugin. This is passed to the trace plugin via the
+     * TRACE_PLUGIN_ENDPOINT environment variable at runtime.
+     */
+    public String endpoint;
   }
 
   @Override
@@ -57,6 +63,7 @@ public final class TracePluginProperty
         case PACKAGE -> spec.pkg = ASTUtils.elementToSingleString(entry.getValue());
         case LIBRARY -> spec.library = ASTUtils.elementToSingleString(entry.getValue());
         case PATH -> spec.paths = ASTUtils.elementToSingleString(entry.getValue());
+        case ENDPOINT -> spec.endpoint = ASTUtils.elementToSingleString(entry.getValue());
       }
     }
     return spec;
@@ -114,6 +121,13 @@ public final class TracePluginProperty
       kvp.getPairs().add(p);
     }
 
+    if (value.endpoint != null) {
+      KeyValuePair p = LfFactory.eINSTANCE.createKeyValuePair();
+      p.setName(TracePluginOption.ENDPOINT.toString());
+      p.setValue(ASTUtils.toElement(value.endpoint));
+      kvp.getPairs().add(p);
+    }
+
     e.setKeyvalue(kvp);
     return kvp.getPairs().isEmpty() ? null : e;
   }
@@ -126,7 +140,8 @@ public final class TracePluginProperty
   public enum TracePluginOption implements DictionaryElement {
     PACKAGE("package", PrimitiveType.STRING),
     LIBRARY("library", PrimitiveType.STRING),
-    PATH("path", PrimitiveType.STRING);
+    PATH("path", PrimitiveType.STRING),
+    ENDPOINT("endpoint", PrimitiveType.STRING);
 
     private final String description;
     private final PrimitiveType type;
