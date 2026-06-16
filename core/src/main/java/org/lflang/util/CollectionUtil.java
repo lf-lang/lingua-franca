@@ -31,7 +31,7 @@ public class CollectionUtil {
    *
    * @param set initial set, nullable
    * @param t new element
-   * @param <T> Type of elements
+   * @tparam <T> Type of elements
    * @return A new set, or the same
    */
   public static <T> Set<T> plus(Set<T> set, T t) {
@@ -146,7 +146,7 @@ public class CollectionUtil {
    * Returns a copy of the set. The returned set should be considered unmodifiable.
    *
    * @param set initial set, nullable
-   * @param <T> Type of elements
+   * @tparam <T> Type of elements
    * @return A new set, or the same
    */
   public static <T> Set<T> copy(Set<T> set) {

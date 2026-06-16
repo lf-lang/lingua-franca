@@ -1,0 +1,33 @@
+target C
+
+reactor R {
+  logical action a: int
+  logical action b: int
+
+  reaction B(a) -> b {=
+    lf_schedule_int(b, 0, 0);
+    printf("Received %d\n", a->value);
+  =}
+}
+
+main reactor {
+  logical action c: int
+  state e: bool = false
+  r = new R()  // Check that it compiles with this reactor.
+
+  reaction A(startup) -> c {=
+    lf_schedule_int(c, 0, 0);
+    printf("Hello, World!\n");
+  =}
+
+  reaction(c) {=
+    lf_print("Second reaction");
+    self->e = true;
+  =}
+
+  reaction(shutdown) {=
+    if (!self->e) {
+      lf_print_error_and_exit("The reaction to c was not triggered!");
+    }
+  =}
+}

@@ -1,6 +1,7 @@
 package org.lflang.generator.python;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.ParameterInstance;
@@ -82,7 +83,14 @@ public class PythonParameterGenerator {
    * @return The list of all parameters of 'decl'
    */
   private static List<Parameter> getAllParameters(ReactorDecl decl) {
-    return ASTUtils.allParameters(ASTUtils.toDefinition(decl));
+    // Deduplicate parameters by name, keeping the most-derived class's override.
+    // ASTUtils.allParameters() returns base class parameters first, so later puts
+    // (from derived classes) overwrite earlier ones.
+    var unique = new LinkedHashMap<String, Parameter>();
+    for (Parameter p : ASTUtils.allParameters(ASTUtils.toDefinition(decl))) {
+      unique.put(p.getName(), p);
+    }
+    return new ArrayList<>(unique.values());
   }
 
   /**

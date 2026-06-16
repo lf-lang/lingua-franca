@@ -215,7 +215,8 @@ public class CEnclavedReactorTransformation implements AstTransformation {
         return p;
       }
     }
-    throw new RuntimeException("Could not find paramter: " + name + " in reactor " + def.getName());
+    throw new RuntimeException(
+        "Could not find parameter: " + name + " in reactor " + def.getName());
   }
 
   /**

@@ -1335,8 +1335,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
               }
               // Add absent_after annotation if present
-              TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
-              if (!absentAfter.equals(TimeValue.ZERO)) {
+              if (AttributeUtils.hasAbsentAfter(connection)) {
+                TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
                 KLabel absentAfterLabel =
                     _kLabelExtensions.addCenterEdgeLabel(
                         edge, "absent_after: " + absentAfter.toString());
@@ -1671,7 +1671,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
 
     // If fixed port sides are active and the port is put on the opposite side, reverse it
     var reverse = getBooleanValue(FIXED_PORT_SIDE) && input != (side == PortSide.WEST);
-    _linguaFrancaShapeExtensions.addTrianglePort(port, multiport, reverse);
+    _linguaFrancaShapeExtensions.addTrianglePort(port, multiport, reverse, side);
 
     String label = lfPort.getName();
     if (!getBooleanValue(SHOW_PORT_NAMES)) {
@@ -1750,26 +1750,23 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   }
 
   private Iterable<KNode> createMaxWaitComment(EObject element, KNode targetNode) {
-    if (getBooleanValue(SHOW_USER_LABELS)) {
+    if (getBooleanValue(SHOW_USER_LABELS) && AttributeUtils.hasMaxWait(element)) {
       TimeValue maxWait = AttributeUtils.getMaxWait(element);
+      KNode comment = _kNodeExtensions.createNode();
+      setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+      String commentText = "maxwait: " + maxWait.toString();
+      KRoundedRectangle commentFigure =
+          _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
+      _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
 
-      if (!maxWait.equals(TimeValue.ZERO)) {
-        KNode comment = _kNodeExtensions.createNode();
-        setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
-        String commentText = "maxwait: " + maxWait.toString();
-        KRoundedRectangle commentFigure =
-            _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
-        _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
+      // connect
+      KEdge edge = _kEdgeExtensions.createEdge();
+      edge.setSource(comment);
+      edge.setTarget(targetNode);
+      _linguaFrancaStyleExtensions.maxWaitCommentStyle(
+          _linguaFrancaShapeExtensions.addCommentPolyline(edge));
 
-        // connect
-        KEdge edge = _kEdgeExtensions.createEdge();
-        edge.setSource(comment);
-        edge.setTarget(targetNode);
-        _linguaFrancaStyleExtensions.maxWaitCommentStyle(
-            _linguaFrancaShapeExtensions.addCommentPolyline(edge));
-
-        return List.of(comment);
-      }
+      return List.of(comment);
     }
     return List.of();
   }

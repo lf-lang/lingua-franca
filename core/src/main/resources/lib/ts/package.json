@@ -20,10 +20,5 @@
     },
     "scripts": {
         "build": "npx rimraf dist && npx tsc --outDir dist"
-    },
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "@lf-lang/reactor-ts"
-        ]
     }
 }

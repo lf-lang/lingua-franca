@@ -9,10 +9,12 @@ import java.util.stream.Stream;
 import org.lflang.FileConfig;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
+import org.lflang.target.Target;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CmakeInitIncludeProperty;
+import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
 import org.lflang.target.property.CompilerProperty;
 import org.lflang.target.property.PlatformProperty;
@@ -21,6 +23,7 @@ import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SingleThreadedProperty;
 import org.lflang.target.property.TracePluginProperty;
 import org.lflang.target.property.WorkersProperty;
+import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.PlatformType.Platform;
 import org.lflang.util.FileUtil;
 
@@ -243,6 +246,7 @@ public class CCmakeGenerator {
     cMakeCode.pr("    if(LCOV_BIN MATCHES \"lcov$\")");
     cMakeCode.pr(
         "      set(CMAKE_C_FLAGS \"${CMAKE_C_FLAGS} --coverage -fprofile-arcs -ftest-coverage\")");
+    cMakeCode.pr("      set(CMAKE_EXE_LINKER_FLAGS \"${CMAKE_EXE_LINKER_FLAGS} --coverage\")");
     cMakeCode.pr("    else()");
     cMakeCode.pr(
         "      message(\"Not producing code coverage information since lcov was not found\")");
@@ -397,22 +401,55 @@ public class CCmakeGenerator {
         break;
     }
 
+    boolean requiresOpenSSL =
+        targetConfig.get(AuthProperty.INSTANCE)
+            || (targetConfig.isSupported(CommunicationModeProperty.INSTANCE)
+                && targetConfig.isSet(CommunicationModeProperty.INSTANCE)
+                && (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST
+                    || targetConfig.get(CommunicationModeProperty.INSTANCE)
+                        == CommunicationMode.TLS));
+
+    if (requiresOpenSSL) {
+      cMakeCode.pr("if (APPLE)");
+      cMakeCode.pr("    # Apple Silicon Mac");
+      cMakeCode.pr("    if (EXISTS \"/opt/homebrew/opt/openssl\")");
+      cMakeCode.pr("        set(OPENSSL_ROOT_DIR \"/opt/homebrew/opt/openssl\")");
+      cMakeCode.pr("    # Intel Mac");
+      cMakeCode.pr("    elseif (EXISTS \"/usr/local/opt/openssl\")");
+      cMakeCode.pr("        set(OPENSSL_ROOT_DIR \"/usr/local/opt/openssl\")");
+      cMakeCode.pr("    endif()");
+      cMakeCode.pr("endif()");
+    }
+
     if (targetConfig.get(AuthProperty.INSTANCE)) {
       // If security is requested, add the auth option.
-      var osName = System.getProperty("os.name").toLowerCase();
-      // if platform target was set, use given platform instead
-      if (platformOptions.platform() != Platform.AUTO) {
-        osName = platformOptions.platform().toString();
-      }
-      if (osName.contains("mac")) {
-        cMakeCode.pr("set(OPENSSL_ROOT_DIR /usr/local/opt/openssl)");
-      }
       cMakeCode.pr("# Find OpenSSL and link to it");
       cMakeCode.pr("find_package(OpenSSL REQUIRED)");
       cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
       cMakeCode.newLine();
     }
-
+    if (targetConfig.isSupported(CommunicationModeProperty.INSTANCE)) {
+      if (targetConfig.isSet(CommunicationModeProperty.INSTANCE)) {
+        cMakeCode.pr("set(COMM_TYPE " + targetConfig.get(CommunicationModeProperty.INSTANCE) + ")");
+        cMakeCode.newLine();
+      }
+      if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        // If security is requested, add the auth option.
+        cMakeCode.pr("# Find OpenSSL and link to it");
+        cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+        cMakeCode.pr("target_link_libraries( ${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL)");
+        cMakeCode.newLine();
+        // If communication mode is SST, find sst package.
+        cMakeCode.pr("# sst-c-api is already linked transitively via reactor-c.");
+      } else if (targetConfig.get(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS) {
+        // TLS requires OpenSSL only
+        cMakeCode.pr("# Find OpenSSL for TLS support");
+        cMakeCode.pr("find_package(OpenSSL REQUIRED)");
+        cMakeCode.pr(
+            "target_link_libraries(${LF_MAIN_TARGET} PRIVATE OpenSSL::SSL OpenSSL::Crypto)");
+        cMakeCode.newLine();
+      }
+    }
     if (!targetConfig.get(SingleThreadedProperty.INSTANCE)
         && platformOptions.platform() != Platform.ZEPHYR
         && platformOptions.platform() != Platform.FLEXPRET
@@ -451,8 +488,9 @@ public class CCmakeGenerator {
       cMakeCode.newLine();
     }
 
-    // link protobuf
-    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()) {
+    // link protobuf (C only — Python handles protobuf via the Python runtime, not protobuf-c)
+    if (!targetConfig.get(ProtobufsProperty.INSTANCE).isEmpty()
+        && targetConfig.target != Target.Python) {
       cMakeCode.pr("include(FindPackageHandleStandardArgs)");
       cMakeCode.pr("FIND_PATH( PROTOBUF_INCLUDE_DIR protobuf-c/protobuf-c.h)");
       cMakeCode.pr(

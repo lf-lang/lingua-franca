@@ -1,0 +1,46 @@
+target Rust
+
+reactor A {
+  input a: u32
+  output out: u32
+
+  reaction(a) -> out {=
+    ctx.set(out, ctx.get(a).unwrap());
+  =}
+}
+
+reactor B extends A {
+  input b: u32
+
+  reaction(a, b) -> out {=
+    match ctx.get(out) {
+      Some(output) => {
+        assert_eq!(output, 3, "FAILURE: Expected inherited reaction to set out to 3 before B runs");
+        println!("The Expected output is 3: {}", output);
+      }
+      None => {
+        panic!("FAILURE: Inherited action not ran");
+      }
+    }
+    ctx.set(out, ctx.get(a).unwrap() + ctx.get(b).unwrap());
+
+    match ctx.get(out) {
+      Some(output) => {
+        assert_eq!(output, 5, "FAILURE: Expected combined output to be 5 after B runs");
+        println!("The output is: {}", output);
+      }
+      None => {
+        panic!("FAILURE: No output set");
+      }
+    }
+  =}
+}
+
+main reactor {
+  b = new B()
+
+  reaction(startup) -> b.b, b.a {=
+    ctx.set(b__b, 2);
+    ctx.set(b__a, 3);
+  =}
+}

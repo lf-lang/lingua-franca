@@ -1,0 +1,50 @@
+// Test that main reactor parameters propagate to child reactor timers.
+// Also tests command-line override of parameters.
+// With a timeout of 5 sec and a period of 1 sec, expect 6 firings (at t=0,1,2,3,4,5).
+// A JUnit integration test verifies CLI override with --period 500 msec --expected 11.
+target C {
+  timeout: 5 sec,
+  fast: true
+}
+
+reactor Source(period: time = 1 sec, value: double = 3.14159) {
+  timer t(0, period)
+  output out: double
+  state count: int = 0
+
+  reaction(t) -> out {=
+    self->count++;
+    lf_set(out, self->value);
+  =}
+
+  reaction(shutdown) {=
+    printf("Total firings: %d\n", self->count);
+  =}
+}
+
+reactor Print(expected: int = 6, value: double = 3.14159) {
+  input in: double
+  state count: int = 0
+
+  reaction(in) {=
+    self->count++;
+    printf("Received: %f at time %lld\n", in->value,
+           (long long)(lf_time_logical_elapsed() / 1000000));
+    if (in->value != self->value) {
+      lf_print_error_and_exit("Expected %f but got %f.", self->value, in->value);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->count != self->expected) {
+      lf_print_error_and_exit("Expected %d firings but got %d.", self->expected, self->count);
+    }
+    printf("SUCCESS: %d firings.\n", self->count);
+  =}
+}
+
+main reactor CommandLineParam(period: time = 1 sec, expected: int = 6, value: double = 3.14159) {
+  s = new Source(period=period, value=value)
+  p = new Print(expected=expected, value=value)
+  s.out -> p.in
+}

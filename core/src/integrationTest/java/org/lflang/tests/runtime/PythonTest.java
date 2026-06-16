@@ -7,7 +7,10 @@ import org.lflang.target.Target;
 import org.lflang.target.TargetConfig;
 import org.lflang.target.property.BuildTypeProperty;
 import org.lflang.target.property.type.BuildTypeType.BuildType;
+import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
+import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 /**
  * Collection of tests for the Python target.
@@ -100,5 +103,17 @@ public class PythonTest extends RuntimeTest {
   public void runDockerFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runDockerFederatedTests();
+  }
+
+  @Test
+  public void runSerializationTests() {
+    Assumptions.assumeTrue(isLinux(), Message.NO_SERIALIZATION_SUPPORT);
+    runTestsForTargets(
+        Message.DESC_SERIALIZATION,
+        TestCategory.SERIALIZATION::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
   }
 }

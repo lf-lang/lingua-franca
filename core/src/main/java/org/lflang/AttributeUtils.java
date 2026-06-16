@@ -140,7 +140,12 @@ public class AttributeUtils {
     if (attr == null || attr.getAttrParms().isEmpty()) {
       return null;
     }
-    return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    var parm = attr.getAttrParms().get(0);
+    // When a bare identifier is used (e.g., @language(C)), value is null and name holds the ID.
+    if (parm.getValue() != null) {
+      return StringUtil.removeQuotes(parm.getValue());
+    }
+    return parm.getName();
   }
 
   /**
@@ -209,40 +214,40 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the declared label of the node, as given by the `@label` annotation.
+   * Return the declared label of the node, as given by the `@label` attribute.
    *
    * @param node The node to get the label from.
-   * @return The label of the node or null if there is no such annotation.
+   * @return The label of the node or null if there is no such attribute.
    */
   public static String getLabel(EObject node) {
     return getAttributeValue(node, "label");
   }
 
   /**
-   * Return the declared icon of the node, as given by the `@icon` annotation, or null if there is no
-   * such annotation.
+   * Return the declared icon of the node, as given by the `@icon` attribute, or null if there is no
+   * such attribute.
    *
    * @param node The node to get the icon path from.
-   * @return The icon path of the node or null if there is no such annotation.
+   * @return The icon path of the node or null if there is no such attribute.
    */
   public static String getIconPath(EObject node) {
     return getAttributeValue(node, "icon");
   }
 
   /**
-   * Return the `@side` annotation for the given node (presumably a port) or null if there is
-   * no such annotation.
+   * Return the `@side` attribute for the given node (presumably a port) or null if there is
+   * no such attribute.
    *
    * @param node The node to get the port side from.
-   * @return The port side of the node or null if there is no such annotation.
+   * @return The port side of the node or null if there is no such attribute.
    */
   public static String getPortSide(EObject node) {
     return getAttributeValue(node, "side");
   }
 
   /**
-   * Return the layout annotations for the given element or null if there is no such annotation.
-   * Layout annotations have the form:
+   * Return the layout attributes for the given element or null if there is no such attribute.
+   * Layout attributes have the form:
    *
    * <pre>{@code
    * @layout(option="string", value="any")
@@ -254,7 +259,7 @@ public class AttributeUtils {
    * @layout(option="port.side", value="WEST")
    * }</pre>
    *
-   * This will return all such annotations for the specified node in the form of a map from the option
+   * This will return all such attributes for the specified node in the form of a map from the option
    * name to the value.
    */
   public static Map<String, String> getLayoutOption(EObject node) {
@@ -325,8 +330,19 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
-   * have one.
+   * Return true if the given node has an explicit `@maxwait` attribute.
+   *
+   * @param node The AST node (Instantiation or Connection).
+   */
+  public static boolean hasMaxWait(EObject node) {
+    return findAttributeByName(node, "maxwait") != null;
+  }
+
+  /**
+   * Return the value of the `@maxwait` attribute of the given node or TimeValue.FOREVER if it does
+   * not have one. FOREVER is the default because, under decentralized coordination, a federate
+   * without an explicit `@maxwait` will wait indefinitely for inputs to become known before
+   * declaring them absent.
    *
    * @param node The AST node (Instantiation or Connection).
    */
@@ -335,12 +351,24 @@ public class AttributeUtils {
     if (attr != null) {
       // The attribute is expected to have a single argument of type Time or the literal "0".
       // The validator checks this.
-      final var time = attr.getAttrParms().get(0).getTime();
+      final var parm = attr.getAttrParms().get(0);
+      final var time = parm.getTime();
       if (time != null) {
         return ASTUtils.toTimeValue(time);
+      } else if ("0".equals(parm.getValue())) {
+        return TimeValue.ZERO;
       }
     }
-    return TimeValue.ZERO;
+    return TimeValue.FOREVER;
+  }
+
+  /**
+   * Return true if the given node has an explicit `@absent_after` attribute.
+   *
+   * @param node The AST node (a Connection).
+   */
+  public static boolean hasAbsentAfter(EObject node) {
+    return findAttributeByName(node, "absent_after") != null;
   }
 
   /**

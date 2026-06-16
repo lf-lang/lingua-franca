@@ -14,6 +14,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -54,6 +55,8 @@ import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.Mode;
 import org.lflang.lf.Model;
+import org.lflang.lf.Parameter;
+import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Port;
 import org.lflang.lf.Preamble;
 import org.lflang.lf.Reaction;
@@ -296,6 +299,9 @@ public class CGenerator extends GeneratorBase {
   /** A code-generator for enclave-specific code, */
   private CEnclaveGenerator enclaveGenerator;
 
+  /** Main reactor parameters that can be overridden from the command line. */
+  private List<Parameter> cliParameters = new ArrayList<>();
+
   /** The enclave AST transformation is stored here and later passed to the enclave-generator. */
   private final CEnclavedReactorTransformation enclaveAST;
 
@@ -411,11 +417,9 @@ public class CGenerator extends GeneratorBase {
       generateHeaders();
       code.writeToFile(targetFile);
     } catch (IOException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
     } catch (RuntimeException e) {
-      String message = e.getMessage();
-      messageReporter.nowhere().error(message);
+      messageReporter.nowhere().error(formatExceptionMessage(e));
       throw e;
     }
 
@@ -561,9 +565,18 @@ public class CGenerator extends GeneratorBase {
     GeneratorUtils.refreshProject(resource, context.getMode());
   }
 
+  private static String formatExceptionMessage(Throwable e) {
+    String message = e.getMessage();
+    return message == null || message.isBlank() ? e.getClass().getName() : message;
+  }
+
   private void generateCodeFor(String lfModuleName) throws IOException {
     code.pr(generateDirectives());
-    code.pr(new CMainFunctionGenerator(targetConfig).generateCode());
+    Reactor mainReactorClass =
+        mainDef != null ? ASTUtils.toDefinition(mainDef.getReactorClass()) : null;
+    var mainFunctionGenerator = new CMainFunctionGenerator(targetConfig, mainReactorClass);
+    code.pr(mainFunctionGenerator.generateCode());
+    this.cliParameters = mainFunctionGenerator.getCliParameters();
     // Generate code for each reactor.
     generateReactorDefinitions();
     copyUserFiles(targetConfig, fileConfig);
@@ -922,9 +935,13 @@ public class CGenerator extends GeneratorBase {
         FileUtil.copyFromClassPath("/lib/c/reactor-c/" + directory, dest, true, false);
       }
       for (var directory :
-          List.of("logging", "platform", "low_level_platform", "trace", "version", "tag")) {
+          List.of(
+              "logging", "platform", "low_level_platform", "trace", "version", "tag", "network")) {
         var entry = "/lib/c/reactor-c/" + directory;
         if (arduino) {
+          if ("network".equals(directory)) {
+            continue; // Skip copying for the "network" directory
+          }
           if (FileConfig.class.getResource(entry + "/api") != null) {
             FileUtil.copyFromClassPath(
                 entry + "/api",
@@ -1646,10 +1663,20 @@ public class CGenerator extends GeneratorBase {
     for (TimerInstance timer : instance.timers) {
       if (!timer.isStartup()) {
         initializeTriggerObjects.pr(
-            CTimerGenerator.generateInitializer(timer, instance.containingEnclave));
+            CTimerGenerator.generateInitializer(
+                timer, instance.containingEnclave, supportsNativeParameterReferences()));
         instance.containingEnclave.numTimerTriggers += timer.getParent().getTotalWidth();
       }
     }
+  }
+
+  /**
+   * Return true if the generated C self struct stores parameters as native C types so that
+   * timer/deadline init code can reference them directly. The Python target stores parameters
+   * as PyObject* and must override this to return false.
+   */
+  protected boolean supportsNativeParameterReferences() {
+    return true;
   }
 
   /**
@@ -1658,26 +1685,102 @@ public class CGenerator extends GeneratorBase {
    * <p>Run, if possible, the proto-c protocol buffer code generator to produce the required .h and
    * .c files.
    *
+   * <p>The path of a .proto file relative to its include root is preserved in the names of the
+   * generated .pb-c.c and .pb-c.h files (mirroring protoc-c's own output convention). This
+   * prevents two .proto files with the same basename in different subdirectories from clobbering
+   * each other and keeps the {@code #include} directives in sync with the actual file locations.
+   *
    * @param filename Name of the file to process.
    */
   public void processProtoFile(String filename) {
-    var protoc =
-        commandFactory.createCommand(
-            "protoc-c",
-            List.of("--c_out=" + this.fileConfig.getSrcGenPath(), filename),
-            fileConfig.srcPath);
+    var info = resolveProtoFile(filename);
+    var generatedCAbs = fileConfig.getSrcGenPath().resolve(info.generatedBase() + ".pb-c.c");
+    var parent = generatedCAbs.getParent();
+    if (parent != null) {
+      try {
+        Files.createDirectories(parent);
+      } catch (IOException e) {
+        messageReporter
+            .nowhere()
+            .error("Could not create output directory for protobuf generation: " + e.getMessage());
+        return;
+      }
+    }
+    var protocArgs = new ArrayList<String>();
+    protocArgs.add("--c_out=" + this.fileConfig.getSrcGenPath());
+    protocArgs.add("-I" + info.includeRoot());
+    protocArgs.add(info.includeRoot().resolve(info.relativeProto()).toString());
+    var protoc = commandFactory.createCommand("protoc-c", protocArgs, fileConfig.srcPath);
     if (protoc == null) {
       messageReporter.nowhere().error("Processing .proto files requires protoc-c >= 1.3.3.");
       return;
     }
     var returnCode = protoc.run();
     if (returnCode == 0) {
-      var nameSansProto = filename.substring(0, filename.length() - 6);
-      targetConfig.compileAdditionalSources.add(
-          fileConfig.getSrcGenPath().resolve(nameSansProto + ".pb-c.c").toString());
+      targetConfig.compileAdditionalSources.add(generatedCAbs.toString());
     } else {
       messageReporter.nowhere().error("protoc-c returns error code " + returnCode);
     }
+  }
+
+  /**
+   * Information about a .proto file resolved against a stable include root.
+   *
+   * @param includeRoot Directory passed to {@code protoc-c} via {@code -I}.
+   * @param relativeProto Path of the .proto file relative to {@code includeRoot} (including the
+   *     {@code .proto} extension).
+   * @param generatedBase Path of the generated files relative to {@code srcGenPath}, without any
+   *     extension (e.g. {@code "sub/Foo"} for {@code "sub/Foo.proto"}). Always uses {@code /} as
+   *     the separator so it can be embedded directly in {@code #include} directives.
+   */
+  private record ProtoFileInfo(Path includeRoot, Path relativeProto, String generatedBase) {}
+
+  /**
+   * Resolve a .proto filename (as listed in the {@code protobufs} target property) into an include
+   * root and a relative path.
+   *
+   * <p>If the .proto file is located under the LF source directory, that directory is used as the
+   * include root and the subdirectory structure is preserved in the generated files. Otherwise
+   * (e.g. an absolute path, or a relative path with {@code ..} components pointing outside
+   * {@code srcPath} as happens in federated builds), the file's own parent directory is used as
+   * the include root and only the basename is preserved. This keeps {@code protoc-c}'s output
+   * path in sync with the {@code #include} directives we generate.
+   */
+  private ProtoFileInfo resolveProtoFile(String filename) {
+    var protoPath = Paths.get(filename);
+    var absProto =
+        (protoPath.isAbsolute() ? protoPath : fileConfig.srcPath.resolve(protoPath))
+            .toAbsolutePath()
+            .normalize();
+    var absSrc = fileConfig.srcPath.toAbsolutePath().normalize();
+
+    Path includeRoot;
+    Path relativeProto;
+    if (absProto.startsWith(absSrc)) {
+      includeRoot = absSrc;
+      relativeProto = absSrc.relativize(absProto);
+    } else {
+      includeRoot = absProto.getParent();
+      relativeProto = Paths.get(absProto.getFileName().toString());
+    }
+
+    var leaf = relativeProto.getFileName().toString();
+    if (leaf.endsWith(".proto")) {
+      leaf = leaf.substring(0, leaf.length() - ".proto".length());
+    }
+    var parent = relativeProto.getParent();
+    var generatedBase =
+        (parent == null ? leaf : parent.resolve(leaf).toString()).replace(File.separatorChar, '/');
+    return new ProtoFileInfo(includeRoot, relativeProto, generatedBase);
+  }
+
+  /**
+   * Return the path (without extension) of the generated protobuf-c files for a given .proto
+   * filename, relative to {@code srcGenPath}. Uses forward slashes so the result can be embedded
+   * directly in {@code #include} directives.
+   */
+  private String protoIncludeBase(String filename) {
+    return resolveProtoFile(filename).generatedBase();
   }
 
   /**
@@ -1803,7 +1906,8 @@ public class CGenerator extends GeneratorBase {
    * @param instance The reactor.
    */
   private void generateActionInitializations(ReactorInstance instance) {
-    initializeTriggerObjects.pr(CActionGenerator.generateInitializers(instance));
+    initializeTriggerObjects.pr(
+        CActionGenerator.generateInitializers(instance, supportsNativeParameterReferences()));
   }
 
   /**
@@ -1881,9 +1985,22 @@ public class CGenerator extends GeneratorBase {
     for (ReactionInstance reaction : instance.reactions) {
       var selfRef = CUtil.reactorRef(reaction.getParent()) + "->_lf__reaction_" + reaction.index;
       if (reaction.declaredDeadline != null) {
-        var deadline = reaction.declaredDeadline.maxDelay;
-        initializeTriggerObjects.pr(
-            selfRef + ".deadline = " + types.getTargetTimeExpr(deadline) + ";");
+        var delayExpr = reaction.getDefinition().getDeadline().getDelay();
+        if (supportsNativeParameterReferences()
+            && delayExpr instanceof ParameterReference paramRef) {
+          var reactorRef = CUtil.reactorRef(reaction.getParent());
+          initializeTriggerObjects.pr(
+              selfRef
+                  + ".deadline = "
+                  + reactorRef
+                  + "->"
+                  + paramRef.getParameter().getName()
+                  + ";");
+        } else {
+          var deadline = reaction.declaredDeadline.maxDelay;
+          initializeTriggerObjects.pr(
+              selfRef + ".deadline = " + types.getTargetTimeExpr(deadline) + ";");
+        }
       } else { // No deadline.
         initializeTriggerObjects.pr(selfRef + ".deadline = NEVER;");
       }
@@ -1962,6 +2079,22 @@ public class CGenerator extends GeneratorBase {
       } else {
         initializeTriggerObjects.pr(
             selfRef + "->" + parameter.getName() + " = " + initializer + ";");
+      }
+    }
+    // For the main reactor, override parameters with command-line values if given.
+    if (instance.isMainOrFederated() && !cliParameters.isEmpty()) {
+      for (Parameter param : cliParameters) {
+        var name = param.getName();
+        var baseType = param.getType() != null ? ASTUtils.baseType(param.getType()) : "";
+        initializeTriggerObjects.pr("if (_lf_cli_" + name + "_given) {");
+        if ("string".equals(baseType)) {
+          // CLI variable is const char*; self struct field is char* (typedef string).
+          initializeTriggerObjects.pr(
+              "    " + selfRef + "->" + name + " = (char*)_lf_cli_" + name + ";");
+        } else {
+          initializeTriggerObjects.pr("    " + selfRef + "->" + name + " = _lf_cli_" + name + ";");
+        }
+        initializeTriggerObjects.pr("}");
       }
     }
   }
@@ -2143,18 +2276,39 @@ public class CGenerator extends GeneratorBase {
   /**
    * Generate guarded preamble code for the given file (Model container) if not already visited.
    *
+   * <p>In addition to emitting the preambles declared in the file itself, this also recursively
+   * emits the preambles of every file imported (directly or transitively) by this file. This
+   * ensures that type and macro definitions from a preamble in an imported file are visible to all
+   * reactors defined in the importing file, not just reactors that happen to instantiate something
+   * from the imported file.
+   *
    * @param fileContainer The eContainer of a reactor (the Model/file containing it).
    * @param visited Set of already-visited containers to avoid duplicates.
    * @param builder The CodeBuilder to append the preamble to.
    */
   private void generatePreambleForFile(
       EObject fileContainer, Set<EObject> visited, CodeBuilder builder) {
-    if (visited.contains(fileContainer)) {
+    if (visited.contains(fileContainer) || !(fileContainer instanceof Model model)) {
       return;
     }
     visited.add(fileContainer);
 
-    var preambles = ((Model) fileContainer).getPreambles();
+    // First, recursively emit preambles of files imported by this file. A preamble declared
+    // at the top level of an imported file should be visible to every reactor defined in this
+    // file, mirroring the way imported type names are resolved by the scope provider.
+    for (var imp : model.getImports()) {
+      for (var importedReactor : imp.getReactorClasses()) {
+        var resolved = importedReactor.getReactorClass();
+        if (resolved != null) {
+          var importedFile = resolved.eContainer();
+          if (importedFile != null) {
+            generatePreambleForFile(importedFile, visited, builder);
+          }
+        }
+      }
+    }
+
+    var preambles = model.getPreambles();
     var hasPreamble =
         !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
     if (!hasPreamble) {
@@ -2174,12 +2328,7 @@ public class CGenerator extends GeneratorBase {
 
     // Also generate includes for all the .proto files that are used.
     for (String file : targetConfig.get(ProtobufsProperty.INSTANCE)) {
-      var dotIndex = file.lastIndexOf(".");
-      var rootFilename = file;
-      if (dotIndex > 0) {
-        rootFilename = file.substring(0, dotIndex);
-      }
-      builder.pr("#include " + addDoubleQuotes(rootFilename + ".pb-c.h"));
+      builder.pr("#include " + addDoubleQuotes(protoIncludeBase(file) + ".pb-c.h"));
     }
 
     builder.pr("#endif // " + guard);

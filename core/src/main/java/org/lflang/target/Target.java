@@ -335,7 +335,15 @@ public enum Target {
       // are those that are a valid expression. Others may be escaped
       // with the syntax r#keyword.
       Arrays.asList("self", "true", "false")),
-  UC("uC", true, Target.C.keywords);
+  UC("uC", true, Target.C.keywords),
+  /**
+   * A meta-target for multi-language federated programs. Each reactor must either carry a
+   * {@code @language(C)} or {@code @language(Python)} annotation, or be imported from a file that
+   * declares {@code target C} or {@code target Python} (in which case the language is inferred from
+   * the source file). The main reactor must be a {@code federated reactor}. The lfc resolves each
+   * federate's actual target from its annotation or from the imported file's declared target.
+   */
+  Polyglot("Polyglot", false, Collections.emptyList());
 
   /** String representation of this target. */
   private final String displayName;
@@ -412,7 +420,15 @@ public enum Target {
   /** Return true if the target supports federated execution. */
   public boolean supportsFederated() {
     return switch (this) {
-      case C, CCPP, Python, TS, UC -> true;
+      case C, CCPP, Python, TS, UC, Polyglot -> true;
+      default -> false;
+    };
+  }
+
+  /** Return true if the target supports decentralized coordination. */
+  public boolean supportsDecentralizedCoordination() {
+    return switch (this) {
+      case C, CCPP, Python, Polyglot -> true;
       default -> false;
     };
   }
@@ -420,7 +436,7 @@ public enum Target {
   /** Return true if the target supports reactor inheritance (extends keyword). */
   public boolean supportsInheritance() {
     return switch (this) {
-      case C, CCPP, Python -> true;
+      case C, UC, CCPP, Python, Rust -> true;
       default -> false;
     };
   }
@@ -428,7 +444,7 @@ public enum Target {
   /** Return true if the target supports multiports and banks of reactors. */
   public boolean supportsMultiports() {
     return switch (this) {
-      case C, CCPP, CPP, Python, Rust, TS -> true;
+      case C, UC, CCPP, CPP, Python, Rust, TS -> true;
       default -> false;
     };
   }
@@ -550,6 +566,8 @@ public enum Target {
               ClockSyncOptionsProperty.INSTANCE,
               CmakeArgsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
+              CommunicationModeProperty.INSTANCE,
+              SSTProperty.INSTANCE,
               CmakeInitIncludeProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CompilerProperty.INSTANCE,
@@ -591,7 +609,10 @@ public enum Target {
               BuildTypeProperty.INSTANCE,
               ClockSyncModeProperty.INSTANCE,
               ClockSyncOptionsProperty.INSTANCE,
+              CmakeArgsProperty.INSTANCE,
               CmakeIncludeProperty.INSTANCE,
+              CommunicationModeProperty.INSTANCE,
+              SSTProperty.INSTANCE,
               CompileDefinitionsProperty.INSTANCE,
               CoordinationOptionsProperty.INSTANCE,
               CoordinationProperty.INSTANCE,
@@ -619,7 +640,8 @@ public enum Target {
               RuntimeVersionProperty.INSTANCE,
               SingleFileProjectProperty.INSTANCE,
               SingleThreadedProperty.INSTANCE,
-              WorkersProperty.INSTANCE);
+              WorkersProperty.INSTANCE,
+              RustEditionProperty.INSTANCE);
       case TS ->
           config.register(
               CoordinationOptionsProperty.INSTANCE,
@@ -629,6 +651,20 @@ public enum Target {
               ProtobufsProperty.INSTANCE,
               RuntimeVersionProperty.INSTANCE);
       case UC -> config.register(ClockSyncModeProperty.INSTANCE, PlatformProperty.INSTANCE);
+        // Polyglot registers properties common to both C and Python that may appear in the
+        // target block of a Polyglot program.
+      case Polyglot ->
+          config.register(
+              AuthProperty.INSTANCE,
+              ClockSyncModeProperty.INSTANCE,
+              ClockSyncOptionsProperty.INSTANCE,
+              CoordinationOptionsProperty.INSTANCE,
+              CoordinationProperty.INSTANCE,
+              DockerProperty.INSTANCE,
+              FilesProperty.INSTANCE,
+              KeepaliveProperty.INSTANCE,
+              ProtobufsProperty.INSTANCE,
+              SingleThreadedProperty.INSTANCE);
     }
   }
 }
