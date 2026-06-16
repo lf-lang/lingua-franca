@@ -33860,6 +33860,13 @@
     </member>
     <member kind="variable">
       <type></type>
+      <name>ENDPOINT</name>
+      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
+      <anchor>a29b87c6d49c540c63bcf850556cceb6f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
       <name>LIBRARY</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</anchorfile>
       <anchor>a32611302fb900b78b2d24322f8864378</anchor>
@@ -33883,6 +33890,13 @@
   <compound kind="class">
     <name>org::lflang::target::property::TracePluginProperty::TracePluginSpec</name>
     <filename>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</filename>
+    <member kind="variable">
+      <type>String</type>
+      <name>endpoint</name>
+      <anchorfile>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</anchorfile>
+      <anchor>abc235d268a8307adc562b79dffa4bde3</anchor>
+      <arglist></arglist>
+    </member>
     <member kind="variable">
       <type>String</type>
       <name>library</name>

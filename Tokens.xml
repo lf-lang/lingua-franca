@@ -16069,6 +16069,26 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ENDPOINT</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginOption</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+    <Anchor>a29b87c6d49c540c63bcf850556cceb6f</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>endpoint</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.target.property.TracePluginProperty.TracePluginSpec</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+    <Anchor>abc235d268a8307adc562b79dffa4bde3</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>endScopedBankChannelIteration</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>

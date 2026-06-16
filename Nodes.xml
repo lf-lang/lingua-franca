@@ -45799,6 +45799,11 @@
                         <Anchor>acf0d6ed895539f0cc74ef9e598a1c826</Anchor>
                        </Node>
                        <Node>
+                        <Name>ENDPOINT</Name>
+                        <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
+                        <Anchor>a29b87c6d49c540c63bcf850556cceb6f</Anchor>
+                       </Node>
+                       <Node>
                         <Name>LIBRARY</Name>
                         <Path>enumorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginOption.html</Path>
                         <Anchor>a32611302fb900b78b2d24322f8864378</Anchor>
@@ -45819,6 +45824,11 @@
                       <Name>TracePluginSpec</Name>
                       <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
                     <Subnodes>
+                       <Node>
+                        <Name>endpoint</Name>
+                        <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
+                        <Anchor>abc235d268a8307adc562b79dffa4bde3</Anchor>
+                       </Node>
                        <Node>
                         <Name>library</Name>
                         <Path>classorg_1_1lflang_1_1target_1_1property_1_1TracePluginProperty_1_1TracePluginSpec.html</Path>
