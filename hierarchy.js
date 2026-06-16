@@ -567,7 +567,8 @@ var hierarchy =
         [ "org.lflang.target.property.CompilerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1CompilerProperty.html", null ],
         [ "org.lflang.target.property.ExternalRuntimePathProperty", "classorg_1_1lflang_1_1target_1_1property_1_1ExternalRuntimePathProperty.html", null ],
         [ "org.lflang.target.property.PythonVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1PythonVersionProperty.html", null ],
-        [ "org.lflang.target.property.RuntimeVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html", null ]
+        [ "org.lflang.target.property.RuntimeVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html", null ],
+        [ "org.lflang.target.property.RustEditionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html", null ]
       ] ]
     ] ],
     [ "org.lflang.target.property.TargetProperty&lt; TimeValue, PrimitiveType &gt;", "classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html", [

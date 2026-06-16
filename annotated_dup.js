@@ -340,6 +340,7 @@ var annotated_dup =
             [ "Ros2DependenciesProperty", "classorg_1_1lflang_1_1target_1_1property_1_1Ros2DependenciesProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1Ros2DependenciesProperty" ],
             [ "Ros2Property", "classorg_1_1lflang_1_1target_1_1property_1_1Ros2Property.html", "classorg_1_1lflang_1_1target_1_1property_1_1Ros2Property" ],
             [ "RuntimeVersionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty" ],
+            [ "RustEditionProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty" ],
             [ "RustIncludeProperty", "classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty" ],
             [ "SchedulerProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SchedulerProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1SchedulerProperty" ],
             [ "SingleFileProjectProperty", "classorg_1_1lflang_1_1target_1_1property_1_1SingleFileProjectProperty.html", "classorg_1_1lflang_1_1target_1_1property_1_1SingleFileProjectProperty" ],

@@ -3143,6 +3143,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::target::property::RustEditionProperty</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.target.property.RustEditionProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::target::property::RustIncludeProperty</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -30726,6 +30735,16 @@
       <Name>INSTANCE</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
+      <Scope>org.lflang.target.property.RustEditionProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+    <Anchor>a3cbfe80a48c2d47a1d21080b833b1dfd</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>INSTANCE</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
       <Scope>org.lflang.target.property.RustIncludeProperty</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html</Path>
@@ -35252,6 +35271,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html</Path>
     <Anchor>a8bce88bceaac38bb83ea0d3f97454814</Anchor>
     <DeclaredIn>RuntimeVersionProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>name</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.RustEditionProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+    <Anchor>ab21568a7a06a6c8586ca5a2e7daeb3ae</Anchor>
+    <DeclaredIn>RustEditionProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -50430,6 +50460,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1property_1_1Ros2DependenciesProperty.html</Path>
     <Anchor>ad5ed2f66467b1a4f6fe784b3207d8fbc</Anchor>
     <DeclaredIn>Ros2DependenciesProperty.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.target.property.RustEditionProperty</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+    <Anchor>abd250c4bdf9fedad4d2aa2a98528597e</Anchor>
+    <DeclaredIn>RustEditionProperty.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

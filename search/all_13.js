@@ -159,7 +159,8 @@ var searchData=
   ['runwiththreadingoff_156',['runWithThreadingOff',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a7128f04d603a37520b124624303403c0',1,'org.lflang.tests.runtime.CTest.runWithThreadingOff()'],['../classorg_1_1lflang_1_1tests_1_1RuntimeTest.html#aa761e2df9c6a3b152b105d29f8cf2d6a',1,'org.lflang.tests.RuntimeTest.runWithThreadingOff()']]],
   ['rust_157',['RUST',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter.html#a32d950acf34b5d50da235c7f3710f389',1,'org::lflang::tests::lsp::ErrorInserter']]],
   ['rust_158',['Rust',['../enumorg_1_1lflang_1_1target_1_1Target.html#a9c71884938b080113f1b513fa937f13f',1,'org::lflang::target::Target']]],
-  ['rustincludeproperty_159',['RustIncludeProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html',1,'org::lflang::target::property']]],
-  ['rusttest_160',['RustTest',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html',1,'org.lflang.tests.runtime.RustTest'],['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#a1b61cd4d0a0f2fec2454a26df63dbc46',1,'org.lflang.tests.runtime.RustTest.RustTest()']]],
-  ['rustvalidationtest_161',['rustValidationTest',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html#a8ee8e1899c1365750531a222e6a697d6',1,'org::lflang::tests::lsp::LspTests']]]
+  ['rusteditionproperty_159',['RustEditionProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html',1,'org::lflang::target::property']]],
+  ['rustincludeproperty_160',['RustIncludeProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html',1,'org::lflang::target::property']]],
+  ['rusttest_161',['RustTest',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html',1,'org.lflang.tests.runtime.RustTest'],['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html#a1b61cd4d0a0f2fec2454a26df63dbc46',1,'org.lflang.tests.runtime.RustTest.RustTest()']]],
+  ['rustvalidationtest_162',['rustValidationTest',['../classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html#a8ee8e1899c1365750531a222e6a697d6',1,'org::lflang::tests::lsp::LspTests']]]
 ];

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.17.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>lingua-franca: org.lflang.target.property.StringProperty Class Reference</title>
+<title>lingua-franca: org.lflang.target.property.RustEditionProperty Class Reference</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon" />
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 <script type="text/javascript">
-document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html','','classorg_1_1lflang_1_1target_1_1property_1_1StringProperty-members'); });
+document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html','','classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty-members'); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -122,13 +122,14 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lf
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.target.property.StringProperty Class Reference<span class="mlabels"><span class="mlabel abstract">abstract</span></span></div></div>
+  <div class="headertitle"><div class="title">org.lflang.target.property.RustEditionProperty Class Reference</div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>Inherits <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty&lt; String, PrimitiveType &gt;</a>.</p>
+<p>Directive to specify the Rust edition at generation time.  
+ <a href="#details">More...</a></p>
 
-<p>Inherited by <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1CompilerProperty.html">org.lflang.target.property.CompilerProperty</a>, <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1ExternalRuntimePathProperty.html">org.lflang.target.property.ExternalRuntimePathProperty</a>, <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1PythonVersionProperty.html">org.lflang.target.property.PythonVersionProperty</a>, <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html">org.lflang.target.property.RuntimeVersionProperty</a>, and <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html">org.lflang.target.property.RustEditionProperty</a>.</p>
+<p>Inherits <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html">org.lflang.target.property.StringProperty</a>.</p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -137,59 +138,44 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ad2943097a2b239aecb9c0bf4eb2968f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">If the given key-value pair does not match the type required by this target property, report an error through the given reporter.  <br /></td></tr>
 <tr class="memitem:a204b717061ca87ddd71cbc866440af5c" id="r_a204b717061ca87ddd71cbc866440af5c"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a204b717061ca87ddd71cbc866440af5c">equals</a> (Object obj)</td></tr>
 <tr class="memdesc:a204b717061ca87ddd71cbc866440af5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the given object is an instance of a class with the same name.  <br /></td></tr>
-<tr class="memitem:a1399e7174c14f2293e7dbc8e9e7886cc" id="r_a1399e7174c14f2293e7dbc8e9e7886cc"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a1399e7174c14f2293e7dbc8e9e7886cc">fromAst</a> (Element node, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
+<tr class="memitem:a1399e7174c14f2293e7dbc8e9e7886cc" id="r_a1399e7174c14f2293e7dbc8e9e7886cc"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#a1399e7174c14f2293e7dbc8e9e7886cc">fromAst</a> (Element node, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memitem:a29acc44b1e353f4638f22bb3289d7338" id="r_a29acc44b1e353f4638f22bb3289d7338"><td class="memItemLeft">int&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a29acc44b1e353f4638f22bb3289d7338">hashCode</a> ()</td></tr>
-<tr class="memitem:a30a818f243a7242000bac28eb3995686" id="r_a30a818f243a7242000bac28eb3995686"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a30a818f243a7242000bac28eb3995686">initialValue</a> ()</td></tr>
+<tr class="memitem:a30a818f243a7242000bac28eb3995686" id="r_a30a818f243a7242000bac28eb3995686"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#a30a818f243a7242000bac28eb3995686">initialValue</a> ()</td></tr>
 <tr class="memitem:a887afc08ede48190976f784b8769b7ea" id="r_a887afc08ede48190976f784b8769b7ea"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a887afc08ede48190976f784b8769b7ea">loadFromFederate</a> ()</td></tr>
 <tr class="memdesc:a887afc08ede48190976f784b8769b7ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported federates, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:a033370849eef3120afd46c4845863e2d" id="r_a033370849eef3120afd46c4845863e2d"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a033370849eef3120afd46c4845863e2d">loadFromFederation</a> ()</td></tr>
 <tr class="memdesc:a033370849eef3120afd46c4845863e2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded by federates when specified at the level of the federation, <span class="tt">false</span> otherwise.  <br /></td></tr>
 <tr class="memitem:ab53684f78f96af96841c92187f131488" id="r_ab53684f78f96af96841c92187f131488"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ab53684f78f96af96841c92187f131488">loadFromImport</a> ()</td></tr>
 <tr class="memdesc:ab53684f78f96af96841c92187f131488"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return <span class="tt">true</span> if this property is to be loaded from imported files, <span class="tt">false</span> otherwise.  <br /></td></tr>
-<tr class="memitem:a377e5e754300aea66587e195a3f3fc39" id="r_a377e5e754300aea66587e195a3f3fc39"><td class="memItemLeft">abstract String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a377e5e754300aea66587e195a3f3fc39">name</a> ()</td></tr>
-<tr class="memdesc:a377e5e754300aea66587e195a3f3fc39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the name of this target property (in kebab case).  <br /></td></tr>
+<tr class="memitem:ab21568a7a06a6c8586ca5a2e7daeb3ae" id="r_ab21568a7a06a6c8586ca5a2e7daeb3ae"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#ab21568a7a06a6c8586ca5a2e7daeb3ae">name</a> ()</td></tr>
 <tr class="memitem:a2a3ae8487cf2df37b7e3c98a9d594685" id="r_a2a3ae8487cf2df37b7e3c98a9d594685"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a2a3ae8487cf2df37b7e3c98a9d594685">override</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a2a3ae8487cf2df37b7e3c98a9d594685"><td class="mdescLeft">&#160;</td><td class="mdescRight">Replace the value assigned to this target property in the given config with the given value.  <br /></td></tr>
-<tr class="memitem:acab55d30c4029e972414e9e5c969341d" id="r_acab55d30c4029e972414e9e5c969341d"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#acab55d30c4029e972414e9e5c969341d">StringProperty</a> ()</td></tr>
-<tr class="memitem:aa1872cfeb3dcc048cce280b8476ad978" id="r_aa1872cfeb3dcc048cce280b8476ad978"><td class="memItemLeft">Element&#160;</td><td class="memItemRight"><a class="el" href="#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> (String value)</td></tr>
+<tr class="memitem:aa1872cfeb3dcc048cce280b8476ad978" id="r_aa1872cfeb3dcc048cce280b8476ad978"><td class="memItemLeft">Element&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> (String value)</td></tr>
 <tr class="memitem:a7f6fdee8910285230340bcd7a52f3ade" id="r_a7f6fdee8910285230340bcd7a52f3ade"><td class="memItemLeft">abstract Element&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a7f6fdee8910285230340bcd7a52f3ade">toAstElement</a> (T value)</td></tr>
 <tr class="memdesc:a7f6fdee8910285230340bcd7a52f3ade"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return an AST node that represents this target property and the value currently assigned to it.  <br /></td></tr>
 <tr class="memitem:a80cded89b1d2808e307cd4b9991f887b" id="r_a80cded89b1d2808e307cd4b9991f887b"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a80cded89b1d2808e307cd4b9991f887b">toString</a> ()</td></tr>
 <tr class="memitem:a74548a3778514c9c3757ee031dae825c" id="r_a74548a3778514c9c3757ee031dae825c"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a74548a3778514c9c3757ee031dae825c">update</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, T value)</td></tr>
 <tr class="memdesc:a74548a3778514c9c3757ee031dae825c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Update the given configuration using the given value.  <br /></td></tr>
-<tr class="memitem:a05712b0e4f6256710f969dfd27a097f3" id="r_a05712b0e4f6256710f969dfd27a097f3"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#a05712b0e4f6256710f969dfd27a097f3">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
-<tr class="memdesc:a05712b0e4f6256710f969dfd27a097f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Override this method to implement additional checks.  <br /></td></tr>
+<tr class="memitem:abd250c4bdf9fedad4d2aa2a98528597e" id="r_abd250c4bdf9fedad4d2aa2a98528597e"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#abd250c4bdf9fedad4d2aa2a98528597e">validate</a> (<a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a> config, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-attribs" class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
 <tr class="memitem:ae91c05dae9df2fc924ba84e4072e2087" id="r_ae91c05dae9df2fc924ba84e4072e2087"><td class="memItemLeft">final S&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ae91c05dae9df2fc924ba84e4072e2087">type</a></td></tr>
 <tr class="memdesc:ae91c05dae9df2fc924ba84e4072e2087"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of values assignable to this target property.  <br /></td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 id="header-pub-static-attribs" class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
+Static Public Attributes</h2></td></tr>
+<tr class="memitem:a3cbfe80a48c2d47a1d21080b833b1dfd" id="r_a3cbfe80a48c2d47a1d21080b833b1dfd"><td class="memItemLeft">static final RustEditionProperty&#160;</td><td class="memItemRight"><a class="el" href="#a3cbfe80a48c2d47a1d21080b833b1dfd">INSTANCE</a> = new RustEditionProperty()</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:ac340310011200e10f311d2fe985be828" id="r_ac340310011200e10f311d2fe985be828"><td class="memItemLeft">T&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html#ac340310011200e10f311d2fe985be828">fromJSON</a> (JsonElement element, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 <tr class="memdesc:ac340310011200e10f311d2fe985be828"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a value based on the given JSON element.  <br /></td></tr>
-<tr class="memitem:a3abf3f3328d85906dd4e3d4e7ee8336e" id="r_a3abf3f3328d85906dd4e3d4e7ee8336e"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a3abf3f3328d85906dd4e3d4e7ee8336e">fromString</a> (String string, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
+<tr class="memitem:a3abf3f3328d85906dd4e3d4e7ee8336e" id="r_a3abf3f3328d85906dd4e3d4e7ee8336e"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#a3abf3f3328d85906dd4e3d4e7ee8336e">fromString</a> (String string, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> reporter)</td></tr>
 </table>
-<a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="acab55d30c4029e972414e9e5c969341d" name="acab55d30c4029e972414e9e5c969341d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acab55d30c4029e972414e9e5c969341d">&#9670;&#160;</a></span>StringProperty()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">org.lflang.target.property.StringProperty.StringProperty </td>
-          <td>(</td>
-          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
+<a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Directive to specify the Rust edition at generation time. </p>
+</div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="a6a5c01889646675b2403aba03a9561b1" name="a6a5c01889646675b2403aba03a9561b1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6a5c01889646675b2403aba03a9561b1">&#9670;&#160;</a></span>astElementFromConfig()</h2>
 
@@ -291,6 +277,9 @@ Protected Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">String org.lflang.target.property.StringProperty.fromAst </td>
@@ -303,6 +292,11 @@ Protected Member Functions</h2></td></tr>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>reporter</em></span>&#160;)</td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
@@ -367,7 +361,7 @@ Protected Member Functions</h2></td></tr>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -404,6 +398,9 @@ Protected Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">String org.lflang.target.property.StringProperty.initialValue </td>
@@ -412,6 +409,11 @@ Protected Member Functions</h2></td></tr>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
@@ -497,30 +499,20 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a377e5e754300aea66587e195a3f3fc39" name="a377e5e754300aea66587e195a3f3fc39"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a377e5e754300aea66587e195a3f3fc39">&#9670;&#160;</a></span>name()</h2>
+<a id="ab21568a7a06a6c8586ca5a2e7daeb3ae" name="ab21568a7a06a6c8586ca5a2e7daeb3ae"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab21568a7a06a6c8586ca5a2e7daeb3ae">&#9670;&#160;</a></span>name()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract String <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.name </td>
+          <td class="memname">String org.lflang.target.property.RustEditionProperty.name </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel abstract">abstract</span><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
-
-<p>Return the name of this target property (in kebab case). </p>
 
 </div>
 </div>
@@ -567,6 +559,9 @@ Protected Member Functions</h2></td></tr>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname">Element org.lflang.target.property.StringProperty.toAstElement </td>
@@ -575,6 +570,11 @@ Protected Member Functions</h2></td></tr>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 </div>
@@ -589,7 +589,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract Element <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> </td>
+          <td class="memname">abstract Element <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html#aa1872cfeb3dcc048cce280b8476ad978">toAstElement</a> </td>
           <td>(</td>
           <td class="paramtype">T</td>          <td class="paramname"><span class="paramname"><em>value</em></span></td><td>)</td>
           <td></td>
@@ -670,17 +670,14 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a05712b0e4f6256710f969dfd27a097f3" name="a05712b0e4f6256710f969dfd27a097f3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a05712b0e4f6256710f969dfd27a097f3">&#9670;&#160;</a></span>validate()</h2>
+<a id="abd250c4bdf9fedad4d2aa2a98528597e" name="abd250c4bdf9fedad4d2aa2a98528597e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abd250c4bdf9fedad4d2aa2a98528597e">&#9670;&#160;</a></span>validate()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.validate </td>
+          <td class="memname">void org.lflang.target.property.RustEditionProperty.validate </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1target_1_1TargetConfig.html">TargetConfig</a></td>          <td class="paramname"><span class="paramname"><em>config</em></span>, </td>
         </tr>
@@ -690,27 +687,33 @@ Protected Member Functions</h2></td></tr>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a></td>          <td class="paramname"><span class="paramname"><em>reporter</em></span>&#160;)</td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
-
-<p>Override this method to implement additional checks. </p>
-<p>The base implementation does nothing.</p>
-<p>This method is meant to perform additional validation above and beyond checking target support and type checking which are done automatically.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">config</td><td>The target configuration to check against. </td></tr>
-    <tr><td class="paramname">reporter</td><td>A reporter for reporting errors. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
 <a name="doc-variable-members" id="doc-variable-members"></a><h2 id="header-doc-variable-members" class="groupheader">Member Data Documentation</h2>
+<a id="a3cbfe80a48c2d47a1d21080b833b1dfd" name="a3cbfe80a48c2d47a1d21080b833b1dfd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3cbfe80a48c2d47a1d21080b833b1dfd">&#9670;&#160;</a></span>INSTANCE</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">final RustEditionProperty org.lflang.target.property.RustEditionProperty.INSTANCE = new RustEditionProperty()</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ae91c05dae9df2fc924ba84e4072e2087" name="ae91c05dae9df2fc924ba84e4072e2087"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae91c05dae9df2fc924ba84e4072e2087">&#9670;&#160;</a></span>type</h2>
 
@@ -721,7 +724,7 @@ Protected Member Functions</h2></td></tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">final S <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.type</td>
+          <td class="memname">final S <a class="el" href="classorg_1_1lflang_1_1target_1_1property_1_1TargetProperty.html">org.lflang.target.property.TargetProperty</a>&lt; T, S extends <a class="el" href="interfaceorg_1_1lflang_1_1target_1_1property_1_1type_1_1TargetPropertyType.html">TargetPropertyType</a> &gt;.<a class="el" href="namespaceorg_1_1lflang_1_1target_1_1property_1_1type.html">type</a></td>
         </tr>
       </table>
   </td>
@@ -736,7 +739,7 @@ Protected Member Functions</h2></td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/<b>StringProperty.java</b></li>
+<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/target/property/<b>RustEditionProperty.java</b></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
@@ -751,7 +754,7 @@ Protected Member Functions</h2></td></tr>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target.html">target</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target_1_1property.html">property</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1target_1_1property_1_1StringProperty.html">StringProperty</a></li>
+    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target.html">target</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1target_1_1property.html">property</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html">RustEditionProperty</a></li>
     <li class="footer">Generated on <span class="timestamp"></span> for lingua-franca by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
   </ul>
 </div>

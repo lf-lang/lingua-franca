@@ -44660,6 +44660,112 @@
                     </Subnodes>
                    </Node>
                    <Node>
+                    <Name>RustEditionProperty</Name>
+                    <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>astElementFromConfig</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a6a5c01889646675b2403aba03a9561b1</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>checkType</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>ad2943097a2b239aecb9c0bf4eb2968f6</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>equals</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a204b717061ca87ddd71cbc866440af5c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromAst</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a1399e7174c14f2293e7dbc8e9e7886cc</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromJSON</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>ac340310011200e10f311d2fe985be828</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>fromString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a3abf3f3328d85906dd4e3d4e7ee8336e</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>hashCode</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a29acc44b1e353f4638f22bb3289d7338</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>initialValue</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a30a818f243a7242000bac28eb3995686</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a887afc08ede48190976f784b8769b7ea</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromFederation</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a033370849eef3120afd46c4845863e2d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>loadFromImport</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>ab53684f78f96af96841c92187f131488</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>name</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>ab21568a7a06a6c8586ca5a2e7daeb3ae</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>override</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a2a3ae8487cf2df37b7e3c98a9d594685</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>aa1872cfeb3dcc048cce280b8476ad978</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toAstElement</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a7f6fdee8910285230340bcd7a52f3ade</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>toString</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a80cded89b1d2808e307cd4b9991f887b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>update</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a74548a3778514c9c3757ee031dae825c</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>validate</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>abd250c4bdf9fedad4d2aa2a98528597e</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>INSTANCE</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>a3cbfe80a48c2d47a1d21080b833b1dfd</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>type</Name>
+                      <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
+                      <Anchor>ae91c05dae9df2fc924ba84e4072e2087</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
                     <Name>RustIncludeProperty</Name>
                     <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html</Path>
                   <Subnodes>
@@ -55369,6 +55475,10 @@
                <Node>
                 <Name>org.lflang.target.property.RuntimeVersionProperty</Name>
                 <Path>classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html</Path>
+               </Node>
+               <Node>
+                <Name>org.lflang.target.property.RustEditionProperty</Name>
+                <Path>classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html</Path>
                </Node>
               </Subnodes>
              </Node>
