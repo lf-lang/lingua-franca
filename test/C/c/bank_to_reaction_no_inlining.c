@@ -1,4 +1,4 @@
-#include "../include/BankToReactionNoInlining/BankToReactionNoInlining.h"
+#include "BankToReactionNoInlining/BankToReactionNoInlining.h"
 
 void check(banktoreactionnoinlining_self_t* self, count_out_t** out) {
     for (int i = 0; i < 2; i++) {
