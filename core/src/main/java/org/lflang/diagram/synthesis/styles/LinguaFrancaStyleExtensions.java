@@ -314,163 +314,79 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     _onEdgeDelayLabelConfigurator.applyTo(label);
   }
 
-  private static LabelDecorationConfigurator
-      _onEdgePysicalDelayLabelConfigurator; // ONLY for use in applyOnEdgePysicalDelayStyle
-
-  public void applyOnEdgePysicalDelayStyle(KLabel label, Colors parentBackgroundColor) {
-    if (_onEdgePysicalDelayLabelConfigurator == null) {
-      LabelDecorationConfigurator configurator =
-          LabelDecorationConfigurator.create().withInlineLabels(true);
-      configurator =
-          configurator.withLabelTextRenderingProvider(
-              (KContainerRendering container, KLabel klabel) -> {
-                KText kText = _kRenderingFactory.createKText();
-                _kRenderingExtensions.setFontSize(kText, 8);
-                boldTextSelectionStyle(kText);
-                kText.setProperty(
-                    KlighdInternalProperties.MODEL_ELEMEMT,
-                    klabel.getProperty(KlighdInternalProperties.MODEL_ELEMEMT));
-                container.getChildren().add(kText);
-                return kText;
-              });
-      configurator =
-          configurator.addDecoratorRenderingProvider(
-              new IDecoratorRenderingProvider() {
-                @Override
-                public ElkPadding createDecoratorRendering(
-                    KContainerRendering container,
-                    KLabel label,
-                    LabelDecorationConfigurator.LayoutMode layoutMode) {
-                  ElkPadding padding = new ElkPadding();
-                  padding.top = 1;
-                  padding.bottom = 1;
-                  padding.left = 8;
-                  padding.right = 16;
-
-                  KPolygon polygon = _kRenderingFactory.createKPolygon();
-                  _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);
-                  _kRenderingExtensions.to(polygon, RIGHT, 0, 0, TOP, 1, 0.5f);
-                  _kRenderingExtensions.to(polygon, RIGHT, 0, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.setBackground(
-                      polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
-                  _kRenderingExtensions.setForeground(
-                      polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
-                  container.getChildren().add(polygon);
-
-                  KSpline kSpline = _kRenderingFactory.createKSpline();
-                  _kRenderingExtensions.from(kSpline, LEFT, -0.66f, 0, BOTTOM, -0.5f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 1, 0, BOTTOM, -0.5f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 3, 0, BOTTOM, 8, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 5, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 5.5f, 0, BOTTOM, -1.5f, 0.5f);
-                  container.getChildren().add(kSpline);
-
-                  kSpline = _kRenderingFactory.createKSpline();
-                  _kRenderingExtensions.from(kSpline, RIGHT, 15f, 0, BOTTOM, 3.5f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 14f, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 11, 0, BOTTOM, -8, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 9, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 7, 0, BOTTOM, 8, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 4f, 0, BOTTOM, 2, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 1.5f, 0, BOTTOM, 0.5f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, 0.2f, 0, BOTTOM, -0.5f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, RIGHT, -0.7f, 0, BOTTOM, -0.5f, 0.5f);
-                  container.getChildren().add(kSpline);
-
-                  polygon = _kRenderingFactory.createKPolygon();
-                  _kRenderingExtensions.from(polygon, LEFT, 4, 0, BOTTOM, 0, 0);
-                  _kRenderingExtensions.to(polygon, LEFT, 8, 0, TOP, 0, 0);
-                  _kRenderingExtensions.to(polygon, RIGHT, 12, 0, TOP, 0, 0);
-                  _kRenderingExtensions.to(polygon, RIGHT, 16, 0, BOTTOM, 0, 0);
-                  _kRenderingExtensions.setBackground(polygon, Colors.WHITE);
-                  _kRenderingExtensions.setForeground(polygon, Colors.WHITE);
-                  container.getChildren().add(polygon);
-
-                  KPolyline polyline = _kRenderingFactory.createKPolyline();
-                  _kRenderingExtensions.from(polyline, LEFT, 4, 0, BOTTOM, 0, 0);
-                  _kRenderingExtensions.to(polyline, LEFT, 8, 0, TOP, 0, 0);
-                  container.getChildren().add(polyline);
-
-                  polyline = _kRenderingFactory.createKPolyline();
-                  _kRenderingExtensions.from(polyline, RIGHT, 16, 0, BOTTOM, 0, 0);
-                  _kRenderingExtensions.to(polyline, RIGHT, 12, 0, TOP, 0, 0);
-                  container.getChildren().add(polyline);
-
-                  return padding;
-                }
-              });
-      _onEdgePysicalDelayLabelConfigurator = configurator;
+  /**
+   * Draws the physical-connection "squiggle" directly on the edge's line as a decorator instead of
+   * as an inline center label. Unlike an inline label, an on-line decorator follows the routed edge
+   * path, so the squiggle stays on the connection line even when the edge is routed around a node
+   * (such as a self-loop / feedback connection from a bank's output back to its own input, where
+   * ELK does not honor inline label placement). The {@code parentBackgroundColor} is used to erase
+   * the underlying straight line so the squiggle visually replaces it.
+   *
+   * @param edge the connection edge to decorate
+   * @param parentBackgroundColor the background color behind the edge, used to mask the line
+   * @param relative the position along the edge path (0..1) at which to center the squiggle
+   */
+  public void addPhysicalConnectionSquiggle(
+      KEdge edge, Colors parentBackgroundColor, float relative) {
+    final KRendering rendering = _kRenderingExtensions.getKRendering(edge);
+    if (!(rendering instanceof KContainerRendering)) {
+      return;
     }
-    label.setProperty(LABEL_PARENT_BACKGROUND, parentBackgroundColor);
-    _onEdgePysicalDelayLabelConfigurator.applyTo(label);
+    final KContainerRendering line = (KContainerRendering) rendering;
+
+    // Erase the straight line underneath the squiggle so the squiggle replaces it rather than
+    // being drawn on top of a visible straight segment.
+    KPolygon erase = _kRenderingFactory.createKPolygon();
+    _kRenderingExtensions.from(erase, LEFT, 0, 0, BOTTOM, (-3), 0.5f);
+    _kRenderingExtensions.to(erase, LEFT, 0, 0, BOTTOM, 3, 0.5f);
+    _kRenderingExtensions.to(erase, RIGHT, 0, 0, BOTTOM, 3, 0.5f);
+    _kRenderingExtensions.to(erase, RIGHT, 0, 0, BOTTOM, (-3), 0.5f);
+    _kRenderingExtensions.setBackground(erase, parentBackgroundColor);
+    _kRenderingExtensions.setForeground(erase, parentBackgroundColor);
+    line.getChildren().add(erase);
+    erase.setPlacementData(createSquigglePlacement(relative));
+
+    // The wavy line. Coordinates are interpreted relative to the decorator box (see
+    // createSquigglePlacement); the vertical center (relative 0.5 from BOTTOM) lies on the edge
+    // line, and the wave spans the box width.
+    KSpline kSpline = _kRenderingFactory.createKSpline();
+    _kRenderingExtensions.from(kSpline, LEFT, (-0.66f), 0, BOTTOM, (-0.5f), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 1, 0, BOTTOM, (-0.5f), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.1f, BOTTOM, 8, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.2f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.3f, BOTTOM, (-8), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.4f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.45f, BOTTOM, 4f, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.5f, BOTTOM, 8, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.55f, BOTTOM, 4f, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.6f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.65f, BOTTOM, (-4), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.7f, BOTTOM, (-8), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.8f, BOTTOM, (-4), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.9f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, (-1), 1, BOTTOM, (-0.5f), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0.66f, 1, BOTTOM, (-0.5f), 0.5f);
+    line.getChildren().add(kSpline);
+    kSpline.setPlacementData(createSquigglePlacement(relative));
   }
 
-  private static LabelDecorationConfigurator
-      _onEdgePysicalLabelConfigurator; // ONLY for use in applyOnEdgePysicalStyle
-
-  public void applyOnEdgePysicalStyle(KLabel label, Colors parentBackgroundColor) {
-    if (_onEdgePysicalLabelConfigurator == null) {
-      LabelDecorationConfigurator configurator =
-          LabelDecorationConfigurator.create().withInlineLabels(true);
-      configurator =
-          configurator.withLabelTextRenderingProvider(
-              (KContainerRendering container, KLabel klabel) -> {
-                KText kText = _kRenderingFactory.createKText();
-                _kRenderingExtensions.setInvisible(kText, true);
-                container.getChildren().add(kText);
-                return kText;
-              });
-      configurator =
-          configurator.addDecoratorRenderingProvider(
-              new IDecoratorRenderingProvider() {
-                @Override
-                public ElkPadding createDecoratorRendering(
-                    final KContainerRendering container,
-                    final KLabel label,
-                    final LabelDecorationConfigurator.LayoutMode layoutMode) {
-                  ElkPadding padding = new ElkPadding();
-                  padding.top = 1;
-                  padding.bottom = 1;
-                  padding.left = 3;
-                  padding.right = 3;
-
-                  KPolygon polygon = _kRenderingFactory.createKPolygon();
-                  _kRenderingExtensions.from(polygon, LEFT, 0, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(polygon, LEFT, 0, 0, TOP, 1, 0.5f);
-                  _kRenderingExtensions.to(polygon, RIGHT, 0, 0, TOP, 1, 0.5f);
-                  _kRenderingExtensions.to(polygon, RIGHT, 0, 0, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.setBackground(
-                      polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
-                  _kRenderingExtensions.setForeground(
-                      polygon, label.getProperty(LABEL_PARENT_BACKGROUND));
-                  container.getChildren().add(polygon);
-
-                  KSpline kSpline = _kRenderingFactory.createKSpline();
-                  _kRenderingExtensions.from(kSpline, LEFT, (-0.66f), 0, BOTTOM, (-0.5f), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 1, 0, BOTTOM, (-0.5f), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.1f, BOTTOM, 8, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.2f, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.3f, BOTTOM, (-8), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.4f, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.45f, BOTTOM, 4f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.5f, BOTTOM, 8, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.55f, BOTTOM, 4f, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.6f, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.65f, BOTTOM, (-4), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.7f, BOTTOM, (-8), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.8f, BOTTOM, (-4), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0, 0.9f, BOTTOM, 0, 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, (-1), 1, BOTTOM, (-0.5f), 0.5f);
-                  _kRenderingExtensions.to(kSpline, LEFT, 0.66f, 1, BOTTOM, (-0.5f), 0.5f);
-                  container.getChildren().add(kSpline);
-                  return padding;
-                }
-              });
-      _onEdgePysicalLabelConfigurator = configurator;
-    }
-    label.setProperty(LABEL_PARENT_BACKGROUND, parentBackgroundColor);
-    _onEdgePysicalLabelConfigurator.applyTo(label);
+  /**
+   * Creates placement data that positions a squiggle decorator centered on a point along the edge
+   * path and rotated to follow the line. A fresh instance is required per decorated rendering
+   * because placement data is a containment feature.
+   */
+  private KDecoratorPlacementData createSquigglePlacement(float relative) {
+    KDecoratorPlacementData placement = _kRenderingFactory.createKDecoratorPlacementData();
+    placement.setRotateWithLine(true);
+    placement.setRelative(relative);
+    placement.setAbsolute(0f);
+    placement.setWidth(14);
+    placement.setHeight(18);
+    // Center the box on the placement point: along the line (xOffset = -width/2) and perpendicular
+    // to it (yOffset = -height/2), so the edge line passes through the box center.
+    placement.setXOffset(-7f);
+    placement.setYOffset(-9f);
+    return placement;
   }
 
   private static LabelDecorationConfigurator

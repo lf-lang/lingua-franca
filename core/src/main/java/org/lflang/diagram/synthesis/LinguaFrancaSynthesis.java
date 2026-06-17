@@ -1327,18 +1327,23 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                   _kLabelExtensions.addCenterEdgeLabel(
                       edge, ASTUtils.toOriginalText(connection.getDelay()));
               associateWith(delayLabel, connection.getDelay());
+              _linguaFrancaStyleExtensions.applyOnEdgeDelayStyle(delayLabel);
               if (connection.isPhysical()) {
-                _linguaFrancaStyleExtensions.applyOnEdgePysicalDelayStyle(
-                    delayLabel,
-                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
-              } else {
-                _linguaFrancaStyleExtensions.applyOnEdgeDelayStyle(delayLabel);
+                // Render the physical indicator as an on-line squiggle decorator (which follows
+                // the routed edge path) and keep the delay value as a separate inline label. The
+                // squiggle is offset toward the source so it does not overlap the delay label,
+                // which is centered on the edge.
+                _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
+                    edge,
+                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95,
+                    0.25f);
               }
             } else if (connection.isPhysical()) {
-              KLabel physicalConnectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, "---");
-              _linguaFrancaStyleExtensions.applyOnEdgePysicalStyle(
-                  physicalConnectionLabel,
-                  reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
+              // Draw the physical-connection squiggle as a decorator on the edge line (rather than
+              // an inline label) so it stays on the connection line for any routing, including
+              // self-loop / feedback connections that are routed around a node.
+              _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
+                  edge, reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95, 0.5f);
             }
             // Add label annotation if present
             if (getBooleanValue(SHOW_USER_LABELS)) {
