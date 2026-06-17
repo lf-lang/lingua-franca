@@ -1008,6 +1008,12 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     Table<ReactorInstance, PortInstance, KPort> outputPorts = HashBasedTable.create();
     Map<ReactionInstance, KNode> reactionNodes = new HashMap<>();
     Map<KPort, KNode> directConnectionDummyNodes = new HashMap<>();
+    // Tracks port pairs that are already connected by an edge so that connections collapsing onto
+    // the same pair of visual ports (e.g. bank or multiport broadcast connections) are rendered by
+    // a single edge instead of many overlapping ones. Without this, each overlapping edge would
+    // carry its own delay/physical decorator, duplicating the decorator (e.g. the physical
+    // connection squiggle) once per collapsed channel.
+    Table<KPort, KPort, KEdge> connectionEdges = HashBasedTable.create();
     Multimap<ActionInstance, KPort> actionDestinations = HashMultimap.create();
     Multimap<ActionInstance, KPort> actionSources = HashMultimap.create();
     Map<TimerInstance, KNode> timerNodes = new HashMap<>();
@@ -1305,6 +1311,14 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           // There should be a connection, but skip if not.
           Connection connection = sendRange.connection;
           if (connection != null) {
+            // Skip connections that collapse onto a pair of visual ports already connected by an
+            // edge. This occurs for bank and multiport broadcast connections, where multiple
+            // runtime ranges map to the same source and target ports. Rendering them as separate
+            // overlapping edges would duplicate the edge decorators (such as the physical
+            // connection squiggle) once per collapsed channel.
+            if (source != null && target != null && connectionEdges.contains(source, target)) {
+              continue;
+            }
             KEdge edge =
                 createIODependencyEdge(
                     connection, (leftPort.isMultiport() || rightPort.isMultiport()));
@@ -1345,6 +1359,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
               }
             }
             if (source != null && target != null) {
+              connectionEdges.put(source, target, edge);
               // check for inside loop (direct in -> out connection with delay)
               if (parentInputPorts.values().contains(source)
                   && parentOutputPorts.values().contains(target)) {
