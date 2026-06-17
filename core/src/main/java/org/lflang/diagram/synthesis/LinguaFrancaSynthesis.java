@@ -1327,23 +1327,28 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                   _kLabelExtensions.addCenterEdgeLabel(
                       edge, ASTUtils.toOriginalText(connection.getDelay()));
               associateWith(delayLabel, connection.getDelay());
-              _linguaFrancaStyleExtensions.applyOnEdgeDelayStyle(delayLabel);
               if (connection.isPhysical()) {
-                // Render the physical indicator as an on-line squiggle decorator (which follows
-                // the routed edge path) and keep the delay value as a separate inline label. The
-                // squiggle is offset toward the source so it does not overlap the delay label,
-                // which is centered on the edge.
-                _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
-                    edge,
-                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95,
-                    0.25f);
+                _linguaFrancaStyleExtensions.applyOnEdgePysicalDelayStyle(
+                    delayLabel,
+                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
+              } else {
+                _linguaFrancaStyleExtensions.applyOnEdgeDelayStyle(delayLabel);
               }
             } else if (connection.isPhysical()) {
-              // Draw the physical-connection squiggle as a decorator on the edge line (rather than
-              // an inline label) so it stays on the connection line for any routing, including
-              // self-loop / feedback connections that are routed around a node.
-              _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
-                  edge, reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95, 0.5f);
+              if (source != null && target != null && source.getNode() == target.getNode()) {
+                // Self-loop / feedback connections (e.g. a bank's output routed back to its own
+                // input) are routed around the node, where ELK does not honor inline label
+                // placement and the label-based squiggle ends up off the connection line. Draw the
+                // squiggle as an on-line decorator instead, which follows the routed path. Ordinary
+                // connections keep the inline-label squiggle below.
+                _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
+                    edge, reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95, 0.5f);
+              } else {
+                KLabel physicalConnectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, "---");
+                _linguaFrancaStyleExtensions.applyOnEdgePysicalStyle(
+                    physicalConnectionLabel,
+                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
+              }
             }
             // Add label annotation if present
             if (getBooleanValue(SHOW_USER_LABELS)) {
