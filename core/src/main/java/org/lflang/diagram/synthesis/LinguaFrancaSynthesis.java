@@ -1342,7 +1342,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 // squiggle as an on-line decorator instead, which follows the routed path. Ordinary
                 // connections keep the inline-label squiggle below.
                 _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
-                    edge, reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95, 0.5f);
+                    edge,
+                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95,
+                    0.5f);
               } else {
                 KLabel physicalConnectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, "---");
                 _linguaFrancaStyleExtensions.applyOnEdgePysicalStyle(
