@@ -15,6 +15,10 @@ controlPlane:
 
 # Kubernetes Worker Nodes Configuration (k3s Agents running federates or RTI)
 workers:
+  - host: "pi41"           # SSH hostname or alias of the first worker node
+    ip: "100.81.195.53"   # IP address of the first worker node
+    user: "pi41"           # SSH username for the first worker node
+    lfHost: "100.81.195.53" # Target host identifier matching `.lf` "at" clauses (must be IP address for Pod nodeSelector matching)
   - host: "pi42"           # SSH hostname or alias of the first worker node
     ip: "100.96.177.102"   # IP address of the first worker node
     user: "pi42"           # SSH username for the first worker node
