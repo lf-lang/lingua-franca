@@ -6101,6 +6101,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>addPhysicalConnectionSquiggle</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
+    <Anchor>ab379861c225b6c295fd02e1fbc501591</Anchor>
+    <DeclaredIn>LinguaFrancaStyleExtensions.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>addReactionAttribute</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>

@@ -172,6 +172,7 @@ var group__Diagram =
       [ "addCloudIcon", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a1a378860676d6ce83754657b2a23cce5", null ],
       [ "addCloudUploadIcon", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a09c6106ae11c6207042c93de9586cca8", null ],
       [ "addFixedTailArrowDecorator", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a9d4a192f45227ff154dd8f9c16b63510", null ],
+      [ "addPhysicalConnectionSquiggle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#ab379861c225b6c295fd02e1fbc501591", null ],
       [ "applyOnEdgeAbsentAfterStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a61f2fc78301ec7b425a69f99467949c3", null ],
       [ "applyOnEdgeDelayStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a2675445261edf13b6728fcaac1bc37b6", null ],
       [ "applyOnEdgeLabelStyle", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a0058591976e037cc881a3ab17c028e7e", null ],

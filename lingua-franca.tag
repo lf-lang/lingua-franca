@@ -10043,6 +10043,13 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>addPhysicalConnectionSquiggle</name>
+      <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</anchorfile>
+      <anchor>ab379861c225b6c295fd02e1fbc501591</anchor>
+      <arglist>(KEdge edge, Colors parentBackgroundColor, float relative)</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>applyOnEdgeAbsentAfterStyle</name>
       <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</anchorfile>
       <anchor>a61f2fc78301ec7b425a69f99467949c3</anchor>

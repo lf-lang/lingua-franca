@@ -1624,6 +1624,11 @@
               <Anchor>a9d4a192f45227ff154dd8f9c16b63510</Anchor>
              </Node>
              <Node>
+              <Name>addPhysicalConnectionSquiggle</Name>
+              <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
+              <Anchor>ab379861c225b6c295fd02e1fbc501591</Anchor>
+             </Node>
+             <Node>
               <Name>applyOnEdgeAbsentAfterStyle</Name>
               <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
               <Anchor>a61f2fc78301ec7b425a69f99467949c3</Anchor>
@@ -27447,6 +27452,11 @@
                         <Name>addFixedTailArrowDecorator</Name>
                         <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
                         <Anchor>a9d4a192f45227ff154dd8f9c16b63510</Anchor>
+                       </Node>
+                       <Node>
+                        <Name>addPhysicalConnectionSquiggle</Name>
+                        <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html</Path>
+                        <Anchor>ab379861c225b6c295fd02e1fbc501591</Anchor>
                        </Node>
                        <Node>
                         <Name>applyOnEdgeAbsentAfterStyle</Name>
