@@ -1012,8 +1012,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     // the same pair of visual ports (e.g. bank or multiport broadcast connections) are rendered by
     // a single edge instead of many overlapping ones. Without this, each overlapping edge would
     // carry its own delay/physical decorator, duplicating the decorator (e.g. the physical
-    // connection squiggle) once per collapsed channel.
-    Table<KPort, KPort, KEdge> connectionEdges = HashBasedTable.create();
+    // connection squiggle) once per collapsed channel. Only the existence of a pair matters here,
+    // so a set of (source, target) pairs is tracked rather than the edges themselves.
+    Multimap<KPort, KPort> connectedPortPairs = HashMultimap.create();
     Multimap<ActionInstance, KPort> actionDestinations = HashMultimap.create();
     Multimap<ActionInstance, KPort> actionSources = HashMultimap.create();
     Map<TimerInstance, KNode> timerNodes = new HashMap<>();
@@ -1316,7 +1317,9 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
             // runtime ranges map to the same source and target ports. Rendering them as separate
             // overlapping edges would duplicate the edge decorators (such as the physical
             // connection squiggle) once per collapsed channel.
-            if (source != null && target != null && connectionEdges.contains(source, target)) {
+            if (source != null
+                && target != null
+                && connectedPortPairs.containsEntry(source, target)) {
               continue;
             }
             KEdge edge =
@@ -1371,7 +1374,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
               }
             }
             if (source != null && target != null) {
-              connectionEdges.put(source, target, edge);
+              connectedPortPairs.put(source, target);
               // check for inside loop (direct in -> out connection with delay)
               if (parentInputPorts.values().contains(source)
                   && parentOutputPorts.values().contains(target)) {
