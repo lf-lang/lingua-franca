@@ -3,7 +3,8 @@
  * sender and a C receiver. The PythonProtoCount federate (Python) emits an incrementing count
  * carried in a ProtoHelloWorld message; the CProtoCountPrint federate (C) receives it over a
  * federated connection with serializer "proto". The logical delay on the connection is large enough
- * that each message is safe to process at its intended tag without any additional time coordination.
+ * that each message is safe to process at its intended tag without any additional time
+ * coordination.
  *
  * <p>A common protobuf serializer is required for cross-language federated connections: C uses raw
  * bytes and Python uses pickle for native serialization, so the two cannot exchange native values
