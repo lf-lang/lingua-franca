@@ -1,9 +1,10 @@
 /**
- * A Polyglot federated version of DistributedCount using decentralized coordination, with a C sender
- * and a Python receiver. The CProtoCount federate (C) emits an incrementing count carried in a
- * ProtoHelloWorld message; the PythonProtoCountPrint federate (Python) receives it over a federated
- * connection with serializer "proto". The logical delay on the connection is large enough that each
- * message is safe to process at its intended tag without any additional time coordination.
+ * A Polyglot federated version of DistributedCount with a C sender and a Python receiver. The
+ * CProtoCount federate (C) emits an incrementing count carried in a ProtoHelloWorld message; the
+ * PythonProtoCountPrint federate (Python) receives it over a federated connection with serializer
+ * "proto" and checks both the value and the logical tag at which it arrives. Because the connection
+ * has a logical delay, this is a simple distributed deterministic system that needs no additional
+ * coordination of the advancement of time.
  *
  * <p>A common protobuf serializer is required for cross-language federated connections: C uses raw
  * bytes and Python uses pickle for native serialization, so the two cannot exchange native values
@@ -17,7 +18,7 @@
 target Polyglot {
   protobufs: [ProtoHelloWorld.proto],
   timeout: 5 sec,
-  coordination: decentralized
+  coordination: centralized
 }
 
 import CProtoCount from "../lib/CProtoCount.lf"
@@ -27,6 +28,5 @@ federated reactor {
   c = new CProtoCount()
   p = new PythonProtoCountPrint()
 
-  // Indicating a 'logical' connection with a large enough delay.
   c.out -> p.inp after 200 msec serializer "proto"
 }
