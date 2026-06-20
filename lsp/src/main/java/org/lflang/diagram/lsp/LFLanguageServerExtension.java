@@ -40,6 +40,9 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
   /** The access point for reading documents, communicating with the language client, etc. */
   private LFLanguageClient client;
 
+  /** The TCP server that receives live heat map execution data from running LF programs. */
+  private HeatMapDataServer heatMapDataServer;
+
   @Inject Injector injector;
 
   @Override
@@ -49,6 +52,34 @@ class LFLanguageServerExtension implements ILanguageServerExtension {
 
   public void setClient(LFLanguageClient client) {
     this.client = client;
+    startHeatMapServer();
+  }
+
+  /** Start the heat map data server and wire up client notifications. */
+  private void startHeatMapServer() {
+    if (heatMapDataServer != null) return;
+    try {
+      heatMapDataServer = new HeatMapDataServer();
+      heatMapDataServer.addListener(
+          () -> {
+            if (client != null) {
+              client.notifyHeatMapUpdate("updated");
+            }
+          });
+      heatMapDataServer.start();
+    } catch (java.io.IOException e) {
+      System.err.println("Failed to start HeatMapDataServer: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Returns the port on which the heat map data server is listening, or -1 if the server is not
+   * running.
+   */
+  @JsonRequest("heatmap/getPort")
+  public CompletableFuture<Integer> getHeatMapPort() {
+    int port = heatMapDataServer != null ? heatMapDataServer.getPort() : -1;
+    return CompletableFuture.completedFuture(port);
   }
 
   public XtextResourceSet getXtextResourceSet(final URI uri) {

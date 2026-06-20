@@ -13,4 +13,7 @@ public interface LFLanguageClient extends KGraphLanguageClient, LanguageClient {
 
   @JsonNotification("notify/sendLibraryReactors")
   public void sendLibraryReactors(LibraryFile libraryFile);
+
+  @JsonNotification("notify/heatMapUpdate")
+  public void notifyHeatMapUpdate(String status);
 }
