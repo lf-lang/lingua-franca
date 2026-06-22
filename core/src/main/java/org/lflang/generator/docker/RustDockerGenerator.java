@@ -17,7 +17,7 @@ public class RustDockerGenerator extends DockerGenerator {
 
   @Override
   protected String generateRunForInstallingDeps() {
-    return "RUN set -ex & apk add --no-cache musl-dev";
+    return "RUN set -ex && apk add --no-cache musl-dev";
   }
 
   @Override
