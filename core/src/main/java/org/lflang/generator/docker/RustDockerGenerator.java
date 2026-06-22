@@ -40,12 +40,12 @@ public class RustDockerGenerator extends DockerGenerator {
     return "rust:alpine";
   }
 
-
   /**
-   *  Converts name stored in the file config to snake_case
+   *  Converts name stored in the file config to snake_case.
    *  Cargo's default executable output is snake_case so this needed to access the executable.
    *
-   *  <p>Regex test/edit: https://regexr.com/8ndjc
+   *  <p>Regex test/edit:
+   *  <a href="https://regexr.com/8ndjc">https://regexr.com/8ndjc</a>
    *
    */
   private String camelToSnakeCase(String fileName) {
