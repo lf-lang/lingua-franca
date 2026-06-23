@@ -641,7 +641,8 @@ public enum Target {
               SingleFileProjectProperty.INSTANCE,
               SingleThreadedProperty.INSTANCE,
               WorkersProperty.INSTANCE,
-              RustEditionProperty.INSTANCE);
+              RustEditionProperty.INSTANCE,
+              DockerProperty.INSTANCE);
       case TS ->
           config.register(
               CoordinationOptionsProperty.INSTANCE,

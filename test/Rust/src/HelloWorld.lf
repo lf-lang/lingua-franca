@@ -1,0 +1,22 @@
+target Rust
+
+reactor HelloWorld2 {
+  state success: bool = false
+
+  reaction(startup) {=
+    println!("Hello World.");
+    self.success = true;
+  =}
+
+  reaction(shutdown) {=
+    println!("Shutdown invoked.");
+    if !self.success {
+        eprintln!("ERROR: startup reaction not executed.");
+        ctx.request_stop(Asap);
+    }
+  =}
+}
+
+main reactor HelloWorld {
+  a = new HelloWorld2()
+}
