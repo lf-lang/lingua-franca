@@ -35,6 +35,7 @@ public class RustDockerGenerator extends DockerGenerator {
     return List.of("./bin/" + context.getFileConfig().name);
   }
 
+  // use rust:alpine to have easier time making docker images.
   @Override
   public String defaultImage() {
     return "rust:alpine";
