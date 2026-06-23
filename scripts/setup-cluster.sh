@@ -148,13 +148,20 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
         except Exception as e:
             print_warn(f"Failed to uninstall k3s-agent on {w_host} (it might have already been removed): {e}")
 
-        # Remove registries.yaml
+        # Remove registries.yaml and perform deep cleanup of leftover files
         try:
-            print_info("Removing containerd registries config...")
-            run_ssh(w_user, w_ip, "sudo rm -f /etc/rancher/k3s/registries.yaml")
-            print_pass(f"registries.yaml removed on {w_host}.")
+            print_info("Performing deep cleanup of k3s agent files and registry configs...")
+            cleanup_cmd = (
+                "sudo rm -rf /etc/rancher/k3s /var/lib/rancher/k3s /run/k3s /run/flannel /var/lib/kubelet "
+                "/usr/local/bin/k3s /usr/local/bin/k3s-killall.sh /usr/local/bin/k3s-agent-uninstall.sh "
+                "/etc/systemd/system/k3s-agent.service /etc/systemd/system/k3s-agent.service.env; "
+                "for cmd in kubectl crictl ctr; do [ -L /usr/local/bin/$cmd ] && sudo rm -f /usr/local/bin/$cmd; done; "
+                "sudo systemctl daemon-reload"
+            )
+            run_ssh(w_user, w_ip, cleanup_cmd)
+            print_pass(f"Deep cleanup completed on {w_host}.")
         except Exception as e:
-            print_warn(f"Failed to remove registries.yaml on {w_host}: {e}")
+            print_warn(f"Failed to clean up k3s leftovers on {w_host}: {e}")
 
     # 2. Control Plane Cleanup
     print_header("Step 2: Cleaning Up k3s Control Plane")
@@ -165,6 +172,21 @@ def purge_cluster(config, reg_user, reg_ip, reg_port, cp_user, cp_ip, workers):
         print_pass("k3s server uninstalled successfully.")
     except Exception as e:
         print_warn(f"Failed to uninstall k3s server on control plane (it might have already been removed): {e}")
+
+    # Perform deep cleanup of control plane leftovers
+    try:
+        print_info("Performing deep cleanup of k3s server files...")
+        cleanup_cmd = (
+            "sudo rm -rf /etc/rancher/k3s /var/lib/rancher/k3s /run/k3s /run/flannel /var/lib/kubelet "
+            "/usr/local/bin/k3s /usr/local/bin/k3s-killall.sh /usr/local/bin/k3s-uninstall.sh "
+            "/etc/systemd/system/k3s.service /etc/systemd/system/k3s.service.env; "
+            "for cmd in kubectl crictl ctr; do [ -L /usr/local/bin/$cmd ] && sudo rm -f /usr/local/bin/$cmd; done; "
+            "sudo systemctl daemon-reload"
+        )
+        run_ssh(cp_user, cp_ip, cleanup_cmd)
+        print_pass("Deep cleanup completed on control plane.")
+    except Exception as e:
+        print_warn(f"Failed to clean up k3s server leftovers on control plane: {e}")
 
     # 3. Registry Cleanup
     print_header("Step 3: Cleaning Up Private Registry")
@@ -494,8 +516,8 @@ def main():
 
         # Install and join k3s agent
         try:
-            k3s_agent_installed = run_ssh(w_user, w_ip, "command -v k3s", capture=True)
-            if not k3s_agent_installed or "k3s" not in k3s_agent_installed:
+            service_exists = run_ssh(w_user, w_ip, "systemctl list-unit-files k3s-agent.service | grep -q k3s-agent && echo 'yes' || echo 'no'", capture=True).strip()
+            if service_exists != 'yes':
                 print_info("Installing and joining k3s-agent to control plane...")
                 agent_install_cmd = f"curl -sfL https://get.k3s.io | K3S_URL=https://{cp_ip}:6443 K3S_TOKEN={token} sh -"
                 run_ssh(w_user, w_ip, agent_install_cmd)
