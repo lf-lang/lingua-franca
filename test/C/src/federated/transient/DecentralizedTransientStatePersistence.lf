@@ -176,13 +176,16 @@ reactor Down(STP_offset: time = 100 ms) {
 federated reactor {
   // Persistent downstream and upstream federates of the transient
   up = new Up()
+  @maxwait(0)
   down = new Down()
+  @maxwait(0)
   persistence = new Persistence()
   // Persistent federate that is responsible for lauching the transient once, after 1s
   midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
 
   // Transient federate
   @transient
+  @maxwait(0)
   mid = new Middle()
 
   // Connections
