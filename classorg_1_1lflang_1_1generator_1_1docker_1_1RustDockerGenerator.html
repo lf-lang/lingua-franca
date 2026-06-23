@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.17.0"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>lingua-franca: org.lflang.generator.docker.DockerGenerator Class Reference</title>
+<title>lingua-franca: org.lflang.generator.docker.RustDockerGenerator Class Reference</title>
 <link rel="icon" href="favicon.ico" type="image/x-icon" />
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 <script type="text/javascript">
-document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html','','classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator-members'); });
+document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html','','classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator-members'); });
 </script>
 <div id="container">
 <div id="doc-content">
@@ -122,106 +122,95 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lf
 </div>
 
 <div class="header">
-  <div class="headertitle"><div class="title">org.lflang.generator.docker.DockerGenerator Class Reference<span class="mlabels"><span class="mlabel abstract">abstract</span></span><div class="ingroups"><a class="el" href="group__Docker.html">Docker</a></div></div></div>
+  <div class="headertitle"><div class="title">org.lflang.generator.docker.RustDockerGenerator Class Reference<div class="ingroups"><a class="el" href="group__Docker.html">Docker</a></div></div></div>
 </div><!--header-->
 <div class="contents">
 
-<p>A class for generating docker files.  
+<p>Generate the docker file code for the Rust target.  
  <a href="#details">More...</a></p>
 
-<p>Inherited by <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html">org.lflang.generator.docker.CDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html">org.lflang.generator.docker.RustDockerGenerator</a>, and <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html">org.lflang.generator.docker.TSDockerGenerator</a>.</p>
+<p>Inherits <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html">org.lflang.generator.docker.DockerGenerator</a>.</p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a13a63bf5dad96355a19c8c828c558a2c" id="r_a13a63bf5dad96355a19c8c828c558a2c"><td class="memItemLeft">abstract List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a13a63bf5dad96355a19c8c828c558a2c">defaultEntryPoint</a> ()</td></tr>
-<tr class="memdesc:a13a63bf5dad96355a19c8c828c558a2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">The default list of commands to construct an ENTRYPOINT out of.  <br /></td></tr>
-<tr class="memitem:ae541e31c842ecb977af303bd62d54e00" id="r_ae541e31c842ecb977af303bd62d54e00"><td class="memItemLeft">abstract String&#160;</td><td class="memItemRight"><a class="el" href="#ae541e31c842ecb977af303bd62d54e00">defaultImage</a> ()</td></tr>
-<tr class="memdesc:ae541e31c842ecb977af303bd62d54e00"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the default base image.  <br /></td></tr>
-<tr class="memitem:a0e13d1d0d5f16f4b70c9f892056c9edc" id="r_a0e13d1d0d5f16f4b70c9f892056c9edc"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a0e13d1d0d5f16f4b70c9f892056c9edc">DockerGenerator</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context)</td></tr>
-<tr class="memdesc:a0e13d1d0d5f16f4b70c9f892056c9edc"><td class="mdescLeft">&#160;</td><td class="mdescRight">The constructor for the base docker file generation class.  <br /></td></tr>
-<tr class="memitem:aa2f1a06598ebec222f7666c3dad45a33" id="r_aa2f1a06598ebec222f7666c3dad45a33"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html">DockerData</a>&#160;</td><td class="memItemRight"><a class="el" href="#aa2f1a06598ebec222f7666c3dad45a33">generateDockerData</a> ()</td></tr>
+<tr class="memitem:a6efc3c6ec360827d13bb815c1c6ada0b" id="r_a6efc3c6ec360827d13bb815c1c6ada0b"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a6efc3c6ec360827d13bb815c1c6ada0b">defaultEntryPoint</a> ()</td></tr>
+<tr class="memdesc:a6efc3c6ec360827d13bb815c1c6ada0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">The default list of commands to construct an ENTRYPOINT out of.  <br /></td></tr>
+<tr class="memitem:a57b66266d60cf3a11fa0b7340ea3696d" id="r_a57b66266d60cf3a11fa0b7340ea3696d"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a57b66266d60cf3a11fa0b7340ea3696d">defaultImage</a> ()</td></tr>
+<tr class="memdesc:a57b66266d60cf3a11fa0b7340ea3696d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the default base image.  <br /></td></tr>
+<tr class="memitem:aa2f1a06598ebec222f7666c3dad45a33" id="r_aa2f1a06598ebec222f7666c3dad45a33"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html">DockerData</a>&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aa2f1a06598ebec222f7666c3dad45a33">generateDockerData</a> ()</td></tr>
 <tr class="memdesc:aa2f1a06598ebec222f7666c3dad45a33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Produce a <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html" title="Build configuration of a docker service.">DockerData</a> object, which bundles all information needed to output a Dockerfile.  <br /></td></tr>
-<tr class="memitem:a5b624402c46bdd07d3305739762721e9" id="r_a5b624402c46bdd07d3305739762721e9"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html">DockerData</a>&#160;</td><td class="memItemRight"><a class="el" href="#a5b624402c46bdd07d3305739762721e9">generateDockerData</a> (Path path)</td></tr>
+<tr class="memitem:a5b624402c46bdd07d3305739762721e9" id="r_a5b624402c46bdd07d3305739762721e9"><td class="memItemLeft"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html">DockerData</a>&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a5b624402c46bdd07d3305739762721e9">generateDockerData</a> (Path path)</td></tr>
 <tr class="memdesc:a5b624402c46bdd07d3305739762721e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a new <span class="tt"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html" title="Build configuration of a docker service.">DockerData</a></span> object that can be used to generate a Dockerfile in the directory indicated by the given path.  <br /></td></tr>
+<tr class="memitem:a0f6836a4c69ff817a9e1e76244bf0a6a" id="r_a0f6836a4c69ff817a9e1e76244bf0a6a"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#a0f6836a4c69ff817a9e1e76244bf0a6a">RustDockerGenerator</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:aae76256f0af7fbb1abb1e596f3a2ee9e" id="r_aae76256f0af7fbb1abb1e596f3a2ee9e"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#aae76256f0af7fbb1abb1e596f3a2ee9e">argListToCommand</a> (List&lt; String &gt; args)</td></tr>
+<tr class="memitem:aae76256f0af7fbb1abb1e596f3a2ee9e" id="r_aae76256f0af7fbb1abb1e596f3a2ee9e"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aae76256f0af7fbb1abb1e596f3a2ee9e">argListToCommand</a> (List&lt; String &gt; args)</td></tr>
 <tr class="memdesc:aae76256f0af7fbb1abb1e596f3a2ee9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an argument list, starting with the command to execute, into a string that can be executed by a POSIX-compliant shell.  <br /></td></tr>
-<tr class="memitem:a2dbf92a5fb3c41f0bf7ef29b4acacb18" id="r_a2dbf92a5fb3c41f0bf7ef29b4acacb18"><td class="memItemLeft">static <a class="el" href="#a0e13d1d0d5f16f4b70c9f892056c9edc">DockerGenerator</a>&#160;</td><td class="memItemRight"><a class="el" href="#a2dbf92a5fb3c41f0bf7ef29b4acacb18">dockerGeneratorFactory</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context)</td></tr>
+<tr class="memitem:a2dbf92a5fb3c41f0bf7ef29b4acacb18" id="r_a2dbf92a5fb3c41f0bf7ef29b4acacb18"><td class="memItemLeft">static <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a0e13d1d0d5f16f4b70c9f892056c9edc">DockerGenerator</a>&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a2dbf92a5fb3c41f0bf7ef29b4acacb18">dockerGeneratorFactory</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context)</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-methods" class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:aaefa6147daa753d3dd3325e7d43f465a" id="r_aaefa6147daa753d3dd3325e7d43f465a"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#aaefa6147daa753d3dd3325e7d43f465a">builderBase</a> ()</td></tr>
+<tr class="memitem:aaefa6147daa753d3dd3325e7d43f465a" id="r_aaefa6147daa753d3dd3325e7d43f465a"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aaefa6147daa753d3dd3325e7d43f465a">builderBase</a> ()</td></tr>
 <tr class="memdesc:aaefa6147daa753d3dd3325e7d43f465a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the base image to be used during the building stage.  <br /></td></tr>
-<tr class="memitem:a5d95a3c7a64fb32d8c7de4a6ec30c5ee" id="r_a5d95a3c7a64fb32d8c7de4a6ec30c5ee"><td class="memItemLeft">abstract List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a5d95a3c7a64fb32d8c7de4a6ec30c5ee">defaultBuildCommands</a> ()</td></tr>
-<tr class="memdesc:a5d95a3c7a64fb32d8c7de4a6ec30c5ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the default compile commands for the C docker container.  <br /></td></tr>
-<tr class="memitem:a9cdb2d1675703ed12860901a7893fcda" id="r_a9cdb2d1675703ed12860901a7893fcda"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a9cdb2d1675703ed12860901a7893fcda">entryPoint</a> ()</td></tr>
+<tr class="memitem:af1be73330451c366bde2da7a6e71f26a" id="r_af1be73330451c366bde2da7a6e71f26a"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#af1be73330451c366bde2da7a6e71f26a">defaultBuildCommands</a> ()</td></tr>
+<tr class="memdesc:af1be73330451c366bde2da7a6e71f26a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the default compile commands for the C docker container.  <br /></td></tr>
+<tr class="memitem:a9cdb2d1675703ed12860901a7893fcda" id="r_a9cdb2d1675703ed12860901a7893fcda"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a9cdb2d1675703ed12860901a7893fcda">entryPoint</a> ()</td></tr>
 <tr class="memdesc:a9cdb2d1675703ed12860901a7893fcda"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of strings used to construct and entrypoint.  <br /></td></tr>
-<tr class="memitem:aaf276f452872800c575db07b850071cd" id="r_aaf276f452872800c575db07b850071cd"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#aaf276f452872800c575db07b850071cd">generateCopyForSources</a> ()</td></tr>
+<tr class="memitem:aaf276f452872800c575db07b850071cd" id="r_aaf276f452872800c575db07b850071cd"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aaf276f452872800c575db07b850071cd">generateCopyForSources</a> ()</td></tr>
 <tr class="memdesc:aaf276f452872800c575db07b850071cd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a COPY command for copying sources from host into container.  <br /></td></tr>
-<tr class="memitem:a3f876a772be287015868764ab49f29ca" id="r_a3f876a772be287015868764ab49f29ca"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a3f876a772be287015868764ab49f29ca">generateCopyOfExecutable</a> ()</td></tr>
+<tr class="memitem:a3f876a772be287015868764ab49f29ca" id="r_a3f876a772be287015868764ab49f29ca"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a3f876a772be287015868764ab49f29ca">generateCopyOfExecutable</a> ()</td></tr>
 <tr class="memdesc:a3f876a772be287015868764ab49f29ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a COPY command to copy the executable from the builder to the runner.  <br /></td></tr>
-<tr class="memitem:ad5f90737e787ff7870d0894c5903a452" id="r_ad5f90737e787ff7870d0894c5903a452"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#ad5f90737e787ff7870d0894c5903a452">generateCopyOfScript</a> ()</td></tr>
+<tr class="memitem:ad5f90737e787ff7870d0894c5903a452" id="r_ad5f90737e787ff7870d0894c5903a452"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#ad5f90737e787ff7870d0894c5903a452">generateCopyOfScript</a> ()</td></tr>
 <tr class="memdesc:ad5f90737e787ff7870d0894c5903a452"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a COPY command to copy the scripts from the builder to the runner.  <br /></td></tr>
-<tr class="memitem:a6f9caee877d6e74a8d40150227777aed" id="r_a6f9caee877d6e74a8d40150227777aed"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a6f9caee877d6e74a8d40150227777aed">generateCopyOfUserFiles</a> ()</td></tr>
+<tr class="memitem:a6f9caee877d6e74a8d40150227777aed" id="r_a6f9caee877d6e74a8d40150227777aed"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a6f9caee877d6e74a8d40150227777aed">generateCopyOfUserFiles</a> ()</td></tr>
 <tr class="memdesc:a6f9caee877d6e74a8d40150227777aed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return zero or more COPY commands to copy files specified using the <span class="tt">files</span> target property from the builder to the runner.  <br /></td></tr>
-<tr class="memitem:aa8bd7492abc4b404060c4f9f480a0599" id="r_aa8bd7492abc4b404060c4f9f480a0599"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#aa8bd7492abc4b404060c4f9f480a0599">generateDockerFileContent</a> ()</td></tr>
+<tr class="memitem:aa8bd7492abc4b404060c4f9f480a0599" id="r_aa8bd7492abc4b404060c4f9f480a0599"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#aa8bd7492abc4b404060c4f9f480a0599">generateDockerFileContent</a> ()</td></tr>
 <tr class="memdesc:aa8bd7492abc4b404060c4f9f480a0599"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate the contents of the docker file.  <br /></td></tr>
-<tr class="memitem:a62f3ad1a3cf54ba6e80c7c26a1f0c865" id="r_a62f3ad1a3cf54ba6e80c7c26a1f0c865"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a62f3ad1a3cf54ba6e80c7c26a1f0c865">generateEntryPoint</a> ()</td></tr>
+<tr class="memitem:a62f3ad1a3cf54ba6e80c7c26a1f0c865" id="r_a62f3ad1a3cf54ba6e80c7c26a1f0c865"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a62f3ad1a3cf54ba6e80c7c26a1f0c865">generateEntryPoint</a> ()</td></tr>
 <tr class="memdesc:a62f3ad1a3cf54ba6e80c7c26a1f0c865"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the ENTRYPOINT command.  <br /></td></tr>
-<tr class="memitem:abcdfba04c2867dc102fed962a34c4e79" id="r_abcdfba04c2867dc102fed962a34c4e79"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#abcdfba04c2867dc102fed962a34c4e79">generateHeader</a> ()</td></tr>
+<tr class="memitem:abcdfba04c2867dc102fed962a34c4e79" id="r_abcdfba04c2867dc102fed962a34c4e79"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#abcdfba04c2867dc102fed962a34c4e79">generateHeader</a> ()</td></tr>
 <tr class="memdesc:abcdfba04c2867dc102fed962a34c4e79"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate a header to print at the top of the Dockerfile.  <br /></td></tr>
-<tr class="memitem:a625ed62c184df6978b65bab617e156d5" id="r_a625ed62c184df6978b65bab617e156d5"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a625ed62c184df6978b65bab617e156d5">generateRunForBuild</a> ()</td></tr>
+<tr class="memitem:a625ed62c184df6978b65bab617e156d5" id="r_a625ed62c184df6978b65bab617e156d5"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a625ed62c184df6978b65bab617e156d5">generateRunForBuild</a> ()</td></tr>
 <tr class="memdesc:a625ed62c184df6978b65bab617e156d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the Docker RUN command used for building.  <br /></td></tr>
-<tr class="memitem:a59399419b650c5702fe2514afb9f4c90" id="r_a59399419b650c5702fe2514afb9f4c90"><td class="memItemLeft">abstract String&#160;</td><td class="memItemRight"><a class="el" href="#a59399419b650c5702fe2514afb9f4c90">generateRunForInstallingDeps</a> ()</td></tr>
-<tr class="memdesc:a59399419b650c5702fe2514afb9f4c90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a RUN command for installing/checking build dependencies.  <br /></td></tr>
-<tr class="memitem:a2b639f0aeccd266360a325d68e0d52be" id="r_a2b639f0aeccd266360a325d68e0d52be"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a2b639f0aeccd266360a325d68e0d52be">generateRunForMakingExecutableDir</a> ()</td></tr>
+<tr class="memitem:a96aedff725e2db744dbdbe06cb35717a" id="r_a96aedff725e2db744dbdbe06cb35717a"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a96aedff725e2db744dbdbe06cb35717a">generateRunForInstallingDeps</a> ()</td></tr>
+<tr class="memdesc:a96aedff725e2db744dbdbe06cb35717a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a RUN command for installing/checking build dependencies.  <br /></td></tr>
+<tr class="memitem:a2b639f0aeccd266360a325d68e0d52be" id="r_a2b639f0aeccd266360a325d68e0d52be"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a2b639f0aeccd266360a325d68e0d52be">generateRunForMakingExecutableDir</a> ()</td></tr>
 <tr class="memdesc:a2b639f0aeccd266360a325d68e0d52be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a RUN command for making a directory to place executables in.  <br /></td></tr>
-<tr class="memitem:abed231f15e5c3ce3a7d48b49245f68c6" id="r_abed231f15e5c3ce3a7d48b49245f68c6"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#abed231f15e5c3ce3a7d48b49245f68c6">getBuildCommands</a> ()</td></tr>
+<tr class="memitem:abed231f15e5c3ce3a7d48b49245f68c6" id="r_abed231f15e5c3ce3a7d48b49245f68c6"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#abed231f15e5c3ce3a7d48b49245f68c6">getBuildCommands</a> ()</td></tr>
 <tr class="memdesc:abed231f15e5c3ce3a7d48b49245f68c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the commands used to build.  <br /></td></tr>
-<tr class="memitem:a91c4f1dfc8140cbfe81298c086d66c1e" id="r_a91c4f1dfc8140cbfe81298c086d66c1e"><td class="memItemLeft">final List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a91c4f1dfc8140cbfe81298c086d66c1e">getEntryPointCommands</a> ()</td></tr>
+<tr class="memitem:a91c4f1dfc8140cbfe81298c086d66c1e" id="r_a91c4f1dfc8140cbfe81298c086d66c1e"><td class="memItemLeft">final List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a91c4f1dfc8140cbfe81298c086d66c1e">getEntryPointCommands</a> ()</td></tr>
 <tr class="memdesc:a91c4f1dfc8140cbfe81298c086d66c1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a list of commands to be used to construct an ENTRYPOINT, taking into account the existence of a possible pre-run script.  <br /></td></tr>
-<tr class="memitem:a2a4f6ab8dc7612c8479805e2afba95a5" id="r_a2a4f6ab8dc7612c8479805e2afba95a5"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a2a4f6ab8dc7612c8479805e2afba95a5">getPostBuildCommand</a> ()</td></tr>
+<tr class="memitem:a2a4f6ab8dc7612c8479805e2afba95a5" id="r_a2a4f6ab8dc7612c8479805e2afba95a5"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a2a4f6ab8dc7612c8479805e2afba95a5">getPostBuildCommand</a> ()</td></tr>
 <tr class="memdesc:a2a4f6ab8dc7612c8479805e2afba95a5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the command that sources the post-build script, if there is one.  <br /></td></tr>
-<tr class="memitem:a18e3478b0483ea2d6fe3898394aef27e" id="r_a18e3478b0483ea2d6fe3898394aef27e"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a18e3478b0483ea2d6fe3898394aef27e">getPreBuildCommand</a> ()</td></tr>
+<tr class="memitem:a18e3478b0483ea2d6fe3898394aef27e" id="r_a18e3478b0483ea2d6fe3898394aef27e"><td class="memItemLeft">List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a18e3478b0483ea2d6fe3898394aef27e">getPreBuildCommand</a> ()</td></tr>
 <tr class="memdesc:a18e3478b0483ea2d6fe3898394aef27e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the command that sources the pre-build script, if there is one.  <br /></td></tr>
-<tr class="memitem:a448ca0cf5324ac6dbecb576d9e81fb9b" id="r_a448ca0cf5324ac6dbecb576d9e81fb9b"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a448ca0cf5324ac6dbecb576d9e81fb9b">runnerBase</a> ()</td></tr>
+<tr class="memitem:a448ca0cf5324ac6dbecb576d9e81fb9b" id="r_a448ca0cf5324ac6dbecb576d9e81fb9b"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a448ca0cf5324ac6dbecb576d9e81fb9b">runnerBase</a> ()</td></tr>
 <tr class="memdesc:a448ca0cf5324ac6dbecb576d9e81fb9b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the base image to be used during the running stage.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pro-attribs" class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
-<tr class="memitem:a35be75b7c35204d83f2ecb0283419761" id="r_a35be75b7c35204d83f2ecb0283419761"><td class="memItemLeft">final <a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a>&#160;</td><td class="memItemRight"><a class="el" href="#a35be75b7c35204d83f2ecb0283419761">context</a></td></tr>
+<tr class="memitem:a35be75b7c35204d83f2ecb0283419761" id="r_a35be75b7c35204d83f2ecb0283419761"><td class="memItemLeft">final <a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a>&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a35be75b7c35204d83f2ecb0283419761">context</a></td></tr>
 <tr class="memdesc:a35be75b7c35204d83f2ecb0283419761"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configuration for interactions with the filesystem.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>A class for generating docker files. </p>
-<dl class="section author"><dt>Author</dt><dd>Marten Lohstroh </dd>
-<dd>
-Hou Seng Wong </dd></dl>
+<div class="textblock"><p>Generate the docker file code for the Rust target. </p>
+<dl class="section author"><dt>Author</dt><dd>Eggsrael / Adam Bonnet </dd></dl>
 </div><a name="doc-constructors" id="doc-constructors"></a><h2 id="header-doc-constructors" class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="a0e13d1d0d5f16f4b70c9f892056c9edc" name="a0e13d1d0d5f16f4b70c9f892056c9edc"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0e13d1d0d5f16f4b70c9f892056c9edc">&#9670;&#160;</a></span>DockerGenerator()</h2>
+<a id="a0f6836a4c69ff817a9e1e76244bf0a6a" name="a0f6836a4c69ff817a9e1e76244bf0a6a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f6836a4c69ff817a9e1e76244bf0a6a">&#9670;&#160;</a></span>RustDockerGenerator()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">org.lflang.generator.docker.DockerGenerator.DockerGenerator </td>
+          <td class="memname">org.lflang.generator.docker.RustDockerGenerator.RustDockerGenerator </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a></td>          <td class="paramname"><span class="paramname"><em>context</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>The constructor for the base docker file generation class. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">context</td><td>The context of the code generator. </td></tr>
-  </table>
-  </dd>
-</dl>
 
 </div>
 </div>
@@ -244,7 +233,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -271,7 +260,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -282,8 +271,8 @@ Hou Seng Wong </dd></dl>
 
 </div>
 </div>
-<a id="a5d95a3c7a64fb32d8c7de4a6ec30c5ee" name="a5d95a3c7a64fb32d8c7de4a6ec30c5ee"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d95a3c7a64fb32d8c7de4a6ec30c5ee">&#9670;&#160;</a></span>defaultBuildCommands()</h2>
+<a id="af1be73330451c366bde2da7a6e71f26a" name="af1be73330451c366bde2da7a6e71f26a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af1be73330451c366bde2da7a6e71f26a">&#9670;&#160;</a></span>defaultBuildCommands()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -292,7 +281,7 @@ Hou Seng Wong </dd></dl>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract List&lt; String &gt; org.lflang.generator.docker.DockerGenerator.defaultBuildCommands </td>
+          <td class="memname">List&lt; String &gt; org.lflang.generator.docker.RustDockerGenerator.defaultBuildCommands </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
@@ -300,73 +289,57 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel abstract">abstract</span><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return the default compile commands for the C docker container. </p>
 
-<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html#a745e5d4bfd8f1d91e29a7efe3fb2b3e5">org.lflang.generator.docker.CDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html#af1be73330451c366bde2da7a6e71f26a">org.lflang.generator.docker.RustDockerGenerator</a>, and <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html#ad6091ec07c47bca450ab63febebc7e96">org.lflang.generator.docker.TSDockerGenerator</a>.</p>
+<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a5d95a3c7a64fb32d8c7de4a6ec30c5ee">org.lflang.generator.docker.DockerGenerator</a>.</p>
 
 </div>
 </div>
-<a id="a13a63bf5dad96355a19c8c828c558a2c" name="a13a63bf5dad96355a19c8c828c558a2c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a13a63bf5dad96355a19c8c828c558a2c">&#9670;&#160;</a></span>defaultEntryPoint()</h2>
+<a id="a6efc3c6ec360827d13bb815c1c6ada0b" name="a6efc3c6ec360827d13bb815c1c6ada0b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6efc3c6ec360827d13bb815c1c6ada0b">&#9670;&#160;</a></span>defaultEntryPoint()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract List&lt; String &gt; org.lflang.generator.docker.DockerGenerator.defaultEntryPoint </td>
+          <td class="memname">List&lt; String &gt; org.lflang.generator.docker.RustDockerGenerator.defaultEntryPoint </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel abstract">abstract</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>The default list of commands to construct an ENTRYPOINT out of. </p>
 <p>Different for each target. </p>
 
-<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html#aea4edb5881f6180653034196f56f9d3a">org.lflang.generator.docker.CDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html#a5c1fc58629951b0f56a0aecc7f039162">org.lflang.generator.docker.PythonDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html#a6efc3c6ec360827d13bb815c1c6ada0b">org.lflang.generator.docker.RustDockerGenerator</a>, and <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html#af527ae84dc07dca3efe40838468b38de">org.lflang.generator.docker.TSDockerGenerator</a>.</p>
+<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a13a63bf5dad96355a19c8c828c558a2c">org.lflang.generator.docker.DockerGenerator</a>.</p>
 
 </div>
 </div>
-<a id="ae541e31c842ecb977af303bd62d54e00" name="ae541e31c842ecb977af303bd62d54e00"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae541e31c842ecb977af303bd62d54e00">&#9670;&#160;</a></span>defaultImage()</h2>
+<a id="a57b66266d60cf3a11fa0b7340ea3696d" name="a57b66266d60cf3a11fa0b7340ea3696d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a57b66266d60cf3a11fa0b7340ea3696d">&#9670;&#160;</a></span>defaultImage()</h2>
 
 <div class="memitem">
 <div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract String org.lflang.generator.docker.DockerGenerator.defaultImage </td>
+          <td class="memname">String org.lflang.generator.docker.RustDockerGenerator.defaultImage </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel abstract">abstract</span></span>  </td>
-  </tr>
-</table>
 </div><div class="memdoc">
 
 <p>Return the default base image. </p>
 
-<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html#acdfda7a2f566b361124e625d83a1f0b2">org.lflang.generator.docker.CDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html#aa027f9cf48cda88a3f74fc5de37c57a7">org.lflang.generator.docker.PythonDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html#a57b66266d60cf3a11fa0b7340ea3696d">org.lflang.generator.docker.RustDockerGenerator</a>, and <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html#a782257b7da5f386b6cef2ec5a2d6e1c1">org.lflang.generator.docker.TSDockerGenerator</a>.</p>
+<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#ae541e31c842ecb977af303bd62d54e00">org.lflang.generator.docker.DockerGenerator</a>.</p>
 
 </div>
 </div>
@@ -380,7 +353,7 @@ Hou Seng Wong </dd></dl>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="#a0e13d1d0d5f16f4b70c9f892056c9edc">DockerGenerator</a> org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory </td>
+          <td class="memname"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a0e13d1d0d5f16f4b70c9f892056c9edc">DockerGenerator</a> org.lflang.generator.docker.DockerGenerator.dockerGeneratorFactory </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a></td>          <td class="paramname"><span class="paramname"><em>context</em></span></td><td>)</td>
           <td></td>
@@ -388,7 +361,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+<span class="mlabels"><span class="mlabel static">static</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -413,7 +386,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -441,7 +414,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -470,7 +443,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -499,7 +472,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -526,7 +499,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -540,6 +513,9 @@ Hou Seng Wong </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html">DockerData</a> org.lflang.generator.docker.DockerGenerator.generateDockerData </td>
@@ -548,6 +524,11 @@ Hou Seng Wong </dd></dl>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Produce a <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html" title="Build configuration of a docker service.">DockerData</a> object, which bundles all information needed to output a Dockerfile. </p>
@@ -560,6 +541,9 @@ Hou Seng Wong </dd></dl>
 
 <div class="memitem">
 <div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html">DockerData</a> org.lflang.generator.docker.DockerGenerator.generateDockerData </td>
@@ -568,6 +552,11 @@ Hou Seng Wong </dd></dl>
           <td></td>
         </tr>
       </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
 </div><div class="memdoc">
 
 <p>Return a new <span class="tt"><a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerData.html" title="Build configuration of a docker service.">DockerData</a></span> object that can be used to generate a Dockerfile in the directory indicated by the given path. </p>
@@ -598,7 +587,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -627,7 +616,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -654,7 +643,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -681,7 +670,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -690,8 +679,8 @@ Hou Seng Wong </dd></dl>
 
 </div>
 </div>
-<a id="a59399419b650c5702fe2514afb9f4c90" name="a59399419b650c5702fe2514afb9f4c90"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a59399419b650c5702fe2514afb9f4c90">&#9670;&#160;</a></span>generateRunForInstallingDeps()</h2>
+<a id="a96aedff725e2db744dbdbe06cb35717a" name="a96aedff725e2db744dbdbe06cb35717a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a96aedff725e2db744dbdbe06cb35717a">&#9670;&#160;</a></span>generateRunForInstallingDeps()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -700,7 +689,7 @@ Hou Seng Wong </dd></dl>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">abstract String org.lflang.generator.docker.DockerGenerator.generateRunForInstallingDeps </td>
+          <td class="memname">String org.lflang.generator.docker.RustDockerGenerator.generateRunForInstallingDeps </td>
           <td>(</td>
           <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
           <td></td>
@@ -708,14 +697,14 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel abstract">abstract</span><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
 
 <p>Return a RUN command for installing/checking build dependencies. </p>
 
-<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1CDockerGenerator.html#aa55d60452fdfdd1f94d0da2a7c8561a3">org.lflang.generator.docker.CDockerGenerator</a>, <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html#a96aedff725e2db744dbdbe06cb35717a">org.lflang.generator.docker.RustDockerGenerator</a>, and <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html#a3677a099b13d508db907b802558d867c">org.lflang.generator.docker.TSDockerGenerator</a>.</p>
+<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html#a59399419b650c5702fe2514afb9f4c90">org.lflang.generator.docker.DockerGenerator</a>.</p>
 
 </div>
 </div>
@@ -737,7 +726,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -766,7 +755,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -793,7 +782,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -820,7 +809,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -847,7 +836,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -874,7 +863,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -899,7 +888,7 @@ Hou Seng Wong </dd></dl>
       </table>
   </td>
   <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel protected">protected</span></span>  </td>
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
   </tr>
 </table>
 </div><div class="memdoc">
@@ -909,7 +898,7 @@ Hou Seng Wong </dd></dl>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following file:<ul>
-<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/docker/<b>DockerGenerator.java</b></li>
+<li>/Users/runner/work/lingua-franca/lingua-franca/core/src/main/java/org/lflang/generator/docker/<b>RustDockerGenerator.java</b></li>
 </ul>
 </div><!-- contents -->
 </div><!-- doc-content -->
@@ -924,7 +913,7 @@ Hou Seng Wong </dd></dl>
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1generator.html">generator</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1generator_1_1docker.html">docker</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html">DockerGenerator</a></li>
+    <li class="navelem"><b>org</b></li><li class="navelem"><a href="namespaceorg_1_1lflang.html">lflang</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1generator.html">generator</a></li><li class="navelem"><a href="namespaceorg_1_1lflang_1_1generator_1_1docker.html">docker</a></li><li class="navelem"><a href="classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html">RustDockerGenerator</a></li>
     <li class="footer">Generated on <span class="timestamp"></span> for lingua-franca by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.17.0 </li>
   </ul>
 </div>

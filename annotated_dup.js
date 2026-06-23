@@ -199,6 +199,7 @@ var annotated_dup =
             [ "FedDockerComposeGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1FedDockerComposeGenerator.html", "classorg_1_1lflang_1_1generator_1_1docker_1_1FedDockerComposeGenerator" ],
             [ "PythonDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html", "classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator" ],
             [ "RtiDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1RtiDockerGenerator.html", "classorg_1_1lflang_1_1generator_1_1docker_1_1RtiDockerGenerator" ],
+            [ "RustDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html", "classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator" ],
             [ "TSDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html", "classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator" ]
           ] ],
           [ "python", "namespaceorg_1_1lflang_1_1generator_1_1python.html", [

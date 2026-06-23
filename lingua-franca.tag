@@ -17570,6 +17570,193 @@
     </member>
   </compound>
   <compound kind="class">
+    <name>org::lflang::generator::docker::RustDockerGenerator</name>
+    <filename>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</filename>
+    <base>org.lflang.generator.docker.DockerGenerator</base>
+    <member kind="function">
+      <type>List&lt; String &gt;</type>
+      <name>defaultEntryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</anchorfile>
+      <anchor>a6efc3c6ec360827d13bb815c1c6ada0b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>String</type>
+      <name>defaultImage</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</anchorfile>
+      <anchor>a57b66266d60cf3a11fa0b7340ea3696d</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa2f1a06598ebec222f7666c3dad45a33</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>DockerData</type>
+      <name>generateDockerData</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a5b624402c46bdd07d3305739762721e9</anchor>
+      <arglist>(Path path)</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>RustDockerGenerator</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</anchorfile>
+      <anchor>a0f6836a4c69ff817a9e1e76244bf0a6a</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>argListToCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aae76256f0af7fbb1abb1e596f3a2ee9e</anchor>
+      <arglist>(List&lt; String &gt; args)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static DockerGenerator</type>
+      <name>dockerGeneratorFactory</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2dbf92a5fb3c41f0bf7ef29b4acacb18</anchor>
+      <arglist>(LFGeneratorContext context)</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>builderBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aaefa6147daa753d3dd3325e7d43f465a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>defaultBuildCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</anchorfile>
+      <anchor>af1be73330451c366bde2da7a6e71f26a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>entryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a9cdb2d1675703ed12860901a7893fcda</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyForSources</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aaf276f452872800c575db07b850071cd</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfExecutable</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a3f876a772be287015868764ab49f29ca</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfScript</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>ad5f90737e787ff7870d0894c5903a452</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateCopyOfUserFiles</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a6f9caee877d6e74a8d40150227777aed</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateDockerFileContent</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>aa8bd7492abc4b404060c4f9f480a0599</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateEntryPoint</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a62f3ad1a3cf54ba6e80c7c26a1f0c865</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateHeader</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>abcdfba04c2867dc102fed962a34c4e79</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateRunForBuild</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a625ed62c184df6978b65bab617e156d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateRunForInstallingDeps</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</anchorfile>
+      <anchor>a96aedff725e2db744dbdbe06cb35717a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>generateRunForMakingExecutableDir</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2b639f0aeccd266360a325d68e0d52be</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>getBuildCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>abed231f15e5c3ce3a7d48b49245f68c6</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>final List&lt; String &gt;</type>
+      <name>getEntryPointCommands</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a91c4f1dfc8140cbfe81298c086d66c1e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>getPostBuildCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a2a4f6ab8dc7612c8479805e2afba95a5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>List&lt; String &gt;</type>
+      <name>getPreBuildCommand</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a18e3478b0483ea2d6fe3898394aef27e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>String</type>
+      <name>runnerBase</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a448ca0cf5324ac6dbecb576d9e81fb9b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="variable" protection="protected">
+      <type>final LFGeneratorContext</type>
+      <name>context</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</anchorfile>
+      <anchor>a35be75b7c35204d83f2ecb0283419761</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>org::lflang::generator::docker::TSDockerGenerator</name>
     <filename>classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html</filename>
     <base>org.lflang.generator.docker.DockerGenerator</base>
@@ -40838,8 +41025,8 @@
     <member kind="function">
       <type>void</type>
       <name>runDockerTests</name>
-      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
-      <anchor>ad9413ff2e793fd6ab11b3cf66fcecbc8</anchor>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</anchorfile>
+      <anchor>ac61ca1948c7c8d1a065d2d033c998902</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -40999,8 +41186,8 @@
     <member kind="function" protection="protected">
       <type>boolean</type>
       <name>supportsDockerOption</name>
-      <anchorfile>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</anchorfile>
-      <anchor>a8ac7196674344bb76bca35abb0a3528d</anchor>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</anchorfile>
+      <anchor>a75af312cbe8505e443b7266085aa3745</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -44473,6 +44660,7 @@
     <class kind="class">org::lflang::generator::docker::FedDockerComposeGenerator</class>
     <class kind="class">org::lflang::generator::docker::PythonDockerGenerator</class>
     <class kind="class">org::lflang::generator::docker::RtiDockerGenerator</class>
+    <class kind="class">org::lflang::generator::docker::RustDockerGenerator</class>
     <class kind="class">org::lflang::generator::docker::TSDockerGenerator</class>
   </compound>
   <compound kind="namespace">
@@ -44765,6 +44953,7 @@
     <class kind="class">org::lflang::generator::docker::DockerGenerator</class>
     <class kind="class">org::lflang::generator::docker::FedDockerComposeGenerator</class>
     <class kind="class">org::lflang::generator::docker::PythonDockerGenerator</class>
+    <class kind="class">org::lflang::generator::docker::RustDockerGenerator</class>
     <class kind="class">org::lflang::generator::docker::TSDockerGenerator</class>
   </compound>
   <compound kind="group">
@@ -45248,6 +45437,7 @@
     <file>FedDockerComposeGenerator.java</file>
     <file>PythonDockerGenerator.java</file>
     <file>RtiDockerGenerator.java</file>
+    <file>RustDockerGenerator.java</file>
     <file>TSDockerGenerator.java</file>
   </compound>
   <compound kind="dir">

@@ -1928,6 +1928,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::generator::docker::RustDockerGenerator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.generator.docker.RustDockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::generator::docker::TSDockerGenerator</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -14033,6 +14042,17 @@
       <Name>defaultBuildCommands</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.RustDockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</Path>
+    <Anchor>af1be73330451c366bde2da7a6e71f26a</Anchor>
+    <DeclaredIn>RustDockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>defaultBuildCommands</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.docker.TSDockerGenerator</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html</Path>
@@ -14121,6 +14141,17 @@
       <Name>defaultEntryPoint</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.RustDockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</Path>
+    <Anchor>a6efc3c6ec360827d13bb815c1c6ada0b</Anchor>
+    <DeclaredIn>RustDockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>defaultEntryPoint</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.generator.docker.TSDockerGenerator</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html</Path>
@@ -14159,6 +14190,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html</Path>
     <Anchor>aa027f9cf48cda88a3f74fc5de37c57a7</Anchor>
     <DeclaredIn>PythonDockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>defaultImage</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.RustDockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</Path>
+    <Anchor>a57b66266d60cf3a11fa0b7340ea3696d</Anchor>
+    <DeclaredIn>RustDockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -21499,6 +21541,17 @@
     <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1DockerGenerator.html</Path>
     <Anchor>a59399419b650c5702fe2514afb9f4c90</Anchor>
     <DeclaredIn>DockerGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>generateRunForInstallingDeps</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.RustDockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</Path>
+    <Anchor>a96aedff725e2db744dbdbe06cb35717a</Anchor>
+    <DeclaredIn>RustDockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -41485,6 +41538,17 @@
       <Name>runDockerTests</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.RustTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
+    <Anchor>ac61ca1948c7c8d1a065d2d033c998902</Anchor>
+    <DeclaredIn>RustTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runDockerTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
       <Scope>org.lflang.tests.runtime.TypeScriptTest</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
@@ -42122,6 +42186,17 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1Target.html</Path>
     <Anchor>a9c71884938b080113f1b513fa937f13f</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>RustDockerGenerator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.generator.docker.RustDockerGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html</Path>
+    <Anchor>a0f6836a4c69ff817a9e1e76244bf0a6a</Anchor>
+    <DeclaredIn>RustDockerGenerator.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44354,6 +44429,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
     <Anchor>aba333709912ae7ac58e77857b4fcf5ea</Anchor>
     <DeclaredIn>PythonTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>supportsDockerOption</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.RustTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
+    <Anchor>a75af312cbe8505e443b7266085aa3745</Anchor>
+    <DeclaredIn>RustTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

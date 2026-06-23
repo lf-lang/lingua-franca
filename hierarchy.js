@@ -365,6 +365,7 @@ var hierarchy =
         [ "org.lflang.generator.docker.PythonDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1PythonDockerGenerator.html", null ],
         [ "org.lflang.generator.docker.RtiDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1RtiDockerGenerator.html", null ]
       ] ],
+      [ "org.lflang.generator.docker.RustDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html", null ],
       [ "org.lflang.generator.docker.TSDockerGenerator", "classorg_1_1lflang_1_1generator_1_1docker_1_1TSDockerGenerator.html", null ]
     ] ],
     [ "org.lflang.generator.GeneratorBase.ErrorFileAndLine", "classorg_1_1lflang_1_1generator_1_1GeneratorBase_1_1ErrorFileAndLine.html", null ],

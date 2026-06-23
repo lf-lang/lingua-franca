@@ -27,7 +27,8 @@ var searchData=
   ['runtimerange_3c_20portinstance_20_3e_24',['RuntimeRange&lt; PortInstance &gt;',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html',1,'org::lflang::generator']]],
   ['runtimetest_25',['RuntimeTest',['../classorg_1_1lflang_1_1tests_1_1RuntimeTest.html',1,'org::lflang::tests']]],
   ['runtimeversionproperty_26',['RuntimeVersionProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RuntimeVersionProperty.html',1,'org::lflang::target::property']]],
-  ['rusteditionproperty_27',['RustEditionProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html',1,'org::lflang::target::property']]],
-  ['rustincludeproperty_28',['RustIncludeProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html',1,'org::lflang::target::property']]],
-  ['rusttest_29',['RustTest',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html',1,'org::lflang::tests::runtime']]]
+  ['rustdockergenerator_27',['RustDockerGenerator',['../classorg_1_1lflang_1_1generator_1_1docker_1_1RustDockerGenerator.html',1,'org::lflang::generator::docker']]],
+  ['rusteditionproperty_28',['RustEditionProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustEditionProperty.html',1,'org::lflang::target::property']]],
+  ['rustincludeproperty_29',['RustIncludeProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1RustIncludeProperty.html',1,'org::lflang::target::property']]],
+  ['rusttest_30',['RustTest',['../classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html',1,'org::lflang::tests::runtime']]]
 ];
