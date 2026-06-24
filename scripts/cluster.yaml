@@ -6,6 +6,7 @@ registry:
   host: "workstation"      # Hostname or alias of the machine running the registry
   ip: "100.126.33.104"     # IP address of the registry machine
   port: 5000               # Port number on which the registry container will listen
+  # user: "dongha"         # SSH username for the registry machine (optional, defaults to controlPlane.user if same host, or worker user if matching IP)
 
 # Kubernetes Control Plane Configuration (k3s Server)
 controlPlane:

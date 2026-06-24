@@ -316,13 +316,15 @@ def main():
         sys.exit(1)
 
     # Determine the SSH user to connect to the registry
-    reg_user = cp_user
-    if config.get('registry', {}).get('host') != config.get('controlPlane', {}).get('host'):
-        # If registry is on a different machine, try to find a matching SSH user from workers
-        for w in workers:
-            if w.get('ip') == reg_ip:
-                reg_user = w.get('user', 'ubuntu')
-                break
+    reg_user = config.get('registry', {}).get('user')
+    if not reg_user:
+        reg_user = cp_user
+        if config.get('registry', {}).get('host') != config.get('controlPlane', {}).get('host'):
+            # If registry is on a different machine, try to find a matching SSH user from workers
+            for w in workers:
+                if w.get('ip') == reg_ip:
+                    reg_user = w.get('user', 'ubuntu')
+                    break
 
     # Check if --clean or --purge is specified
     is_clean = len(sys.argv) >= 3 and sys.argv[2] == '--clean'
