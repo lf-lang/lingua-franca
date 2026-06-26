@@ -176,9 +176,9 @@ reactor Down {
 federated reactor {
   // Persistent downstream and upstream federates of the transient
   up = new Up()
-  @maxwait(400ms)
+  @maxwait(400 ms)
   down = new Down()
-  @maxwait(100ms)
+  @maxwait(100 ms)
   persistence = new Persistence()
   // Persistent federate that is responsible for lauching the transient once, after 1s
   midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
@@ -189,13 +189,13 @@ federated reactor {
   mid = new Middle()
 
   // Connections
-  @absent_after(300ms)
+  @absent_after(300 ms)
   up.out -> mid.in
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.in
-  @absent_after(200ms)
+  @absent_after(200 ms)
   persistence.out_to_middle -> mid.in_from_persistence
-  @absent_after(200ms)
+  @absent_after(200 ms)
   mid.out_to_persistence -> persistence.in_from_middle
 }
