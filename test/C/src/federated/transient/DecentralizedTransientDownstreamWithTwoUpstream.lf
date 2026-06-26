@@ -54,7 +54,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down(STP_offset: time = 100 ms) {
+reactor Down {
   timer t(0, 500 ms)
 
   input in_mid: int
@@ -115,12 +115,12 @@ federated reactor {
   // Persistent downstream and upstream federates of the transient
   up1 = new Up()
   up2 = new Up(period = 300 msec)
-  @maxwait(0)
+  @maxwait(200ms)
   down = new Down()
 
   // Transient federate
   @transient
-  @maxwait(0)
+  @maxwait(100ms)
   mid = new Middle()
 
   // Connections
