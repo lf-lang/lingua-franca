@@ -6,7 +6,7 @@
  * it receives the saved state and sets it. In this, the order of the reactions is important.
  */
 target C {
-  timeout: 2900 ms,
+  timeout: 5 s,
   coordination: decentralized
 }
 

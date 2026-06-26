@@ -7,7 +7,7 @@
  * - the downstream of the transient federate has only one transient as upstream.
  */
 target C {
-  timeout: 3 s,
+  timeout: 5 s,
   coordination: decentralized
 }
 

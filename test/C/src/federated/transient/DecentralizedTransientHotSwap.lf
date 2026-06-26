@@ -8,7 +8,7 @@
  * swap.
  */
 target C {
-  timeout: 3 s,
+  timeout: 5 s,
   auth: true,
   coordination: decentralized
 }
