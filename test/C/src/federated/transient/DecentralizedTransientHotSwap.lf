@@ -55,7 +55,7 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
  * second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
  * notifies `Down`.
  */
-reactor Middle(STP_offset: time = 100 ms) {
+reactor Middle {
   input in: int
   output out: int
   output join: int
@@ -85,10 +85,12 @@ federated reactor {
 
   // Persistent downstream and upstream federates of the transient
   up = new Up()
+  @maxwait(200ms)
   down = new Down()
 
   // Transient federate
   @transient
+  @maxwait(100ms)
   mid = new Middle()
 
   // Connections
