@@ -100,7 +100,9 @@ public class LanguageDiagramServer extends AbstractLanguageServer {
 
     @Override
     public List<Language> getLanguageExtensions() {
-      return List.of(new Language("lf", "Lingua Franca", List.of()));
+      return List.of(
+          new Language("lf", "Lingua Franca", List.of()),
+          new Language("ulf", "Lingua Franca", List.of()));
     }
   }
 
