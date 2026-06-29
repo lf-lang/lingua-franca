@@ -25,6 +25,7 @@ reactor Source {
   state s: int = 1
 
   reaction(t) -> out {=
+    printf("before lf_set\n");
     lf_set(out, self->s);
     ++self->s;
   =}

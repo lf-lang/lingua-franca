@@ -1439,6 +1439,8 @@ public class LFValidator extends BaseLFValidator {
       checkMaxWaitAttribute(attr);
     } else if (name.equals("absent_after")) {
       checkAbsentAfterAttribute(attr);
+    } else if (name.equals("transient")) {
+      checkTransientAttribute(attr);
     }
     if (GLOBAL_ATTRIBUTE_NAMES.contains(name)) {
       checkGlobalAttribute(attr);
@@ -1540,6 +1542,25 @@ public class LFValidator extends BaseLFValidator {
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
+    }
+  }
+
+  /** @transient marks a federate instantiation as transient (join/leave during execution). */
+  private void checkTransientAttribute(Attribute attr) {
+    EObject container = attr.eContainer();
+    if (!(container instanceof Instantiation)) {
+      error(
+          "The @transient attribute can only be applied to a federate instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    EObject parent = container.eContainer();
+    if (!(parent instanceof Reactor reactor) || !reactor.isFederated()) {
+      error(
+          "The @transient attribute can only be applied inside a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
     }
   }
 
