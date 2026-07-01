@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
+import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
@@ -59,6 +60,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     // If there are cycles present in the graph, it will be detected here.
     // This will destroy the graph, leaving only nodes in cycles.
     assignLevels();
+    tightenInferredDeadlinesForLevelScheduling();
     // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
 
@@ -69,6 +71,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     this.clear();
     addNodesAndEdges(main);
     assignInferredDeadlines();
+    assignLevels();
+    tightenInferredDeadlinesForLevelScheduling();
     this.clear();
   }
 
@@ -431,6 +435,94 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         if (isLeaf) start.add(upstream);
       }
     }
+  }
+
+  /**
+   * Tighten inferred deadlines so that, within each federate, every reaction's inferred deadline
+   * is at most the minimum inferred deadline among all reactions at higher levels in that federate.
+   * Reactions that already have a tighter deadline keep it.
+   *
+   * <p>Level scheduling requires lower-level reactions to complete before higher-level ones can
+   * execute. Under deadline-based priorities, lower-level reactions with loose deadlines can be
+   * preempted by other lower-level reactions with tighter deadlines, delaying completion of the
+   * level and effectively inverting priority relative to higher-level reactions with tight
+   * deadlines. This pass prevents that by giving lower-level reactions scheduling priority over all
+   * higher-level reactions in the same federate.
+   *
+   * <p>This must run after {@link #assignInferredDeadlines()} (downstream propagation) and {@link
+   * #assignLevels()} (level assignment).
+   */
+  private void tightenInferredDeadlinesForLevelScheduling() {
+    for (List<Runtime> runtimes : groupRuntimesByFederateScope().values()) {
+      tightenInferredDeadlinesWithinFederate(runtimes);
+    }
+  }
+
+  /**
+   * Group runtime reaction instances by federate scope. For a federated program, each top-level
+   * federate instantiation is a separate scope. For non-federated programs, the entire program is
+   * one scope.
+   */
+  private Map<ReactorInstance, List<Runtime>> groupRuntimesByFederateScope() {
+    Map<ReactorInstance, List<Runtime>> runtimesByScope = new LinkedHashMap<>();
+    if (main.reactorDefinition != null && main.reactorDefinition.isFederated()) {
+      for (ReactorInstance federate : main.children) {
+        List<Runtime> runtimes = new ArrayList<>();
+        collectAllRuntimes(federate, runtimes);
+        runtimesByScope.put(federate, runtimes);
+      }
+    } else {
+      List<Runtime> runtimes = new ArrayList<>();
+      collectAllRuntimes(main, runtimes);
+      runtimesByScope.put(main, runtimes);
+    }
+    return runtimesByScope;
+  }
+
+  /** Recursively collect all runtime reaction instances rooted at {@code reactor}. */
+  private void collectAllRuntimes(ReactorInstance reactor, List<Runtime> runtimes) {
+    for (ReactionInstance reaction : reactor.reactions) {
+      runtimes.addAll(reaction.getRuntimeInstances());
+    }
+    for (ReactorInstance child : reactor.children) {
+      collectAllRuntimes(child, runtimes);
+    }
+  }
+
+  /**
+   * For each reaction in a federate, cap its inferred deadline at the minimum inferred deadline
+   * among all reactions at higher levels in that federate. Reactions that already have a tighter
+   * deadline are unchanged.
+   */
+  private void tightenInferredDeadlinesWithinFederate(List<Runtime> runtimes) {
+    for (Runtime runtime : runtimes) {
+      TimeValue minHigherLevelDeadline = minDeadlineAtHigherLevel(runtimes, runtime.level);
+      if (minHigherLevelDeadline == null) {
+        continue;
+      }
+      runtime.deadline = TimeValue.min(runtime.deadline, minHigherLevelDeadline);
+    }
+  }
+
+  /**
+   * Return the minimum inferred deadline among all reactions in {@code runtimes} whose level is
+   * strictly greater than {@code level}, ignoring reactions with no deadline.
+   */
+  private TimeValue minDeadlineAtHigherLevel(List<Runtime> runtimes, int level) {
+    TimeValue minDeadline = null;
+    for (Runtime other : runtimes) {
+      if (other.level <= level || isNoDeadline(other.deadline)) {
+        continue;
+      }
+      if (minDeadline == null || other.deadline.isEarlierThan(minDeadline)) {
+        minDeadline = other.deadline;
+      }
+    }
+    return minDeadline;
+  }
+
+  private static boolean isNoDeadline(TimeValue deadline) {
+    return TimeValue.MAX_VALUE.equals(deadline) || TimeValue.FOREVER.equals(deadline);
   }
 
   /**
