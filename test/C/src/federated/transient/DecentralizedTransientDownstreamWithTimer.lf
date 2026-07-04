@@ -27,13 +27,13 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
         "%s/bin/federate__%s -i %s",
         LF_FED_PACKAGE_DIRECTORY,
         self->fed_instance_name,
+    char mid_launch_cmd[512];
+    snprintf(mid_launch_cmd, sizeof(mid_launch_cmd),
+        "%s/bin/federate__%s -i %s",
+        LF_FED_PACKAGE_DIRECTORY,
+        self->fed_instance_name,
         lf_get_federation_id()
     );
-
-    lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
-        self->fed_instance_name, lf_time_physical());
-    lf_print("**** Launch command: %s", mid_launch_cmd);
-
     int status = system(mid_launch_cmd);
 
     // Exit if error
