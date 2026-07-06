@@ -1,0 +1,185 @@
+/**
+ * This LF program showcases and tests the persistance of the internal state of a transient federate
+ * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
+ * joins. Whenever the state (of type `FederateState`) changes, it notifies `Persistence`.
+ * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
+ * it receives the saved state and sets it. In this, the order of the reactions is important.
+ */
+target Python {
+  timeout: 2900 ms
+}
+
+preamble {=
+  # The internal federate state to be persistent across executions
+  class FederateState:
+    def __init__(self, state_char='A', state_count=0):
+      self.state_char = state_char
+      self.state_count = state_count
+=}
+
+/** Persistent federate that is responsible for lauching the transient federate */
+reactor TransientExec(launch_time = 0, fed_instance_name = "instance") {
+  preamble {=
+    import subprocess
+  =}
+  timer t(launch_time, 0)
+
+  reaction(t) {=
+    bin_dir = os.path.join(lf.package_directory(), "fed-gen",
+        "TransientStatePersistenceWithPhysicalConnection", "bin")
+    launch_cmd = [os.path.join(bin_dir, "federate__" + self.fed_instance_name), "-i", lf.get_federation_id()]
+
+    print("Launching federate__{} at physical time {}.".format(self.fed_instance_name, lf.time.physical()))
+
+    result = self.subprocess.run(launch_cmd)
+    if result.returncode == 0:
+      print("Successfully launched federate__{}.".format(self.fed_instance_name))
+    else:
+      sys.stderr.write("Unable to launch federate__{}. Abort!\n".format(self.fed_instance_name))
+      sys.exit(1)
+  =}
+}
+
+reactor Persistence {
+  state middle_state = {= FederateState('A', 0) =}
+  state middle_first_join = True
+
+  input in_from_middle
+  input in_middle_join
+  output out_to_middle
+
+  // Only send the previous state if it not the first time Middle joins
+  reaction(in_middle_join) -> out_to_middle {=
+    if not self.middle_first_join:
+      out_to_middle.set(self.middle_state)
+      print("Notifying Mid of the latest state: {{{},{}}}".format(
+          self.middle_state.state_char, self.middle_state.state_count))
+    self.middle_first_join = False
+  =}
+
+  reaction(in_from_middle) {=
+    self.middle_state.state_char = in_from_middle.value.state_char
+    self.middle_state.state_count = in_from_middle.value.state_count
+    print("Latest received state: {{{},{}}}".format(
+        self.middle_state.state_char, self.middle_state.state_count))
+  =}
+}
+
+/**
+ * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
+ * out output port.
+ */
+reactor Up(period = 500 ms) {
+  output out
+  timer t(0, period)
+  state count = 0
+
+  reaction(t) -> out {=
+    out.set(self.count)
+    self.count += 1
+    print("Up timer sent {}".format(self.count))
+  =}
+}
+
+/**
+ * Transient federate that forwards whatever it receives from Up to down. It reacts twice to in
+ * input ports, then stops. It will execute twice during the lifetime of the federation. The second
+ * launch is done by TransientExec at logical time 1 s. Each time Middle joins, it notifies Down.
+ */
+reactor Middle {
+  input inp
+  output out
+  output join
+  output outp
+  state middle_state = {= FederateState('A', 0) =}
+
+  output out_to_persistence  // State Persistence
+  input in_from_persistence
+
+  // Middle notifies its downstream that he joined
+  reaction(startup) -> join {=
+    join.set(True)
+  =}
+
+  reaction(in_from_persistence) {=
+    self.middle_state = in_from_persistence.value
+    print("Received the latest state of: {{{},{}}} at {}.".format(
+        self.middle_state.state_char, self.middle_state.state_count, lf.time.logical_elapsed()))
+  =}
+
+  // When an input is received, the internal state is updated, and then sent to
+  // Persistance.
+  reaction(inp) -> out, out_to_persistence, outp {=
+    self.middle_state.state_char = chr(ord(self.middle_state.state_char) + 1)
+    self.middle_state.state_count += 2
+    out.set(self.middle_state.state_count)
+    out_to_persistence.set(self.middle_state)
+    outp.set(self.middle_state.state_count)
+    print("Mid state is: {{count='{}', count={}}}".format(
+        self.middle_state.state_char, self.middle_state.state_count))
+
+    if self.middle_state.state_count == 4:
+      lf.stop()
+  =}
+}
+
+/**
+ * Persistent federate, which is downstream of the transient. It has to keep reacting to its
+ * internal timer and also to inputs from the tansient, if any.
+ */
+reactor Down {
+  timer t(0, 500 ms)
+
+  input inp
+  input inp2
+  input join
+
+  state count_timer = 0
+  state count_join = 0
+  state count_in_mid_reactions = 0
+
+  reaction(t) {=
+    self.count_timer += 1
+    print("Down timer count {}".format(self.count_timer))
+  =}
+
+  reaction(join) {=
+    self.count_join += 1
+    print("Down count join {}".format(self.count_join))
+  =}
+
+  reaction(inp) {=
+    self.count_in_mid_reactions += 1
+    print("Down in {}".format(self.count_in_mid_reactions))
+  =}
+
+  reaction(shutdown) {=
+    if self.count_join == 2 and self.count_in_mid_reactions < 4:
+      sys.stderr.write("Mid Joined twice, but the state did not persist "
+          "across executions! state_count is {}, while is should be > then {}.\n".format(
+              self.count_in_mid_reactions, 4))
+      sys.exit(1)
+  =}
+}
+
+federated reactor {
+  // Persistent downstream and upstream federates of the transient
+  up = new Up()
+  down = new Down()
+  persistence = new Persistence()
+  // Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
+
+  // Transient federate
+  @transient
+  mid = new Middle()
+
+  // Connections
+  up.out -> mid.inp
+  mid.join -> down.join
+  mid.join -> persistence.in_middle_join
+  mid.out -> down.inp
+  mid.outp ~> down.inp2
+  persistence.out_to_middle -> mid.in_from_persistence
+  mid.out_to_persistence -> persistence.in_from_middle
+}
