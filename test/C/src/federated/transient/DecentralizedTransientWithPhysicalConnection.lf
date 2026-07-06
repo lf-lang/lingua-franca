@@ -168,7 +168,7 @@ federated reactor {
 
   // Transient federate
   @transient
-  @maxwait(100ms)
+  @maxwait(100 ms)
   mid = new Middle()
 
   // Connections
