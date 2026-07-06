@@ -86,6 +86,9 @@ reactor Middle {
     if (self->count == 2) {
       lf_stop();
     }
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in event at tag (%lld, %u).",
+        in->intended_tag.time, in->intended_tag.microstep);
   =}
 }
 
@@ -109,10 +112,16 @@ reactor Down {
 
   reaction(join) {=
     self->count_join++;
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: federate Down received a tardy join event at tag (%lld, %u).",
+        join->intended_tag.time, join->intended_tag.microstep);
   =}
 
   reaction(in) {=
     self->count_in_mid_reactions++;
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: federate Down received a tardy in event at tag (%lld, %u).",
+        in->intended_tag.time, in->intended_tag.microstep);
   =}
 
   reaction(shutdown) {=
@@ -141,7 +150,7 @@ federated reactor {
 
   // Persistent downstream and upstream federates of the transient
   up = new Up()
-  @maxwait(100 ms)
+  @maxwait(200 ms)
   down = new Down()
 
   // Transient federate

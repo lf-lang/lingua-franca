@@ -64,6 +64,9 @@ reactor Persistence {
               self->middle_state.state_count);
     }
     self->middle_first_join = false;
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Persistence received a tardy in_middle_join event at tag (%lld, %u).",
+        in_middle_join->intended_tag.time, in_middle_join->intended_tag.microstep);
   =}
 
   reaction(in_from_middle) {=
@@ -71,6 +74,9 @@ reactor Persistence {
     self->middle_state.state_count = in_from_middle->value.state_count;
     lf_print("Latest received state: {%c,%d}", self->middle_state.state_char,
               self->middle_state.state_count);
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Persistence received a tardy in_from_middle event at tag (%lld, %u).",
+        in_from_middle->intended_tag.time, in_from_middle->intended_tag.microstep);
   =}
 }
 
@@ -115,6 +121,9 @@ reactor Middle {
           self->middle_state.state_char,
           self->middle_state.state_count,
           lf_time_logical_elapsed());
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in_from_persistence event at tag (%lld, %u).",
+        in_from_persistence->intended_tag.time, in_from_persistence->intended_tag.microstep);
   =}
 
   // When an input is received, the internal state is updated, and then sent to
@@ -131,6 +140,9 @@ reactor Middle {
     if (self->middle_state.state_count == 4) {
       lf_stop();
     }
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in event at tag (%lld, %u).",
+        in->intended_tag.time, in->intended_tag.microstep);
   =}
 }
 
@@ -156,11 +168,17 @@ reactor Down {
   reaction(join) {=
     self->count_join++;
     lf_print("Down count join %d", self->count_join);
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Down received a tardy join event at tag (%lld, %u).",
+        join->intended_tag.time, join->intended_tag.microstep);
   =}
 
   reaction(in) {=
     self->count_in_mid_reactions++;
     lf_print("Down in %d", self->count_in_mid_reactions);
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: Federate Down received a tardy in event at tag (%lld, %u).",
+        in->intended_tag.time, in->intended_tag.microstep);
   =}
 
   reaction(shutdown) {=

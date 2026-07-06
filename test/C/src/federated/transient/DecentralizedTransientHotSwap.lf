@@ -75,6 +75,9 @@ reactor Middle {
   reaction(in) -> out {=
     self->count++;
     lf_set(out, in->value);
+  =} tardy {=
+    lf_print_error_and_exit("Fatal error: federate Middle received a tardy in event at tag (%lld, %u).",
+        in->intended_tag.time, in->intended_tag.microstep);
   =}
 }
 
