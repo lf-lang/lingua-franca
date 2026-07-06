@@ -192,7 +192,7 @@ federated reactor {
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.in
-  mid.outp -> down.inp
+  mid.outp ~> down.inp
   persistence.out_to_middle -> mid.in_from_persistence
   mid.out_to_persistence -> persistence.in_from_middle
 }
