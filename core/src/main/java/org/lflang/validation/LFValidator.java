@@ -759,6 +759,8 @@ public class LFValidator extends BaseLFValidator {
         this.target = Target.UC;
       } else {
         error("Target declaration is required in .lf files.", Literals.MODEL__TARGET);
+        // Avoid NPEs in subsequent @Check methods that rely on `this.target`.
+        this.target = Target.Python;
       }
     }
     // Since we're doing a fast check, we only want to update
