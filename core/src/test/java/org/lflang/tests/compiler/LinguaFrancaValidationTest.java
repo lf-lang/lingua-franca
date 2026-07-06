@@ -85,7 +85,11 @@ public class LinguaFrancaValidationTest {
    * errors.
    */
   private Model parseWithoutError(String s, String fileName) throws Exception {
-    Model model = parser.parse(s, URI.createURI(fileName), resourceSetProvider.get());
+    URI uri = URI.createURI(fileName);
+    if (!uri.isFile() && !uri.isPlatform()) {
+      uri = URI.createURI("file:/" + fileName);
+    }
+    Model model = parser.parse(s, uri, resourceSetProvider.get());
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
         model.eResource().getErrors().isEmpty(),
