@@ -754,6 +754,13 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkModel(Model model) {
+    if (model.getTarget() == null) {
+      if (isUlfFile(model)) {
+        this.target = Target.UC;
+      } else {
+        error("Target declaration is required in .lf files.", Literals.MODEL__TARGET);
+      }
+    }
     // Since we're doing a fast check, we only want to update
     // if the model info hasn't been initialized yet. If it has,
     // we use the old information and update it during a normal
@@ -1319,6 +1326,9 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkTargetDecl(TargetDecl target) throws IOException {
+    if (isUlfFile(target) && target.getConfig() != null) {
+      error("Target properties are not allowed in .ulf files.", Literals.TARGET_DECL__CONFIG);
+    }
     Optional<Target> targetOpt = Target.forName(target.getName());
     if (targetOpt.isEmpty()) {
       error("Unrecognized target: " + target.getName(), Literals.TARGET_DECL__NAME);
@@ -2159,6 +2169,11 @@ public class LFValidator extends BaseLFValidator {
     }
     // Type must be given in a code body
     return type1.getCode().getBody().equals(type2.getCode().getBody());
+  }
+
+  /** Return true if the given object is in a file with the .ulf extension. */
+  private boolean isUlfFile(EObject object) {
+    return "ulf".equalsIgnoreCase(object.eResource().getURI().fileExtension());
   }
 
   //////////////////////////////////////////////////////////////
