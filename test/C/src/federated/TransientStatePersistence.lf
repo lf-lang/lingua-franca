@@ -9,6 +9,9 @@ target C {
   timeout: 2900 ms
 }
 
+import TransientExec from "TransientDownstreamWithTimer.lf"
+import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+
 preamble {=
   #include <stdlib.h>
   #include <string.h>
@@ -18,34 +21,6 @@ preamble {=
     int state_count;
   } federate_state_t;
 =}
-
-/** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
-  timer t(launch_time, 0)
-
-  reaction(t) {=
-    // Construct the command to launch the transient federate
-    char mid_launch_cmd[512];
-    snprintf(mid_launch_cmd, sizeof(mid_launch_cmd),
-        "%s/bin/federate__%s -i %s",
-        LF_FED_PACKAGE_DIRECTORY,
-        self->fed_instance_name,
-        lf_get_federation_id()
-    );
-
-    lf_print("Launching federate %s at physical time " PRINTF_TIME ".",
-        self->fed_instance_name, lf_time_physical());
-
-    int status = system(mid_launch_cmd);
-
-    // Exit if error
-    if (status == 0) {
-        lf_print("Successfully launched federate__%s.", self->fed_instance_name);
-    } else {
-        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
-    }
-  =}
-}
 
 reactor Persistence {
   state middle_state: federate_state_t = {'A', 0}
@@ -70,22 +45,6 @@ reactor Persistence {
     self->middle_state.state_count = in_from_middle->value.state_count;
     lf_print("Latest received state: {%c,%d}", self->middle_state.state_char,
               self->middle_state.state_count);
-  =}
-}
-
-/**
- * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
- * out output port.
- */
-reactor Up(period: time = 500 ms) {
-  output out: int
-  timer t(0, period)
-  state count: int = 0
-
-  reaction(t) -> out {=
-    lf_set(out, self->count);
-    self->count++;
-    lf_print("Up timer sent %d", self->count);
   =}
 }
 

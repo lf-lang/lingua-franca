@@ -14,40 +14,14 @@ target C {
   coordination: decentralized
 }
 
-import Up from "DecentralizedTransientDownstreamWithTimer.lf"
-import Middle from "DecentralizedTransientDownstreamWithTimer.lf"
+import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+import Middle from "TransientDecentralizedDownstreamWithTimer.lf"
+import TransientExec from "TransientDownstreamWithTimer.lf"
 
 preamble {=
   #include <stdlib.h>
   #include <string.h>
 =}
-
-/** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
-  timer t(launch_time, 0)
-
-  reaction(t) {=
-    char mid_launch_cmd[512];
-    snprintf(mid_launch_cmd, sizeof(mid_launch_cmd),
-        "%s/bin/federate__%s -i %s",
-        LF_FED_PACKAGE_DIRECTORY,
-        self->fed_instance_name,
-        lf_get_federation_id()
-    );
-
-    lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
-        self->fed_instance_name, lf_time_physical());
-
-    int status = system(mid_launch_cmd);
-
-    // Exit if error
-    if (status == 0) {
-        lf_print("Successfully launched federate__%s.", self->fed_instance_name);
-    } else {
-        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
-    }
-  =}
-}
 
 /**
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
@@ -72,21 +46,21 @@ reactor Down {
   reaction(join) {=
     self->count_join++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy join event at tag (%lld, %u).",
+    lf_print_error_and_exit("Fatal error: federate Down received a tardy join event at tag " PRINTF_TAG ".",
         join->intended_tag.time, join->intended_tag.microstep);
   =}
 
   reaction(in_mid) {=
     self->count_in_mid_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy in_mid event at tag (%lld, %u).",
+    lf_print_error_and_exit("Fatal error: federate Down received a tardy in_mid event at tag " PRINTF_TAG ".",
         in_mid->intended_tag.time, in_mid->intended_tag.microstep);
   =}
 
   reaction(in_up) {=
     self->count_in_up_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy in_up event at tag (%lld, %u).",
+    lf_print_error_and_exit("Fatal error: federate Down received a tardy in_up event at tag " PRINTF_TAG ".",
         in_up->intended_tag.time, in_up->intended_tag.microstep);
   =}
 

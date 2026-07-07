@@ -10,6 +10,8 @@ target C {
   timeout: 3 s
 }
 
+import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+
 preamble {=
   #include <stdlib.h>
   #include <string.h>
@@ -41,21 +43,6 @@ reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instanc
     } else {
         lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
     }
-  =}
-}
-
-/**
- * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
- * output port out.
- */
-reactor Up(period: time = 500 ms) {
-  output out: int
-  timer t(0, period)
-  state count: int = 0
-
-  reaction(t) -> out {=
-    lf_set(out, self->count);
-    self->count++;
   =}
 }
 

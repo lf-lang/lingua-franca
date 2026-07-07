@@ -10,6 +10,9 @@ target Python {
   coordination: decentralized
 }
 
+import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+import TransientExec from "TransientDecentralizedDownstreamWithTimer.lf"
+
 preamble {=
   # The internal federate state to be persistent across executions
   class FederateState:
@@ -17,29 +20,6 @@ preamble {=
       self.state_char = state_char
       self.state_count = state_count
 =}
-
-/** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time = 0, fed_instance_name = "instance") {
-  preamble {=
-    import subprocess
-  =}
-  timer t(launch_time, 0)
-
-  reaction(t) {=
-    bin_dir = os.path.join(lf.package_directory(), "fed-gen",
-        "DecentralizedTransientStatePersistence", "bin")
-    launch_cmd = [os.path.join(bin_dir, "federate__" + self.fed_instance_name), "-i", lf.get_federation_id()]
-
-    print("Launching federate__{} at physical time {}.".format(self.fed_instance_name, lf.time.physical()))
-
-    result = self.subprocess.run(launch_cmd)
-    if result.returncode == 0:
-      print("Successfully launched federate__{}.".format(self.fed_instance_name))
-    else:
-      sys.stderr.write("Unable to launch federate__{}. Abort!\n".format(self.fed_instance_name))
-      sys.exit(1)
-  =}
-}
 
 reactor Persistence {
   state middle_state = {= FederateState('A', 0) =}
@@ -69,22 +49,6 @@ reactor Persistence {
   =} tardy {=
     sys.stderr.write("Fatal error: Federate Persistence received a tardy in_from_middle event.\n")
     sys.exit(1)
-  =}
-}
-
-/**
- * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
- * out output port.
- */
-reactor Up(period = 500 ms) {
-  output out
-  timer t(0, period)
-  state count = 0
-
-  reaction(t) -> out {=
-    out.set(self.count)
-    self.count += 1
-    print("Up timer sent {}".format(self.count))
   =}
 }
 
@@ -186,7 +150,7 @@ federated reactor {
   @maxwait(100 ms)
   persistence = new Persistence()
   // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
+  midExec = new TransientExec(launch_time = 1 s, federation_name = "TransientDecentralizedStatePersistence", fed_instance_name="mid")
 
   // Transient federate
   @transient

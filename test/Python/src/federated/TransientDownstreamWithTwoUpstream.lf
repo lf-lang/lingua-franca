@@ -13,31 +13,9 @@ target Python {
   auth: true
 }
 
-import Up from "TransientDownstreamWithTimer.lf"
+import Up from "TransientDecentralizedDownstreamWithTimer.lf"
 import Middle from "TransientDownstreamWithTimer.lf"
-
-/** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time = 0, fed_instance_name = "instance") {
-  preamble {=
-    import subprocess
-  =}
-  timer t(launch_time, 0)
-
-  reaction(t) {=
-    bin_dir = os.path.join(lf.package_directory(), "fed-gen",
-        "TransientDownstreamWithTwoUpstream", "bin")
-    launch_cmd = [os.path.join(bin_dir, "federate__" + self.fed_instance_name), "-i", lf.get_federation_id()]
-
-    print("Launching federate__{} at physical time {}.".format(self.fed_instance_name, lf.time.physical()))
-
-    result = self.subprocess.run(launch_cmd)
-    if result.returncode == 0:
-      print("Successfully launched federate__{}.".format(self.fed_instance_name))
-    else:
-      sys.stderr.write("Unable to launch federate__{}. Abort!\n".format(self.fed_instance_name))
-      sys.exit(1)
-  =}
-}
+import TransientExec from "TransientDecentralizedDownstreamWithTimer.lf"
 
 /**
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
@@ -97,7 +75,7 @@ reactor Down {
 
 federated reactor {
   // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
+  midExec = new TransientExec(launch_time = 1 s, federation_name = "TransientDownstreamWithTwoUpstream", fed_instance_name="mid")
 
   // Persistent downstream and upstream federates of the transient
   up1 = new Up()

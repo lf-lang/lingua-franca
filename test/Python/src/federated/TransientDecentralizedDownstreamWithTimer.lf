@@ -12,15 +12,14 @@ target Python {
 }
 
 /** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time = 0, fed_instance_name = "instance") {
+reactor TransientExec(launch_time = 0, federation_name = "TransientDecentralizedDownstreamWithTimer", fed_instance_name = "instance") {
   preamble {=
     import subprocess
   =}
   timer t(launch_time, 0)
 
   reaction(t) {=
-    bin_dir = os.path.join(lf.package_directory(), "fed-gen",
-        "DecentralizedTransientDownstreamWithTimer", "bin")
+    bin_dir = os.path.join(lf.package_directory(), "fed-gen", self.federation_name, "bin")
     launch_cmd = [os.path.join(bin_dir, "federate__" + self.fed_instance_name), "-i", lf.get_federation_id()]
 
     result = self.subprocess.run(launch_cmd)

@@ -11,39 +11,13 @@ target C {
   coordination: decentralized
 }
 
+import TransientExec from "TransientDownstreamWithTimer.lf"
+import Down from "TransientDecentralizedDownstreamWithTimer.lf"
+
 preamble {=
   #include <stdlib.h>
   #include <string.h>
 =}
-
-/** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
-  timer t(launch_time, 0)
-
-  reaction(t) {=
-    // Construct the command to launch the transient federate
-    char mid_launch_cmd[512];
-    snprintf(mid_launch_cmd, sizeof(mid_launch_cmd),
-        "%s/bin/federate__%s -i %s",
-        LF_FED_PACKAGE_DIRECTORY,
-        self->fed_instance_name,
-        lf_get_federation_id()
-    );
-
-    lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
-        self->fed_instance_name, lf_time_physical());
-    lf_print("**** Launch command: %s", mid_launch_cmd);
-
-    int status = system(mid_launch_cmd);
-
-    // Exit if error
-    if (status == 0) {
-        lf_print("Successfully launched federate__%s.", self->fed_instance_name);
-    } else {
-        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
-    }
-  =}
-}
 
 /**
  * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
@@ -95,65 +69,13 @@ reactor Middle {
       lf_stop();
     }
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Middle received a tardy in event at tag (%lld, %u).",
+    lf_print_error_and_exit("Fatal error: federate Middle received a tardy in event at tag " PRINTF_TAG ".",
         in->intended_tag.time, in->intended_tag.microstep);
   =}
 
   reaction(inp) {=
     lf_print("Transient federate received value %d on port inp at logical time " PRINTF_TAG ".",
         inp->value, lf_tag().time, lf_tag().microstep);
-  =}
-}
-
-/**
- * Persistent federate, which is downstream of the transient. It has to keep reacting to its
- * internal timer and also to inputs from the tansient, if any.
- */
-reactor Down {
-  timer t(0, 500 ms)
-
-  input in: int
-  input join: int
-
-  state count_timer: int = 0
-  state count_join: int = 0
-  state count_in_mid_reactions: int = 0
-
-  reaction(t) {=
-    self->count_timer++;
-  =}
-
-  reaction(join) {=
-    self->count_join++;
-  =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy join event at tag (%lld, %u).",
-        join->intended_tag.time, join->intended_tag.microstep);
-  =}
-
-  reaction(in) {=
-    self->count_in_mid_reactions++;
-  =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy in event at tag (%lld, %u).",
-        in->intended_tag.time, in->intended_tag.microstep);
-  =}
-
-  reaction(shutdown) {=
-    // Check that the TAG has been successfully issued to Down
-    if (self->count_timer < 5) {
-      lf_print_error_and_exit("Down federate's timer reacted %d times, while it had to react more than %d times.",
-          self->count_timer, 5);
-    }
-
-    // Check that `Middle` have joined 2 times
-    if (self->count_join != 2) {
-      lf_print_error_and_exit("Transient federate did not join twice, but %d times!", self->count_join);
-    }
-
-    // Check that `Middle` have reacted correctly
-    if (self->count_in_mid_reactions < 4) {
-      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
-          self->count_in_mid_reactions);
-    }
   =}
 }
 
