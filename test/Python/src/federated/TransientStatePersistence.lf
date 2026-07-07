@@ -1,9 +1,9 @@
 /**
  * This LF program showcases and tests the persistance of the internal state of a transient federate
  * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
- * joins. Whenever the state (of type `FederateState`) changes, it notifies `Persistence`.
- * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
- * it receives the saved state and sets it. In this, the order of the reactions is important.
+ * joins. Whenever the state (of type `FederateState`) changes, it notifies `Persistence`. `Middle`
+ * notifies `Persistence` also when it joins. When `Middle` joins the second time or after, it
+ * receives the saved state and sets it. In this, the order of the reactions is important.
  */
 target Python {
   timeout: 2900 ms
@@ -28,7 +28,7 @@ reactor Persistence {
   input in_middle_join
   output out_to_middle
 
-  // Only send the previous state if it not the first time Middle joins
+  # Only send the previous state if it not the first time Middle joins
   reaction(in_middle_join) -> out_to_middle {=
     if not self.middle_first_join:
       out_to_middle.set(self.middle_state)
@@ -56,10 +56,10 @@ reactor Middle {
   output join
   state middle_state = {= FederateState('A', 0) =}
 
-  output out_to_persistence  // State Persistence
+  output out_to_persistence  # State Persistence
   input in_from_persistence
 
-  // Middle notifies its downstream that he joined
+  # Middle notifies its downstream that he joined
   reaction(startup) -> join {=
     join.set(True)
   =}
@@ -70,8 +70,8 @@ reactor Middle {
         self.middle_state.state_char, self.middle_state.state_count, lf.time.logical_elapsed()))
   =}
 
-  // When an input is received, the internal state is updated, and then sent to
-  // Persistance.
+  # When an input is received, the internal state is updated, and then sent to
+  # Persistance.
   reaction(inp) -> out, out_to_persistence {=
     self.middle_state.state_char = chr(ord(self.middle_state.state_char) + 1)
     self.middle_state.state_count += 2
@@ -124,19 +124,20 @@ reactor Down {
 }
 
 federated reactor {
-  // Persistent downstream and upstream federates of the transient
-  up = new Up()
+  up = new Up()  # Persistent downstream and upstream federates of the transient
   down = new Down()
   persistence = new Persistence()
-  // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, federation_name = "TransientStatePersistence", fed_instance_name="mid")
+  # Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(
+      launch_time = 1 s,
+      federation_name="TransientStatePersistence",
+      fed_instance_name="mid")
 
-  // Transient federate
+  # Transient federate
   @transient
   mid = new Middle()
 
-  // Connections
-  up.out -> mid.inp
+  up.out -> mid.inp  # Connections
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.inp

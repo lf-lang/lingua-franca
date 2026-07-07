@@ -33,8 +33,8 @@ reactor Up(period = 500 ms) {
 
 /**
  * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to
- * input port `inp_val`, then stops. It will execute twice during the lifetime of the federation. The
- * second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
+ * input port `inp_val`, then stops. It will execute twice during the lifetime of the federation.
+ * The second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
  * notifies `Down`.
  */
 reactor Middle {
@@ -44,8 +44,8 @@ reactor Middle {
   output join
   state count = 0
 
-  // Middle notifies its downstream that he joined, but make sure first that the effective start
-  // tag is correct
+  # Middle notifies its downstream that he joined, but make sure first that the effective start
+  # tag is correct
   reaction(startup) -> join {=
     t = lf.tag_start_effective()
     if t.time < lf.time.start():
@@ -55,7 +55,7 @@ reactor Middle {
     join.set(0)
   =}
 
-  // Pass the input value to the output port and stop spontaneously after two reactions to inp_val
+  # Pass the input value to the output port and stop spontaneously after two reactions to inp_val
   reaction(inp_val) -> out {=
     self.count += 1
     out.set(inp_val.value)
@@ -74,21 +74,22 @@ reactor Middle {
 }
 
 federated reactor {
-  // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, federation_name = "TransientDecentralizedWithPhysicalConnection", fed_instance_name="mid")
+  # Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(
+      launch_time = 1 s,
+      federation_name="TransientDecentralizedWithPhysicalConnection",
+      fed_instance_name="mid")
 
-  // Persistent downstream and upstream federates of the transient
-  up = new Up()
+  up = new Up()  # Persistent downstream and upstream federates of the transient
   @maxwait(200 ms)
   down = new Down()
 
-  // Transient federate
+  # Transient federate
   @transient
-  @maxwait(100ms)
+  @maxwait(100 ms)
   mid = new Middle()
 
-  // Connections
-  up.out -> mid.inp_val
+  up.out -> mid.inp_val  # Connections
   mid.join -> down.join
   mid.out -> down.inp
   up.outp ~> mid.inp

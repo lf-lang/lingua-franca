@@ -28,8 +28,8 @@ reactor Middle {
   output join
   state count = 0
 
-  // Middle notifies its downstream that he joined, but make sure first that the effective start
-  // tag is correct
+  # Middle notifies its downstream that he joined, but make sure first that the effective start
+  # tag is correct
   reaction(startup) -> join {=
     t = lf.tag_start_effective()
     if t.time < lf.time.start():
@@ -39,7 +39,7 @@ reactor Middle {
     join.set(0)
   =}
 
-  // Pass the input value to the output port
+  # Pass the input value to the output port
   reaction(inp) -> out {=
     self.count += 1
     out.set(inp.value)
@@ -47,19 +47,20 @@ reactor Middle {
 }
 
 federated reactor {
-  // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, federation_name = "TransientHotSwap", fed_instance_name="mid")
+  # Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(
+      launch_time = 1 s,
+      federation_name="TransientHotSwap",
+      fed_instance_name="mid")
 
-  // Persistent downstream and upstream federates of the transient
-  up = new Up()
+  up = new Up()  # Persistent downstream and upstream federates of the transient
   down = new Down()
 
-  // Transient federate
+  # Transient federate
   @transient
   mid = new Middle()
 
-  // Connections
-  up.out -> mid.inp
+  up.out -> mid.inp  # Connections
   mid.join -> down.join
   mid.out -> down.inp
 }

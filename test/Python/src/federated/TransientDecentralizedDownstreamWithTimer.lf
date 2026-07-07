@@ -12,7 +12,10 @@ target Python {
 }
 
 /** Persistent federate that is responsible for lauching the transient federate */
-reactor TransientExec(launch_time = 0, federation_name = "TransientDecentralizedDownstreamWithTimer", fed_instance_name = "instance") {
+reactor TransientExec(
+    launch_time=0,
+    federation_name="TransientDecentralizedDownstreamWithTimer",
+    fed_instance_name="instance") {
   preamble {=
     import subprocess
   =}
@@ -58,8 +61,8 @@ reactor Middle {
   output join
   state count = 0
 
-  // Middle notifies its downstream that he joined, but make sure first that the effective start
-  // tag is correct
+  # Middle notifies its downstream that he joined, but make sure first that the effective start
+  # tag is correct
   reaction(startup) -> join {=
     t = lf.tag_start_effective()
     if t.time < lf.time.start():
@@ -69,7 +72,7 @@ reactor Middle {
     join.set(0)
   =}
 
-  // Pass the input value to the output port and stop spontaneously after two reactions to inp
+  # Pass the input value to the output port and stop spontaneously after two reactions to inp
   reaction(inp) -> out {=
     self.count += 1
     out.set(inp.value)
@@ -135,20 +138,20 @@ reactor Down {
 }
 
 federated reactor {
-  // Persistent federate that is responsible for lauching the transient once, after 1s
+  # Persistent federate that is responsible for lauching the transient once, after 1s
   midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
 
-  // Persistent downstream and upstream federates of the transient
+  # Persistent downstream and upstream federates of the transient
   up = new Up()
   @maxwait(200 ms)
   down = new Down()
 
-  // Transient federate
+  # Transient federate
   @transient
   @maxwait(100 ms)
   mid = new Middle()
 
-  // Connections
+  # Connections
   up.out -> mid.inp
   mid.join -> down.join
   mid.out -> down.inp

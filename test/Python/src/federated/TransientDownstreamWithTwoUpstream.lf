@@ -74,20 +74,21 @@ reactor Down {
 }
 
 federated reactor {
-  // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, federation_name = "TransientDownstreamWithTwoUpstream", fed_instance_name="mid")
+  # Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(
+      launch_time = 1 s,
+      federation_name="TransientDownstreamWithTwoUpstream",
+      fed_instance_name="mid")
 
-  // Persistent downstream and upstream federates of the transient
-  up1 = new Up()
+  up1 = new Up()  # Persistent downstream and upstream federates of the transient
   up2 = new Up(period = 300 msec)
   down = new Down()
 
-  // Transient federate
+  # Transient federate
   @transient
   mid = new Middle()
 
-  // Connections
-  up1.out -> mid.inp
+  up1.out -> mid.inp  # Connections
   mid.join -> down.join
   mid.out -> down.in_mid
   up2.out -> down.in_up
