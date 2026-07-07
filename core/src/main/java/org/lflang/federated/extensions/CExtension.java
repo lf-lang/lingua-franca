@@ -232,6 +232,12 @@ public class CExtension implements FedTargetExtension {
           result.pr("lf_set(" + receiveRef + ", std::move(" + value + "));");
         }
       }
+      case CUSTOM -> {
+        messageReporter
+            .at(connection.getDefinition())
+            .error("Custom serialization is not supported for the C target.");
+        return;
+      }
     }
   }
 
@@ -468,6 +474,12 @@ public class CExtension implements FedTargetExtension {
                 sendRef, typeStr, CExtensionUtils.isSharedPtrType(type, types)));
         result.pr("size_t _lf_message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
+      }
+      case CUSTOM -> {
+        messageReporter
+            .at(connection.getDefinition())
+            .error("Custom serialization is not supported for the C target.");
+        return;
       }
     }
   }

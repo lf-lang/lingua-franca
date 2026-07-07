@@ -1,12 +1,15 @@
 package org.lflang.tests.compiler;
 
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.xtext.diagnostics.Severity;
 import org.eclipse.xtext.testing.InjectWith;
 import org.eclipse.xtext.testing.extensions.InjectionExtension;
@@ -59,6 +62,8 @@ public class LinguaFrancaValidationTest {
 
   @Inject ParseHelper<Model> parser;
 
+  @Inject Provider<ResourceSet> resourceSetProvider;
+
   @Inject ValidationTestHelper validator;
 
   /**
@@ -68,6 +73,23 @@ public class LinguaFrancaValidationTest {
    */
   private Model parseWithoutError(String s) throws Exception {
     Model model = parser.parse(s);
+    Assertions.assertNotNull(model);
+    Assertions.assertTrue(
+        model.eResource().getErrors().isEmpty(),
+        "Encountered unexpected error while parsing: " + model.eResource().getErrors());
+    return model;
+  }
+
+  /**
+   * Helper function to parse a Lingua Franca program with a specific file name and expect no parse
+   * errors.
+   */
+  private Model parseWithoutError(String s, String fileName) throws Exception {
+    URI uri = URI.createURI(fileName);
+    if (!uri.isFile() && !uri.isPlatform()) {
+      uri = URI.createURI("file:/" + fileName);
+    }
+    Model model = parser.parse(s, uri, resourceSetProvider.get());
     Assertions.assertNotNull(model);
     Assertions.assertTrue(
         model.eResource().getErrors().isEmpty(),
@@ -2184,6 +2206,44 @@ public class LinguaFrancaValidationTest {
         LfPackage.eINSTANCE.getTargetDecl(),
         null,
         "Unrecognized target: Pjthon");
+  }
+
+  @Test
+  public void testMissingTargetDeclInLfFile() throws Exception {
+    String testCase =
+        """
+            main reactor {}
+        """;
+    validator.assertError(
+        parseWithoutError(testCase),
+        LfPackage.eINSTANCE.getModel(),
+        null,
+        "Target declaration is required in .lf files.");
+  }
+
+  @Test
+  public void testMissingTargetDeclInUlfFile() throws Exception {
+    String testCase =
+        """
+            main reactor {}
+        """;
+    validator.assertNoIssues(parseWithoutError(testCase, "Foo.ulf"));
+  }
+
+  @Test
+  public void testTargetPropertiesInUlfFile() throws Exception {
+    String testCase =
+        """
+            target uC {
+              platform: "Zephyr"
+            }
+            main reactor {}
+        """;
+    validator.assertError(
+        parseWithoutError(testCase, "Foo.ulf"),
+        LfPackage.eINSTANCE.getTargetDecl(),
+        null,
+        "Target properties are not allowed in .ulf files.");
   }
 
   @Test
