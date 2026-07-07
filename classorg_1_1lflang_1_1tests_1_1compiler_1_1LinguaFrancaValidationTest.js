@@ -62,6 +62,8 @@ var classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest =
     [ "testMissingName", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ad84d0b2d482ec0343278623e542b3fda", null ],
     [ "testMissingOutputType", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#aba8096603f1f7e5e1b5555a6c2c134d9", null ],
     [ "testMissingStateType", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#aa89f4863eb380088741e5c85d2b65050", null ],
+    [ "testMissingTargetDeclInLfFile", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a31a8c679873e274c8d8dcb8ec4abe05b", null ],
+    [ "testMissingTargetDeclInUlfFile", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a734315ccaf386b6430898076af22ff16", null ],
     [ "testModeActionNamespace", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a90762c2c3fe4d9c7de388bdd59e71981", null ],
     [ "testModeInstanceNamespace", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a3fae64618a619e468caffa8d2ed8b240", null ],
     [ "testModeStateNamespace", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a1c4db600f96864faf1c13eee97ad4a91", null ],
@@ -75,6 +77,7 @@ var classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest =
     [ "testOverflowingDeadline", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a57b63627d5ef43a26651bf0c40d3d9b2", null ],
     [ "testPreambleVisibility", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a95a6158816147cb539509d075a7d7833", null ],
     [ "testTargetParamNotSupportedForTarget", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#adb12790fe3bdfdc47d4c094cd4ecd22a", null ],
+    [ "testTargetPropertiesInUlfFile", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ae29cded6728e9e32ebf29655f5f2a660", null ],
     [ "testUnnamedReactor", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ab9ba81f21a3efe59a9c5c82f50f46e67", null ],
     [ "testUnrecognizedTarget", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#adc802bf78e3365472d2f38ffc290f84e", null ],
     [ "testUnspecifiedTransitionType", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ac31be7525769951713659bf672139458", null ],
@@ -89,5 +92,6 @@ var classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest =
     [ "parser", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#aab1f280cc27f866858fa1783476257a8", null ],
     [ "primitiveTypeToKnownBad", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ad0fe31be71e631bccf3352d33e7a1b6c", null ],
     [ "primitiveTypeToKnownGood", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ac0cd985a2873c40043247e4b808f3658", null ],
+    [ "resourceSetProvider", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#a182aad0413d3b69cbee41d2cd7a8b7b2", null ],
     [ "validator", "classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html#ae3a5fc1183974f937f78feca437afc3e", null ]
 ];

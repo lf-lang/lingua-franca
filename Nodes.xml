@@ -12819,6 +12819,16 @@
               <Anchor>aa89f4863eb380088741e5c85d2b65050</Anchor>
              </Node>
              <Node>
+              <Name>testMissingTargetDeclInLfFile</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a31a8c679873e274c8d8dcb8ec4abe05b</Anchor>
+             </Node>
+             <Node>
+              <Name>testMissingTargetDeclInUlfFile</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a734315ccaf386b6430898076af22ff16</Anchor>
+             </Node>
+             <Node>
               <Name>testModeActionNamespace</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
               <Anchor>a90762c2c3fe4d9c7de388bdd59e71981</Anchor>
@@ -12882,6 +12892,11 @@
               <Name>testTargetParamNotSupportedForTarget</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
               <Anchor>adb12790fe3bdfdc47d4c094cd4ecd22a</Anchor>
+             </Node>
+             <Node>
+              <Name>testTargetPropertiesInUlfFile</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>ae29cded6728e9e32ebf29655f5f2a660</Anchor>
              </Node>
              <Node>
               <Name>testUnnamedReactor</Name>
@@ -12952,6 +12967,11 @@
               <Name>primitiveTypeToKnownGood</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
               <Anchor>ac0cd985a2873c40043247e4b808f3658</Anchor>
+             </Node>
+             <Node>
+              <Name>resourceSetProvider</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a182aad0413d3b69cbee41d2cd7a8b7b2</Anchor>
              </Node>
              <Node>
               <Name>validator</Name>
@@ -47475,6 +47495,16 @@
                       <Anchor>aa89f4863eb380088741e5c85d2b65050</Anchor>
                      </Node>
                      <Node>
+                      <Name>testMissingTargetDeclInLfFile</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a31a8c679873e274c8d8dcb8ec4abe05b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>testMissingTargetDeclInUlfFile</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a734315ccaf386b6430898076af22ff16</Anchor>
+                     </Node>
+                     <Node>
                       <Name>testModeActionNamespace</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
                       <Anchor>a90762c2c3fe4d9c7de388bdd59e71981</Anchor>
@@ -47538,6 +47568,11 @@
                       <Name>testTargetParamNotSupportedForTarget</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
                       <Anchor>adb12790fe3bdfdc47d4c094cd4ecd22a</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>testTargetPropertiesInUlfFile</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>ae29cded6728e9e32ebf29655f5f2a660</Anchor>
                      </Node>
                      <Node>
                       <Name>testUnnamedReactor</Name>
@@ -47608,6 +47643,11 @@
                       <Name>primitiveTypeToKnownGood</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
                       <Anchor>ac0cd985a2873c40043247e4b808f3658</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>resourceSetProvider</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a182aad0413d3b69cbee41d2cd7a8b7b2</Anchor>
                      </Node>
                      <Node>
                       <Name>validator</Name>

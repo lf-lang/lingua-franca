@@ -1,5 +1,9 @@
 var NAVTREEINDEX24 =
 {
+"enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html#a00e34ca948aa1b2d2b4d6bc292dc6e8a":[4,5,1,0,4],
+"enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html#a97909410bf7eacc5082662f254652c80":[4,5,1,0,1],
+"enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html#aa3cb1b697a6c9dc6f66e190eb548f743":[4,5,1,0,3],
+"enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html#aa917223cce14756b2588db8e59fd5548":[4,5,1,0,2],
 "enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html#abfc0321a5081138d5e9c5e6cd3ac52b7":[4,5,1,0,5],
 "enumorg_1_1lflang_1_1generator_1_1LFGeneratorContext_1_1Mode.html#acb26ccacd8478e7cad0195b9a1aec7fc":[4,5,1,0,0],
 "enumorg_1_1lflang_1_1scoping_1_1LFScopeProviderImpl_1_1RefType.html":[5,0,0,0,9,2,0],
@@ -245,9 +249,5 @@ var NAVTREEINDEX24 =
 "enumorg_1_1lflang_1_1tests_1_1LFTest_1_1Result.html#afdf7a04f90611a4ddae9f102652d5908":[4,8,17,1,0],
 "enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html":[4,8,40,1],
 "enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html#a18e0811ea4d9028a3c1052ae73fee0fb":[4,8,40,1,1],
-"enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html#a3c4018abcc7ca37fe00ef8f848fec63f":[4,8,40,1,0],
-"enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html":[4,8,42,0],
-"enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a023375258bd01eace76b5177fb17079d":[4,8,42,0,19],
-"enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a28b74ca25525d0f21aa8d7ed4836c29a":[4,8,42,0,26],
-"enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a2ab09c75c7fdee228705599a1564ab2a":[4,8,42,0,3]
+"enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html#a3c4018abcc7ca37fe00ef8f848fec63f":[4,8,40,1,0]
 };

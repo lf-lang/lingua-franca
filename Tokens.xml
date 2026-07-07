@@ -40750,6 +40750,16 @@
       <Name>resourceSetProvider</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>a182aad0413d3b69cbee41d2cd7a8b7b2</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>resourceSetProvider</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
       <Scope>org.lflang.tests.compiler.TargetConfigTests</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1TargetConfigTests.html</Path>
@@ -46084,6 +46094,28 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>testMissingTargetDeclInLfFile</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>a31a8c679873e274c8d8dcb8ec4abe05b</Anchor>
+    <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>testMissingTargetDeclInUlfFile</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>a734315ccaf386b6430898076af22ff16</Anchor>
+    <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>testModeActionNamespace</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -46364,6 +46396,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
     <Anchor>adb12790fe3bdfdc47d4c094cd4ecd22a</Anchor>
+    <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>testTargetPropertiesInUlfFile</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.compiler.LinguaFrancaValidationTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+    <Anchor>ae29cded6728e9e32ebf29655f5f2a660</Anchor>
     <DeclaredIn>LinguaFrancaValidationTest.java</DeclaredIn>
   </Token>
   <Token>

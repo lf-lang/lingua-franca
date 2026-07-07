@@ -37058,6 +37058,20 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>testMissingTargetDeclInLfFile</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a31a8c679873e274c8d8dcb8ec4abe05b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>testMissingTargetDeclInUlfFile</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a734315ccaf386b6430898076af22ff16</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>testModeActionNamespace</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
       <anchor>a90762c2c3fe4d9c7de388bdd59e71981</anchor>
@@ -37145,6 +37159,13 @@
       <name>testTargetParamNotSupportedForTarget</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
       <anchor>adb12790fe3bdfdc47d4c094cd4ecd22a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>testTargetPropertiesInUlfFile</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>ae29cded6728e9e32ebf29655f5f2a660</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -37243,6 +37264,13 @@
       <name>primitiveTypeToKnownGood</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
       <anchor>ac0cd985a2873c40043247e4b808f3658</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" protection="package">
+      <type>Provider&lt; ResourceSet &gt;</type>
+      <name>resourceSetProvider</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a182aad0413d3b69cbee41d2cd7a8b7b2</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable" protection="package">
