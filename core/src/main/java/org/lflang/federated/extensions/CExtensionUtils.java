@@ -547,6 +547,9 @@ public class CExtensionUtils {
           var ROSSerializer = new FedROS2CPPSerialization();
           code.pr(ROSSerializer.generatePreambleForSupport().toString());
         }
+        case CUSTOM -> {
+          // Custom serialization is only supported for the Python target.
+        }
       }
     }
     return code.getCode();
@@ -557,7 +560,7 @@ public class CExtensionUtils {
     CodeBuilder code = new CodeBuilder();
     for (SupportedSerializers serializer : federate.enabledSerializers) {
       switch (serializer) {
-        case NATIVE, PROTO -> {
+        case NATIVE, PROTO, CUSTOM -> {
           // No CMake code is needed for now
         }
         case ROS2 -> {
