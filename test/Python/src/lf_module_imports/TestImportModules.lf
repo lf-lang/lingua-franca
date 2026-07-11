@@ -1,4 +1,4 @@
-# Test the import statement for packages installed in the local lf_modules directory with the import
+# Test the import statement for packages installed in the local lf-packages directory with the import
 # path enclosed in angle brackets
 target Python {
   timeout: 2 sec

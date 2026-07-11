@@ -8,7 +8,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 /**
  * Utility class for handling package-related URIs in the context of LF (Lingua Franca) libraries.
  * This class provides methods to build URIs for accessing library files based on their location in
- * a project structure, searching "build/lfc_include", "lf_modules", and the LF_MODULES environment
+ * a project structure, searching "build/lfc_include", "lf-packages", and the LF_PACKAGES environment
  * variable for library inclusion.
  * @ingroup Utilities
  */
@@ -17,8 +17,8 @@ public class ImportUtil {
   /**
    * Build a package URI based on the provided URI string and resource. This traverses upwards from
    * the current resource URI until it finds the nearest parent directory named "src", then searches
-   * for the imported package under {@code <root>/build/lfc_include}, {@code <root>/lf_modules}, and
-   * the {@code LF_MODULES} environment variable.
+   * for the imported package under {@code <root>/build/lfc_include}, {@code <root>/lf-packages}, and
+   * the {@code LF_PACKAGES} environment variable.
    *
    * @param uriStr A string representing the URI of the file. It must contain both the library name
    *     and file name, separated by a '/'.
@@ -40,7 +40,7 @@ public class ImportUtil {
    * similarly to the {@link #buildPackageURI}, but it accepts a direct source path instead of a
    * resource. It traverses upwards to locate the nearest parent directory named "src", then
    * searches for the imported package under {@code <root>/build/lfc_include}, {@code
-   * <root>/lf_modules}, and the {@code LF_MODULES} environment variable.
+   * <root>/lf-packages}, and the {@code LF_PACKAGES} environment variable.
    *
    * @param uriStr A string representing the URI of the file. It must contain both the library name
    *     and file name, separated by a '/'.
@@ -87,12 +87,12 @@ public class ImportUtil {
       return buildLfIncludePackage.resolve("src").resolve("lib").resolve(fileName);
     }
 
-    Path lfModulesPackage = root.resolve("lf_modules").resolve(packageName);
+    Path lfModulesPackage = root.resolve("lf-packages").resolve(packageName);
     if (Files.exists(lfModulesPackage)) {
       return lfModulesPackage.resolve("src").resolve("lib").resolve(fileName);
     }
 
-    String lfModulesEnv = System.getenv("LF_MODULES");
+    String lfModulesEnv = System.getenv("LF_PACKAGES");
     if (lfModulesEnv != null && !lfModulesEnv.isEmpty()) {
       Path envLfModulesPackage = Paths.get(lfModulesEnv).resolve(packageName);
       if (Files.exists(envLfModulesPackage)) {
