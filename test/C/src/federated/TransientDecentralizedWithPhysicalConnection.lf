@@ -95,9 +95,9 @@ federated reactor {
 
   // Connections
   up.out -> mid.in
-  @absent_after(300ms)
+  @absent_after(300 ms)
   mid.join -> down.join
-  @absent_after(350ms)
+  @absent_after(350 ms)
   mid.out -> down.in
   up.outp ~> mid.inp
 }
