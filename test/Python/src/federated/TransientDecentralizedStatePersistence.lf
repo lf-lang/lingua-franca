@@ -10,8 +10,8 @@ target Python {
   coordination: decentralized
 }
 
-import Up from "TransientDecentralizedDownstreamWithTimer.lf"
-import TransientExec from "TransientDecentralizedDownstreamWithTimer.lf"
+import Up from "TransientDownstreamWithTimer.lf"
+import TransientExec from "TransientDownstreamWithTimer.lf"
 
 preamble {=
   # The internal federate state to be persistent across executions

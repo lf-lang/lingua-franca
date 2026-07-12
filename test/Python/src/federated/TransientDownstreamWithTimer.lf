@@ -10,8 +10,43 @@ target Python {
   timeout: 3 s
 }
 
-import Up from "TransientDecentralizedDownstreamWithTimer.lf"
-import TransientExec from "TransientDecentralizedDownstreamWithTimer.lf"
+/**
+ * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
+ * output port out.
+ */
+reactor Up(period = 500 ms) {
+  output out
+  timer t(0, period)
+  state count = 0
+
+  reaction(t) -> out {=
+    out.set(self.count)
+    self.count += 1
+  =}
+}
+
+/** Persistent federate that is responsible for lauching the transient federate */
+reactor TransientExec(
+    launch_time=0,
+    federation_name="TransientDecentralizedDownstreamWithTimer",
+    fed_instance_name="instance") {
+  preamble {=
+    import subprocess
+  =}
+  timer t(launch_time, 0)
+
+  reaction(t) {=
+    bin_dir = os.path.join(lf.package_directory(), "fed-gen", self.federation_name, "bin")
+    launch_cmd = [os.path.join(bin_dir, "federate__" + self.fed_instance_name), "-i", lf.get_federation_id()]
+
+    result = self.subprocess.run(launch_cmd)
+    if result.returncode == 0:
+      print("Successfully launched {}.".format(self.fed_instance_name))
+    else:
+      sys.stderr.write("Unable to launch {}. Abort!\n".format(self.fed_instance_name))
+      sys.exit(1)
+  =}
+}
 
 /**
  * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to

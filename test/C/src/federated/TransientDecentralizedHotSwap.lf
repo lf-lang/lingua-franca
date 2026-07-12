@@ -13,7 +13,7 @@ target C {
   coordination: decentralized
 }
 
-import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+import Up from "TransientDownstreamWithTimer.lf"
 import Down from "TransientDecentralizedDownstreamWithTimer.lf"
 import TransientExec from "TransientDownstreamWithTimer.lf"
 
@@ -61,7 +61,7 @@ federated reactor {
 
   // Persistent downstream and upstream federates of the transient
   up = new Up()
-  @maxwait(350 ms)
+  @maxwait(0)
   down = new Down()
 
   // Transient federate
@@ -71,6 +71,8 @@ federated reactor {
 
   // Connections
   up.out -> mid.in
+  @absent_after(300ms)  
   mid.join -> down.join
+  @absent_after(350ms)
   mid.out -> down.in
 }

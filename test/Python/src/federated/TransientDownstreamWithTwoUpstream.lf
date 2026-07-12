@@ -13,9 +13,9 @@ target Python {
   auth: true
 }
 
-import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+import Up from "TransientDownstreamWithTimer.lf"
+import TransientExec from "TransientDownstreamWithTimer.lf"
 import Middle from "TransientDownstreamWithTimer.lf"
-import TransientExec from "TransientDecentralizedDownstreamWithTimer.lf"
 
 /**
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its

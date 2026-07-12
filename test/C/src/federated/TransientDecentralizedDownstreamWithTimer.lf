@@ -11,27 +11,13 @@ target C {
   coordination: decentralized
 }
 
+import Up from "TransientDownstreamWithTimer.lf"
 import TransientExec from "TransientDownstreamWithTimer.lf"
 
 preamble {=
   #include <stdlib.h>
   #include <string.h>
 =}
-
-/**
- * Persistent federate, upstream of the transient. It reacts to its timer by sending increments to
- * output port out.
- */
-reactor Up(period: time = 500 ms) {
-  output out: int
-  timer t(0, period)
-  state count: int = 0
-
-  reaction(t) -> out {=
-    lf_set(out, self->count);
-    self->count++;
-  =}
-}
 
 /**
  * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to
@@ -128,7 +114,7 @@ federated reactor {
 
   // Persistent downstream and upstream federates of the transient
   up = new Up()
-  @maxwait(350 ms)
+  @maxwait(0)
   down = new Down()
 
   // Transient federate
@@ -138,6 +124,8 @@ federated reactor {
 
   // Connections
   up.out -> mid.in
+  @absent_after(300ms)
   mid.join -> down.join
+  @absent_after(350ms)
   mid.out -> down.in
 }

@@ -12,7 +12,7 @@ target C {
   auth: true
 }
 
-import Up from "TransientDecentralizedDownstreamWithTimer.lf"
+import Up from "TransientDownstreamWithTimer.lf"
 import Down from "TransientDownstreamWithTimer.lf"
 import TransientExec from "TransientDownstreamWithTimer.lf"
 

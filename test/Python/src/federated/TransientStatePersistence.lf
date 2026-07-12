@@ -9,8 +9,8 @@ target Python {
   timeout: 2900 ms
 }
 
-import Up from "TransientDecentralizedDownstreamWithTimer.lf"
-import TransientExec from "TransientDecentralizedDownstreamWithTimer.lf"
+import Up from "TransientDownstreamWithTimer.lf"
+import TransientExec from "TransientDownstreamWithTimer.lf"
 
 preamble {=
   # The internal federate state to be persistent across executions
