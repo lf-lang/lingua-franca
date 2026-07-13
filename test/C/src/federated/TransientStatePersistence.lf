@@ -13,13 +13,18 @@ import Up from "TransientDownstreamWithTimer.lf"
 import TransientExec from "TransientDownstreamWithTimer.lf"
 
 preamble {=
-  #include <stdlib.h>
-  #include <string.h>
+    #include <stdlib.h>
+    #include <string.h>
+    // The internal federate state to be persistent across executions
+    // It is made idempotent
+  #ifndef FEDERATE_STATE_T_DEFINED
+  #define FEDERATE_STATE_T_DEFINED
   // The internal federate state to be persistent across executions
   typedef struct federate_state_t {
-    char state_char;
-    int state_count;
+      char state_char;
+      int state_count;
   } federate_state_t;
+  #endif
 =}
 
 reactor Persistence {
