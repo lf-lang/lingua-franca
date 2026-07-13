@@ -38,6 +38,13 @@ reactor Down {
     self.count_timer += 1
   =}
 
+  reaction(in_up) {=
+    self.count_in_up_reactions += 1
+  =} tardy {=
+    sys.stderr.write("Fatal error: federate Down received a tardy in_up event.\n")
+    sys.exit(1)
+  =}
+
   reaction(join) {=
     self.count_join += 1
   =} tardy {=
@@ -49,13 +56,6 @@ reactor Down {
     self.count_in_mid_reactions += 1
   =} tardy {=
     sys.stderr.write("Fatal error: federate Down received a tardy in_mid event.\n")
-    sys.exit(1)
-  =}
-
-  reaction(in_up) {=
-    self.count_in_up_reactions += 1
-  =} tardy {=
-    sys.stderr.write("Fatal error: federate Down received a tardy in_up event.\n")
     sys.exit(1)
   =}
 
@@ -105,6 +105,6 @@ federated reactor {
   mid.join -> down.join
   @absent_after(350 ms)
   mid.out -> down.in_mid
-  @absent_after(350 ms)
+  @absent_after(100 ms)
   up2.out -> down.in_up
 }
