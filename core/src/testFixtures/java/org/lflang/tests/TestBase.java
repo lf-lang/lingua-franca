@@ -69,9 +69,7 @@ public abstract class TestBase extends LfInjectedTestBase {
   @Inject TestRegistry testRegistry;
 
   /** Execution timeout enforced for all tests. */
-  protected long getMaxExecutionTimeSeconds() {
-    return 300;
-  }
+  private static final long MAX_EXECUTION_TIME_SECONDS = 300;
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -525,7 +523,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       stderr.start();
       stdout.start();
       long t0 = System.nanoTime();
-      var timeout = !p.waitFor(getMaxExecutionTimeSeconds(), TimeUnit.SECONDS);
+      var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
       test.setExecutionTimeNanoseconds(System.nanoTime() - t0);
       stdout.interrupt();
       stderr.interrupt();
