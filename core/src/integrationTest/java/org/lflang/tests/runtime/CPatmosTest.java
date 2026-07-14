@@ -26,6 +26,12 @@ public class CPatmosTest extends TestBase {
   }
 
   @Override
+  protected long getMaxExecutionTimeSeconds() {
+    // patemu is a cycle-accurate emulator and much slower than native execution.
+    return 600;
+  }
+
+  @Override
   protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
     final String SIMULATOR = "patemu";
 
