@@ -200,7 +200,7 @@ public class ImportUtil {
   }
 
   /**
-   * Return the reactor class name referenced by an {@link ImportedReactor}.
+   * Return the reactor class name referenced by an ImportedReactor.
    *
    * <p>During linking, {@code getReactorClass()} may be an unresolved proxy or null. Accessing the
    * linked object (or its name) can re-enter linking, so this method never resolves the
