@@ -351,6 +351,9 @@ public class ImportUtil {
   }
 
   private static Path resolvePackageFile(Path root, String packageName, Path relativeLibPath) {
-    return findPackageDirectory(root, packageName).resolve("src").resolve("lib").resolve(relativeLibPath);
+    return findPackageDirectory(root, packageName)
+        .resolve("src")
+        .resolve("lib")
+        .resolve(relativeLibPath);
   }
 }
