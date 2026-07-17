@@ -98,7 +98,7 @@ public class ImportUtil {
    *       directory (or subdirectory) are returned.
    * </ul>
    *
-   * <p>Returned values are {@code file:} URI strings (from {@link Path#toUri()}) so they round-trip
+   * <p>Returned values are {@code file:} URI strings so they round-trip
    * through {@code URI.createURI(...)} on all platforms.
    *
    * The latter case supports {@code import ReactorClassName from <packageName>} during linking,
