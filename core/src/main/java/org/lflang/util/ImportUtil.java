@@ -83,7 +83,7 @@ public class ImportUtil {
       throw new IllegalArgumentException("Missing library file name for import '" + uriStr + "'.");
     }
     Path root = findProjectRoot(FileUtil.toPath(resource));
-    return resolvePackageFile(root, uriPath.getName(0).toString(), relative).toString();
+    return resolvePackageFile(root, uriPath.getName(0).toString(), relative).toUri().toString();
   }
 
   /**
