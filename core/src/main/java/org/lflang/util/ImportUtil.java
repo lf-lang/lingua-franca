@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.nodemodel.ILeafNode;
@@ -17,8 +18,13 @@ import org.lflang.lf.LfPackage;
 /**
  * Utility class for handling package-related URIs in the context of LF (Lingua Franca) libraries.
  * This class provides methods to build URIs for accessing library files based on their location in
- * a project structure, searching "build/lfc_include", "lf-packages", and the LF_PACKAGES environment
- * variable for library inclusion.
+ * a project structure, searching {@code build/lfc_include}, {@code lf-packages}, and the {@code
+ * LF_PACKAGES} environment variable for library inclusion.
+ *
+ * <p>Package imports use the form {@code <package/...>} and are resolved under the package's {@code
+ * src/lib} directory. The last path segment may be a library file ({@code .lf} or {@code .ulf}). If
+ * it is not, {@code ReactorClassName.lf} is used as the file name, which supports both {@code
+ * import R from <package>} and imports that name a subdirectory such as {@code <package/subdir>}.
  *
  * @ingroup Utilities
  */
@@ -30,69 +36,66 @@ public class ImportUtil {
    * for the imported package under {@code <root>/build/lfc_include}, {@code <root>/lf-packages}, and
    * the {@code LF_PACKAGES} environment variable.
    *
-   * @param uriStr A string representing the URI of the file. It must contain both the library name
-   *     and file name, separated by a '/'.
+   * @param uriStr A package import path. The last segment must be a {@code .lf} or {@code .ulf}
+   *     file (e.g., {@code package/file.lf} or {@code package/subdir/file.lf}).
    * @param resource The resource from which the URI resolution should start.
    * @return The path to the imported library file.
-   * @throws IllegalArgumentException if the URI string does not contain both library and file
-   *     names, if no "src" directory is found, or if the package cannot be located.
+   * @throws IllegalArgumentException if the URI does not end in a library file, if no "src"
+   *     directory is found, or if the package cannot be located.
    */
   public static String buildPackageURI(String uriStr, Resource resource) {
     Path uriPath = parseImportUri(uriStr);
-    if (uriPath.getNameCount() < 2) {
-      throw new IllegalArgumentException("URI must contain both library name and file name.");
+    if (!lastSegmentIsLibraryFile(uriPath)) {
+      throw new IllegalArgumentException(
+          "URI must end with a .lf or .ulf library file name: '" + uriStr + "'.");
     }
-    String packageName = uriPath.getName(0).toString();
-    String fileName = uriPath.getName(1).toString();
     Path root = findProjectRoot(FileUtil.toPath(resource));
-    return resolvePackageFile(root, packageName, fileName).toString();
+    return resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null))
+        .toString();
   }
 
   /**
    * Like {@link #buildPackageURI(String, Resource)}, but allows the imported file name to be
-   * omitted. If {@code uriStr} has only one segment, then {@code defaultFileName} is used as the
-   * library file name inside {@code src/lib/}.
+   * omitted. If the last path segment is not a {@code .lf}/{@code .ulf} file, then {@code
+   * defaultFileName} is appended under {@code src/lib/} (and any intervening subdirectory
+   * segments).
    *
    * <p>This is used to support import statements of the form:
    *
    * <pre>{@code
    * import ReactorClassName from <packageName>
+   * import ReactorClassName from <packageName/subdir>
    * }</pre>
    *
-   * @param uriStr The package import string (e.g., {@code packageName} or {@code
-   *     packageName/file.lf}).
+   * @param uriStr The package import string (e.g., {@code packageName}, {@code
+   *     packageName/subdir}, or {@code packageName/file.lf}).
    * @param resource The resource from which the URI resolution should start.
-   * @param defaultFileName The file name to use if {@code uriStr} omits it.
+   * @param defaultFileName The file name to use if {@code uriStr} does not end in a library file.
    * @return The path to the imported library file.
    * @throws IllegalArgumentException if the URI string does not contain a package name, if no "src"
    *     directory is found, or if the package cannot be located.
    */
   public static String buildPackageURI(String uriStr, Resource resource, String defaultFileName) {
     Path uriPath = parseImportUri(uriStr);
-    if (uriPath.getNameCount() >= 2) {
-      // Explicit file name.
-      return buildPackageURI(uriStr, resource);
-    }
-
-    if (defaultFileName == null || defaultFileName.isBlank()) {
+    Path relative = relativeLibPath(uriPath, defaultFileName);
+    if (relative == null) {
       throw new IllegalArgumentException("Missing library file name for import '" + uriStr + "'.");
     }
-
-    String packageName = uriPath.getName(0).toString();
     Path root = findProjectRoot(FileUtil.toPath(resource));
-    return resolvePackageFile(root, packageName, defaultFileName).toString();
+    return resolvePackageFile(root, uriPath.getName(0).toString(), relative).toString();
   }
 
   /**
    * Resolve the library file path(s) for a package import.
    *
-   * <p>If {@code uriStr} contains an explicit file ({@code package/file.lf}), a single path is
-   * returned. If only a package name is given, then:
+   * <p>If {@code uriStr} ends with a {@code .lf}/{@code .ulf} file, a single path is returned
+   * (preserving any subdirectory segments). Otherwise:
    *
    * <ul>
-   *   <li>if {@code defaultFileName} is provided, that file under {@code src/lib/} is returned;
-   *   <li>otherwise all {@code .lf} files under the package's {@code src/lib/} directory are
-   *       returned.
+   *   <li>if {@code defaultFileName} is provided, that file is appended under {@code src/lib/} (and
+   *       any subdirectory segments);
+   *   <li>otherwise all {@code .lf}/{@code .ulf} files under the corresponding {@code src/lib}
+   *       directory (or subdirectory) are returned.
    * </ul>
    *
    * The latter case supports {@code import ReactorClassName from <packageName>} during linking,
@@ -103,34 +106,30 @@ public class ImportUtil {
     Path uriPath = parseImportUri(uriStr);
     Path root = findProjectRoot(FileUtil.toPath(resource));
     String packageName = uriPath.getName(0).toString();
+    Path relative = relativeLibPath(uriPath, defaultFileName);
 
-    if (uriPath.getNameCount() >= 2) {
-      return List.of(
-          resolvePackageFile(root, packageName, uriPath.getName(1).toString()).toString());
+    if (relative != null) {
+      return List.of(resolvePackageFile(root, packageName, relative).toString());
     }
 
-    if (defaultFileName != null && !defaultFileName.isBlank()) {
-      return List.of(resolvePackageFile(root, packageName, defaultFileName).toString());
-    }
-
-    Path packageDir = findPackageDirectory(root, packageName);
-    Path libDir = packageDir.resolve("src").resolve("lib");
+    // No explicit or default file: list library files in src/lib[/subdir].
+    Path libDir = resolvePackageLibDirectory(root, packageName, directoryPrefix(uriPath));
     if (!Files.isDirectory(libDir)) {
       throw new IllegalArgumentException(
-          "Package '" + packageName + "' has no src/lib directory at " + libDir + ".");
+          "Package '" + packageName + "' has no library directory at " + libDir + ".");
     }
 
     try (Stream<Path> files = Files.list(libDir)) {
       List<String> uris =
           files
               .filter(Files::isRegularFile)
-              .filter(path -> path.getFileName().toString().endsWith(".lf"))
+              .filter(path -> isLibraryFileName(path.getFileName().toString()))
               .map(Path::toString)
               .sorted()
               .toList();
       if (uris.isEmpty()) {
         throw new IllegalArgumentException(
-            "Package '" + packageName + "' has no .lf files in " + libDir + ".");
+            "Package '" + packageName + "' has no .lf/.ulf files in " + libDir + ".");
       }
       return uris;
     } catch (IOException e) {
@@ -146,13 +145,12 @@ public class ImportUtil {
    * searches for the imported package under {@code <root>/build/lfc_include}, {@code
    * <root>/lf-packages}, and the {@code LF_PACKAGES} environment variable.
    *
-   * @param uriStr A string representing the URI of the file. It must contain both the library name
-   *     and file name, separated by a '/'.
+   * @param uriStr A package import path. The last segment must be a {@code .lf} or {@code .ulf}
+   *     file (e.g., {@code package/file.lf} or {@code package/subdir/file.lf}).
    * @param srcPath The path from which the URI resolution should start.
    * @return The path to the imported library file.
    * @throws IllegalArgumentException if the URI string or source path is null, empty, or does not
-   *     contain both the library name and file name, if no "src" directory is found, or if the
-   *     package cannot be located.
+   *     end in a library file, if no "src" directory is found, or if the package cannot be located.
    */
   public static Path buildPackageURIfromSrc(String uriStr, String srcPath) {
     if (uriStr == null || srcPath == null || uriStr.trim().isEmpty() || srcPath.trim().isEmpty()) {
@@ -160,24 +158,24 @@ public class ImportUtil {
     }
 
     Path uriPath = parseImportUri(uriStr);
-    if (uriPath.getNameCount() < 2) {
-      throw new IllegalArgumentException("URI must contain both library name and file name.");
+    if (!lastSegmentIsLibraryFile(uriPath)) {
+      throw new IllegalArgumentException(
+          "URI must end with a .lf or .ulf library file name: '" + uriStr + "'.");
     }
-    String packageName = uriPath.getName(0).toString();
-    String fileName = uriPath.getName(1).toString();
     Path root = findProjectRoot(Paths.get(srcPath).toAbsolutePath());
-    return resolvePackageFile(root, packageName, fileName);
+    return resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null));
   }
 
   /**
    * Like {@link #buildPackageURIfromSrc(String, String)}, but allows the imported file name to be
-   * omitted. If {@code uriStr} has only one segment, then {@code defaultFileName} is used as the
-   * library file name inside {@code src/lib/}.
+   * omitted. If the last path segment is not a {@code .lf}/{@code .ulf} file, then {@code
+   * defaultFileName} is appended under {@code src/lib/} (and any intervening subdirectory
+   * segments).
    *
-   * @param uriStr The package import string (e.g., {@code packageName} or {@code
-   *     packageName/file.lf}).
+   * @param uriStr The package import string (e.g., {@code packageName}, {@code
+   *     packageName/subdir}, or {@code packageName/file.lf}).
    * @param srcPath The path from which the URI resolution should start.
-   * @param defaultFileName The file name to use if {@code uriStr} omits it.
+   * @param defaultFileName The file name to use if {@code uriStr} does not end in a library file.
    * @return The path to the imported library file.
    */
   public static Path buildPackageURIfromSrc(String uriStr, String srcPath, String defaultFileName) {
@@ -186,21 +184,24 @@ public class ImportUtil {
     }
 
     Path uriPath = parseImportUri(uriStr);
-    if (uriPath.getNameCount() >= 2) {
-      return buildPackageURIfromSrc(uriStr, srcPath);
-    }
-
-    if (defaultFileName == null || defaultFileName.isBlank()) {
+    Path relative = relativeLibPath(uriPath, defaultFileName);
+    if (relative == null) {
       throw new IllegalArgumentException("Missing library file name for import '" + uriStr + "'.");
     }
-
-    String packageName = uriPath.getName(0).toString();
     Path root = findProjectRoot(Paths.get(srcPath).toAbsolutePath());
-    return resolvePackageFile(root, packageName, defaultFileName);
+    return resolvePackageFile(root, uriPath.getName(0).toString(), relative);
   }
 
   /**
-   * Return the reactor class name referenced by an ImportedReactor.
+   * Return whether {@code uriStr} already names a library file ({@code .lf} or {@code .ulf}) as its
+   * last path segment.
+   */
+  public static boolean specifiesLibraryFile(String uriStr) {
+    return lastSegmentIsLibraryFile(parseImportUri(uriStr));
+  }
+
+  /**
+   * Return the reactor class name referenced by an {@link ImportedReactor}.
    *
    * <p>During linking, {@code getReactorClass()} may be an unresolved proxy or null. Accessing the
    * linked object (or its name) can re-enter linking, so this method never resolves the
@@ -262,6 +263,49 @@ public class ImportUtil {
     return uriPath;
   }
 
+  private static boolean isLibraryFileName(String name) {
+    String lower = name.toLowerCase(Locale.ROOT);
+    return lower.endsWith(".lf") || lower.endsWith(".ulf");
+  }
+
+  private static boolean lastSegmentIsLibraryFile(Path uriPath) {
+    return isLibraryFileName(uriPath.getFileName().toString());
+  }
+
+  /**
+   * Return the path relative to {@code src/lib} for this import, or {@code null} if the caller
+   * should list all library files in the corresponding directory.
+   *
+   * <p>If the last segment is a {@code .lf}/{@code .ulf} file, all segments after the package name
+   * are returned. Otherwise {@code defaultFileName} is appended after any subdirectory segments. If
+   * there is no default file name, returns {@code null}.
+   */
+  private static Path relativeLibPath(Path uriPath, String defaultFileName) {
+    Path afterPackage =
+        uriPath.getNameCount() > 1 ? uriPath.subpath(1, uriPath.getNameCount()) : null;
+
+    if (afterPackage != null && lastSegmentIsLibraryFile(afterPackage)) {
+      return afterPackage;
+    }
+
+    if (defaultFileName == null || defaultFileName.isBlank()) {
+      return null;
+    }
+
+    if (afterPackage == null) {
+      return Paths.get(defaultFileName);
+    }
+    return afterPackage.resolve(defaultFileName);
+  }
+
+  /** Directory prefix under {@code src/lib} when the import does not end in a library file. */
+  private static Path directoryPrefix(Path uriPath) {
+    if (uriPath.getNameCount() <= 1 || lastSegmentIsLibraryFile(uriPath)) {
+      return null;
+    }
+    return uriPath.subpath(1, uriPath.getNameCount());
+  }
+
   private static Path findProjectRoot(Path startPath) {
     Path srcPath = startPath;
     while (!srcPath.endsWith("src")) {
@@ -284,7 +328,7 @@ public class ImportUtil {
     }
 
     for (Path candidate : candidates) {
-      if (Files.exists(candidate)) {
+      if (Files.isDirectory(candidate)) {
         return candidate;
       }
     }
@@ -297,7 +341,16 @@ public class ImportUtil {
             + ".");
   }
 
-  private static Path resolvePackageFile(Path root, String packageName, String fileName) {
-    return findPackageDirectory(root, packageName).resolve("src").resolve("lib").resolve(fileName);
+  private static Path resolvePackageLibDirectory(
+      Path root, String packageName, Path relativeDirectory) {
+    Path libDir = findPackageDirectory(root, packageName).resolve("src").resolve("lib");
+    if (relativeDirectory == null) {
+      return libDir;
+    }
+    return libDir.resolve(relativeDirectory);
+  }
+
+  private static Path resolvePackageFile(Path root, String packageName, Path relativeLibPath) {
+    return findPackageDirectory(root, packageName).resolve("src").resolve("lib").resolve(relativeLibPath);
   }
 }

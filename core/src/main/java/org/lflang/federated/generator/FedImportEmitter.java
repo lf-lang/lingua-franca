@@ -39,12 +39,11 @@ public class FedImportEmitter {
                 importPath =
                     fileConfig.srcPath.resolve(Paths.get(i.getImportURI())).toAbsolutePath();
               } else {
-                var importPackagePath = Paths.get(i.getImportPackage());
-                // Support import syntax of the form:
+                // Support import syntax where the library file may be omitted:
                 //   import ReactorClassName from <packageName>
-                // by mapping to:
-                //   src/lib/ReactorClassName.lf
-                if (importPackagePath.getNameCount() == 1) {
+                //   import ReactorClassName from <packageName/subdir>
+                // which map to src/lib[/subdir]/ReactorClassName.lf
+                if (!ImportUtil.specifiesLibraryFile(i.getImportPackage())) {
                   if (i.getReactorClasses().size() != 1) {
                     throw new IllegalArgumentException(
                         "Import from <"
