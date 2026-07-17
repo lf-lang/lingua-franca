@@ -50,9 +50,8 @@ public class ImportUtil {
           "URI must end with a .lf or .ulf library file name: '" + uriStr + "'.");
     }
     Path root = findProjectRoot(FileUtil.toPath(resource));
-    return resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null))
-        .toUri()
-        .toString();
+    return toFileUriString(
+        resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null)));
   }
 
   /**
@@ -83,7 +82,7 @@ public class ImportUtil {
       throw new IllegalArgumentException("Missing library file name for import '" + uriStr + "'.");
     }
     Path root = findProjectRoot(FileUtil.toPath(resource));
-    return resolvePackageFile(root, uriPath.getName(0).toString(), relative).toUri().toString();
+    return toFileUriString(resolvePackageFile(root, uriPath.getName(0).toString(), relative));
   }
 
   /**
@@ -99,6 +98,9 @@ public class ImportUtil {
    *       directory (or subdirectory) are returned.
    * </ul>
    *
+   * <p>Returned values are {@code file:} URI strings (from {@link Path#toUri()}) so they round-trip
+   * through {@code URI.createURI(...)} on all platforms.
+   *
    * The latter case supports {@code import ReactorClassName from <packageName>} during linking,
    * when the reactor class name may not yet be readable from the AST.
    */
@@ -110,7 +112,7 @@ public class ImportUtil {
     Path relative = relativeLibPath(uriPath, defaultFileName);
 
     if (relative != null) {
-      return List.of(resolvePackageFile(root, packageName, relative).toString());
+      return List.of(toFileUriString(resolvePackageFile(root, packageName, relative)));
     }
 
     // No explicit or default file: list library files in src/lib[/subdir].
@@ -125,7 +127,7 @@ public class ImportUtil {
           files
               .filter(Files::isRegularFile)
               .filter(path -> isLibraryFileName(path.getFileName().toString()))
-              .map(Path::toString)
+              .map(ImportUtil::toFileUriString)
               .sorted()
               .toList();
       if (uris.isEmpty()) {
@@ -262,6 +264,11 @@ public class ImportUtil {
       throw new IllegalArgumentException("URI must contain a package name.");
     }
     return uriPath;
+  }
+
+  /** Convert a filesystem path to a {@code file:} URI string for EMF/Xtext resource loading. */
+  private static String toFileUriString(Path path) {
+    return path.toUri().toString();
   }
 
   private static boolean isLibraryFileName(String name) {
