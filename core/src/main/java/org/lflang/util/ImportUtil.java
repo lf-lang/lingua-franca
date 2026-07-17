@@ -351,9 +351,12 @@ public class ImportUtil {
   }
 
   private static Path resolvePackageFile(Path root, String packageName, Path relativeLibPath) {
-    return findPackageDirectory(root, packageName)
-        .resolve("src")
-        .resolve("lib")
-        .resolve(relativeLibPath);
+    Path libDir = findPackageDirectory(root, packageName).resolve("src").resolve("lib");
+    Path resolved = libDir.resolve(relativeLibPath).normalize();
+    if (!resolved.startsWith(libDir)) {
+      throw new IllegalArgumentException(
+          "Invalid import path; must stay within " + libDir + ": '" + relativeLibPath + "'.");
+    }
+    return resolved;
   }
 }
