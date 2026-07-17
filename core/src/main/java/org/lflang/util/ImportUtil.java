@@ -51,6 +51,7 @@ public class ImportUtil {
     }
     Path root = findProjectRoot(FileUtil.toPath(resource));
     return resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null))
+        .toUri()
         .toString();
   }
 
