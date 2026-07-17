@@ -11,5 +11,5 @@ on:
 jobs:
   led-test:
     if: contains(github.event.pull_request.labels.*.name, 'act-lf-led')
-    uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led.yml@main
+    uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
     secrets: inherit
