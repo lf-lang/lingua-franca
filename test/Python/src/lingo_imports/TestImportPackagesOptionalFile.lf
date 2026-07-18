@@ -1,0 +1,20 @@
+# Test import syntax where the file name in "<packageName>" is optional.
+target Python {
+  timeout: 2 sec
+}
+
+import Count from <library-test-defaultfile>
+
+reactor Actuator {
+  input results
+
+  reaction(results) {=
+    print(f"Count: {results.value}")
+  =}
+}
+
+main reactor {
+  count = new Count()
+  act = new Actuator()
+  count.out -> act.results
+}
