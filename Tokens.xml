@@ -8293,13 +8293,46 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>buildPackageURI</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.util.ImportUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+    <Anchor>aae5d22f9d89f96199f39c60a04b2275f</Anchor>
+    <DeclaredIn>ImportUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>buildPackageURIfromSrc</Name>
       <APILanguage>java</APILanguage>
       <Type>clm</Type>
       <Scope>org.lflang.util.ImportUtil</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
-    <Anchor>a0a06e73ab0b162baba36d5e9625b9787</Anchor>
+    <Anchor>a7d1955a0ab213f6ac09b525df422f630</Anchor>
+    <DeclaredIn>ImportUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>buildPackageURIfromSrc</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.util.ImportUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+    <Anchor>a486f2387d0e29952676bad2e31806f8b</Anchor>
+    <DeclaredIn>ImportUtil.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>buildPackageURIs</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.util.ImportUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+    <Anchor>af4ce345dad8c50b0ae92b8db6b0ac93c</Anchor>
     <DeclaredIn>ImportUtil.java</DeclaredIn>
   </Token>
   <Token>
@@ -24492,6 +24525,17 @@
     <Path>classorg_1_1lflang_1_1tests_1_1TestRegistry.html</Path>
     <Anchor>adda86ca417770f8bcf23871a6bb562a3</Anchor>
     <DeclaredIn>TestRegistry.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>getImportedReactorClassName</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.util.ImportUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+    <Anchor>a3dda157ec523f321abe4b3958eef729e</Anchor>
+    <DeclaredIn>ImportUtil.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -43689,6 +43733,17 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1cli_1_1VersionProvider.html</Path>
     <Anchor>ad89b7126b617c6773f3134520b06a390</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>specifiesLibraryFile</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.util.ImportUtil</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+    <Anchor>acd4fe63a3a75e3ebcc91bc60452d5357</Anchor>
+    <DeclaredIn>ImportUtil.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

@@ -133,15 +133,29 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lf
 Static Public Member Functions</h2></td></tr>
 <tr class="memitem:adeb061a9e1a89c88e6e2946aa07cc451" id="r_adeb061a9e1a89c88e6e2946aa07cc451"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#adeb061a9e1a89c88e6e2946aa07cc451">buildPackageURI</a> (String uriStr, Resource resource)</td></tr>
 <tr class="memdesc:adeb061a9e1a89c88e6e2946aa07cc451"><td class="mdescLeft">&#160;</td><td class="mdescRight">Build a package URI based on the provided URI string and resource.  <br /></td></tr>
-<tr class="memitem:a0a06e73ab0b162baba36d5e9625b9787" id="r_a0a06e73ab0b162baba36d5e9625b9787"><td class="memItemLeft">static Path&#160;</td><td class="memItemRight"><a class="el" href="#a0a06e73ab0b162baba36d5e9625b9787">buildPackageURIfromSrc</a> (String uriStr, String root)</td></tr>
-<tr class="memdesc:a0a06e73ab0b162baba36d5e9625b9787"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds a package URI based on the provided URI string and source path.  <br /></td></tr>
+<tr class="memitem:aae5d22f9d89f96199f39c60a04b2275f" id="r_aae5d22f9d89f96199f39c60a04b2275f"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#aae5d22f9d89f96199f39c60a04b2275f">buildPackageURI</a> (String uriStr, Resource resource, String defaultFileName)</td></tr>
+<tr class="memdesc:aae5d22f9d89f96199f39c60a04b2275f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Like <code><a class="el" href="#adeb061a9e1a89c88e6e2946aa07cc451">buildPackageURI(String, Resource)</a></code>, but allows the imported file name to be omitted.  <br /></td></tr>
+<tr class="memitem:a7d1955a0ab213f6ac09b525df422f630" id="r_a7d1955a0ab213f6ac09b525df422f630"><td class="memItemLeft">static Path&#160;</td><td class="memItemRight"><a class="el" href="#a7d1955a0ab213f6ac09b525df422f630">buildPackageURIfromSrc</a> (String uriStr, String srcPath)</td></tr>
+<tr class="memdesc:a7d1955a0ab213f6ac09b525df422f630"><td class="mdescLeft">&#160;</td><td class="mdescRight">Builds a package URI based on the provided URI string and source path.  <br /></td></tr>
+<tr class="memitem:a486f2387d0e29952676bad2e31806f8b" id="r_a486f2387d0e29952676bad2e31806f8b"><td class="memItemLeft">static Path&#160;</td><td class="memItemRight"><a class="el" href="#a486f2387d0e29952676bad2e31806f8b">buildPackageURIfromSrc</a> (String uriStr, String srcPath, String defaultFileName)</td></tr>
+<tr class="memdesc:a486f2387d0e29952676bad2e31806f8b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Like <code><a class="el" href="#a7d1955a0ab213f6ac09b525df422f630">buildPackageURIfromSrc(String, String)</a></code>, but allows the imported file name to be omitted.  <br /></td></tr>
+<tr class="memitem:af4ce345dad8c50b0ae92b8db6b0ac93c" id="r_af4ce345dad8c50b0ae92b8db6b0ac93c"><td class="memItemLeft">static List&lt; String &gt;&#160;</td><td class="memItemRight"><a class="el" href="#af4ce345dad8c50b0ae92b8db6b0ac93c">buildPackageURIs</a> (String uriStr, Resource resource, String defaultFileName)</td></tr>
+<tr class="memdesc:af4ce345dad8c50b0ae92b8db6b0ac93c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Resolve the library file path(s) for a package import.  <br /></td></tr>
+<tr class="memitem:a3dda157ec523f321abe4b3958eef729e" id="r_a3dda157ec523f321abe4b3958eef729e"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#a3dda157ec523f321abe4b3958eef729e">getImportedReactorClassName</a> (ImportedReactor importedReactor)</td></tr>
+<tr class="memdesc:a3dda157ec523f321abe4b3958eef729e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the reactor class name referenced by an ImportedReactor.  <br /></td></tr>
+<tr class="memitem:acd4fe63a3a75e3ebcc91bc60452d5357" id="r_acd4fe63a3a75e3ebcc91bc60452d5357"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#acd4fe63a3a75e3ebcc91bc60452d5357">specifiesLibraryFile</a> (String uriStr)</td></tr>
+<tr class="memdesc:acd4fe63a3a75e3ebcc91bc60452d5357"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return whether <code class="JavaDocCode">uriStr</code> already names a library file (<code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code>) as its last path segment.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Utility class for handling package-related URIs in the context of LF (Lingua Franca) libraries. </p>
-<p>This class provides methods to build URIs for accessing library files based on their location in a project structure, specifically targeting the "build/lfc_include" directory for library inclusion. </p>
+<p>This class provides methods to build URIs for accessing library files based on their location in a project structure, searching <code class="JavaDocCode">build/lfc_include</code>, <code class="JavaDocCode">lf-packages</code>, and the <code class="JavaDocCode"><br/>
+LF_PACKAGES</code> environment variable for library inclusion.</p>
+<p>Package imports use the form <code class="JavaDocCode">&lt;package/...&gt;</code> and are resolved under the package's <code class="JavaDocCode"><br/>
+src/lib</code> directory. The last path segment may be a library file (<code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code>). If it is not, <code class="JavaDocCode">ReactorClassName.lf</code> is used as the file name, which supports both <code class="JavaDocCode"><br/>
+import R from &lt;package&gt;</code> and imports that name a subdirectory such as <code class="JavaDocCode">&lt;package/subdir&gt;</code>. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="adeb061a9e1a89c88e6e2946aa07cc451" name="adeb061a9e1a89c88e6e2946aa07cc451"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adeb061a9e1a89c88e6e2946aa07cc451">&#9670;&#160;</a></span>buildPackageURI()</h2>
+<h2 class="memtitle"><span class="permalink"><a href="#adeb061a9e1a89c88e6e2946aa07cc451">&#9670;&#160;</a></span>buildPackageURI() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -168,26 +182,84 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Build a package URI based on the provided URI string and resource. </p>
-<p>This traverses upwards from the current resource URI until it finds the "src" directory, then constructs the final URI pointing to the library file within the "build/lfc_include" directory.</p>
+<p>This traverses upwards from the current resource URI until it finds the nearest parent directory named "src", then searches for the imported package under <code class="JavaDocCode">&lt;root&gt;/build/lfc_include</code>, <code class="JavaDocCode">&lt;root&gt;/lf-packages</code>, and the <code class="JavaDocCode">LF_PACKAGES</code> environment variable.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">uriStr</td><td>A string representing the URI of the file. It must contain both the library name and file name, separated by a '/'. </td></tr>
+    <tr><td class="paramname">uriStr</td><td>A package import path. The last segment must be a <code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code> file (e.g., <code class="JavaDocCode">package/file.lf</code> or <code class="JavaDocCode">package/subdir/file.lf</code>). </td></tr>
     <tr><td class="paramname">resource</td><td>The resource from which the URI resolution should start. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The constructed package URI as a string. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The path to the imported library file. </dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
-    <tr><td class="paramname">IllegalArgumentException</td><td>if the URI string does not contain both library and file names. </td></tr>
+    <tr><td class="paramname">IllegalArgumentException</td><td>if the URI does not end in a library file, if no "src" directory is found, or if the package cannot be located. </td></tr>
   </table>
   </dd>
 </dl>
 
 </div>
 </div>
-<a id="a0a06e73ab0b162baba36d5e9625b9787" name="a0a06e73ab0b162baba36d5e9625b9787"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0a06e73ab0b162baba36d5e9625b9787">&#9670;&#160;</a></span>buildPackageURIfromSrc()</h2>
+<a id="aae5d22f9d89f96199f39c60a04b2275f" name="aae5d22f9d89f96199f39c60a04b2275f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aae5d22f9d89f96199f39c60a04b2275f">&#9670;&#160;</a></span>buildPackageURI() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.util.ImportUtil.buildPackageURI </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>uriStr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Resource</td>          <td class="paramname"><span class="paramname"><em>resource</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>defaultFileName</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Like <code><a class="el" href="#adeb061a9e1a89c88e6e2946aa07cc451">buildPackageURI(String, Resource)</a></code>, but allows the imported file name to be omitted. </p>
+<p>If the last path segment is not a <code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code> file, then <code class="JavaDocCode"><br/>
+defaultFileName</code> is appended under <code class="JavaDocCode">src/lib/</code> (and any intervening subdirectory segments).</p>
+<p>This is used to support import statements of the form:</p>
+<pre><code class="JavaDocCode"><br/>
+import ReactorClassName from &lt;packageName&gt;<br/>
+import ReactorClassName from &lt;packageName/subdir&gt;<br/>
+</code></pre><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">uriStr</td><td>The package import string (e.g., <code class="JavaDocCode">packageName</code>, <code class="JavaDocCode"><br/>
+    packageName/subdir</code>, or <code class="JavaDocCode">packageName/file.lf</code>). </td></tr>
+    <tr><td class="paramname">resource</td><td>The resource from which the URI resolution should start. </td></tr>
+    <tr><td class="paramname">defaultFileName</td><td>The file name to use if <code class="JavaDocCode">uriStr</code> does not end in a library file. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The path to the imported library file. </dd></dl>
+<dl class="exception"><dt>Exceptions</dt><dd>
+  <table class="exception">
+    <tr><td class="paramname">IllegalArgumentException</td><td>if the URI string does not contain a package name, if no "src" directory is found, or if the package cannot be located. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a7d1955a0ab213f6ac09b525df422f630" name="a7d1955a0ab213f6ac09b525df422f630"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7d1955a0ab213f6ac09b525df422f630">&#9670;&#160;</a></span>buildPackageURIfromSrc() <span class="overload">[1/2]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -203,7 +275,7 @@ Static Public Member Functions</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>root</em></span>&#160;)</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>srcPath</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -214,21 +286,177 @@ Static Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Builds a package URI based on the provided URI string and source path. </p>
-<p>This method works similarly to the <span class="tt"><a class="el" href="#adeb061a9e1a89c88e6e2946aa07cc451" title="Build a package URI based on the provided URI string and resource.">buildPackageURI</a></span>, but it accepts a direct source path instead of a resource. It traverses upwards to locate the "src/" directory and then constructs the URI pointing to the library file.</p>
+<p>This method works similarly to the <code><a class="el" href="#adeb061a9e1a89c88e6e2946aa07cc451">buildPackageURI</a></code>, but it accepts a direct source path instead of a resource. It traverses upwards to locate the nearest parent directory named "src", then searches for the imported package under <code class="JavaDocCode">&lt;root&gt;/build/lfc_include</code>, <code class="JavaDocCode"><br/>
+&lt;root&gt;/lf-packages</code>, and the <code class="JavaDocCode">LF_PACKAGES</code> environment variable.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">uriStr</td><td>A string representing the URI of the file. It must contain both the library name and file name, separated by a '/'. </td></tr>
-    <tr><td class="paramname">root</td><td>The root path from which the URI resolution should start. </td></tr>
+    <tr><td class="paramname">uriStr</td><td>A package import path. The last segment must be a <code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code> file (e.g., <code class="JavaDocCode">package/file.lf</code> or <code class="JavaDocCode">package/subdir/file.lf</code>). </td></tr>
+    <tr><td class="paramname">srcPath</td><td>The path from which the URI resolution should start. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The constructed package URI as a string. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The path to the imported library file. </dd></dl>
 <dl class="exception"><dt>Exceptions</dt><dd>
   <table class="exception">
-    <tr><td class="paramname">IllegalArgumentException</td><td>if the URI string or source path is null, empty, or does not contain both the library name and file name. </td></tr>
+    <tr><td class="paramname">IllegalArgumentException</td><td>if the URI string or source path is null, empty, or does not end in a library file, if no "src" directory is found, or if the package cannot be located. </td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="a486f2387d0e29952676bad2e31806f8b" name="a486f2387d0e29952676bad2e31806f8b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a486f2387d0e29952676bad2e31806f8b">&#9670;&#160;</a></span>buildPackageURIfromSrc() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">Path org.lflang.util.ImportUtil.buildPackageURIfromSrc </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>uriStr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>srcPath</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>defaultFileName</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Like <code><a class="el" href="#a7d1955a0ab213f6ac09b525df422f630">buildPackageURIfromSrc(String, String)</a></code>, but allows the imported file name to be omitted. </p>
+<p>If the last path segment is not a <code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code> file, then <code class="JavaDocCode"><br/>
+defaultFileName</code> is appended under <code class="JavaDocCode">src/lib/</code> (and any intervening subdirectory segments).</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">uriStr</td><td>The package import string (e.g., <code class="JavaDocCode">packageName</code>, <code class="JavaDocCode"><br/>
+    packageName/subdir</code>, or <code class="JavaDocCode">packageName/file.lf</code>). </td></tr>
+    <tr><td class="paramname">srcPath</td><td>The path from which the URI resolution should start. </td></tr>
+    <tr><td class="paramname">defaultFileName</td><td>The file name to use if <code class="JavaDocCode">uriStr</code> does not end in a library file. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The path to the imported library file. </dd></dl>
+
+</div>
+</div>
+<a id="af4ce345dad8c50b0ae92b8db6b0ac93c" name="af4ce345dad8c50b0ae92b8db6b0ac93c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af4ce345dad8c50b0ae92b8db6b0ac93c">&#9670;&#160;</a></span>buildPackageURIs()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">List&lt; String &gt; org.lflang.util.ImportUtil.buildPackageURIs </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>uriStr</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">Resource</td>          <td class="paramname"><span class="paramname"><em>resource</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>defaultFileName</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Resolve the library file path(s) for a package import. </p>
+<p>If <code class="JavaDocCode">uriStr</code> ends with a <code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code> file, a single path is returned (preserving any subdirectory segments). Otherwise:</p>
+<ul>
+<li>
+if <code class="JavaDocCode">defaultFileName</code> is provided, that file is appended under <code class="JavaDocCode">src/lib/</code> (and any subdirectory segments); </li>
+<li>
+otherwise all <code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code> files under the corresponding <code class="JavaDocCode">src/lib</code> directory (or subdirectory) are returned. </li>
+</ul>
+<p>Returned values are <code class="JavaDocCode">file:</code> URI strings so they round-trip through <code class="JavaDocCode">URI.createURI(...)</code> on all platforms.</p>
+<p>The latter case supports <code class="JavaDocCode">import ReactorClassName from &lt;packageName&gt;</code> during linking, when the reactor class name may not yet be readable from the AST. </p>
+
+</div>
+</div>
+<a id="a3dda157ec523f321abe4b3958eef729e" name="a3dda157ec523f321abe4b3958eef729e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3dda157ec523f321abe4b3958eef729e">&#9670;&#160;</a></span>getImportedReactorClassName()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.util.ImportUtil.getImportedReactorClassName </td>
+          <td>(</td>
+          <td class="paramtype">ImportedReactor</td>          <td class="paramname"><span class="paramname"><em>importedReactor</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return the reactor class name referenced by an ImportedReactor. </p>
+<p>During linking, <code class="JavaDocCode">getReactorClass()</code> may be an unresolved proxy or null. Accessing the linked object (or its name) can re-enter linking, so this method never resolves the cross-reference. It prefers the textual identifier from the parse tree.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">importedReactor</td><td>The imported reactor AST node. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The reactor class name from the import statement, or <code class="JavaDocCode">null</code> if unavailable. </dd></dl>
+
+</div>
+</div>
+<a id="acd4fe63a3a75e3ebcc91bc60452d5357" name="acd4fe63a3a75e3ebcc91bc60452d5357"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acd4fe63a3a75e3ebcc91bc60452d5357">&#9670;&#160;</a></span>specifiesLibraryFile()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.util.ImportUtil.specifiesLibraryFile </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>uriStr</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return whether <code class="JavaDocCode">uriStr</code> already names a library file (<code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code>) as its last path segment. </p>
 
 </div>
 </div>

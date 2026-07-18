@@ -43468,11 +43468,46 @@
       <arglist>(String uriStr, Resource resource)</arglist>
     </member>
     <member kind="function" static="yes">
+      <type>static String</type>
+      <name>buildPackageURI</name>
+      <anchorfile>classorg_1_1lflang_1_1util_1_1ImportUtil.html</anchorfile>
+      <anchor>aae5d22f9d89f96199f39c60a04b2275f</anchor>
+      <arglist>(String uriStr, Resource resource, String defaultFileName)</arglist>
+    </member>
+    <member kind="function" static="yes">
       <type>static Path</type>
       <name>buildPackageURIfromSrc</name>
       <anchorfile>classorg_1_1lflang_1_1util_1_1ImportUtil.html</anchorfile>
-      <anchor>a0a06e73ab0b162baba36d5e9625b9787</anchor>
-      <arglist>(String uriStr, String root)</arglist>
+      <anchor>a7d1955a0ab213f6ac09b525df422f630</anchor>
+      <arglist>(String uriStr, String srcPath)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static Path</type>
+      <name>buildPackageURIfromSrc</name>
+      <anchorfile>classorg_1_1lflang_1_1util_1_1ImportUtil.html</anchorfile>
+      <anchor>a486f2387d0e29952676bad2e31806f8b</anchor>
+      <arglist>(String uriStr, String srcPath, String defaultFileName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static List&lt; String &gt;</type>
+      <name>buildPackageURIs</name>
+      <anchorfile>classorg_1_1lflang_1_1util_1_1ImportUtil.html</anchorfile>
+      <anchor>af4ce345dad8c50b0ae92b8db6b0ac93c</anchor>
+      <arglist>(String uriStr, Resource resource, String defaultFileName)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static String</type>
+      <name>getImportedReactorClassName</name>
+      <anchorfile>classorg_1_1lflang_1_1util_1_1ImportUtil.html</anchorfile>
+      <anchor>a3dda157ec523f321abe4b3958eef729e</anchor>
+      <arglist>(ImportedReactor importedReactor)</arglist>
+    </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>specifiesLibraryFile</name>
+      <anchorfile>classorg_1_1lflang_1_1util_1_1ImportUtil.html</anchorfile>
+      <anchor>acd4fe63a3a75e3ebcc91bc60452d5357</anchor>
+      <arglist>(String uriStr)</arglist>
     </member>
   </compound>
   <compound kind="class">

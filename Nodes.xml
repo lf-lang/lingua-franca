@@ -20007,9 +20007,34 @@
               <Anchor>adeb061a9e1a89c88e6e2946aa07cc451</Anchor>
              </Node>
              <Node>
+              <Name>buildPackageURI</Name>
+              <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+              <Anchor>aae5d22f9d89f96199f39c60a04b2275f</Anchor>
+             </Node>
+             <Node>
               <Name>buildPackageURIfromSrc</Name>
               <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
-              <Anchor>a0a06e73ab0b162baba36d5e9625b9787</Anchor>
+              <Anchor>a7d1955a0ab213f6ac09b525df422f630</Anchor>
+             </Node>
+             <Node>
+              <Name>buildPackageURIfromSrc</Name>
+              <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+              <Anchor>a486f2387d0e29952676bad2e31806f8b</Anchor>
+             </Node>
+             <Node>
+              <Name>buildPackageURIs</Name>
+              <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+              <Anchor>af4ce345dad8c50b0ae92b8db6b0ac93c</Anchor>
+             </Node>
+             <Node>
+              <Name>getImportedReactorClassName</Name>
+              <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+              <Anchor>a3dda157ec523f321abe4b3958eef729e</Anchor>
+             </Node>
+             <Node>
+              <Name>specifiesLibraryFile</Name>
+              <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+              <Anchor>acd4fe63a3a75e3ebcc91bc60452d5357</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -52050,9 +52075,34 @@
                     <Anchor>adeb061a9e1a89c88e6e2946aa07cc451</Anchor>
                    </Node>
                    <Node>
+                    <Name>buildPackageURI</Name>
+                    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+                    <Anchor>aae5d22f9d89f96199f39c60a04b2275f</Anchor>
+                   </Node>
+                   <Node>
                     <Name>buildPackageURIfromSrc</Name>
                     <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
-                    <Anchor>a0a06e73ab0b162baba36d5e9625b9787</Anchor>
+                    <Anchor>a7d1955a0ab213f6ac09b525df422f630</Anchor>
+                   </Node>
+                   <Node>
+                    <Name>buildPackageURIfromSrc</Name>
+                    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+                    <Anchor>a486f2387d0e29952676bad2e31806f8b</Anchor>
+                   </Node>
+                   <Node>
+                    <Name>buildPackageURIs</Name>
+                    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+                    <Anchor>af4ce345dad8c50b0ae92b8db6b0ac93c</Anchor>
+                   </Node>
+                   <Node>
+                    <Name>getImportedReactorClassName</Name>
+                    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+                    <Anchor>a3dda157ec523f321abe4b3958eef729e</Anchor>
+                   </Node>
+                   <Node>
+                    <Name>specifiesLibraryFile</Name>
+                    <Path>classorg_1_1lflang_1_1util_1_1ImportUtil.html</Path>
+                    <Anchor>acd4fe63a3a75e3ebcc91bc60452d5357</Anchor>
                    </Node>
                   </Subnodes>
                  </Node>

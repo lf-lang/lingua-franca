@@ -1,5 +1,10 @@
 var NAVTREEINDEX26 =
 {
+"interfaceorg_1_1lflang_1_1generator_1_1DelayBodyGenerator.html#a91f537b97c5ad0db21e074a4663a43b0":[4,4,30,4],
+"interfaceorg_1_1lflang_1_1generator_1_1DelayBodyGenerator.html#ac23cc226b4d73cc8f9bbc432acad1c0f":[4,4,30,1],
+"interfaceorg_1_1lflang_1_1generator_1_1DelayBodyGenerator.html#aff91025ee65874c41fe564e4d3e12f6a":[4,4,30,2],
+"interfaceorg_1_1lflang_1_1generator_1_1DiagnosticReporting_1_1Strategy.html":[4,10,1,0],
+"interfaceorg_1_1lflang_1_1generator_1_1DiagnosticReporting_1_1Strategy.html#a6a3a80b73b5ec14b0760d9790b5a0200":[4,10,1,0,0],
 "interfaceorg_1_1lflang_1_1generator_1_1GeneratorResult_1_1Status_1_1GetUserMessage.html":[4,4,34,0,0],
 "interfaceorg_1_1lflang_1_1generator_1_1GeneratorResult_1_1Status_1_1GetUserMessage.html#a653b12be7d21d4e32d7d2ee532d77d84":[4,4,34,0,0,0],
 "interfaceorg_1_1lflang_1_1generator_1_1GeneratorResult_1_1Status_1_1GetUserMessage.html#a8035071aa5a038fe7a8e552d2f82b418":[4,4,34,0,0,1],
