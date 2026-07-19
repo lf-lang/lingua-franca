@@ -46,8 +46,8 @@ reactor Persistence {
     }
     self->middle_first_join = false;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Persistence received a tardy in_middle_join event at tag " PRINTF_TAG ".",
-        in_middle_join->intended_tag.time, in_middle_join->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_middle_join event at relative tag " PRINTF_TAG ".",
+        in_middle_join->intended_tag.time - lf_time_start(), in_middle_join->intended_tag.microstep);
   =}
 
   reaction(in_from_middle) {=
@@ -56,8 +56,8 @@ reactor Persistence {
     lf_print("Latest received state: {%c,%d}", self->middle_state.state_char,
               self->middle_state.state_count);
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Persistence received a tardy in_from_middle event at tag " PRINTF_TAG ".",
-        in_from_middle->intended_tag.time, in_from_middle->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_from_middle event at relative tag " PRINTF_TAG ".",
+        in_from_middle->intended_tag.time - lf_time_start(), in_from_middle->intended_tag.microstep);
   =}
 }
 
@@ -87,8 +87,8 @@ reactor Middle {
           self->middle_state.state_count,
           lf_time_logical_elapsed());
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in_from_persistence event at tag " PRINTF_TAG ".",
-        in_from_persistence->intended_tag.time, in_from_persistence->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_from_persistence event at relative tag " PRINTF_TAG ".",
+        in_from_persistence->intended_tag.time - lf_time_start(), in_from_persistence->intended_tag.microstep);
   =}
 
   // When an input is received, the internal state is updated, and then sent to
@@ -106,8 +106,8 @@ reactor Middle {
       lf_stop();
     }
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in event at tag " PRINTF_TAG ".",
-        in->intended_tag.time, in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at relative tag " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep);
   =}
 }
 

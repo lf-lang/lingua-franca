@@ -46,22 +46,22 @@ reactor Down {
   reaction(in_up) {=
     self->count_in_up_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy in_up event at tag " PRINTF_TAG ".",
-        in_up->intended_tag.time, in_up->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_up event at relative tag " PRINTF_TAG ".",
+        in_up->intended_tag.time - lf_time_start(), in_up->intended_tag.microstep);
   =}
 
   reaction(join) {=
     self->count_join++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy join event at tag " PRINTF_TAG ".",
-        join->intended_tag.time, join->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy join event at relative tag " PRINTF_TAG ".",
+        join->intended_tag.time - lf_time_start(), join->intended_tag.microstep);
   =}
 
   reaction(in_mid) {=
     self->count_in_mid_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy in_mid event at tag " PRINTF_TAG ".",
-        in_mid->intended_tag.time, in_mid->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_mid event at relative tag " PRINTF_TAG ".",
+        in_mid->intended_tag.time - lf_time_start(), in_mid->intended_tag.microstep);
   =}
 
   reaction(shutdown) {=

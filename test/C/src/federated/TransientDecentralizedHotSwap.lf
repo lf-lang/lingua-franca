@@ -50,8 +50,8 @@ reactor Middle {
     self->count++;
     lf_set(out, in->value);
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Middle received a tardy in event at tag " PRINTF_TAG ".",
-        in->intended_tag.time, in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at relative tag " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep);
   =}
 }
 

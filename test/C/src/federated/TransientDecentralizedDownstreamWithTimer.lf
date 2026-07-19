@@ -51,8 +51,8 @@ reactor Middle {
       lf_stop();
     }
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in event at tag " PRINTF_TAG ".",
-        in->intended_tag.time, in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at relative tag " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep);
   =}
 }
 
@@ -77,15 +77,15 @@ reactor Down {
   reaction(join) {=
     self->count_join++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy join event at tag " PRINTF_TAG ".",
-        join->intended_tag.time, join->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy join event at relative tag " PRINTF_TAG ".",
+        join->intended_tag.time - lf_time_start(), join->intended_tag.microstep);
   =}
 
   reaction(in) {=
     self->count_in_mid_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: federate Down received a tardy in event at tag " PRINTF_TAG ".",
-        in->intended_tag.time, in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at relative tag " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep);
   =}
 
   reaction(shutdown) {=
