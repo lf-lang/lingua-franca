@@ -1,0 +1,573 @@
+target C {
+  timeout: 5 sec,
+  keepalive: true
+}
+
+preamble {=
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <stdbool.h>
+    #include <string.h>
+    #include <unistd.h>
+    #include <fcntl.h>
+    #include <sys/stat.h>
+    #include <sys/types.h>
+
+    #define IR_FIFO_PATH "/tmp/lf_ir_channel"
+
+    typedef struct {
+      int robot_id;
+      int session_key_id;
+      int nonce_r;
+    } ir_msg_t;
+
+    typedef struct {
+      int robot_id;
+      int session_key_id;
+      int nonce_r;
+      int qr_ok;
+
+      long long sample_time;
+      long long ready_time;
+    } qr_msg_t;
+
+    typedef struct {
+      int clear;
+
+      long long sample_time;
+      long long ready_time;
+    } path_msg_t;
+
+    typedef struct {
+      int count;
+
+      long long sample_time;
+      long long ready_time;
+    } human_msg_t;
+
+    typedef struct {
+      int robot_id;
+      int gate_id;
+      int session_key_id;
+      int nonce_r;
+
+      int have_ir;
+      int have_qr;
+      int have_path;
+      int have_human;
+
+      long long ir_time;
+
+      long long qr_sample_time;
+      long long qr_ready_time;
+
+      long long path_sample_time;
+      long long path_ready_time;
+
+      long long human_sample_time;
+      long long human_ready_time;
+
+      long long request_time;
+
+      int qr_ok;
+      int path_clear;
+      int human_count;
+
+      int complete;
+      int deadline_missed;
+    } auth_req_t;
+
+    typedef struct {
+      int allow;
+      int reason;
+    } auth_resp_t;
+
+    typedef struct {
+      void* qr_done;
+      long long sample_time;
+      int robot_id;
+      int session_key_id;
+      int nonce_r;
+    } qr_read_args_t;
+
+    typedef struct {
+      void* path_done;
+      long long sample_time;
+    } path_read_args_t;
+
+    typedef struct {
+      void* human_done;
+      long long sample_time;
+    } human_read_args_t;
+
+    static void ensure_ir_fifo() {
+      mkfifo(IR_FIFO_PATH, 0666);
+    }
+
+    static void fake_ir_transmit(ir_msg_t msg) {
+      ensure_ir_fifo();
+
+      int fd = open(IR_FIFO_PATH, O_WRONLY);
+      if (fd < 0) {
+        perror("[Robot] open IR FIFO for write failed");
+        return;
+      }
+
+      ssize_t n = write(fd, &msg, sizeof(ir_msg_t));
+      if (n != sizeof(ir_msg_t)) {
+        perror("[Robot] write IR failed");
+      }
+
+      close(fd);
+    }
+
+    static int read_ir_sensor(ir_msg_t* out) {
+      ensure_ir_fifo();
+
+      int fd = open(IR_FIFO_PATH, O_RDONLY);
+      if (fd < 0) {
+        perror("[Gate] open IR FIFO for read failed");
+        return 0;
+      }
+
+      ssize_t n = read(fd, out, sizeof(ir_msg_t));
+      close(fd);
+
+      return n == sizeof(ir_msg_t);
+    }
+
+    static qr_msg_t read_camera_qr(long long sample_time, int robot_id, int session_key_id, int nonce_r) {
+      // Pretend camera capture begins at sample_time.
+      // QR decoding takes 50 ms.
+      usleep(50 * 1000);
+
+      qr_msg_t msg;
+      msg.robot_id = robot_id;
+      msg.session_key_id = session_key_id;
+      msg.nonce_r = nonce_r;
+      msg.qr_ok = 1;
+      msg.sample_time = sample_time;
+      msg.ready_time = 0;   // Filled by Gate when physical action is handled.
+
+      return msg;
+    }
+
+    static path_msg_t read_path_sensor(long long sample_time) {
+      // Path check takes 30 ms.
+      usleep(30 * 1000);
+
+      path_msg_t msg;
+      msg.clear = 1;
+      msg.sample_time = sample_time;
+      msg.ready_time = 0;   // Filled by Gate when physical action is handled.
+
+      return msg;
+    }
+
+    static human_msg_t read_human_detector(long long sample_time) {
+      // Human check takes 70 ms.
+      usleep(70 * 1000);
+
+      human_msg_t msg;
+      msg.count = 0;
+      msg.sample_time = sample_time;
+      msg.ready_time = 0;   // Filled by Gate when physical action is handled.
+
+      return msg;
+    }
+
+  static void* qr_read_thread(void* arg) {
+    qr_read_args_t* a = (qr_read_args_t*)arg;
+
+    qr_msg_t msg = read_camera_qr(
+      a->sample_time,
+      a->robot_id,
+      a->session_key_id,
+      a->nonce_r
+    );
+
+    lf_schedule_copy(a->qr_done, 0, &msg, sizeof(qr_msg_t));
+
+    free(a);
+    return NULL;
+  }
+
+  static void* path_read_thread(void* arg) {
+    path_read_args_t* a = (path_read_args_t*)arg;
+
+    path_msg_t msg = read_path_sensor(a->sample_time);
+
+    lf_schedule_copy(a->path_done, 0, &msg, sizeof(path_msg_t));
+
+    free(a);
+    return NULL;
+  }
+
+  static void* human_read_thread(void* arg) {
+    human_read_args_t* a = (human_read_args_t*)arg;
+
+    human_msg_t msg = read_human_detector(a->sample_time);
+
+    lf_schedule_copy(a->human_done, 0, &msg, sizeof(human_msg_t));
+
+    free(a);
+    return NULL;
+  }
+
+  static void* ir_receiver_thread(void* action) {
+    while (1) {
+      ir_msg_t msg;
+      if (read_ir_sensor(&msg)) {
+        lf_schedule_copy(action, 0, &msg, sizeof(ir_msg_t));
+      }
+    }
+    return NULL;
+  }
+=}
+
+/** Robot federate. This simulates an IR transmitter. */
+reactor Robot {
+  timer send_ir(200 msec)
+
+  reaction(send_ir) {=
+    ir_msg_t msg;
+    msg.robot_id = 1;
+    msg.session_key_id = 1001;
+    msg.nonce_r = 777;
+
+    printf("[Robot] IR transmit at +%lld ms: robot=%d session=%d nonce=%d\n",
+      lf_time_logical_elapsed() / MSEC(1),
+      msg.robot_id,
+      msg.session_key_id,
+      msg.nonce_r
+    );
+
+    fake_ir_transmit(msg);
+  =}
+}
+
+/** Gate federate. IR arrival triggers parallel sensor reads. */
+reactor Gate {
+  output auth_request: auth_req_t
+  input auth_response: auth_resp_t
+
+  physical action ir_seen: ir_msg_t
+  physical action qr_done: qr_msg_t
+  physical action path_done: path_msg_t
+  physical action human_done: human_msg_t
+
+  logical action maybe_send_request
+  logical action evidence_timeout(100 msec)
+
+  state gate_id: int = 1
+
+  state request_sent: int = 0
+
+  state have_ir: int = 0
+  state have_qr: int = 0
+  state have_path: int = 0
+  state have_human: int = 0
+
+  state ir_time: time = 0
+
+  state ir_msg: ir_msg_t
+  state qr_msg: qr_msg_t
+  state path_msg: path_msg_t
+  state human_msg: human_msg_t
+
+  reaction(startup) -> ir_seen {=
+    printf("[Gate] startup. Starting IR receiver thread.\n");
+
+    lf_thread_t ir_tid;
+    lf_thread_create(&ir_tid, &ir_receiver_thread, ir_seen);
+  =}
+
+  /** IR arrival starts one access attempt. At this logical time, Gate triggers parallel reads. */
+  reaction(ir_seen) -> qr_done, path_done, human_done, evidence_timeout {=
+    self->request_sent = 0;
+
+    self->have_ir = 1;
+    self->have_qr = 0;
+    self->have_path = 0;
+    self->have_human = 0;
+
+    self->ir_time = lf_time_logical();
+    self->ir_msg = ir_seen->value;
+
+    printf("\n[Gate] IR seen at +%lld ms\n",
+      lf_time_logical_elapsed() / MSEC(1)
+    );
+
+    printf("[Gate] Start parallel sensor reads: QR=50ms, path=30ms, human=70ms\n");
+
+    // Sensor sample time is the IR arrival time.
+    long long sample_time = self->ir_time;
+
+    qr_read_args_t* qr_args = malloc(sizeof(qr_read_args_t));
+    qr_args->qr_done = qr_done;
+    qr_args->sample_time = sample_time;
+    qr_args->robot_id = self->ir_msg.robot_id;
+    qr_args->session_key_id = self->ir_msg.session_key_id;
+    qr_args->nonce_r = self->ir_msg.nonce_r;
+
+    path_read_args_t* path_args = malloc(sizeof(path_read_args_t));
+    path_args->path_done = path_done;
+    path_args->sample_time = sample_time;
+
+    human_read_args_t* human_args = malloc(sizeof(human_read_args_t));
+    human_args->human_done = human_done;
+    human_args->sample_time = sample_time;
+
+    lf_thread_t qr_tid;
+    lf_thread_t path_tid;
+    lf_thread_t human_tid;
+
+    lf_thread_create(&qr_tid, &qr_read_thread, qr_args);
+    lf_thread_create(&path_tid, &path_read_thread, path_args);
+    lf_thread_create(&human_tid, &human_read_thread, human_args);
+
+    // Maximum deadline.
+    // Because evidence_timeout has minimum delay 100 msec,
+    // scheduling it with 0 fires it at ir_time + 100ms.
+    lf_schedule(evidence_timeout, 0);
+  =}
+
+  reaction(qr_done) -> maybe_send_request {=
+    self->have_qr = 1;
+    self->qr_msg = qr_done->value;
+    self->qr_msg.ready_time = lf_time_logical();
+
+    printf("[Gate] QR done at +%lld ms, sample +%lld ms, ready +%lld ms\n",
+      lf_time_logical_elapsed() / MSEC(1),
+      (self->qr_msg.sample_time - self->ir_time) / MSEC(1),
+      (self->qr_msg.ready_time - self->ir_time) / MSEC(1)
+    );
+
+    lf_schedule(maybe_send_request, 0);
+  =}
+
+  reaction(path_done) -> maybe_send_request {=
+    self->have_path = 1;
+    self->path_msg = path_done->value;
+    self->path_msg.ready_time = lf_time_logical();
+
+    printf("[Gate] Path done at +%lld ms, sample +%lld ms, ready +%lld ms, clear=%d\n",
+      lf_time_logical_elapsed() / MSEC(1),
+      (self->path_msg.sample_time - self->ir_time) / MSEC(1),
+      (self->path_msg.ready_time - self->ir_time) / MSEC(1),
+      self->path_msg.clear
+    );
+
+    lf_schedule(maybe_send_request, 0);
+  =}
+
+  reaction(human_done) -> maybe_send_request {=
+    self->have_human = 1;
+    self->human_msg = human_done->value;
+    self->human_msg.ready_time = lf_time_logical();
+
+    printf("[Gate] Human done at +%lld ms, sample +%lld ms, ready +%lld ms, count=%d\n",
+      lf_time_logical_elapsed() / MSEC(1),
+      (self->human_msg.sample_time - self->ir_time) / MSEC(1),
+      (self->human_msg.ready_time - self->ir_time) / MSEC(1),
+      self->human_msg.count
+    );
+
+    lf_schedule(maybe_send_request, 0);
+  =}
+
+  /** Send Auth request as soon as all evidence is ready. */
+  reaction(maybe_send_request) -> auth_request {=
+    if (self->request_sent) {
+      return;
+    }
+
+    if (!(self->have_ir && self->have_qr && self->have_path && self->have_human)) {
+      return;
+    }
+
+    auth_req_t req;
+
+    req.robot_id = self->ir_msg.robot_id;
+    req.gate_id = self->gate_id;
+    req.session_key_id = self->ir_msg.session_key_id;
+    req.nonce_r = self->ir_msg.nonce_r;
+
+    req.have_ir = self->have_ir;
+    req.have_qr = self->have_qr;
+    req.have_path = self->have_path;
+    req.have_human = self->have_human;
+
+    req.ir_time = self->ir_time;
+
+    req.qr_sample_time = self->qr_msg.sample_time;
+    req.qr_ready_time = self->qr_msg.ready_time;
+
+    req.path_sample_time = self->path_msg.sample_time;
+    req.path_ready_time = self->path_msg.ready_time;
+
+    req.human_sample_time = self->human_msg.sample_time;
+    req.human_ready_time = self->human_msg.ready_time;
+
+    req.request_time = lf_time_logical();
+
+    req.qr_ok = self->qr_msg.qr_ok;
+    req.path_clear = self->path_msg.clear;
+    req.human_count = self->human_msg.count;
+
+    req.complete = 1;
+    req.deadline_missed = 0;
+
+    self->request_sent = 1;
+
+    printf("[Gate] All evidence ready. Send Auth request at +%lld ms\n\n",
+      (req.request_time - self->ir_time) / MSEC(1)
+    );
+
+    lf_set(auth_request, req);
+  =}
+
+  /** If not all evidence arrives by deadline, send incomplete request. */
+  reaction(evidence_timeout) -> auth_request {=
+    if (self->request_sent) {
+      return;
+    }
+
+    auth_req_t req;
+
+    req.robot_id = self->ir_msg.robot_id;
+    req.gate_id = self->gate_id;
+    req.session_key_id = self->ir_msg.session_key_id;
+    req.nonce_r = self->ir_msg.nonce_r;
+
+    req.have_ir = self->have_ir;
+    req.have_qr = self->have_qr;
+    req.have_path = self->have_path;
+    req.have_human = self->have_human;
+
+    req.ir_time = self->ir_time;
+
+    req.qr_sample_time = self->have_qr ? self->qr_msg.sample_time : 0;
+    req.qr_ready_time = self->have_qr ? self->qr_msg.ready_time : 0;
+
+    req.path_sample_time = self->have_path ? self->path_msg.sample_time : 0;
+    req.path_ready_time = self->have_path ? self->path_msg.ready_time : 0;
+
+    req.human_sample_time = self->have_human ? self->human_msg.sample_time : 0;
+    req.human_ready_time = self->have_human ? self->human_msg.ready_time : 0;
+
+    req.request_time = lf_time_logical();
+
+    req.qr_ok = self->have_qr ? self->qr_msg.qr_ok : 0;
+    req.path_clear = self->have_path ? self->path_msg.clear : 0;
+    req.human_count = self->have_human ? self->human_msg.count : -1;
+
+    req.complete = 0;
+    req.deadline_missed = 1;
+
+    self->request_sent = 1;
+
+    printf("[Gate] Evidence deadline missed. Send incomplete Auth request at +%lld ms\n\n",
+      (req.request_time - self->ir_time) / MSEC(1)
+    );
+
+    lf_set(auth_request, req);
+  =}
+
+  reaction(auth_response) {=
+    printf("[Gate] Auth response: ");
+
+    if (auth_response->value.allow) {
+      printf("ALLOW\n");
+      printf("[Gate] OPEN gate\n");
+    } else {
+      printf("DENY reason=%d\n", auth_response->value.reason);
+      printf("[Gate] Keep gate closed\n");
+    }
+
+    lf_request_stop();
+  =}
+}
+
+/** Auth federate. */
+reactor Auth {
+  input request: auth_req_t
+  output response: auth_resp_t
+
+  reaction(request) -> response {=
+    auth_req_t req = request->value;
+    auth_resp_t resp;
+
+    long long qr_latency =
+      req.have_qr ? (req.qr_ready_time - req.ir_time) / MSEC(1) : -1;
+
+    long long path_latency =
+      req.have_path ? (req.path_ready_time - req.ir_time) / MSEC(1) : -1;
+
+    long long human_latency =
+      req.have_human ? (req.human_ready_time - req.ir_time) / MSEC(1) : -1;
+
+    long long request_latency =
+      (req.request_time - req.ir_time) / MSEC(1);
+
+    printf("[Auth] Request received\n");
+    printf("[Auth] complete=%d deadline_missed=%d\n",
+      req.complete,
+      req.deadline_missed
+    );
+
+    printf("[Auth] latencies: QR=%lldms path=%lldms human=%lldms request=%lldms\n",
+      qr_latency,
+      path_latency,
+      human_latency,
+      request_latency
+    );
+
+    printf("[Auth] values: qr_ok=%d path_clear=%d human_count=%d\n",
+      req.qr_ok,
+      req.path_clear,
+      req.human_count
+    );
+
+    if (!req.complete || req.deadline_missed) {
+      resp.allow = 0;
+      resp.reason = 10;    // missing evidence or timeout
+    } else if (qr_latency > 100 || path_latency > 100 || human_latency > 100) {
+      resp.allow = 0;
+      resp.reason = 20;    // timing policy violation
+    } else if (!req.qr_ok) {
+      resp.allow = 0;
+      resp.reason = 30;    // QR failed
+    } else if (req.path_clear != 1) {
+      resp.allow = 0;
+      resp.reason = 40;    // path blocked
+    } else if (req.human_count != 0) {
+      resp.allow = 0;
+      resp.reason = 50;    // human near gate
+    } else {
+      resp.allow = 1;
+      resp.reason = 0;
+    }
+
+    printf("[Auth] Decision: %s\n",
+      resp.allow ? "ALLOW" : "DENY"
+    );
+
+    lf_set(response, resp);
+  =}
+}
+
+/**
+ * Three federates: 1. Robot 2. Gate 3. Auth
+ *
+ * Robot and Gate are not connected by LF ports. Robot writes to fake IR hardware. Gate reads fake
+ * IR hardware and injects physical action ir_seen.
+ */
+federated reactor {
+  robot = new Robot()
+  gate = new Gate()
+  auth = new Auth()
+
+  gate.auth_request -> auth.request
+  auth.response -> gate.auth_response
+}
