@@ -51,8 +51,8 @@ reactor Middle {
       lf_stop();
     }
   =} tardy {=
-    lf_print_error_and_exit("Received a tardy in event at relative tag " PRINTF_TAG ".",
-        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 }
 
@@ -77,15 +77,15 @@ reactor Down {
   reaction(join) {=
     self->count_join++;
   =} tardy {=
-    lf_print_error_and_exit("Received a tardy join event at relative tag " PRINTF_TAG ".",
-        join->intended_tag.time - lf_time_start(), join->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy join event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        join->intended_tag.time - lf_time_start(), join->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   reaction(in) {=
     self->count_in_mid_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Received a tardy in event at relative tag " PRINTF_TAG ".",
-        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   reaction(shutdown) {=
@@ -102,7 +102,7 @@ reactor Down {
 
     // Check that `Middle` have reacted correctly
     if (self->count_in_mid_reactions < 4) {
-      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
+      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up correctly! Expected >= 4, but had: %d.",
           self->count_in_mid_reactions);
     }
   =}

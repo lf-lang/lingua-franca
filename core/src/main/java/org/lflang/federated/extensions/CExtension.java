@@ -902,10 +902,10 @@ public class CExtension implements FedTargetExtension {
           "lf_connect_to_federate("
               + remoteFederate.id
               + ", "
-              + remoteFederate.isTransient
+              + (remoteFederate.isTransient ? "FOREVER_TAG" : "NEVER_TAG")
               + ", -1, 0);");
       code.pr(
-          "_fed.outbound_p2p_connection_is_transient["
+          "_fed.downstream_p2p_joined_tag["
               + remoteFederate.id
               + "] = "
               + (remoteFederate.isTransient ? "FOREVER_TAG" : "NEVER_TAG")

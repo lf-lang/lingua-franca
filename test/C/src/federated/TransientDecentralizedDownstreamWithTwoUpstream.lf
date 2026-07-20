@@ -1,5 +1,5 @@
 /**
- * This LF program tests whether a transient federate corretly leaves then joins the federation. It
+ * This LF program tests whether a transient federate correctly leaves then joins the federation. It
  * also tests whether the transient's downstream executes as expected, that is it received correct
  * TAGs, regardless of the transient being absent or present. In this test:
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port in,
@@ -46,22 +46,22 @@ reactor Down {
   reaction(in_up) {=
     self->count_in_up_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Received a tardy in_up event at relative tag " PRINTF_TAG ".",
-        in_up->intended_tag.time - lf_time_start(), in_up->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_up event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_up->intended_tag.time - lf_time_start(), in_up->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   reaction(join) {=
     self->count_join++;
   =} tardy {=
-    lf_print_error_and_exit("Received a tardy join event at relative tag " PRINTF_TAG ".",
-        join->intended_tag.time - lf_time_start(), join->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy join event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        join->intended_tag.time - lf_time_start(), join->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   reaction(in_mid) {=
     self->count_in_mid_reactions++;
   =} tardy {=
-    lf_print_error_and_exit("Received a tardy in_mid event at relative tag " PRINTF_TAG ".",
-        in_mid->intended_tag.time - lf_time_start(), in_mid->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_mid event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_mid->intended_tag.time - lf_time_start(), in_mid->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   reaction(shutdown) {=
@@ -84,7 +84,7 @@ reactor Down {
 
     // Check that Middle have reacted correctly
     if (self->count_in_mid_reactions < 4) {
-      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
+      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up correctly! Expected >= 4, but had: %d.",
           self->count_in_mid_reactions);
     }
   =}
