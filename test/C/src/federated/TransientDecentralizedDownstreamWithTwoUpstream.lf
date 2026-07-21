@@ -99,12 +99,18 @@ federated reactor {
   // Persistent downstream and upstream federates of the transient
   up1 = new Up(period = 1500 ms)
   up2 = new Up(period = 800 msec)
-  @maxwait(800 ms)
+
+  // Need a non-zero maxwait here because the join input is asynchronous.
+  // It is rarely present, which means that the choice of maxwait here
+  // introduces a lag in Down that will usually be larger than the maxwait.
+  @maxwait(300 ms)
   down = new Down(period = 1500 ms)
 
   // Transient federate
   @transient
-  @maxwait(500 ms)
+  // Need a non-zero maxwait here to prevent the start tag from completing
+  // before receiving the initial message from up1.
+  @maxwait(150 ms)
   mid = new Middle()
 
   // Connections
