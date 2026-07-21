@@ -26,7 +26,6 @@ package org.lflang.generator.rust
 
 import org.lflang.generator.CodeMap
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.joinWithLn
 import org.lflang.util.FileUtil
 import java.nio.file.Files
@@ -44,22 +43,47 @@ object RustEmitter : RustEmitterBase() {
 
     fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo): Map<Path, CodeMap> {
         val codeMaps = mutableMapOf<Path, CodeMap>()
+        val platformOptions = gen.platform
 
-        fileConfig.emit(codeMaps, "Cargo.toml") {
-            with(RustCargoTomlEmitter) {
-                makeCargoTomlFile(gen)
+        if (!platformOptions.board().setByUser()) {
+            fileConfig.emit(codeMaps, "Cargo.toml") {
+                with(RustCargoTomlEmitter) {
+                    makeCargoTomlFile(gen)
+                }
             }
-        }
 
-        // if singleFile, this file will contain every module.
-        fileConfig.emit(codeMaps, "src/main.rs") {
-            with(RustMainFileEmitter) {
-                makeMainFile(gen)
+            // if singleFile, this file will contain every module.
+            fileConfig.emit(codeMaps, "src/main.rs") {
+                with(RustMainFileEmitter) {
+                    makeMainFile(gen)
+                }
+            }
+        } else {
+            fileConfig.emit(codeMaps, "Cargo.toml") {
+                with(RustCoreToolChainEmitter) {
+                    makeCoreCargoTomlFile(gen)
+                }
+            }
+            fileConfig.emit(codeMaps, "rust-toolchain.toml") {
+                with(RustCoreToolChainEmitter) {
+                    makeRustToolchainToml(gen)
+                }
+            }
+            // if singleFile, this file will contain every module.
+            fileConfig.emit(codeMaps, "src/main.rs") {
+                with(RustCoreMainFileEmitter) {
+                    makeCoreMainFile(gen)
+                }
+            }
+            fileConfig.emit(codeMaps, ".cargo/config.toml") {
+                with(RustCoreToolChainEmitter) {
+                    makeConfigTomlFile(gen)
+                }
             }
         }
 
         if (!gen.properties.singleFile) {
-            fileConfig.emit(codeMaps, "src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
+            fileConfig.emit(codeMaps, "src/reactors.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
                 fileConfig.emit(codeMaps, "src/reactors/${reactor.names.modFileName}.rs") {
                     with(RustReactorEmitter) {

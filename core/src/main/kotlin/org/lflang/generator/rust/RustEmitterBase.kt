@@ -24,13 +24,9 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.*
-import org.lflang.*
-import org.lflang.generator.*
-import org.lflang.generator.PrependOperator.rangeTo
-import org.lflang.generator.rust.RustEmitter.generateRustProject
-import java.nio.file.Files
-import java.nio.file.Paths
+import org.lflang.generator.LocationInfo
+import org.lflang.generator.TargetCode
+import org.lflang.joinLines
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
