@@ -63,18 +63,16 @@ federated reactor {
 
   // Persistent downstream and upstream federates of the transient
   up = new Up(period = 1500 ms)
-  @maxwait(0)
+  @maxwait(800 ms)
   down = new Down(period = 1500 ms)
 
   // Transient federate
   @transient
-  @maxwait(400 ms)
+  @maxwait(500 ms)
   mid = new Middle()
 
   // Connections
   up.out -> mid.in
-  @absent_after(500 ms)
   mid.join -> down.join
-  @absent_after(600 ms)
   mid.out -> down.in
 }

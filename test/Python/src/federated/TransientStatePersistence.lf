@@ -89,8 +89,8 @@ reactor Middle {
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down {
-  timer t(0, 500 ms)
+reactor Down(period = 500 ms) {
+  timer t(0, period)
 
   input inp
   input join

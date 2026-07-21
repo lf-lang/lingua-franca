@@ -6,7 +6,7 @@
  * receives the saved state and sets it. In this, the order of the reactions is important.
  */
 target Python {
-  timeout: 6 s,
+  timeout: 9 s,
   coordination: decentralized
 }
 
@@ -100,13 +100,13 @@ reactor Middle {
 }
 
 federated reactor {
-  up = new Up()  # Persistent downstream and upstream federates of the transient
-  down = new Down()
-  @maxwait(100 ms)
+  up = new Up(period = 1500 ms)  # Persistent downstream and upstream federates of the transient
+  down = new Down(period = 1500 ms)
+  @maxwait(200 ms)
   persistence = new Persistence()
   # Persistent federate that is responsible for lauching the transient once, after 1s
   midExec = new TransientExec(
-      launch_time = 1 s,
+      launch_time = 3 s,
       federation_name="TransientDecentralizedStatePersistence",
       fed_instance_name="mid")
 
@@ -116,13 +116,13 @@ federated reactor {
   mid = new Middle()
 
   # Connections
-  @absent_after(300 ms)
+  @absent_after(400 ms)
   up.out -> mid.inp
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.inp
-  @absent_after(200 ms)
+  @absent_after(300 ms)
   persistence.out_to_middle -> mid.in_from_persistence
-  @absent_after(350 ms)
+  @absent_after(450 ms)
   mid.out_to_persistence -> persistence.in_from_middle
 }

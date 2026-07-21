@@ -8,7 +8,7 @@
  * swap.
  */
 target Python {
-  timeout: 6 s,
+  timeout: 9 s,
   auth: true,
   coordination: decentralized
 }
@@ -57,18 +57,16 @@ federated reactor {
       federation_name="TransientDecentralizedHotSwap",
       fed_instance_name="mid")
 
-  up = new Up()  # Persistent downstream and upstream federates of the transient
-  @maxwait(0)
-  down = new Down()
+  up = new Up(period = 1500 ms)  # Persistent downstream and upstream federates of the transient
+  @maxwait(800 ms)
+  down = new Down(period = 1500 ms)
 
   # Transient federate
   @transient
-  @maxwait(250 ms)
+  @maxwait(500 ms)
   mid = new Middle()
 
   up.out -> mid.inp  # Connections
-  @absent_after(300 ms)
   mid.join -> down.join
-  @absent_after(350 ms)
   mid.out -> down.inp
 }
