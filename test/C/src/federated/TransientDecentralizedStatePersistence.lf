@@ -4,6 +4,8 @@
  * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`.
  * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
  * it receives the saved state and sets it. In this, the order of the reactions is important.
+ *
+ * @author Chadlia Jerad
  */
 target C {
   timeout: 6 s,

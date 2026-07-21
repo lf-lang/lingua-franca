@@ -5,6 +5,8 @@
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port
  * `in`,
  * - the downstream of the transient federate has only one transient as upstream.
+ *
+ * @author Chadlia Jerad
  */
 target C {
   timeout: 6 s,
