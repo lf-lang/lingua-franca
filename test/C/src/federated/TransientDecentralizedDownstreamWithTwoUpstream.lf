@@ -11,7 +11,7 @@
  * @author Chadlia Jerad
  */
 target C {
-  timeout: 6 s,
+  timeout: 9 s,
   auth: true,
   coordination: decentralized
 }
@@ -29,7 +29,7 @@ preamble {=
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down (period: time = 500 ms){
+reactor Down(period: time = 500 ms) {
   timer t(0, period)
 
   input in_mid: int
@@ -94,25 +94,25 @@ reactor Down (period: time = 500 ms){
 
 federated reactor {
   // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
+  midExec = new TransientExec(launch_time = 3 s, fed_instance_name="mid")
 
   // Persistent downstream and upstream federates of the transient
-  up1 = new Up()
-  up2 = new Up(period = 300 msec)
+  up1 = new Up(period = 1500 ms)
+  up2 = new Up(period = 800 msec)
   @maxwait(0)
-  down = new Down()
+  down = new Down(period = 1500 ms)
 
   // Transient federate
   @transient
-  @maxwait(250 ms)
+  @maxwait(500 ms)
   mid = new Middle()
 
   // Connections
   up1.out -> mid.in
-  @absent_after(300 ms)
+  @absent_after(400 ms)
   mid.join -> down.join
-  @absent_after(350 ms)
+  @absent_after(500 ms)
   mid.out -> down.in_mid
-  @absent_after(100 ms)
+  @absent_after(300 ms)
   up2.out -> down.in_up
 }

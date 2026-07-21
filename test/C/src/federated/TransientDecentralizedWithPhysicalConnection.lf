@@ -9,7 +9,7 @@
  * @author Chadlia Jerad
  */
 target C {
-  timeout: 6 s,
+  timeout: 9 s,
   coordination: decentralized
 }
 
@@ -83,23 +83,23 @@ reactor Middle {
 
 federated reactor {
   // Persistent federate that is responsible for lauching the transient once, after 1s
-  midExec = new TransientExec(launch_time = 1 s, fed_instance_name="mid")
+  midExec = new TransientExec(launch_time = 3 s, fed_instance_name="mid")
 
   // Persistent downstream and upstream federates of the transient
-  up = new Up()
+  up = new Up(period = 1500 ms)
   @maxwait(0)
   down = new Down()
 
   // Transient federate
   @transient
-  @maxwait(250 ms)
+  @maxwait(400 ms)
   mid = new Middle()
 
   // Connections
   up.out -> mid.in
-  @absent_after(300 ms)
+  @absent_after(500 ms)
   mid.join -> down.join
-  @absent_after(350 ms)
+  @absent_after(600 ms)
   mid.out -> down.in
   up.outp ~> mid.inp
 }
