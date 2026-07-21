@@ -4,6 +4,8 @@
  * regardless of the transient being absent or present. In this test:
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port `in`,
  * - the downstream of the transient federate has only one transient as upstream.
+ *
+ * @author Chadlia Jerad
  */
 target C {
   timeout: 3 s
@@ -152,8 +154,8 @@ reactor Middle {
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down {
-  timer t(0, 500 ms)
+reactor Down(period: time = 500 ms) {
+  timer t(0, period)
 
   input in: int
   input join: int

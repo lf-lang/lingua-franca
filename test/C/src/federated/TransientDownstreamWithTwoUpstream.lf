@@ -7,6 +7,8 @@
  *
  * In addition, the program tests if authentication works in case of a federation with transients,
  * by adding `auth` target property.
+ *
+ * @author Chadlia Jerad
  */
 target C {
   timeout: 3 s,

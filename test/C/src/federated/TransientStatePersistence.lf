@@ -4,6 +4,8 @@
  * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`.
  * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
  * it receives the saved state and sets it. In this, the order of the reactions is important.
+ *
+ * @author Chadlia Jerad
  */
 target C {
   timeout: 2900 ms
@@ -101,8 +103,8 @@ reactor Middle {
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down {
-  timer t(0, 500 ms)
+reactor Down(period = 500 ms) {
+  timer t(0, period)
 
   input in: int
   input join: bool
