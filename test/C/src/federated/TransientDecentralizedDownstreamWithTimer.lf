@@ -48,6 +48,7 @@ reactor Middle {
   reaction(in) -> out {=
     self->count++;
     lf_set(out, in->value);
+    lf_print("Middle forwarded value %d at tag " PRINTF_TAG ".", in->value, lf_time_logical_elapsed(), lf_tag().microstep);
 
     if (self->count == 2) {
       lf_stop();
@@ -115,9 +116,9 @@ federated reactor {
   midExec = new TransientExec(launch_time = 3 s, fed_instance_name="mid")
 
   // Persistent downstream and upstream federates of the transient
-  up = new Up(period = 1500 ms)
+  up = new Up(period = 500 ms)
   @maxwait(800 ms)
-  down = new Down(period = 1500 ms)
+  down = new Down(period = 500 ms)
 
   // Transient federate
   @transient

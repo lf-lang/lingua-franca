@@ -2,8 +2,12 @@
  * This LF program showcases and tests the persistance of the internal state of a transient federate
  * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
  * joins. Whenever the state (of type `FederateState`) changes, it notifies `Persistence`. `Middle`
- * notifies `Persistence` also when it joins. When `Middle` joins the second time or after, it
- * receives the saved state and sets it. In this, the order of the reactions is important.
+ * notifies `Persistence` also when it joins. When `Middle` joins, it receives the saved state and
+ * sets it. In this, the order of the reactions is important.
+ *
+ * Note that this test is intrinsically flaky. The `maxwait` and `absent_after` parameters are
+ * chosen to be large enough to cover the flakiness most of the time, but it is not guaranteed to
+ * pass every time.
  */
 target Python {
   timeout: 9 s,

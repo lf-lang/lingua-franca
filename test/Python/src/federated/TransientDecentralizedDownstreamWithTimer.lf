@@ -41,6 +41,7 @@ reactor Middle {
   reaction(inp) -> out {=
     self.count += 1
     out.set(inp.value)
+    print("Middle forwarded value {} at tag ({}, {}).".format(inp.value, lf.time.logical_elapsed(), lf.tag().microstep))
 
     if self.count == 2:
       lf.stop()
@@ -96,7 +97,7 @@ reactor Down(period = 1500 ms) {
 
     # Check that `Middle` have reacted correctly
     if self.count_in_mid_reactions < 4:
-      sys.stderr.write("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: {}.\n".format(
+      sys.stderr.write("Transient federate Mid did not execute and pass values from up correctly! Expected >= 4, but had: {}.\n".format(
           self.count_in_mid_reactions))
       sys.exit(1)
   =}
@@ -109,9 +110,9 @@ federated reactor {
       federation_name="TransientDecentralizedDownstreamWithTimer",
       fed_instance_name="mid")
 
-  up = new Up(period = 1500 ms)  # Persistent downstream and upstream federates of the transient
+  up = new Up(period = 500 ms)  # Persistent downstream and upstream federates of the transient
   @maxwait(800 ms)
-  down = new Down(period = 1500 ms)
+  down = new Down(period = 500 ms)
 
   # Transient federate
   @transient
