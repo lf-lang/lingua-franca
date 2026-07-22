@@ -117,7 +117,7 @@ reactor Down(period = 500 ms) {
   reaction(shutdown) {=
     if self.count_join == 2 and self.count_in_mid_reactions < 4:
       sys.stderr.write("Mid Joined twice, but the state did not persist "
-          "across executions! state_count is {}, while is should be > then {}.\n".format(
+          "across executions! state_count is {}, while is should be > than {}.\n".format(
               self.count_in_mid_reactions, 4))
       sys.exit(1)
   =}

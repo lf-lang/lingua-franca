@@ -830,7 +830,7 @@ public class CExtension implements FedTargetExtension {
             "_fed.number_of_inbound_p2p_transients = "
                 + numberOfInboundConnectionsToTransients
                 + ";",
-            "_fed.number_of_outbound_p2p_transients = "
+            "_fed.number_of_downstream_p2p_transients = "
                 + numberOfOutboundConnectionsToTransients
                 + ";"));
 
@@ -840,7 +840,7 @@ public class CExtension implements FedTargetExtension {
             "// Initialize the array of network abstractions for incoming connections to -1.",
             "for (int i = 0; i < NUMBER_OF_FEDERATES; i++) {",
             "    _fed.net_for_inbound_p2p_connections[i] = NULL;",
-            "    _fed.inbound_p2p_connection_is_transient[i] = false;",
+            "    _fed.upstream_fed_is_transient[i] = false;",
             "}"));
     code.pr(
         String.join(
