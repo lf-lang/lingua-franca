@@ -136,5 +136,6 @@ federated reactor {
   mid.out -> down.in
   @absent_after(400 ms)
   persistence.out_to_middle -> mid.in_from_persistence
+  @absent_after(200 ms)
   mid.out_to_persistence -> persistence.in_from_middle
 }

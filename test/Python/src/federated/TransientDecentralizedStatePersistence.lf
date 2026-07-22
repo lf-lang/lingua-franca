@@ -8,6 +8,30 @@
  * Note that this test is intrinsically flaky. The `maxwait` and `absent_after` parameters are
  * chosen to be large enough to cover the flakiness most of the time, but it is not guaranteed to
  * pass every time.
+ *
+ * The timing behavior of this test can be very confusing. Three scenarior occur:
+ *
+ * - Most of the time, after joining, when an event arrives on `in`, mid will wait 400 ms
+ *   (because of the absent_after on `in_from_persistence`) before producing `out` and
+ *   `out_to_persistence`.  Down has a maxwait of forever, so it will likely not process
+ *   its message until shutdown time (unless a `join` arrives).  Persistence will receive
+ *   `in_from_middle` at least 400 ms late, so its maxwait of 200 will have already expired
+ *   and it will process the message right away.
+ *
+ * - When a join occurs that is not aligned with the timers, the behavior is different:
+ *   mid runs reaction 1 right away, so Persistence sees `in_middle_join` quickly.
+ *   (reaction 2 in mid has a higher level than the network sender because of the
+ *   zero-delay loop). Persistence may then wait 200 ms (its maxwait) before actually
+ *   sending because of level scheduling. The absent_after of 400ms on the feedback
+ *   path absorbs that 200 ms plus any networking overhead.
+ *
+ * - When a join occurs that _is_ aligned with the timers (likely only at (0,0)),
+ *   then the behavior is still different. mid will send `join` immediately, as above.
+ *   It will receive `in_from_persistence` within 400ms (or else a tardy error will occur).
+ *   It will then send `out_to_persistence`. The maxwait of 200 ms at Persistence keeps
+ *   it from processing the `join` event until it receives both or 200 ms goes by.
+ *   It can't receive both, so this will take 200 ms. Then Persistence sends its output.
+ *  The absent_after on its connection into `in_from_middle` helps protect against tardiness.
  */
 target Python {
   timeout: 9 s,
@@ -124,5 +148,6 @@ federated reactor {
   mid.out -> down.inp
   @absent_after(400 ms)
   persistence.out_to_middle -> mid.in_from_persistence
+  @absent_after(200 ms)
   mid.out_to_persistence -> persistence.in_from_middle
 }
