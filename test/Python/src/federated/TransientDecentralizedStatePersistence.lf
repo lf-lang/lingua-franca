@@ -24,7 +24,6 @@ preamble {=
 
 reactor Persistence {
   state middle_state = {= FederateState('A', 0) =}
-  state middle_first_join = True
 
   input in_from_middle
   input in_middle_join
@@ -32,11 +31,9 @@ reactor Persistence {
 
   # Only send the previous state if it not the first time Middle joins
   reaction(in_middle_join) -> out_to_middle {=
-    if not self.middle_first_join:
-      out_to_middle.set(self.middle_state)
-      print("Notifying Mid of the latest state: {{{},{}}}".format(
-          self.middle_state.state_char, self.middle_state.state_count))
-    self.middle_first_join = False
+    out_to_middle.set(self.middle_state)
+    print("Notifying Mid of the latest state: {{{},{}}}".format(
+        self.middle_state.state_char, self.middle_state.state_count))
   =} tardy {=
     sys.stderr.write("Fatal error: Federate Persistence received a tardy in_middle_join event.\n")
     sys.exit(1)
@@ -100,8 +97,8 @@ reactor Middle {
 }
 
 federated reactor {
-  up = new Up(period = 1500 ms)  # Persistent downstream and upstream federates of the transient
-  down = new Down(period = 1500 ms)
+  up = new Up(period = 500 ms)  # Persistent downstream and upstream federates of the transient
+  down = new Down(period = 500 ms)
   @maxwait(200 ms)
   persistence = new Persistence()
   # Persistent federate that is responsible for lauching the transient once, after 1s
@@ -116,13 +113,12 @@ federated reactor {
   mid = new Middle()
 
   # Connections
-  @absent_after(400 ms)
+  @absent_after(200 ms)
   up.out -> mid.inp
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.inp
-  @absent_after(300 ms)
+  @absent_after(400 ms)
   persistence.out_to_middle -> mid.in_from_persistence
-  @absent_after(450 ms)
   mid.out_to_persistence -> persistence.in_from_middle
 }
