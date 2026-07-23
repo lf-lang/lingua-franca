@@ -1,0 +1,21 @@
+# Test import syntax where the file name in "<packageName>" is optional,
+# for packages resolved from the local lf-packages directory.
+target Python {
+  timeout: 2 sec
+}
+
+import Count from <library-test-modules-defaultfile>
+
+reactor Actuator {
+  input results
+
+  reaction(results) {=
+    print(f"Count: {results.value}")
+  =}
+}
+
+main reactor {
+  count = new Count()
+  act = new Actuator()
+  count.out -> act.results
+}
