@@ -23,8 +23,9 @@ import org.lflang.lf.LfPackage;
  *
  * <p>Package imports use the form {@code <package/...>} and are resolved under the package's {@code
  * src/lib} directory. The last path segment may be a library file ({@code .lf} or {@code .ulf}). If
- * it is not, {@code ReactorClassName.lf} is preferred, with a fallback to {@code
- * ReactorClassName.ulf} (and finally to listing all library files). This supports both {@code
+ * a named library file does not exist, the alternate extension is tried ({@code .lf} ↔ {@code
+ * .ulf}). If the file name is omitted, {@code ReactorClassName.lf} is preferred, with the same
+ * alternate-extension fallback (and finally listing all library files). This supports both {@code
  * import R from <package>} and imports that name a subdirectory such as {@code <package/subdir>}.
  *
  * @ingroup Utilities
@@ -52,7 +53,8 @@ public class ImportUtil {
     }
     Path root = findProjectRoot(FileUtil.toPath(resource));
     return toFileUriString(
-        resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null)));
+        resolveExistingPackageFile(
+            root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null), true));
   }
 
   /**
@@ -95,9 +97,10 @@ public class ImportUtil {
    * (preserving any subdirectory segments). Otherwise:
    *
    * <ul>
-   *   <li>if {@code defaultFileName} is provided, that file is appended under {@code src/lib/} (and
-   *       any subdirectory segments). If it does not exist, the alternate library extension ({@code
-   *       .lf}/{@code .ulf}) is tried, then all library files in the directory are listed;
+   *   <li>if the path names a library file (or {@code defaultFileName} supplies one), that file is
+   *       resolved under {@code src/lib/}. If it does not exist, the alternate library extension
+   *       ({@code .lf}/{@code .ulf}) is tried. For an omitted file name, all library files in the
+   *       directory are listed when neither extension exists;
    *   <li>otherwise all {@code .lf}/{@code .ulf} files under the corresponding {@code src/lib}
    *       directory (or subdirectory) are returned.
    * </ul>
@@ -117,13 +120,14 @@ public class ImportUtil {
 
     if (relative != null) {
       Path resolved = resolvePackageFile(root, packageName, relative);
-      boolean explicitFile = lastSegmentIsLibraryFile(uriPath);
-      if (explicitFile) {
-        return List.of(toFileUriString(resolved));
-      }
       Path existing = resolveExistingDefaultFile(resolved);
       if (existing != null) {
         return List.of(toFileUriString(existing));
+      }
+      if (lastSegmentIsLibraryFile(uriPath)) {
+        // Explicit file missing even with alternate extension: keep the named URI so loading
+        // reports a clear error rather than silently picking another library file.
+        return List.of(toFileUriString(resolved));
       }
       // Preferred default file missing: fall through to listing .lf/.ulf files.
     }
@@ -157,7 +161,8 @@ public class ImportUtil {
           "URI must end with a .lf or .ulf library file name: '" + uriStr + "'.");
     }
     Path root = findProjectRoot(Paths.get(srcPath).toAbsolutePath());
-    return resolvePackageFile(root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null));
+    return resolveExistingPackageFile(
+        root, uriPath.getName(0).toString(), relativeLibPath(uriPath, null), true);
   }
 
   /**
@@ -362,19 +367,20 @@ public class ImportUtil {
 
   /**
    * Resolve a package library file, falling back from {@code .lf} to {@code .ulf} (or vice versa)
-   * when the preferred default file does not exist.
+   * when the preferred file does not exist.
    *
-   * @param explicitFile if true, return the resolved path even when missing (caller named the file)
+   * @param explicitFile if true and neither extension exists, return the originally named path
+   *     (caller can surface a load error); if false, throw when neither exists
    */
   private static Path resolveExistingPackageFile(
       Path root, String packageName, Path relativeLibPath, boolean explicitFile) {
     Path resolved = resolvePackageFile(root, packageName, relativeLibPath);
-    if (explicitFile) {
-      return resolved;
-    }
     Path existing = resolveExistingDefaultFile(resolved);
     if (existing != null) {
       return existing;
+    }
+    if (explicitFile) {
+      return resolved;
     }
     throw new IllegalArgumentException(
         "Could not find library file '"
