@@ -594,7 +594,15 @@ public class LFValidator extends BaseLFValidator {
 
   @Check
   public void checkImport(Import imp) {
-    if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
+    if (imp.getReactorClasses().isEmpty()) {
+      return;
+    }
+    var imported = toDefinition(imp.getReactorClasses().get(0));
+    if (imported == null || imported.eResource() == null) {
+      error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
+      return;
+    }
+    if (imported.eResource().getErrors().size() > 0) {
       error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
       return;
     }

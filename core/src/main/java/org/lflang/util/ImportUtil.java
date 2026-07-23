@@ -23,7 +23,8 @@ import org.lflang.lf.LfPackage;
  *
  * <p>Package imports use the form {@code <package/...>} and are resolved under the package's {@code
  * src/lib} directory. The last path segment may be a library file ({@code .lf} or {@code .ulf}). If
- * it is not, {@code ReactorClassName.lf} is used as the file name, which supports both {@code
+ * it is not, {@code ReactorClassName.lf} is preferred, with a fallback to {@code
+ * ReactorClassName.ulf} (and finally to listing all library files). This supports both {@code
  * import R from <package>} and imports that name a subdirectory such as {@code <package/subdir>}.
  *
  * @ingroup Utilities
@@ -82,7 +83,9 @@ public class ImportUtil {
       throw new IllegalArgumentException("Missing library file name for import '" + uriStr + "'.");
     }
     Path root = findProjectRoot(FileUtil.toPath(resource));
-    return toFileUriString(resolvePackageFile(root, uriPath.getName(0).toString(), relative));
+    return toFileUriString(
+        resolveExistingPackageFile(
+            root, uriPath.getName(0).toString(), relative, lastSegmentIsLibraryFile(uriPath)));
   }
 
   /**
@@ -93,7 +96,8 @@ public class ImportUtil {
    *
    * <ul>
    *   <li>if {@code defaultFileName} is provided, that file is appended under {@code src/lib/} (and
-   *       any subdirectory segments);
+   *       any subdirectory segments). If it does not exist, the alternate library extension ({@code
+   *       .lf}/{@code .ulf}) is tried, then all library files in the directory are listed;
    *   <li>otherwise all {@code .lf}/{@code .ulf} files under the corresponding {@code src/lib}
    *       directory (or subdirectory) are returned.
    * </ul>
@@ -112,33 +116,20 @@ public class ImportUtil {
     Path relative = relativeLibPath(uriPath, defaultFileName);
 
     if (relative != null) {
-      return List.of(toFileUriString(resolvePackageFile(root, packageName, relative)));
+      Path resolved = resolvePackageFile(root, packageName, relative);
+      boolean explicitFile = lastSegmentIsLibraryFile(uriPath);
+      if (explicitFile) {
+        return List.of(toFileUriString(resolved));
+      }
+      Path existing = resolveExistingDefaultFile(resolved);
+      if (existing != null) {
+        return List.of(toFileUriString(existing));
+      }
+      // Preferred default file missing: fall through to listing .lf/.ulf files.
     }
 
     // No explicit or default file: list library files in src/lib[/subdir].
-    Path libDir = resolvePackageLibDirectory(root, packageName, directoryPrefix(uriPath));
-    if (!Files.isDirectory(libDir)) {
-      throw new IllegalArgumentException(
-          "Package '" + packageName + "' has no library directory at " + libDir + ".");
-    }
-
-    try (Stream<Path> files = Files.list(libDir)) {
-      List<String> uris =
-          files
-              .filter(Files::isRegularFile)
-              .filter(path -> isLibraryFileName(path.getFileName().toString()))
-              .map(ImportUtil::toFileUriString)
-              .sorted()
-              .toList();
-      if (uris.isEmpty()) {
-        throw new IllegalArgumentException(
-            "Package '" + packageName + "' has no .lf/.ulf files in " + libDir + ".");
-      }
-      return uris;
-    } catch (IOException e) {
-      throw new IllegalArgumentException(
-          "Failed to list library files for package '" + packageName + "' in " + libDir + ".", e);
-    }
+    return listLibraryFileUris(root, packageName, uriPath);
   }
 
   /**
@@ -192,7 +183,8 @@ public class ImportUtil {
       throw new IllegalArgumentException("Missing library file name for import '" + uriStr + "'.");
     }
     Path root = findProjectRoot(Paths.get(srcPath).toAbsolutePath());
-    return resolvePackageFile(root, uriPath.getName(0).toString(), relative);
+    return resolveExistingPackageFile(
+        root, uriPath.getName(0).toString(), relative, lastSegmentIsLibraryFile(uriPath));
   }
 
   /**
@@ -366,5 +358,86 @@ public class ImportUtil {
           "Invalid import path; must stay within " + libDir + ": '" + relativeLibPath + "'.");
     }
     return resolved;
+  }
+
+  /**
+   * Resolve a package library file, falling back from {@code .lf} to {@code .ulf} (or vice versa)
+   * when the preferred default file does not exist.
+   *
+   * @param explicitFile if true, return the resolved path even when missing (caller named the file)
+   */
+  private static Path resolveExistingPackageFile(
+      Path root, String packageName, Path relativeLibPath, boolean explicitFile) {
+    Path resolved = resolvePackageFile(root, packageName, relativeLibPath);
+    if (explicitFile) {
+      return resolved;
+    }
+    Path existing = resolveExistingDefaultFile(resolved);
+    if (existing != null) {
+      return existing;
+    }
+    throw new IllegalArgumentException(
+        "Could not find library file '"
+            + relativeLibPath
+            + "' (or alternate .lf/.ulf extension) under package '"
+            + packageName
+            + "'.");
+  }
+
+  /**
+   * Return {@code preferred} if it exists as a regular file; otherwise try the alternate library
+   * extension ({@code .lf} ↔ {@code .ulf}). Returns {@code null} if neither exists.
+   */
+  private static Path resolveExistingDefaultFile(Path preferred) {
+    if (Files.isRegularFile(preferred)) {
+      return preferred;
+    }
+    Path alternate = withAlternateLibraryExtension(preferred);
+    if (alternate != null && Files.isRegularFile(alternate)) {
+      return alternate;
+    }
+    return null;
+  }
+
+  /** Return a path with {@code .lf} swapped for {@code .ulf}, or vice versa; else {@code null}. */
+  private static Path withAlternateLibraryExtension(Path path) {
+    String name = path.getFileName().toString();
+    String lower = name.toLowerCase(Locale.ROOT);
+    String altName;
+    if (lower.endsWith(".lf")) {
+      altName = name.substring(0, name.length() - 3) + ".ulf";
+    } else if (lower.endsWith(".ulf")) {
+      altName = name.substring(0, name.length() - 4) + ".lf";
+    } else {
+      return null;
+    }
+    Path parent = path.getParent();
+    return parent == null ? Paths.get(altName) : parent.resolve(altName);
+  }
+
+  private static List<String> listLibraryFileUris(Path root, String packageName, Path uriPath) {
+    Path libDir = resolvePackageLibDirectory(root, packageName, directoryPrefix(uriPath));
+    if (!Files.isDirectory(libDir)) {
+      throw new IllegalArgumentException(
+          "Package '" + packageName + "' has no library directory at " + libDir + ".");
+    }
+
+    try (Stream<Path> files = Files.list(libDir)) {
+      List<String> uris =
+          files
+              .filter(Files::isRegularFile)
+              .filter(path -> isLibraryFileName(path.getFileName().toString()))
+              .map(ImportUtil::toFileUriString)
+              .sorted()
+              .toList();
+      if (uris.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Package '" + packageName + "' has no .lf/.ulf files in " + libDir + ".");
+      }
+      return uris;
+    } catch (IOException e) {
+      throw new IllegalArgumentException(
+          "Failed to list library files for package '" + packageName + "' in " + libDir + ".", e);
+    }
   }
 }

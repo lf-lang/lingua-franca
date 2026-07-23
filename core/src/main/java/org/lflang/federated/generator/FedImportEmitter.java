@@ -42,7 +42,7 @@ public class FedImportEmitter {
                 // Support import syntax where the library file may be omitted:
                 //   import ReactorClassName from <packageName>
                 //   import ReactorClassName from <packageName/subdir>
-                // which map to src/lib[/subdir]/ReactorClassName.lf
+                // which map to src/lib[/subdir]/ReactorClassName.lf (or .ulf)
                 if (!ImportUtil.specifiesLibraryFile(i.getImportPackage())) {
                   if (i.getReactorClasses().size() != 1) {
                     throw new IllegalArgumentException(
