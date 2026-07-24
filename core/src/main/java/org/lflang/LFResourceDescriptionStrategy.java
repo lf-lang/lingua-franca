@@ -63,7 +63,7 @@ public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStr
                     return java.util.stream.Stream.of(importObj.getImportURI());
                   }
                   // Package import. If the file is omitted ("<packageName>"), include all
-                  // .lf files under the package's src/lib directory so linking can resolve
+                  // .lf/.ulf files under the package's src/lib directory so linking can resolve
                   // reactor class names without needing them during indexing.
                   return ImportUtil.buildPackageURIs(
                       importObj.getImportPackage(), model.eResource(), null)

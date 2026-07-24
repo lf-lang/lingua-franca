@@ -126,8 +126,8 @@ public class LFScopeProviderImpl extends AbstractLFScopeProvider {
     } else {
       // Support import syntax of the form:
       //   import ReactorClassName from <packageName>
-      // Prefer src/lib/ReactorClassName.lf when the name is available; otherwise include all
-      // library files in the package so linking can still succeed.
+      // Prefer src/lib/ReactorClassName.lf (falling back to .ulf) when the name is available;
+      // otherwise include all library files in the package so linking can still succeed.
       var reactorClassName = ImportUtil.getImportedReactorClassName(context);
       var defaultFile =
           (reactorClassName != null && !reactorClassName.isBlank())
