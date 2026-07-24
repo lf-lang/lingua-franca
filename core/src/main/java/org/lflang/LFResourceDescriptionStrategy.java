@@ -57,14 +57,19 @@ public class LFResourceDescriptionStrategy extends DefaultResourceDescriptionStr
       Model model, IAcceptor<IEObjectDescription> acceptor) {
     var uris =
         model.getImports().stream()
-            .map(
+            .flatMap(
                 importObj -> {
-                  return (importObj.getImportURI() != null)
-                      ? importObj.getImportURI()
-                      : ImportUtil.buildPackageURI(
-                          importObj.getImportPackage(),
-                          model.eResource()); // Use the resolved import string
+                  if (importObj.getImportURI() != null) {
+                    return java.util.stream.Stream.of(importObj.getImportURI());
+                  }
+                  // Package import. If the file is omitted ("<packageName>"), include all
+                  // .lf/.ulf files under the package's src/lib directory so linking can resolve
+                  // reactor class names without needing them during indexing.
+                  return ImportUtil.buildPackageURIs(
+                      importObj.getImportPackage(), model.eResource(), null)
+                      .stream();
                 })
+            .distinct()
             .collect(Collectors.joining(DELIMITER));
     var userData = Map.of(INCLUDES, uris);
     QualifiedName qname = QualifiedName.create(model.eResource().getURI().toString());
