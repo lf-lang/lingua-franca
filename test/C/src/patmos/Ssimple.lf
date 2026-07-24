@@ -72,6 +72,6 @@ main reactor {
   sink = new Sink()
   adder = new Adder()
   source.out -> adder.in1
-  adder.out -> adder.in2 after 1 msec
+  adder.out -> adder.in2 after 900 usec
   adder.out -> sink.in
 }
