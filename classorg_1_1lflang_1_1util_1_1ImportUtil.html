@@ -151,7 +151,8 @@ Static Public Member Functions</h2></td></tr>
 <p>This class provides methods to build URIs for accessing library files based on their location in a project structure, searching <code class="JavaDocCode">build/lfc_include</code>, <code class="JavaDocCode">lf-packages</code>, and the <code class="JavaDocCode"><br/>
 LF_PACKAGES</code> environment variable for library inclusion.</p>
 <p>Package imports use the form <code class="JavaDocCode">&lt;package/...&gt;</code> and are resolved under the package's <code class="JavaDocCode"><br/>
-src/lib</code> directory. The last path segment may be a library file (<code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code>). If it is not, <code class="JavaDocCode">ReactorClassName.lf</code> is used as the file name, which supports both <code class="JavaDocCode"><br/>
+src/lib</code> directory. The last path segment may be a library file (<code class="JavaDocCode">.lf</code> or <code class="JavaDocCode">.ulf</code>). If a named library file does not exist, the alternate extension is tried (<code class="JavaDocCode">.lf</code> ↔ <code class="JavaDocCode"><br/>
+.ulf</code>). If the file name is omitted, <code class="JavaDocCode">ReactorClassName.lf</code> is preferred, with the same alternate-extension fallback (and finally listing all library files). This supports both <code class="JavaDocCode"><br/>
 import R from &lt;package&gt;</code> and imports that name a subdirectory such as <code class="JavaDocCode">&lt;package/subdir&gt;</code>. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
 <a id="adeb061a9e1a89c88e6e2946aa07cc451" name="adeb061a9e1a89c88e6e2946aa07cc451"></a>
@@ -389,7 +390,7 @@ defaultFileName</code> is appended under <code class="JavaDocCode">src/lib/</cod
 <p>If <code class="JavaDocCode">uriStr</code> ends with a <code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code> file, a single path is returned (preserving any subdirectory segments). Otherwise:</p>
 <ul>
 <li>
-if <code class="JavaDocCode">defaultFileName</code> is provided, that file is appended under <code class="JavaDocCode">src/lib/</code> (and any subdirectory segments); </li>
+if the path names a library file (or <code class="JavaDocCode">defaultFileName</code> supplies one), that file is resolved under <code class="JavaDocCode">src/lib/</code>. If it does not exist, the alternate library extension (<code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code>) is tried. For an omitted file name, all library files in the directory are listed when neither extension exists; </li>
 <li>
 otherwise all <code class="JavaDocCode">.lf</code>/<code class="JavaDocCode">.ulf</code> files under the corresponding <code class="JavaDocCode">src/lib</code> directory (or subdirectory) are returned. </li>
 </ul>
