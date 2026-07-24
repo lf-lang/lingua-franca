@@ -1,6 +1,8 @@
 target C {
   platform: "Patmos",
-  single-threaded: true
+  single-threaded: true,
+  // Skip physical busy-waits; required for cycle-accurate patemu in CI.
+  fast: true
 }
 
 main reactor {

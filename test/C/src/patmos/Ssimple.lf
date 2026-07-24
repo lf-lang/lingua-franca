@@ -12,6 +12,8 @@
 target C {
   platform: "Patmos",
   single-threaded: true,
+  // Skip physical busy-waits; required for cycle-accurate patemu in CI.
+  fast: true,
   timeout: 5 msec
 }
 

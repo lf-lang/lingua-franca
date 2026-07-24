@@ -34,6 +34,13 @@ public class CPatmosTest extends TestBase {
   }
 
   @Override
+  protected long getMaxExecutionTimeSeconds() {
+    // patemu is cycle-accurate and much slower than native execution; 300s is often insufficient
+    // even when physical waits are skipped via fast: true.
+    return 600;
+  }
+
+  @Override
   protected ProcessBuilder getExecCommand(LFTest test) throws TestError {
     LFCommand command = test.getFileConfig().getCommand();
     if (command == null) {
