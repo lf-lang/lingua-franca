@@ -89,8 +89,8 @@ reactor Middle {
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down {
-  timer t(0, 500 ms)
+reactor Down(period = 500 ms) {
+  timer t(0, period)
 
   input inp
   input join
@@ -117,7 +117,7 @@ reactor Down {
   reaction(shutdown) {=
     if self.count_join == 2 and self.count_in_mid_reactions < 4:
       sys.stderr.write("Mid Joined twice, but the state did not persist "
-          "across executions! state_count is {}, while is should be > then {}.\n".format(
+          "across executions! state_count is {}, while is should be > than {}.\n".format(
               self.count_in_mid_reactions, 4))
       sys.exit(1)
   =}

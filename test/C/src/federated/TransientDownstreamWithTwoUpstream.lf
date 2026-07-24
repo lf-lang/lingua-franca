@@ -1,5 +1,5 @@
 /**
- * This LF program tests whether a transient federate corretly leaves then joins the federation. It
+ * This LF program tests whether a transient federate correctly leaves then joins the federation. It
  * also tests whether the transient's downstream executes as expected, that is it received correct
  * TAGs, regardless of the transient being absent or present. In this test:
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port in,
@@ -76,7 +76,7 @@ reactor Down {
 
     // Check that Middle have reacted correctly
     if (self->count_in_mid_reactions < 4) {
-      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
+      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up correctly! Expected >= 4, but had: %d.",
           self->count_in_mid_reactions);
     }
   =}

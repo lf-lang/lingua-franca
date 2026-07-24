@@ -1,7 +1,7 @@
 /**
- * This LF program tests if a transient federate correctly leaves then joins the federation. It also
- * tests whether the transient's downstream executes as expected, that is it receives correct TAGs,
- * regardless of the transient being absent or present. In this test:
+ * This LF program tests whether a transient federate correctly leaves then joins the federation. It
+ * also tests whether the transient's downstream executes as expected, that is, it receives correct
+ * TAGs, regardless of the transient being absent or present. In this test:
  * - the transient federate spontaneously leaves the federation after 2 reactions to input port
  * `in`,
  * - the downstream of the transient federate has only one transient as upstream.
@@ -13,8 +13,12 @@ target C {
 }
 
 preamble {=
+  #include <errno.h>
   #include <stdlib.h>
   #include <string.h>
+  #include <sys/stat.h>
+  #include <sys/wait.h>
+  #include <unistd.h>
 =}
 
 /**
@@ -34,38 +38,90 @@ reactor Up(period: time = 500 ms) {
 
 /** Persistent federate that is responsible for lauching the transient federate */
 reactor TransientExec(launch_time: time = 0, fed_instance_name: char* = "instance") {
-  timer t(launch_time, 0)
+  timer t(launch_time)
 
   reaction(t) {=
-    // Construct the command to launch the transient federate
-    char mid_launch_cmd[512];
-    snprintf(mid_launch_cmd, sizeof(mid_launch_cmd),
-        "%s/bin/federate__%s -i %s",
+    // Construct the path to the transient federate executable and the launch command
+    char mid_exe[512];
+    char mid_launch_cmd[576];
+    snprintf(mid_exe, sizeof(mid_exe),
+        "%s/bin/federate__%s",
         LF_FED_PACKAGE_DIRECTORY,
-        self->fed_instance_name,
+        self->fed_instance_name
+    );
+    snprintf(mid_launch_cmd, sizeof(mid_launch_cmd),
+        "%s -i %s",
+        mid_exe,
         lf_get_federation_id()
     );
+
+    // Check that the executable exists
+    if (access(mid_exe, F_OK) != 0) {
+      lf_print_error_and_exit(
+          "Unable to launch federate__%s: executable '%s' does not exist "
+          "(errno %d: %s). Package directory: %s. Command: %s",
+          self->fed_instance_name, mid_exe, errno, strerror(errno),
+          LF_FED_PACKAGE_DIRECTORY, mid_launch_cmd);
+    }
+
+    // Check that it is executable
+    if (access(mid_exe, X_OK) != 0) {
+      lf_print_error_and_exit(
+          "Unable to launch federate__%s: '%s' exists but is not executable "
+          "(errno %d: %s). Command: %s",
+          self->fed_instance_name, mid_exe, errno, strerror(errno), mid_launch_cmd);
+    }
+
+    struct stat st;
+    if (stat(mid_exe, &st) == 0) {
+      lf_print("Executable '%s' found (size %lld bytes, mode %o).",
+          mid_exe, (long long)st.st_size, (unsigned)(st.st_mode & 0777));
+    } else {
+      lf_print_warning(
+          "stat('%s') failed (errno %d: %s); proceeding with launch anyway.",
+          mid_exe, errno, strerror(errno));
+    }
 
     lf_print("Launching federate federate__%s at physical time " PRINTF_TIME ".",
         self->fed_instance_name, lf_time_physical());
     lf_print("**** Launch command: %s", mid_launch_cmd);
 
+    errno = 0;
     int status = system(mid_launch_cmd);
 
-    // Exit if error
-    if (status == 0) {
+    if (status == -1) {
+      lf_print_error_and_exit(
+          "Unable to launch federate__%s: system() failed "
+          "(errno %d: %s). Command: %s",
+          self->fed_instance_name, errno, strerror(errno), mid_launch_cmd);
+    } else if (WIFEXITED(status)) {
+      int exit_status = WEXITSTATUS(status);
+      if (exit_status == 0) {
         lf_print("Successfully launched federate__%s.", self->fed_instance_name);
+      } else {
+        lf_print_error_and_exit(
+            "Unable to launch federate__%s: process exited with status %d "
+            "(wait status %d). Command: %s",
+            self->fed_instance_name, exit_status, status, mid_launch_cmd);
+      }
+    } else if (WIFSIGNALED(status)) {
+      lf_print_error_and_exit(
+          "Unable to launch federate__%s: process killed by signal %d "
+          "(wait status %d). Command: %s",
+          self->fed_instance_name, WTERMSIG(status), status, mid_launch_cmd);
     } else {
-        lf_print_error_and_exit("Unable to launch federate__%s. Abort!", self->fed_instance_name);
+      lf_print_error_and_exit(
+          "Unable to launch federate__%s: unexpected wait status %d. Command: %s",
+          self->fed_instance_name, status, mid_launch_cmd);
     }
   =}
 }
 
 /**
- * Transient federate that forwards whatever it receives from `Up` to `Down`. It reacts twice to
+ * Transient federate that forwards whatever it receives from `in` to `out`. It reacts twice to
  * input port `in`, then stops. It will execute twice during the lifetime of the federation. The
- * second launch is done by `TransientExec` at logical time 1 s. Each time `Middle` joins, it
- * notifies `Down`.
+ * second launch is done by `TransientExec` at logical time 1 s. Each time this reactor joins, it
+ * sends a notification via the `join` output port.
  */
 reactor Middle {
   input in: int
@@ -73,12 +129,12 @@ reactor Middle {
   output join: int
   state count: int = 0
 
-  // Middle notifies its downstream that he joined, but make sure first that the effective start
+  // Middle notifies its downstream that it joined, but make sure first that the effective start
   // tag is correct
   reaction(startup) -> join {=
     tag_t t = lf_tag_start_effective();
     if(t.time < lf_time_start()) {
-      lf_print_error_and_exit("Fatal error: the transient's effective start time is less than the federation start time");
+      lf_print_error_and_exit("The transient's effective start time is less than the federation start time");
     }
 
     lf_set(join, 0);
@@ -135,7 +191,7 @@ reactor Down(period: time = 500 ms) {
 
     // Check that `Middle` have reacted correctly
     if (self->count_in_mid_reactions < 4) {
-      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: %d.",
+      lf_print_error_and_exit("Transient federate Mid did not execute and pass values from up correctly! Expected >= 4, but had: %d.",
           self->count_in_mid_reactions);
     }
   =}

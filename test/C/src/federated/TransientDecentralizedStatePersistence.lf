@@ -2,8 +2,12 @@
  * This LF program showcases and tests the persistance of the internal state of a transient federate
  * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
  * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`.
- * `Middle` notifies `Persistence` also when it joins. When `Middle` joins the second time or after,
- * it receives the saved state and sets it. In this, the order of the reactions is important.
+ * `Middle` notifies `Persistence` also when it joins. When `Middle` joins, it receives the saved
+ * state and sets it. In this, the order of the reactions is important.
+ *
+ * Note that this test is intrinsically flaky. The `maxwait` and `absent_after` parameters are
+ * chosen to be large enough to cover the flakiness most of the time, but it is not guaranteed to
+ * pass every time.
  *
  * @author Chadlia Jerad
  */
@@ -33,23 +37,20 @@ preamble {=
 
 reactor Persistence {
   state middle_state: federate_state_t = {'A', 0}
-  state middle_first_join: bool = true
 
   input in_from_middle: federate_state_t
   input in_middle_join: bool
   output out_to_middle: federate_state_t
 
-  // Only send the previous state if it not the first time Middle joins
+  // Need to send the previous state even the first time Middle joins because
+  // otherwise, Middle will delay by the absent_after before sending out_to_persistence.
   reaction(in_middle_join) -> out_to_middle {=
-    if (!self->middle_first_join) {
-        lf_set(out_to_middle, self->middle_state);
-        lf_print("Notifying Mid of the latest state: {%c,%d}", self->middle_state.state_char,
-              self->middle_state.state_count);
-    }
-    self->middle_first_join = false;
+    lf_set(out_to_middle, self->middle_state);
+    lf_print("Notifying Mid of the latest state: {%c,%d}", self->middle_state.state_char,
+          self->middle_state.state_count);
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Persistence received a tardy in_middle_join event at tag " PRINTF_TAG ".",
-        in_middle_join->intended_tag.time, in_middle_join->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_middle_join event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_middle_join->intended_tag.time - lf_time_start(), in_middle_join->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   reaction(in_from_middle) {=
@@ -58,8 +59,8 @@ reactor Persistence {
     lf_print("Latest received state: {%c,%d}", self->middle_state.state_char,
               self->middle_state.state_count);
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Persistence received a tardy in_from_middle event at tag " PRINTF_TAG ".",
-        in_from_middle->intended_tag.time, in_from_middle->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_from_middle event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_from_middle->intended_tag.time - lf_time_start(), in_from_middle->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 }
 
@@ -89,8 +90,8 @@ reactor Middle {
           self->middle_state.state_count,
           lf_time_logical_elapsed());
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in_from_persistence event at tag " PRINTF_TAG ".",
-        in_from_persistence->intended_tag.time, in_from_persistence->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in_from_persistence event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_from_persistence->intended_tag.time - lf_time_start(), in_from_persistence->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 
   // When an input is received, the internal state is updated, and then sent to
@@ -108,15 +109,15 @@ reactor Middle {
       lf_stop();
     }
   =} tardy {=
-    lf_print_error_and_exit("Fatal error: Federate Middle received a tardy in event at tag " PRINTF_TAG ".",
-        in->intended_tag.time, in->intended_tag.microstep);
+    lf_print_error_and_exit("Received a tardy in event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
   =}
 }
 
 federated reactor {
   // Persistent downstream and upstream federates of the transient
-  up = new Up(period = 1500 ms)
-  down = new Down(period = 1500 ms)
+  up = new Up(period = 500 ms)
+  down = new Down(period = 500 ms)
   @maxwait(200 ms)
   persistence = new Persistence()
   // Persistent federate that is responsible for lauching the transient once, after 1s
@@ -127,14 +128,14 @@ federated reactor {
   @maxwait(0)
   mid = new Middle()
 
-  // Connections
-  @absent_after(400 ms)
+  // Give time for Up to start up and provide its first output.
+  @absent_after(200 ms)
   up.out -> mid.in
   mid.join -> down.join
   mid.join -> persistence.in_middle_join
   mid.out -> down.in
-  @absent_after(300 ms)
+  @absent_after(400 ms)
   persistence.out_to_middle -> mid.in_from_persistence
-  @absent_after(450 ms)
+  @absent_after(200 ms)
   mid.out_to_persistence -> persistence.in_from_middle
 }

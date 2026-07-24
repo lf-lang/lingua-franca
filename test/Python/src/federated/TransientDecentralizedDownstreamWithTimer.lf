@@ -7,7 +7,7 @@
  * - the downstream of the transient federate has only one transient as upstream.
  */
 target Python {
-  timeout: 6 s,
+  timeout: 9 s,
   coordination: decentralized
 }
 
@@ -41,6 +41,7 @@ reactor Middle {
   reaction(inp) -> out {=
     self.count += 1
     out.set(inp.value)
+    print("Middle forwarded value {} at tag ({}, {}).".format(inp.value, lf.time.logical_elapsed(), lf.tag().microstep))
 
     if self.count == 2:
       lf.stop()
@@ -54,8 +55,8 @@ reactor Middle {
  * Persistent federate, which is downstream of the transient. It has to keep reacting to its
  * internal timer and also to inputs from the tansient, if any.
  */
-reactor Down {
-  timer t(0, 500 ms)
+reactor Down(period = 1500 ms) {
+  timer t(0, period)
 
   input inp
   input join
@@ -96,7 +97,7 @@ reactor Down {
 
     # Check that `Middle` have reacted correctly
     if self.count_in_mid_reactions < 4:
-      sys.stderr.write("Transient federate Mid did not execute and pass values from up corretly! Expected >= 4, but had: {}.\n".format(
+      sys.stderr.write("Transient federate Mid did not execute and pass values from up correctly! Expected >= 4, but had: {}.\n".format(
           self.count_in_mid_reactions))
       sys.exit(1)
   =}
@@ -105,22 +106,20 @@ reactor Down {
 federated reactor {
   # Persistent federate that is responsible for lauching the transient once, after 1s
   midExec = new TransientExec(
-      launch_time = 1 s,
+      launch_time = 3 s,
       federation_name="TransientDecentralizedDownstreamWithTimer",
       fed_instance_name="mid")
 
-  up = new Up()  # Persistent downstream and upstream federates of the transient
-  @maxwait(0)
-  down = new Down()
+  up = new Up(period = 500 ms)  # Persistent downstream and upstream federates of the transient
+  @maxwait(800 ms)
+  down = new Down(period = 500 ms)
 
   # Transient federate
   @transient
-  @maxwait(250 ms)
+  @maxwait(500 ms)
   mid = new Middle()
 
   up.out -> mid.inp  # Connections
-  @absent_after(300 ms)
   mid.join -> down.join
-  @absent_after(350 ms)
   mid.out -> down.inp
 }

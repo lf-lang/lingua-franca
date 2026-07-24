@@ -1573,6 +1573,13 @@ public class LFValidator extends BaseLFValidator {
           "The @transient attribute can only be applied inside a federated reactor.",
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    if (!isCBasedTarget() && this.target != Target.Python) {
+      error(
+          "The @transient attribute is only supported for the C and Python targets.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
     }
   }
 
