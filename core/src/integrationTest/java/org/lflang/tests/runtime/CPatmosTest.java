@@ -17,16 +17,17 @@ import org.lflang.util.LFCommand;
 /**
  * Collection of tests for the Patmos target.
  *
- * <p>Uses {@code pasim} (ISA simulator) rather than cycle-accurate {@code patemu}. Busy-waiting for
- * physical time on {@code patemu} is pathologically slow in CI and previously appeared as hangs
- * unless sleep loops performed I/O (e.g. debug {@code printf}s).
+ * <p>Runs under cycle-accurate {@code patemu} (not {@code pasim}): with the toolchain used in CI,
+ * {@code pasim} is known to fail on binaries that {@code patemu} accepts. Physical busy-waits on
+ * {@code patemu} are avoided for these smoke tests via {@code fast: true} in {@link
+ * Configurators#makePatmosCompatible}.
  *
  * @ingroup Tests
  */
 public class CPatmosTest extends TestBase {
 
-  /** Patmos ISA simulator; prefer over cycle-accurate {@code patemu} for smoke tests. */
-  private static final String SIMULATOR = "pasim";
+  /** Cycle-accurate Patmos emulator used by CI smoke tests. */
+  private static final String SIMULATOR = "patemu";
 
   public CPatmosTest() {
     super(Target.C);
