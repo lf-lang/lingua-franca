@@ -16,9 +16,11 @@ reactor Source {
   output out: int
   timer t(0, 1 msec)
   state s: int = 1
+
   reaction(startup) {=
     lf_print("Source starting up, initial value: %d", self->s);
   =}
+
   reaction(t) -> out {=
     lf_set(out, self->s);
     ++self->s;
@@ -28,7 +30,7 @@ reactor Source {
 reactor Sink {
   input in: int
   state last_received: int = 0
-  
+
   reaction(in) {=
     self->last_received = in->value;
     lf_print("Received %d at %lld", in->value, lf_time_logical_elapsed());
