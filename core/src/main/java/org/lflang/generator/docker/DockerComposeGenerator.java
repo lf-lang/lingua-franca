@@ -1,9 +1,6 @@
 package org.lflang.generator.docker;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
@@ -64,6 +61,8 @@ public class DockerComposeGenerator {
                %s:
                    build:
                        context: "%s"
+                       %s
+                   image: "%s:latest"
                    container_name: "%s"
                    tty: true
                    extra_hosts:
@@ -75,6 +74,8 @@ public class DockerComposeGenerator {
         .formatted(
             getServiceName(data),
             getBuildContext(data),
+            getDockerFilePath(data),
+            getContainerName(data).toLowerCase(),
             getContainerName(data),
             getEnvironmentFile());
   }
@@ -100,6 +101,10 @@ public class DockerComposeGenerator {
   /** Return the name of the container for the given data. */
   protected String getContainerName(DockerData data) {
     return data.serviceName;
+  }
+
+  protected String getDockerFilePath(DockerData data) {
+    return "";
   }
 
   /**
@@ -169,43 +174,10 @@ public class DockerComposeGenerator {
 
   /** Create a launcher script that invokes Docker. */
   public void createLauncher() {
-    var fileConfig = context.getFileConfig();
-    var packageRoot = fileConfig.srcPkgPath;
-    var srcGenPath = fileConfig.getSrcGenPath();
-    var binPath = fileConfig.binPath;
-    FileUtil.createDirectoryIfDoesNotExist(binPath.toFile());
-    var file = binPath.resolve(fileConfig.name).toFile();
-
-    final var relPath =
-        FileUtil.toUnixString(fileConfig.binPath.relativize(fileConfig.getOutPath()));
-
-    var script =
-        """
-        #!/bin/bash
-        set -euo pipefail
-        cd $(dirname "$0")
-        cd "%s/%s"
-        docker compose -f docker-compose.yml %s up --abort-on-container-failure
-        """
-            .formatted(
-                relPath,
-                packageRoot.relativize(srcGenPath),
-                Files.exists(fileConfig.getSrcGenPath().resolve("docker-compose-override.yml"))
-                    ? "-f docker-compose-override.yml"
-                    : "");
-    var messageReporter = context.getErrorReporter();
     try {
-      var writer = new BufferedWriter(new FileWriter(file));
-      writer.write(script);
-      writer.close();
+      new FedDeploymentScriptGenerator(context).generate();
     } catch (IOException e) {
-      messageReporter
-          .nowhere()
-          .warning("Unable to write launcher to " + file.getAbsolutePath() + " with error: " + e);
-    }
-
-    if (!file.setExecutable(true, false)) {
-      messageReporter.nowhere().warning("Unable to make launcher script executable.");
+      context.getErrorReporter().nowhere().warning("Unable to write launcher with error: " + e);
     }
   }
 
