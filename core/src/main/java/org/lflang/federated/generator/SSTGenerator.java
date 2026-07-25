@@ -156,7 +156,7 @@ public class SSTGenerator {
     // Build the auth-server
     ProcessBuilder mvnProcessBuilder = new ProcessBuilder();
     mvnProcessBuilder.directory(sstRepoRootPath.resolve("auth").resolve("auth-server").toFile());
-    mvnProcessBuilder.command("mvn", "clean", "install");
+    mvnProcessBuilder.command("mvn", "-B", "-ntp", "clean", "install");
 
     try {
       Process mvnProcess = mvnProcessBuilder.start();

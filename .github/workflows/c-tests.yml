@@ -54,14 +54,6 @@ jobs:
       - name: Install RTI
         uses: ./.github/actions/install-rti
         if: ${{ runner.os == 'macOS' || runner.os == 'Linux' }}
-      - name: Install Protobuf (Ubuntu)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
-        if: ${{ runner.os == 'Linux' }}
-      - name: Setup ROS2 (Ubuntu)
-        uses: ./.github/actions/setup-ros2
-        if: ${{ runner.os == 'Linux' }}
       - name: Clone SST repository and C library for SST federated tests
         run: |
           git clone https://github.com/iotauth/iotauth.git iotauth
