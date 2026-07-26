@@ -230,6 +230,13 @@ public class CCmakeGenerator {
         cMakeCode.pr("set(CMAKE_C_COMPILER ${CLANG_EXECUTABLE})");
         cMakeCode.pr(
             "set(CMAKE_C_FLAGS_RELEASE \"-O2 -DNDEBUG\")"); // patmos-clang cannot compile -O3
+        // Default linker layout only gives 0x8000 (32KB) combined for the stack cache and shadow
+        // stack (_stack_cache_base=0x200000, _shadow_stack_base=0x1f8000), even though there is
+        // ~1.9MB of unused address space between that and __heap_end (0x100000). Move
+        // _shadow_stack_base down to reclaim some of that headroom as stack, since a stack-cache
+        // overflow silently corrupts adjacent heap memory (no MMU/guard page on Patmos).
+        cMakeCode.pr(
+            "set(CMAKE_EXE_LINKER_FLAGS \"-Xgold --defsym -Xgold _shadow_stack_base=0x180000\")");
         cMakeCode.pr("project(" + executableName + " LANGUAGES C)");
         cMakeCode.newLine();
         break;
