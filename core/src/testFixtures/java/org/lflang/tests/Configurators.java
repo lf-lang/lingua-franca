@@ -124,6 +124,11 @@ public class Configurators {
     // behavior, not real-time pacing on the emulator.
     FastProperty.INSTANCE.override(config, true);
 
+    // NOTE: like Zephyr emulations (see makeZephyrCompatible), debug log-levels are suspected to
+    // cause hangs/crashes on Patmos's constrained, MMU-less memory (extra stack depth from
+    // variadic debug-print marshaling). Use WARN instead.
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
+
     var platform = config.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(
         config,
