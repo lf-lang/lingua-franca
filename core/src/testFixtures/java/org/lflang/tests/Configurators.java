@@ -1,6 +1,7 @@
 package org.lflang.tests;
 
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Option;
