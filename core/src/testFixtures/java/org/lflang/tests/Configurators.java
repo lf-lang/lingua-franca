@@ -110,6 +110,9 @@ public class Configurators {
   }
 
   public static boolean makePatmosCompatible(TargetConfig config) {
+    // Patmos emulator runs are significantly slower with debug-level runtime logs.
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
+
     /**
      * Patmos has a maximum of eight hardware threads; override the chosen number of worker threads
      * to be 0 (meaning run-time selects it).

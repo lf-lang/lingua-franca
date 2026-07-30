@@ -64,16 +64,6 @@ public class CPatmosTest extends TestBase {
             + " in directory: "
             + command.directory());
 
-    // Run the full command to check if it executes correctly
-    try {
-      Process testProc =
-          new ProcessBuilder(fullCommand).directory(command.directory()).inheritIO().start();
-      int testExit = testProc.waitFor();
-      System.out.println("DEBUG: Test command exited with code: " + testExit);
-    } catch (Exception e) {
-      System.out.println("DEBUG: Exception while running full command: " + e.getMessage());
-    }
-
     // Create the ProcessBuilder
     ProcessBuilder processBuilder = new ProcessBuilder(fullCommand).directory(command.directory());
 
@@ -93,12 +83,25 @@ public class CPatmosTest extends TestBase {
   }
 
   @Test
+  public void runPatmosThreadedTests() {
+    Assumptions.assumeTrue(isLinux(), "Patmos tests only run on Linux");
+    super.runTestsFor(
+        List.of(Target.C),
+        Message.DESC_PATMOS,
+        TestCategory.PATMOS_THREADED::equals,
+        Transformers::noChanges,
+        Configurators::makePatmosCompatible,
+        TestLevel.EXECUTION,
+        false);
+  }
+
+  @Test
   public void runPatmosUnthreadedTests() {
     Assumptions.assumeTrue(isLinux(), "Patmos tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
         Message.DESC_PATMOS,
-        TestCategory.PATMOS::equals,
+        TestCategory.PATMOS_UNTHREADED::equals,
         Transformers::noChanges,
         Configurators::makePatmosCompatibleUnthreaded,
         TestLevel.EXECUTION,
