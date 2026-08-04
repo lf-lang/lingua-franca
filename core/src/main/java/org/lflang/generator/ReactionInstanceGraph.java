@@ -438,23 +438,27 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * Tighten inferred deadlines so that, within each federate, every reaction's inferred deadline
-   * is at most the minimum inferred deadline among all reactions at higher levels in that federate.
-   * Reactions that already have a tighter deadline keep it.
+   * Tighten inferred deadlines so that, within each level-scheduling scope, every reaction's
+   * inferred deadline is at most the minimum inferred deadline among all reactions at higher
+   * levels in that scope. Reactions that already have a tighter deadline keep it.
    *
-   * <p>Level scheduling requires lower-level reactions to complete before higher-level ones can
-   * execute. Under deadline-based priorities, lower-level reactions with loose deadlines can be
-   * preempted by other lower-level reactions with tighter deadlines, delaying completion of the
-   * level and effectively inverting priority relative to higher-level reactions with tight
-   * deadlines. This pass prevents that by giving lower-level reactions scheduling priority over all
-   * higher-level reactions in the same federate.
+   * <p>Level scheduling applies only within a single federate and a single enclave: lower-level
+   * reactions in that scope must complete before higher-level ones can execute. Under
+   * deadline-based priorities, lower-level reactions with loose deadlines can be preempted by
+   * other lower-level reactions with tighter deadlines, delaying completion of the level and
+   * effectively inverting priority relative to higher-level reactions with tight deadlines. This
+   * pass prevents that by giving lower-level reactions scheduling priority over all higher-level
+   * reactions in the same scope. Distinct enclaves and distinct federates are not subject to a
+   * shared level barrier, so they are tightened independently.
    *
    * <p>This must run after {@link #assignInferredDeadlines()} (downstream propagation) and {@link
    * #assignLevels()} (level assignment).
    */
   private void tightenInferredDeadlinesForLevelScheduling() {
-    for (List<Runtime> runtimes : groupRuntimesByFederateScope().values()) {
-      tightenInferredDeadlinesWithinFederate(runtimes);
+    for (List<Runtime> federateRuntimes : groupRuntimesByFederateScope().values()) {
+      for (List<Runtime> enclaveRuntimes : groupRuntimesByEnclave(federateRuntimes).values()) {
+        tightenInferredDeadlinesWithinScope(enclaveRuntimes);
+      }
     }
   }
 
@@ -479,6 +483,19 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     return runtimesByScope;
   }
 
+  /**
+   * Group runtime reaction instances by containing enclave. Level scheduling is per-enclave, so
+   * deadline tightening must not cross enclave boundaries.
+   */
+  private Map<ReactorInstance, List<Runtime>> groupRuntimesByEnclave(List<Runtime> runtimes) {
+    Map<ReactorInstance, List<Runtime>> runtimesByEnclave = new LinkedHashMap<>();
+    for (Runtime runtime : runtimes) {
+      ReactorInstance enclave = runtime.getReaction().getContainingEnclaveReactor();
+      runtimesByEnclave.computeIfAbsent(enclave, key -> new ArrayList<>()).add(runtime);
+    }
+    return runtimesByEnclave;
+  }
+
   /** Recursively collect all runtime reaction instances rooted at {@code reactor}. */
   private void collectAllRuntimes(ReactorInstance reactor, List<Runtime> runtimes) {
     for (ReactionInstance reaction : reactor.reactions) {
@@ -490,11 +507,11 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
-   * For each reaction in a federate, cap its inferred deadline at the minimum inferred deadline
-   * among all reactions at higher levels in that federate. Reactions that already have a tighter
-   * deadline are unchanged.
+   * For each reaction in a level-scheduling scope (one federate and one enclave), cap its inferred
+   * deadline at the minimum inferred deadline among all reactions at higher levels in that scope.
+   * Reactions that already have a tighter deadline are unchanged.
    */
-  private void tightenInferredDeadlinesWithinFederate(List<Runtime> runtimes) {
+  private void tightenInferredDeadlinesWithinScope(List<Runtime> runtimes) {
     for (Runtime runtime : runtimes) {
       TimeValue minHigherLevelDeadline = minDeadlineAtHigherLevel(runtimes, runtime.level);
       if (minHigherLevelDeadline == null) {
