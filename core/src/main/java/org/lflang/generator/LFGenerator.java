@@ -67,8 +67,12 @@ public class LFGenerator extends AbstractGenerator {
         case TS -> new TSFileConfig(resource, srcGenBasePath, useHierarchicalBin);
         case UC ->
             throw new RuntimeException(
-                "Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC"
-                    + " target.");
+                "Please refer to https://github.com/lf-lang/reactor-uc for code-generation for"
+                    + " micro-LF target.");
+        case Polyglot ->
+            throw new RuntimeException(
+                "Polyglot programs must use a 'federated reactor'. No non-federated Polyglot"
+                    + " programs are supported.");
       };
     } catch (IOException e) {
       throw new RuntimeException(
@@ -92,8 +96,12 @@ public class LFGenerator extends AbstractGenerator {
       case Rust -> new RustGenerator(context, scopeProvider);
       case UC ->
           throw new RuntimeException(
-              "Please refer to www.github.com/lf-lang/reactor-uc for code-generation for the uC"
-                  + " target.");
+              "Please refer to https://github.com/lf-lang/reactor-uc for code-generation for"
+                  + " micro-LF target.");
+      case Polyglot ->
+          throw new RuntimeException(
+              "Polyglot programs must use a 'federated reactor' and are compiled via"
+                  + " FedGenerator.");
     };
   }
 

@@ -9,6 +9,7 @@ target C {
 reactor Platform(
     start: int = 0,
     expected_start: int = 0,
+    stp_offset: time = 0,
     stp_offset_param: time = 0,
     period: time = 100 ms) {
   input in: int

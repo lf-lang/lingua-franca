@@ -8,6 +8,7 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
+import org.lflang.target.property.type.PlatformType;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.AttributeSpec;
 
@@ -141,7 +142,12 @@ public class AttributeUtils {
     if (attr == null || attr.getAttrParms().isEmpty()) {
       return null;
     }
-    return StringUtil.removeQuotes(attr.getAttrParms().get(0).getValue());
+    var parm = attr.getAttrParms().get(0);
+    // When a bare identifier is used (e.g., @language(C)), value is null and name holds the ID.
+    if (parm.getValue() != null) {
+      return StringUtil.removeQuotes(parm.getValue());
+    }
+    return parm.getName();
   }
 
   /**
@@ -326,8 +332,19 @@ public class AttributeUtils {
   }
 
   /**
-   * Return the value of the `@maxwait` attribute of the given node or TimeValue.ZERO if does not
-   * have one.
+   * Return true if the given node has an explicit `@maxwait` attribute.
+   *
+   * @param node The AST node (Instantiation or Connection).
+   */
+  public static boolean hasMaxWait(EObject node) {
+    return findAttributeByName(node, "maxwait") != null;
+  }
+
+  /**
+   * Return the value of the `@maxwait` attribute of the given node or TimeValue.FOREVER if it does
+   * not have one. FOREVER is the default because, under decentralized coordination, a federate
+   * without an explicit `@maxwait` will wait indefinitely for inputs to become known before
+   * declaring them absent.
    *
    * @param node The AST node (Instantiation or Connection).
    */
@@ -336,12 +353,24 @@ public class AttributeUtils {
     if (attr != null) {
       // The attribute is expected to have a single argument of type Time or the literal "0".
       // The validator checks this.
-      final var time = attr.getAttrParms().get(0).getTime();
+      final var parm = attr.getAttrParms().get(0);
+      final var time = parm.getTime();
       if (time != null) {
         return ASTUtils.toTimeValue(time);
+      } else if ("0".equals(parm.getValue())) {
+        return TimeValue.ZERO;
       }
     }
-    return TimeValue.ZERO;
+    return TimeValue.FOREVER;
+  }
+
+  /**
+   * Return true if the given node has an explicit `@absent_after` attribute.
+   *
+   * @param node The AST node (a Connection).
+   */
+  public static boolean hasAbsentAfter(EObject node) {
+    return findAttributeByName(node, "absent_after") != null;
   }
 
   /**
@@ -385,12 +414,13 @@ public class AttributeUtils {
    *
    * <p>The attribute has one mandatory parameter and one optional parameter:
    * <ul>
-   *   <li>{@code value} (mandatory) – the target platform (currently only {@code "posix"} is
-   *       supported). When it is the only parameter, {@code "value"} can be omitted:
-   *       {@code @platform("posix")}. When both parameters are given, {@code "value"} must be
-   *       explicit: {@code @platform(value="posix", scheduler="rt-fifo")}.</li>
-   *   <li>{@code scheduler} (optional) – the thread scheduling policy name ({@code "rt-fifo"},
-   *       {@code "rt-rr"}, or {@code "normal"})</li>
+   *   <li>{@code value} (mandatory) – a {@link PlatformType.Platform} name (e.g. {@code "Native"},
+   *       {@code "Zephyr"}, {@code "Linux"}) or {@code "posix"} for a host POSIX target. When it is
+   *       the only parameter, {@code "value"} can be omitted: {@code @platform("Native")}. When
+   *       both parameters are given, {@code "value"} must be explicit:
+   *       {@code @platform(value="posix", scheduler="rt-fifo")}.</li>
+   *   <li>{@code scheduler} (optional, only when {@code value} is {@code "posix"}) – the thread
+   *       scheduling policy name ({@code "rt-fifo"}, {@code "rt-rr"}, or {@code "normal"})</li>
    * </ul>
    *
    * @param node The AST node (Instantiation or Reactor).
@@ -417,6 +447,38 @@ public class AttributeUtils {
       return new String[] {platformName, schedulerPolicy};
     }
     return null;
+  }
+
+  /**
+   * Resolve a {@code @platform} attribute value to a {@link PlatformType.Platform}.
+   *
+   * <p>{@code "posix"} is accepted as an alias for {@link PlatformType.Platform#AUTO} (host
+   * detection). Other names are matched against {@link PlatformType}.
+   *
+   * @param name The platform name from the attribute (quotes already removed).
+   * @return The matching platform, or null if the name is not recognized.
+   */
+  public static PlatformType.Platform toPlatformEnum(String name) {
+    if (name == null) {
+      return null;
+    }
+    if ("posix".equalsIgnoreCase(name)) {
+      return PlatformType.Platform.AUTO;
+    }
+    return new PlatformType().forName(name);
+  }
+
+  /**
+   * Return whether {@code name} is a valid {@code @platform} value (a {@link PlatformType} name or
+   * {@code "posix"}).
+   */
+  public static boolean isValidPlatformAttributeValue(String name) {
+    return toPlatformEnum(name) != null;
+  }
+
+  /** Return a comma-separated list of allowed {@code @platform} values for error messages. */
+  public static String allowedPlatformAttributeValues() {
+    return new PlatformType().optionsString() + ", posix";
   }
 
   /**

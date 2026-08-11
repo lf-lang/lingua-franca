@@ -583,7 +583,7 @@ public class PythonReactionGenerator {
         code.pr(
             generatePythonFunction(
                 generatePythonSTPFunctionName(reactionIndex),
-                "",
+                inits.toString(),
                 ASTUtils.toText(reaction.getTardy().getCode()),
                 reactionParameters));
       }
@@ -591,7 +591,7 @@ public class PythonReactionGenerator {
       code.pr(
           generatePythonFunction(
               generatePythonSTPFunctionName(reactionIndex),
-              "",
+              inits.toString(),
               ASTUtils.toText(reaction.getStp().getCode()),
               reactionParameters));
     }
@@ -600,7 +600,7 @@ public class PythonReactionGenerator {
       code.pr(
           generatePythonFunction(
               generatePythonDeadlineFunctionName(reactionIndex),
-              "",
+              inits.toString(),
               ASTUtils.toText(reaction.getDeadline().getCode()),
               reactionParameters));
     }

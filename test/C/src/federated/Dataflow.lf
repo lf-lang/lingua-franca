@@ -55,7 +55,6 @@ reactor Server {
 federated reactor {
   client1 = new Client()
   client2 = new Client()
-  @maxwait(forever)
   server = new Server()
   server.server_message -> client1.server_message
   client1.client_message -> server.client_message1 after 0

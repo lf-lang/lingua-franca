@@ -25,4 +25,15 @@ public class RustTest extends RuntimeTest {
   protected boolean supportsGenericTypes() {
     return true;
   }
+
+  @Override
+  protected boolean supportsDockerOption() {
+    return true;
+  }
+
+  @Test
+  @Override
+  public void runDockerTests() {
+    super.runDockerTests();
+  }
 }

@@ -1,0 +1,108 @@
+/**
+ * Test a sender-receiver network system that relies on microsteps being taken into account. The
+ * purpose of this test is to check whether the functionalities pertinent to dynamic STP offset
+ * adjustments are present and functioning to a degree.
+ *
+ * This version of the test does not use a centralized coordinator to advance the tag. Therefore,
+ * the receiver will rely on an STP offset (initially zero) to wait long enough for messages to
+ * arrive before advancing its tag. In this test, the STP offset is initially zero and gradually
+ * raised every time an STP violation is perceived until no STP violation is observed. Therefore,
+ * the exact outcome of the test will depend on actual runtime timing.
+ *
+ * @author Soroush Bateni
+ */
+target Python {
+  timeout: 1 sec,
+  coordination: decentralized
+}
+
+import Sender from "../lib/LoopedActionSender.lf"
+
+reactor Receiver(take_a_break_after=10, break_interval = 400 msec) {
+  preamble {=
+    import sys
+  =}
+  input inp
+  state received_messages = 0
+  state total_received_messages = 0
+  state breaks = 0
+
+  reaction(inp) {=
+    print("Inside, at tag ({}, {}), received value {}.".format(
+      lf.time.logical_elapsed(),
+      lf.tag().microstep,
+      inp.value
+    ))
+    self.total_received_messages += 1
+    if inp.value != self.received_messages:
+      self.sys.stderr.write("ERROR: Skipped expected value {}. Received value {}.\n".format(
+        self.received_messages, inp.value))
+      self.sys.exit(1)
+    self.received_messages += 1
+    if self.received_messages == self.take_a_break_after:
+      # Sender is taking a break.
+      self.breaks += 1
+      self.received_messages = 0
+  =} STAA(0) {=
+    # STP violation should NOT be passed down to this inner reactor.
+    self.sys.stderr.write("ERROR: STP violation should have been handled by the enclosing reactor and not passed down!\n")
+    self.sys.exit(1)
+  =}
+
+  reaction(shutdown) {=
+    expected_messages = ((SEC(1) // self.break_interval) + 1) * self.take_a_break_after
+    if self.breaks != 3 or self.total_received_messages != expected_messages:
+      self.sys.stderr.write("ERROR: Test failed. Breaks: {}, Messages: {}.\n".format(
+        self.breaks, self.total_received_messages))
+      self.sys.exit(1)
+    else:
+      print("SUCCESS: Successfully received all messages from the sender. Breaks: {}, Messages: {}.".format(
+        self.breaks, self.total_received_messages))
+  =}
+}
+
+reactor STPReceiver(take_a_break_after=10, break_interval = 400 msec) {
+  preamble {=
+    import sys
+  =}
+  input inp
+  state last_time_updated_stp = 0
+  receiver = new Receiver(take_a_break_after=10, break_interval = 400 msec)
+  timer t(0, 10 msec)  # Force advancement of logical time
+
+  reaction(inp) -> receiver.inp {=
+    print("At tag ({}, {}), received {} on time.".format(
+      lf.time.logical_elapsed(),
+      lf.tag().microstep,
+      inp.value
+    ))
+    receiver.inp.set(inp.value)
+  =} STAA(0) {=
+    print("At tag ({}, {}), received {} LATE. Intended tag is ({}, {}).".format(
+      lf.time.logical_elapsed(),
+      lf.tag().microstep,
+      inp.value,
+      inp.intended_tag.time - lf.time.start(),
+      inp.intended_tag.microstep
+    ))
+    receiver.inp.set(inp.value)
+
+    # Update the STP offset at most once per time step.
+    if lf.tag().time != self.last_time_updated_stp:
+      print("Raising the STP offset by {}.".format(MSEC(100)))
+      lf.set_fed_maxwait(lf.get_fed_maxwait() + MSEC(100))
+      self.last_time_updated_stp = lf.tag().time
+  =}
+
+  reaction(t) {=
+    pass
+  =}
+}
+
+federated reactor {
+  sender = new Sender(take_a_break_after=10, break_interval = 400 msec)
+  # Initial maxwait is too small.
+  @maxwait(0)
+  stpReceiver = new STPReceiver(take_a_break_after=10, break_interval = 400 msec)
+  sender.out -> stpReceiver.inp
+}

@@ -315,10 +315,17 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseAttrParm(AttrParm object) {
-    // (name=ID '=')? value=AttrParmValue;
+    // (name=ID '=')? value=AttrParmValue | name=ID (bare identifier, e.g. @language(C))
     var builder = new Builder();
-    if (object.getName() != null) builder.append(object.getName()).append(" = ");
     var value = object.getValue();
+    if (object.getName() != null) {
+      if (value == null && object.getTime() == null) {
+        // Bare identifier case: @language(C) → name="C", value=null, time=null.
+        // Render as just the identifier with no '=' prefix.
+        return MalleableString.anyOf(object.getName());
+      }
+      builder.append(object.getName()).append(" = ");
+    }
     if (value == null) {
       // The value is a Time.
       return caseTime(object.getTime());

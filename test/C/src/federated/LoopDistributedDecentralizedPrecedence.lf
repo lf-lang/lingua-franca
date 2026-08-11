@@ -1,8 +1,8 @@
 /**
  * This tests that the precedence order of reaction invocation is kept when a feedback loop is
- * present in decentralized coordination. The Looper reactors have the default zero STP offset, so
- * they can advance their time to the timer time immediately. Their second reaction, however, has
- * larger STAA offset (100 ms), so they stall to wait for input. The test ensures that their third
+ * present in decentralized coordination. The Looper reactors have maxwait of zero, so they can
+ * advance their time to the timer time immediately. Their second reaction, however, has larger
+ * absent_after (100 ms), so they stall to wait for input. The test ensures that their third
  * reaction is not invoked before the second.
  *
  * To tolerate timing variability (particularly in the CI tests), if the third reaction is invoked
@@ -41,11 +41,11 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp: time = 0) {
     lf_readable_time(time_buffer, time_lag);
     lf_print("Received %d. Logical time is behind physical time by %s.", in->value, time_buffer);
     self->received_count = self->count;
-  =} STAA(stp) {=
+  =} tardy {=
     instant_t time_lag = lf_time_physical() - lf_time_logical();
     char time_buffer[LF_TIME_BUFFER_LENGTH];
     lf_readable_time(time_buffer, time_lag);
-    lf_print_warning("STP offset was violated. Received %d. Logical time is behind physical time by %s.",
+    lf_print_warning("STP violation. Received %d. Logical time is behind physical time by %s.",
         in->value, time_buffer
     );
   =} deadline(100 msec) {=
@@ -64,7 +64,7 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp: time = 0) {
       if (lag < self->stp) {
         lf_print_error_and_exit("reaction(t) was invoked before reaction(in). Precedence order was not kept.");
       } else {
-        lf_print_warning("Assumed input was absent because STAA expired.");
+        lf_print_warning("Assumed input was absent because absent_after expired.");
       }
     }
   =}
@@ -78,8 +78,12 @@ reactor Looper(incr: int = 1, delay: time = 0 msec, stp: time = 0) {
 }
 
 federated reactor(delay: time = 0) {
-  left = new Looper(stp = 50 msec)
-  right = new Looper(incr=-1, stp = 50 msec)
+  @maxwait(0)
+  left = new Looper(stp = 100 msec)
+  @maxwait(0)
+  right = new Looper(incr=-1, stp = 100 msec)
+  @absent_after(100 ms)
   left.out -> right.in
+  @absent_after(100 ms)
   right.out -> left.in
 }

@@ -23,8 +23,25 @@ public class FederateTargetConfig extends TargetConfig {
    * @param federateResource The resource in which to find the reactor class of the federate.
    */
   public FederateTargetConfig(LFGeneratorContext context, Resource federateResource) {
-    // Create target config with the target based on the federate (not the main resource).
-    super(Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)));
+    this(
+        context,
+        federateResource,
+        Target.fromDecl(GeneratorUtils.findTargetDecl(federateResource)));
+  }
+
+  /**
+   * Create a configuration for a federate with an explicitly supplied target, overriding the target
+   * declared in the resource. Used by the Polyglot target, where the federation-level target is
+   * {@code Polyglot} but each federate compiles with the target from its {@code @language}
+   * annotation.
+   *
+   * @param context The generator context.
+   * @param federateResource The resource in which to find the reactor class of the federate.
+   * @param overrideTarget The actual compilation target to use for this federate.
+   */
+  public FederateTargetConfig(
+      LFGeneratorContext context, Resource federateResource, Target overrideTarget) {
+    super(overrideTarget);
     var federationResource = context.getFileConfig().resource;
     var reporter = context.getErrorReporter();
 

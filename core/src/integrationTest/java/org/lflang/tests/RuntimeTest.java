@@ -107,6 +107,7 @@ public abstract class RuntimeTest extends TestBase {
         EnumSet.of(
             TestCategory.CONCURRENT,
             TestCategory.FEDERATED,
+            TestCategory.FEDERATED_SST,
             // FIXME: also run the multiport tests once these are supported.
             TestCategory.MULTIPORT));
 
@@ -137,6 +138,18 @@ public abstract class RuntimeTest extends TestBase {
     runTestsForTargets(
         Message.DESC_FEDERATED,
         TestCategory.FEDERATED::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
+  @Test
+  public void runFederatedSSTTests() {
+    Assumptions.assumeTrue(supportsFederatedExecution(), Message.NO_FEDERATION_SUPPORT);
+    runTestsForTargets(
+        Message.DESC_FEDERATED,
+        TestCategory.FEDERATED_SST::equals,
         Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,
@@ -238,6 +251,7 @@ public abstract class RuntimeTest extends TestBase {
         category == TestCategory.CONCURRENT
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
+            || category == TestCategory.FEDERATED_SST
             || category == TestCategory.DOCKER_FEDERATED
             || category == TestCategory.DOCKER
             || category == TestCategory.ENCLAVE

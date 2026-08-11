@@ -17,7 +17,9 @@ import org.lflang.federated.generator.FedConnectionInstance;
 import org.lflang.federated.generator.FederateInstance;
 import org.lflang.federated.generator.FederationFileConfig;
 import org.lflang.federated.launcher.RtiConfig;
+import org.lflang.federated.serialization.FedProtoCSerialization;
 import org.lflang.federated.serialization.FedROS2CPPSerialization;
+import org.lflang.federated.serialization.FedSerialization;
 import org.lflang.generator.ActionInstance;
 import org.lflang.generator.CodeBuilder;
 import org.lflang.generator.LFGeneratorContext;
@@ -188,8 +190,24 @@ public class CExtension implements FedTargetExtension {
           }
         }
       }
-      case PROTO ->
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
+        var portTypeStr = types.getTargetType(portType);
+        if (!CUtil.isPointerType(portType)) {
+          messageReporter
+              .at(receivingPort.getVariable())
+              .error(
+                  "Protobuf serialization requires a pointer-typed port (e.g. 'MyMessage*'). "
+                      + "Found type: "
+                      + portTypeStr);
+          return;
+        }
+        var protoDeserializer = new FedProtoCSerialization();
+        result.pr(
+            protoDeserializer.generateNetworkDeserializerCode(
+                "self->_lf__" + action.getName(), portTypeStr));
+        result.pr(protoDeserializer.generatePortAssignmentCode(receiveRef));
+      }
       case ROS2 -> {
         var portType = ASTUtils.getInferredType(((Port) receivingPort.getVariable()));
         var portTypeStr = types.getTargetType(portType);
@@ -213,6 +231,12 @@ public class CExtension implements FedTargetExtension {
         } else {
           result.pr("lf_set(" + receiveRef + ", std::move(" + value + "));");
         }
+      }
+      case CUSTOM -> {
+        messageReporter
+            .at(connection.getDefinition())
+            .error("Custom serialization is not supported for the C target.");
+        return;
       }
     }
   }
@@ -412,8 +436,25 @@ public class CExtension implements FedTargetExtension {
           result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
         }
       }
-      case PROTO ->
-          throw new UnsupportedOperationException("Protobuf serialization is not supported yet.");
+      case PROTO -> {
+        var typeStr = types.getTargetType(type);
+        if (!CUtil.isPointerType(type)) {
+          messageReporter
+              .nowhere()
+              .error(
+                  "Protobuf serialization requires a pointer-typed port (e.g. 'MyMessage*'). "
+                      + "Found type: "
+                      + typeStr);
+          return;
+        }
+        var protoSerializer = new FedProtoCSerialization();
+        lengthExpression = protoSerializer.serializedBufferLength();
+        pointerExpression = protoSerializer.serializedBufferVar();
+        result.pr(protoSerializer.generateNetworkSerializerCode(sendRef, typeStr));
+        result.pr("size_t _lf_message_length = " + lengthExpression + ";");
+        result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
+        result.pr("free(" + FedSerialization.serializedVarName + ");");
+      }
       case ROS2 -> {
         var typeStr = types.getTargetType(type);
         if (CUtil.isTokenType(type) || CUtil.isFixedSizeArrayType(type)) {
@@ -433,6 +474,12 @@ public class CExtension implements FedTargetExtension {
                 sendRef, typeStr, CExtensionUtils.isSharedPtrType(type, types)));
         result.pr("size_t _lf_message_length = " + lengthExpression + ";");
         result.pr(sendingFunction + "(" + commonArgs + ", " + pointerExpression + ");");
+      }
+      case CUSTOM -> {
+        messageReporter
+            .at(connection.getDefinition())
+            .error("Custom serialization is not supported for the C target.");
+        return;
       }
     }
   }
@@ -714,9 +761,10 @@ public class CExtension implements FedTargetExtension {
           code.pr("lf_set_stp_offset(" + ((CodeExprImpl) globalSTP).getCode().getBody() + ");");
         else messageReporter.at(stpParam.get().eContainer()).error("Invalid STA offset");
       } else {
-        // Check for an annotation on the federate instantiation.
+        // Check for an annotation on the federate instantiation. The default is FOREVER
+        // (matching the C runtime default), so only emit code when the value differs.
         var maxwait = AttributeUtils.getMaxWait(federate.instantiation);
-        if (maxwait != TimeValue.ZERO) {
+        if (!maxwait.equals(TimeValue.FOREVER)) {
           code.pr("lf_set_stp_offset(" + CTypes.getInstance().getTargetTimeExpr(maxwait) + ");");
         }
       }

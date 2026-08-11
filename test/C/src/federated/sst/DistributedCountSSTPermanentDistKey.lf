@@ -1,0 +1,30 @@
+/**
+ * Test a simple federated system using SST (Secure Swarm Toolkit) for secure communication with
+ * permanent distribution keys enabled.
+ *
+ * To run this test, you must specify the path to your local SST repository. You can do this by
+ * either: 1. Setting the `sst-root-path` target property in the `sst` dictionary. 2. Setting the
+ * `SST_ROOT` environment variable in your system.
+ *
+ * Based on the DistributedCount test.
+ *
+ * @author Edward A. Lee
+ * @author Dongha Kim
+ */
+target C {
+  timeout: 5 sec,
+  coordination: centralized,
+  comm-type: SST,
+  sst: {
+    use-permanent-distribution-key: true
+  }
+}
+
+import Count from "../../lib/Count.lf"
+import Print from "../DistributedCount.lf"
+
+federated reactor DistributedCountSSTPermanentDistKey(offset: time = 200 msec) {
+  c = new Count()
+  p = new Print()
+  c.out -> p.in after offset
+}

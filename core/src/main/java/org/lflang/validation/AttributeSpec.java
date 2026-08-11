@@ -287,17 +287,15 @@ public class AttributeSpec {
           }
         });
 
-    // @platform("posix") or @platform(value="posix", scheduler="rt-fifo") specifies the
-    // target platform and (optionally) the thread scheduling policy.
-    // When only the platform is given, "value" can be omitted: @platform("posix").
-    // When both parameters are given, "value" must be explicit:
+    // @platform("value") or @platform(value="posix", scheduler="rt-fifo") specifies the
+    // target platform and (optionally, posix only) the thread scheduling policy.
+    // When only the platform is given, "value" can be omitted: @platform("Native").
+    // When both parameters are given, "value" must be explicit and must be "posix":
     //   @platform(value="posix", scheduler="rt-fifo").
-    // If applied to the main reactor, it affects all federates.
-    // If applied to a specific federate instantiation, it overrides the policy for
-    // that federate only.
-    // The "value" parameter (mandatory) is the platform name (currently only "posix").
-    // The "scheduler" parameter (optional) is the scheduling policy: "rt-fifo", "rt-rr",
-    // or "normal".
+    // The "value" parameter (mandatory) is a PlatformType name (e.g. "Native", "Zephyr",
+    // "Linux") or "posix".
+    // The "scheduler" parameter (optional, posix only) is "rt-fifo", "rt-rr", or "normal".
+    // On a federate instantiation, the optional scheduler overrides that federate only.
     ATTRIBUTE_SPECS_BY_NAME.put(
         "platform",
         new AttributeSpec(
@@ -337,12 +335,7 @@ public class AttributeSpec {
                 new AttrParamSpec("max_adj", AttrParamType.BIGINT, true),
                 new AttrParamSpec("kp", AttrParamType.FLOAT, true),
                 new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
-    // FIXME: Revisit attribute naming/semantics so @platform (scheduler override) and the
-    // target platform property can be cleanly separated without special-case handling.
-    // ATTRIBUTE_SPECS_BY_NAME.put(
-    //   "platform",
-    //   new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
-    
+
     // Attributes used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // Marker for total port order (TPO) levels.

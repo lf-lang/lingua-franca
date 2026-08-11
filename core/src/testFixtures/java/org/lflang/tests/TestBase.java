@@ -125,9 +125,13 @@ public abstract class TestBase extends LfInjectedTestBase {
         "Target does not support single-threaded execution.";
     public static final String NO_FEDERATION_SUPPORT =
         "Target does not support federated execution.";
+    public static final String NO_DECENTRALIZED_COORDINATION_SUPPORT =
+        "The TypeScript target does not support decentralized coordination.";
     public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
     public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
     public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
+    public static final String NO_SERIALIZATION_SUPPORT =
+        "Serialization tests require protobuf and ROS2, which are only set up on Linux in CI.";
 
     /* Descriptions of collections of tests. */
     public static final String DESC_SERIALIZATION = "Run serialization tests.";

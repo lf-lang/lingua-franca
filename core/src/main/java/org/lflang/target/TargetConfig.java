@@ -321,8 +321,8 @@ public class TargetConfig {
    *
    * @param property The property to get the value of
    * @return The current value, or the initial value of none was assigned.
-   * @param <T> The Java type of the returned value.
-   * @param <S> The LF type of the returned value.
+   * @tparam <T> The Java type of the returned value.
+   * @tparam <S> The LF type of the returned value.
    */
   public <T, S extends TargetPropertyType> T getOrDefault(TargetProperty<T, S> property) {
     try {
@@ -390,8 +390,8 @@ public class TargetConfig {
    *
    * @param property The target property to assign the value to.
    * @param value The value to assign to the target property.
-   * @param <T> The Java type of the value.
-   * @param <S> The LF type of the value.
+   * @tparam <T> The Java type of the value.
+   * @tparam <S> The LF type of the value.
    */
   public <T, S extends TargetPropertyType> void set(TargetProperty<T, S> property, T value) {
     if (value != null) {
@@ -415,8 +415,8 @@ public class TargetConfig {
    * Return the AST node that was used to assign a value for the given target property.
    *
    * @param targetProperty The target property to find a matching AST node for.
-   * @param <T> The Java type of values assigned to the given target property.
-   * @param <S> The LF type of values assigned to the given target property.
+   * @tparam <T> The Java type of values assigned to the given target property.
+   * @tparam <S> The LF type of values assigned to the given target property.
    */
   public <T, S extends TargetPropertyType> KeyValuePair lookup(
       TargetProperty<T, S> targetProperty) {

@@ -14,11 +14,13 @@ import org.lflang.target.property.ClockSyncOptionsProperty.ClockSyncOption;
 import org.lflang.target.property.CoordinationOptionsProperty.CoordinationOption;
 import org.lflang.target.property.DockerProperty.DockerOption;
 import org.lflang.target.property.PlatformProperty.PlatformOption;
+import org.lflang.target.property.SSTProperty.SSTOption;
 import org.lflang.target.property.TracePluginProperty.TracePluginOption;
 import org.lflang.target.property.TracingProperty.TracingOption;
 
 /**
- * A dictionary type with a predefined set of possible keys and assignable types.
+ * A dictionary type with a predefined set of possible keys and assignable
+ * types.
  *
  * @author Marten Lohstroh
  */
@@ -27,6 +29,7 @@ public enum DictionaryType implements TargetPropertyType {
   DOCKER_DICT(Arrays.asList(DockerOption.values())),
   PLATFORM_DICT(Arrays.asList(PlatformOption.values())),
   COORDINATION_OPTION_DICT(Arrays.asList(CoordinationOption.values())),
+  SST_DICT(Arrays.asList(SSTOption.values())),
   TRACING_DICT(Arrays.asList(TracingOption.values())),
   TRACE_PLUGIN_DICT(Arrays.asList(TracePluginOption.values()));
 
@@ -52,7 +55,10 @@ public enum DictionaryType implements TargetPropertyType {
     return Target.match(name, options);
   }
 
-  /** Recursively check that the passed in element conforms to the rules of this dictionary. */
+  /**
+   * Recursively check that the passed in element conforms to the rules of this
+   * dictionary.
+   */
   @Override
   public boolean check(Element e, String name, MessageReporter v) {
     KeyValuePairs kv = e.getKeyvalue();
@@ -84,7 +90,9 @@ public enum DictionaryType implements TargetPropertyType {
     return false;
   }
 
-  /** Return true if the given element represents a dictionary, false otherwise. */
+  /**
+   * Return true if the given element represents a dictionary, false otherwise.
+   */
   @Override
   public boolean validate(Element e) {
     if (e.getKeyvalue() != null) {

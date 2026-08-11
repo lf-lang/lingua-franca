@@ -1,0 +1,61 @@
+name: Polyglot tests
+
+on:
+  workflow_call:
+    inputs:
+      compiler-ref:
+        required: false
+        type: string
+      reactor-c-ref:
+        required: false
+        type: string
+      reactor-c-py-ref:
+        required: false
+        type: string
+
+jobs:
+  regular-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out lingua-franca repository
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/lingua-franca
+          submodules: true
+          ref: ${{ inputs.compiler-ref }}
+          fetch-depth: 0
+      - name: Prepare build environment
+        uses: ./.github/actions/prepare-build-env
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install Protobuf (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-c-dev protobuf-c-compiler protobuf-compiler libprotobuf-dev
+      - name: Install LinguaFrancaBase and Python protobuf package
+        run: pip3 install LinguaFrancaBase protobuf
+      - name: Check out specific ref of reactor-c
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c
+          path: core/src/main/resources/lib/c/reactor-c
+          ref: ${{ inputs.reactor-c-ref }}
+        if: ${{ inputs.reactor-c-ref }}
+      - name: Check out specific ref of reactor-c-py
+        uses: actions/checkout@v3
+        with:
+          repository: lf-lang/reactor-c-py
+          path: core/src/main/resources/lib/py/reactor-c-py
+          ref: ${{ inputs.reactor-c-py-ref }}
+        if: ${{ inputs.reactor-c-py-ref }}
+      - name: Install RTI
+        uses: ./.github/actions/install-rti
+      - name: Run Polyglot tests
+        run: ./gradlew targetTest -Ptarget=Polyglot
+      - name: Report to CodeCov
+        uses: ./.github/actions/report-code-coverage
+        with:
+          files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
+        if: ${{ github.repository == 'lf-lang/lingua-franca' }}

@@ -473,6 +473,83 @@ public class LinguaFrancaStyleExtensions extends AbstractSynthesisExtensions {
     _onEdgePysicalLabelConfigurator.applyTo(label);
   }
 
+  /**
+   * Draws the physical-connection "squiggle" directly on the edge's line as a decorator instead of
+   * as an inline center label. Unlike an inline label, an on-line decorator follows the routed edge
+   * path, so the squiggle stays on the connection line even when the edge is routed around a node.
+   * This is used only for self-loop / feedback connections (e.g. a bank's output routed back to its
+   * own input), where ELK does not honor inline label placement and the label-based squiggle ends
+   * up off the line; ordinary connections continue to use {@link #applyOnEdgePysicalStyle}. The
+   * {@code parentBackgroundColor} is used to erase the underlying straight line so the squiggle
+   * visually replaces it.
+   *
+   * @param edge the connection edge to decorate
+   * @param parentBackgroundColor the background color behind the edge, used to mask the line
+   * @param relative the position along the edge path (0..1) at which to center the squiggle
+   */
+  public void addPhysicalConnectionSquiggle(
+      KEdge edge, Colors parentBackgroundColor, float relative) {
+    final KRendering rendering = _kRenderingExtensions.getKRendering(edge);
+    if (!(rendering instanceof KContainerRendering)) {
+      return;
+    }
+    final KContainerRendering line = (KContainerRendering) rendering;
+
+    // Erase the straight line underneath the squiggle so the squiggle replaces it rather than
+    // being drawn on top of a visible straight segment.
+    KPolygon erase = _kRenderingFactory.createKPolygon();
+    _kRenderingExtensions.from(erase, LEFT, 0, 0, BOTTOM, (-3), 0.5f);
+    _kRenderingExtensions.to(erase, LEFT, 0, 0, BOTTOM, 3, 0.5f);
+    _kRenderingExtensions.to(erase, RIGHT, 0, 0, BOTTOM, 3, 0.5f);
+    _kRenderingExtensions.to(erase, RIGHT, 0, 0, BOTTOM, (-3), 0.5f);
+    _kRenderingExtensions.setBackground(erase, parentBackgroundColor);
+    _kRenderingExtensions.setForeground(erase, parentBackgroundColor);
+    line.getChildren().add(erase);
+    erase.setPlacementData(createSquigglePlacement(relative));
+
+    // The wavy line. Coordinates are interpreted relative to the decorator box (see
+    // createSquigglePlacement); the vertical center (relative 0.5 from BOTTOM) lies on the edge
+    // line, and the wave spans the box width.
+    KSpline kSpline = _kRenderingFactory.createKSpline();
+    _kRenderingExtensions.from(kSpline, LEFT, (-0.66f), 0, BOTTOM, (-0.5f), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 1, 0, BOTTOM, (-0.5f), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.1f, BOTTOM, 8, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.2f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.3f, BOTTOM, (-8), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.4f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.45f, BOTTOM, 4f, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.5f, BOTTOM, 8, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.55f, BOTTOM, 4f, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.6f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.65f, BOTTOM, (-4), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.7f, BOTTOM, (-8), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.8f, BOTTOM, (-4), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0, 0.9f, BOTTOM, 0, 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, (-1), 1, BOTTOM, (-0.5f), 0.5f);
+    _kRenderingExtensions.to(kSpline, LEFT, 0.66f, 1, BOTTOM, (-0.5f), 0.5f);
+    line.getChildren().add(kSpline);
+    kSpline.setPlacementData(createSquigglePlacement(relative));
+  }
+
+  /**
+   * Creates placement data that positions a squiggle decorator centered on a point along the edge
+   * path and rotated to follow the line. A fresh instance is required per decorated rendering
+   * because placement data is a containment feature.
+   */
+  private KDecoratorPlacementData createSquigglePlacement(float relative) {
+    KDecoratorPlacementData placement = _kRenderingFactory.createKDecoratorPlacementData();
+    placement.setRotateWithLine(true);
+    placement.setRelative(relative);
+    placement.setAbsolute(0f);
+    placement.setWidth(14);
+    placement.setHeight(18);
+    // Center the box on the placement point: along the line (xOffset = -width/2) and perpendicular
+    // to it (yOffset = -height/2), so the edge line passes through the box center.
+    placement.setXOffset(-7f);
+    placement.setYOffset(-9f);
+    return placement;
+  }
+
   private static LabelDecorationConfigurator
       _onEdgeLabelStyleConfigurator; // ONLY for use in applyOnEdgeLabelStyle
 

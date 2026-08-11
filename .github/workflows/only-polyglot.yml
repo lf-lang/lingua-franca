@@ -1,0 +1,14 @@
+name: Polyglot
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: only-polyglot-${{ github.ref }}-${{ github.event_path }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+jobs:
+  # Run the Polyglot integration tests.
+  polyglot-tests:
+    uses: ./.github/workflows/polyglot-tests.yml

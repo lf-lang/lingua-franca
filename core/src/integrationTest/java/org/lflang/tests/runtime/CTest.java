@@ -4,7 +4,10 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.lflang.target.Target;
+import org.lflang.tests.Configurators;
 import org.lflang.tests.RuntimeTest;
+import org.lflang.tests.TestRegistry.TestCategory;
+import org.lflang.tests.Transformers;
 
 /**
  * Collection of tests for the C target.
@@ -103,6 +106,13 @@ public class CTest extends RuntimeTest {
   }
 
   @Test
+  @Override
+  public void runFederatedSSTTests() {
+    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
+    super.runFederatedSSTTests();
+  }
+
+  @Test
   public void runModalTests() {
     super.runModalTests();
   }
@@ -123,5 +133,17 @@ public class CTest extends RuntimeTest {
   public void runDockerFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     super.runDockerFederatedTests();
+  }
+
+  @Test
+  public void runSerializationTests() {
+    Assumptions.assumeTrue(isLinux(), Message.NO_SERIALIZATION_SUPPORT);
+    runTestsForTargets(
+        Message.DESC_SERIALIZATION,
+        TestCategory.SERIALIZATION::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
   }
 }
