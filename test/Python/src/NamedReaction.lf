@@ -3,6 +3,7 @@ target Python
 /** Listen for keyboard input and produce it on the output when it arrives. */
 reactor User {
   output out
+
   reaction(startup) -> out {=
     out.set("Hello, world!")
   =}
@@ -10,6 +11,7 @@ reactor User {
 
 reactor UI extends User {
   input current_value
+
   reaction u3(current_value) {=
     print(f"UI: current_value = {current_value.value}")
   =}
