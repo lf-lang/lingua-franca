@@ -1,6 +1,6 @@
+/** Check that named reactions compile and run without errors. */
 target Python
 
-/** Listen for keyboard input and produce it on the output when it arrives. */
 reactor User {
   output out
 
