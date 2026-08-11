@@ -348,25 +348,28 @@ public class PythonGenerator extends CGenerator implements CCmakeGenerator.SetUp
   public void generateAuxiliaryStructs(
       CodeBuilder builder, TypeParameterizedReactor tpr, boolean userFacing) {
     for (Input input : ASTUtils.allInputs(tpr.reactor())) {
-      generateAuxiliaryStructsForPort(builder, tpr, input);
+      generateAuxiliaryStructsForPort(builder, tpr, input, userFacing);
     }
     for (Output output : ASTUtils.allOutputs(tpr.reactor())) {
-      generateAuxiliaryStructsForPort(builder, tpr, output);
+      generateAuxiliaryStructsForPort(builder, tpr, output, userFacing);
     }
     for (Action action : ASTUtils.allActions(tpr.reactor())) {
-      generateAuxiliaryStructsForAction(builder, tpr, action);
+      generateAuxiliaryStructsForAction(builder, tpr, action, userFacing);
     }
   }
 
   private void generateAuxiliaryStructsForPort(
-      CodeBuilder builder, TypeParameterizedReactor tpr, Port port) {
+      CodeBuilder builder, TypeParameterizedReactor tpr, Port port, boolean userFacing) {
     boolean isTokenType = CUtil.isTokenType(ASTUtils.getInferredType(port));
-    builder.pr(PythonPortGenerator.generateAliasTypeDef(tpr, port, isTokenType, genericPortType));
+    builder.pr(
+        PythonPortGenerator.generateAliasTypeDef(
+            tpr, port, isTokenType, genericPortType, userFacing));
   }
 
   private void generateAuxiliaryStructsForAction(
-      CodeBuilder builder, TypeParameterizedReactor tpr, Action action) {
-    builder.pr(PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType));
+      CodeBuilder builder, TypeParameterizedReactor tpr, Action action, boolean userFacing) {
+    builder.pr(
+        PythonActionGenerator.generateAliasTypeDef(tpr, action, genericActionType, userFacing));
   }
 
   /**

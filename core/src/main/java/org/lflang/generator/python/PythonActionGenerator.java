@@ -11,12 +11,12 @@ import org.lflang.lf.Action;
  */
 public class PythonActionGenerator {
   public static String generateAliasTypeDef(
-      TypeParameterizedReactor tpr, Action action, String genericActionType) {
+      TypeParameterizedReactor tpr, Action action, String genericActionType, boolean userFacing) {
 
     return "typedef "
         + genericActionType
         + " "
-        + CGenerator.variableStructType(action, tpr, false)
+        + CGenerator.variableStructType(action, tpr, userFacing)
         + ";";
   }
 }
