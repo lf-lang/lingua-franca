@@ -20729,8 +20729,8 @@
       <type>static String</type>
       <name>generateAliasTypeDef</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1python_1_1PythonActionGenerator.html</anchorfile>
-      <anchor>ab43938d63eda4dfb604ab33361a67fc7</anchor>
-      <arglist>(TypeParameterizedReactor tpr, Action action, String genericActionType)</arglist>
+      <anchor>a362484fd1d8fbe55043b7393d5183878</anchor>
+      <arglist>(TypeParameterizedReactor tpr, Action action, String genericActionType, boolean userFacing)</arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -21088,8 +21088,8 @@
       <type>static String</type>
       <name>generateAliasTypeDef</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html</anchorfile>
-      <anchor>a8e28a90824debdfcd3c2915ca3ae2d98</anchor>
-      <arglist>(TypeParameterizedReactor tpr, Port port, boolean isTokenType, String genericPortType)</arglist>
+      <anchor>a70ff1f7610c18801530aa9c8dfa1e9ca</anchor>
+      <arglist>(TypeParameterizedReactor tpr, Port port, boolean isTokenType, String genericPortType, boolean userFacing)</arglist>
     </member>
     <member kind="function" static="yes">
       <type>static void</type>

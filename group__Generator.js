@@ -509,7 +509,7 @@ var group__Generator =
       [ "useHierarchicalBin", "classorg_1_1lflang_1_1generator_1_1python_1_1PyFileConfig.html#ac86a63029d65b24543f6ed15a4cc1423", null ]
     ] ],
     [ "org.lflang.generator.python.PythonActionGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonActionGenerator.html", [
-      [ "generateAliasTypeDef", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonActionGenerator.html#ab43938d63eda4dfb604ab33361a67fc7", null ]
+      [ "generateAliasTypeDef", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonActionGenerator.html#a362484fd1d8fbe55043b7393d5183878", null ]
     ] ],
     [ "org.lflang.generator.python.PythonDelayBodyGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonDelayBodyGenerator.html", [
       [ "PythonDelayBodyGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonDelayBodyGenerator.html#aefd88fe508559b6f00321a7a77e11041", null ],
@@ -570,7 +570,7 @@ var group__Generator =
     ] ],
     [ "org.lflang.generator.python.PythonPortGenerator", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html", [
       [ "generateActionVariableToSendToPythonReaction", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html#a6fb79cc877dcb950720afaa375755bc5", null ],
-      [ "generateAliasTypeDef", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html#a8e28a90824debdfcd3c2915ca3ae2d98", null ],
+      [ "generateAliasTypeDef", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html#a70ff1f7610c18801530aa9c8dfa1e9ca", null ],
       [ "generateInputVariablesToSendToPythonReaction", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html#a2b8c17f07e30659d1f02923106e09ce0", null ],
       [ "generateOutputVariablesToSendToPythonReaction", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html#abe9d802eff2fea7fb8a4e28652be3880", null ],
       [ "generatePortVariablesToSendToPythonReaction", "classorg_1_1lflang_1_1generator_1_1python_1_1PythonPortGenerator.html#a7727e2db77376c0fcdb572fbf28434bc", null ],
