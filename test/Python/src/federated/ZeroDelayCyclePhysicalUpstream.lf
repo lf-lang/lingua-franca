@@ -1,0 +1,100 @@
+/**
+ * Regression test for a hang in centralized coordination when a zero-delay cycle (ZDC) interacts
+ * with a physical-action federate that has a zero-delay logical connection into the cycle.
+ *
+ * Pattern (as in FederatedReflexGame):
+ * - Federates `p` and `g` form a ZDC via zero-delay connections both ways.
+ * - Federate `u` has a physical action that can drive an output into `g`.
+ *
+ * Without the runtime fix, `g` may replace its outstanding NET (0,0) with FOREVER when woken by a
+ * port-absent (which cannot add events). The RTI then never grants PTAG to `g`, `p` blocks forever
+ * on MLAA waiting for absent/present on the feedback port, and this test hangs until the harness
+ * times out.
+ *
+ * With the fix, both federates complete tag (0,0), `p` delivers a prompt shortly thereafter, and
+ * this test prints SUCCESS and exits.
+ */
+target Python {
+  timeout: 500 msec,
+  keepalive: true,
+  DNET: false,
+  coordination-options: {
+    advance-message-interval: 10 msec
+  }
+}
+
+reactor Source {
+  input another
+  output out
+  timer t(1 msec)
+
+  reaction(t) -> out {=
+    out.set(42)
+  =}
+
+  reaction(another) {=
+    # Present so the feedback port is used; value is irrelevant for this test.
+  =}
+}
+
+reactor Sink {
+  preamble {=
+    import sys
+  =}
+  input prompt
+  input response
+  output another
+  state success = False
+
+  reaction(prompt) {=
+    if prompt.value != 42:
+      sys.stderr.write("ERROR: Unexpected prompt value.\n")
+      sys.exit(1)
+    print("SUCCESS")
+    self.success = True
+    request_stop()
+  =}
+
+  reaction(response) -> another {=
+    # If the physical upstream ever produces a value, acknowledge it.
+    another.set(1)
+  =}
+
+  reaction(shutdown) {=
+    if not self.success:
+      sys.stderr.write("ERROR: Did not receive prompt (possible ZDC/MLAA hang).\n")
+      sys.exit(1)
+  =}
+}
+
+/**
+ * Physical action that can drive an output; engages AMI / bounded NET.
+ *
+ * The short sleep in startup delays this federate's post-(0,0) NET advance so that, without the
+ * runtime fix, `g` is woken by `p`'s port-absent and can erroneously replace NET (0,0) with FOREVER
+ * before the RTI can grant a PTAG.
+ */
+reactor PhysicalUpstream {
+  preamble {=
+    import time
+  =}
+  output out
+  physical action act
+
+  reaction(startup) {=
+    self.time.sleep(0.1)
+  =}
+
+  reaction(act) -> out {=
+    out.set(0)
+  =}
+}
+
+federated reactor {
+  p = new Source()
+  g = new Sink()
+  u = new PhysicalUpstream()
+  p.out -> g.prompt
+  g.another -> p.another
+  u.out -> g.response
+}
