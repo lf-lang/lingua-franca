@@ -225,26 +225,24 @@ public class CExtensionUtils {
       coreIds = AttributeUtils.getCores(parentReactor);
     }
     if (!coreIds.isEmpty()) {
-      String coreIdsInit = "{" + coreIds.stream()
-          .map(String::valueOf)
-          .collect(Collectors.joining(",")) + "}";
+      String coreIdsInit =
+          "{" + coreIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + "}";
       CompileDefinitionsProperty.INSTANCE.update(
-          federate.targetConfig,
-          java.util.Map.of("LF_CORE_IDS_INIT", coreIdsInit));
+          federate.targetConfig, java.util.Map.of("LF_CORE_IDS_INIT", coreIdsInit));
     }
 
     // Handle @platform attribute for thread scheduling policy.
     // Check the federate's instantiation first; if not present, check the parent (main) reactor.
     String[] platformAttr = AttributeUtils.getPlatform(federate.instantiation);
-    if (platformAttr == null && federate.instantiation.eContainer() instanceof Reactor parentReactor2) {
+    if (platformAttr == null
+        && federate.instantiation.eContainer() instanceof Reactor parentReactor2) {
       platformAttr = AttributeUtils.getPlatform(parentReactor2);
     }
     if (platformAttr != null && platformAttr[1] != null) {
       String cDefine = schedulerPolicyToCDefine(platformAttr[1]);
       if (cDefine != null) {
         CompileDefinitionsProperty.INSTANCE.update(
-            federate.targetConfig,
-            java.util.Map.of("LF_THREAD_POLICY", cDefine));
+            federate.targetConfig, java.util.Map.of("LF_THREAD_POLICY", cDefine));
       }
     }
 

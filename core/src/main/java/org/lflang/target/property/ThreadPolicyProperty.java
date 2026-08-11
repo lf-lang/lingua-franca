@@ -64,4 +64,3 @@ public final class ThreadPolicyProperty extends TargetProperty<ThreadPolicy, Thr
     return "thread-policy";
   }
 }
-

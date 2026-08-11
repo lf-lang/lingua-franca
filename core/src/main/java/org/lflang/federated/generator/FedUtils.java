@@ -1,7 +1,7 @@
 package org.lflang.federated.generator;
 
-import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -53,7 +53,7 @@ public class FedUtils {
   /**
    * Generate a JSON file with federation-level deadline statistics.
    * This is called once from FedGenerator for the entire federation.
-   * 
+   *
    * @param fileConfig The federation file configuration.
    * @param federationMain The ReactorInstance representing the entire federation.
    * @param messageReporter Used to report errors.
@@ -69,14 +69,19 @@ public class FedUtils {
 
     // Filter out sentinel values (NEVER, MAX_VALUE, FOREVER indicate no deadline)
     // Use .equals() for value comparison since TimeValue overrides equals()
-    List<TimeValue> validDeadlines = allDeadlines.stream()
-        .filter(d -> !TimeValue.NEVER.equals(d) && !TimeValue.MAX_VALUE.equals(d) && !TimeValue.FOREVER.equals(d))
-        .sorted()
-        .collect(Collectors.toList());
+    List<TimeValue> validDeadlines =
+        allDeadlines.stream()
+            .filter(
+                d ->
+                    !TimeValue.NEVER.equals(d)
+                        && !TimeValue.MAX_VALUE.equals(d)
+                        && !TimeValue.FOREVER.equals(d))
+            .sorted()
+            .collect(Collectors.toList());
 
     // Create JSON object with deadline statistics
     JsonObject json = new JsonObject();
-    
+
     if (validDeadlines.isEmpty()) {
       // No valid deadlines found in the federation
       json.addProperty("minDeadlineMs", 0.0);
@@ -92,8 +97,9 @@ public class FedUtils {
       if (validDeadlines.size() % 2 == 0) {
         // Even number: median is average of two middle values
         int mid = validDeadlines.size() / 2;
-        long medianNanos = (validDeadlines.get(mid - 1).toNanoSeconds() 
-            + validDeadlines.get(mid).toNanoSeconds()) / 2;
+        long medianNanos =
+            (validDeadlines.get(mid - 1).toNanoSeconds() + validDeadlines.get(mid).toNanoSeconds())
+                / 2;
         medianDeadline = new TimeValue(medianNanos, TimeUnit.NANO);
       } else {
         // Odd number: median is the middle value
@@ -131,11 +137,11 @@ public class FedUtils {
   /**
    * Recursively collect all inferred deadlines from a federation ReactorInstance.
    * This includes deadlines from all federates and their nested reactors.
-   * 
+   *
    * Note: This uses inferred deadlines which include deadline propagation through
    * the reaction graph - if a downstream reaction has an earlier deadline, it is
    * propagated to upstream reactions.
-   * 
+   *
    * @param instance The federation ReactorInstance.
    * @return A list of all inferred deadlines found in the federation.
    */

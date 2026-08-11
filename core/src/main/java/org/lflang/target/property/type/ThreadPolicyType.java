@@ -52,4 +52,3 @@ public class ThreadPolicyType extends OptionsType<ThreadPolicy> {
     }
   }
 }
-

@@ -12,9 +12,9 @@ import static org.lflang.util.StringUtil.addDoubleQuotes;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterables;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.JsonArray;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,6 +36,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
 import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
+import org.lflang.TimeValue;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
 import org.lflang.federated.extensions.CExtensionUtils;
@@ -94,7 +95,6 @@ import org.lflang.target.property.ThreadPolicyProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
-import org.lflang.TimeValue;
 import org.lflang.util.ArduinoUtil;
 import org.lflang.util.FileUtil;
 import org.lflang.util.FlexPRETUtil;
@@ -2191,16 +2191,12 @@ public class CGenerator extends GeneratorBase {
       if (targetConfig.isSet(ThreadPolicyProperty.INSTANCE)) {
         CompileDefinitionsProperty.INSTANCE.update(
             targetConfig,
-            Map.of(
-                "LF_THREAD_POLICY",
-                targetConfig.get(ThreadPolicyProperty.INSTANCE).cDefine));
+            Map.of("LF_THREAD_POLICY", targetConfig.get(ThreadPolicyProperty.INSTANCE).cDefine));
       }
       if (targetConfig.isSet(CoresProperty.INSTANCE)) {
         CompileDefinitionsProperty.INSTANCE.update(
             targetConfig,
-            Map.of(
-                "LF_NUMBER_OF_CORES",
-                String.valueOf(targetConfig.get(CoresProperty.INSTANCE))));
+            Map.of("LF_NUMBER_OF_CORES", String.valueOf(targetConfig.get(CoresProperty.INSTANCE))));
       }
 
       // Check for @cores attribute on the main reactor definition.
@@ -2209,12 +2205,10 @@ public class CGenerator extends GeneratorBase {
         Reactor mainReactor = ASTUtils.toDefinition(mainDef.getReactorClass());
         List<Integer> coreIds = AttributeUtils.getCores(mainReactor);
         if (!coreIds.isEmpty()) {
-          String coreIdsInit = "{" + coreIds.stream()
-              .map(String::valueOf)
-              .collect(Collectors.joining(",")) + "}";
+          String coreIdsInit =
+              "{" + coreIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + "}";
           CompileDefinitionsProperty.INSTANCE.update(
-              targetConfig,
-              Map.of("LF_CORE_IDS_INIT", coreIdsInit));
+              targetConfig, Map.of("LF_CORE_IDS_INIT", coreIdsInit));
         }
 
         // Check for @platform attribute on the main reactor definition.
@@ -2224,8 +2218,7 @@ public class CGenerator extends GeneratorBase {
           String cDefine = policyNameToCDefine(platformAttr[1]);
           if (cDefine != null) {
             CompileDefinitionsProperty.INSTANCE.update(
-                targetConfig,
-                Map.of("LF_THREAD_POLICY", cDefine));
+                targetConfig, Map.of("LF_THREAD_POLICY", cDefine));
           }
         }
       }
@@ -2452,10 +2445,10 @@ public class CGenerator extends GeneratorBase {
   }
 
   /**
-   * Generate a function that provides access to deadline statistics (min, max, median) 
+   * Generate a function that provides access to deadline statistics (min, max, median)
    * of the application. For federated applications, uses federation-level statistics.
    * For non-federated applications, collects from the main reactor instance.
-   * 
+   *
    * This function collects deadlines from all reaction instances in the reactor instance tree,
    * including those from banks and parameterized reactors, to compute accurate statistics.
    */
@@ -2469,7 +2462,8 @@ public class CGenerator extends GeneratorBase {
 
     if (isFederated) {
       // For federated applications, read deadline stats from the federation properties JSON file
-      Path jsonPath = fileConfig.srcPath.resolve("include" + File.separator + "federation_properties.json");
+      Path jsonPath =
+          fileConfig.srcPath.resolve("include" + File.separator + "federation_properties.json");
 
       try {
         if (Files.exists(jsonPath)) {
@@ -2489,25 +2483,38 @@ public class CGenerator extends GeneratorBase {
             distinctDeadlinesMs = all.stream().distinct().sorted().collect(Collectors.toList());
           }
         } else {
-          messageReporter.nowhere().warning(
-              "Federation properties JSON file not found at " + jsonPath + ", using default values");
+          messageReporter
+              .nowhere()
+              .warning(
+                  "Federation properties JSON file not found at "
+                      + jsonPath
+                      + ", using default values");
           minDeadline = 0.0;
           maxDeadline = 0.0;
           medianDeadline = 0.0;
         }
       } catch (IOException | RuntimeException e) {
-        messageReporter.nowhere().warning(
-            "Failed to read federation properties JSON: " + e.getMessage() + ", using default values");
+        messageReporter
+            .nowhere()
+            .warning(
+                "Failed to read federation properties JSON: "
+                    + e.getMessage()
+                    + ", using default values");
         minDeadline = 0.0;
         maxDeadline = 0.0;
         medianDeadline = 0.0;
       }
     } else {
       // For non-federated applications, collect deadlines from the main reactor instance
-      List<TimeValue> validDeadlines = collectAllDeadlines(main).stream()
-          .filter(d -> !TimeValue.NEVER.equals(d) && !TimeValue.MAX_VALUE.equals(d) && !TimeValue.FOREVER.equals(d))
-          .sorted()
-          .collect(Collectors.toList());
+      List<TimeValue> validDeadlines =
+          collectAllDeadlines(main).stream()
+              .filter(
+                  d ->
+                      !TimeValue.NEVER.equals(d)
+                          && !TimeValue.MAX_VALUE.equals(d)
+                          && !TimeValue.FOREVER.equals(d))
+              .sorted()
+              .collect(Collectors.toList());
 
       if (validDeadlines.isEmpty()) {
         minDeadline = 0.0;
@@ -2517,14 +2524,19 @@ public class CGenerator extends GeneratorBase {
         minDeadline = validDeadlines.get(0).toNanoSeconds() / 1000000.0;
         maxDeadline = validDeadlines.get(validDeadlines.size() - 1).toNanoSeconds() / 1000000.0;
         int mid = validDeadlines.size() / 2;
-        medianDeadline = (validDeadlines.size() % 2 == 0)
-            ? (validDeadlines.get(mid - 1).toNanoSeconds() + validDeadlines.get(mid).toNanoSeconds()) / 2 / 1000000.0
-            : validDeadlines.get(mid).toNanoSeconds() / 1000000.0;
-        distinctDeadlinesMs = validDeadlines.stream()
-            .map(d -> d.toNanoSeconds() / 1000000.0)
-            .distinct()
-            .sorted()
-            .collect(Collectors.toList());
+        medianDeadline =
+            (validDeadlines.size() % 2 == 0)
+                ? (validDeadlines.get(mid - 1).toNanoSeconds()
+                        + validDeadlines.get(mid).toNanoSeconds())
+                    / 2
+                    / 1000000.0
+                : validDeadlines.get(mid).toNanoSeconds() / 1000000.0;
+        distinctDeadlinesMs =
+            validDeadlines.stream()
+                .map(d -> d.toNanoSeconds() / 1000000.0)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
       }
     }
 
@@ -2563,7 +2575,9 @@ public class CGenerator extends GeneratorBase {
         final double alphaMin = 0.005;
         alpha =
             alphaMax
-                - (medianDeadline - minDeadline) / (maxDeadline - minDeadline) * (alphaMax - alphaMin);
+                - (medianDeadline - minDeadline)
+                    / (maxDeadline - minDeadline)
+                    * (alphaMax - alphaMin);
       }
       final double expMinusAlphaDmin = Math.exp(-alpha * minDeadline);
       final double expMinusAlphaDmax = Math.exp(-alpha * maxDeadline);
@@ -2581,7 +2595,8 @@ public class CGenerator extends GeneratorBase {
               "  if (rel_deadline <= 0) return 0;",
               // Lingua Franca uses large sentinel values (e.g., TimeValue.MAX_VALUE) to encode
               // the absence of a deadline. These can be much larger than maxDeadline and would
-              // otherwise map to negative priorities (because g(d) continues decreasing past d_max).
+              // otherwise map to negative priorities (because g(d) continues decreasing past
+              // d_max).
               // Treat these as \"no deadline\" -> lowest priority (1).
               "  if (rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
               "  double rel_deadline_ms = rel_deadline / 1000000.0;",
@@ -2630,8 +2645,8 @@ public class CGenerator extends GeneratorBase {
     // We start from a tight, canonical bracket derived from two extreme workloads
     // (see scripts/priority_alpha_search.py), and automatically widen it if the best alpha lands
     // on a boundary. This keeps compile-time cost low while avoiding missing the optimum.
-    double alphaLo = 1e-5;   // ms^-1 (canonical gentle end)
-    double alphaHi = 0.025;  // ms^-1 (canonical steep end)
+    double alphaLo = 1e-5; // ms^-1 (canonical gentle end)
+    double alphaHi = 0.025; // ms^-1 (canonical steep end)
     final int coarseSteps = 2000;
     final int fineSteps = 2000;
 
@@ -2644,7 +2659,13 @@ public class CGenerator extends GeneratorBase {
     for (int attempt = 0; attempt <= maxExpansions; attempt++) {
       outcome =
           searchAlphaWithRefinement(
-              sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs, alphaLo, alphaHi, coarseSteps, fineSteps);
+              sortedDistinctDeadlinesMs,
+              minDeadlineMs,
+              maxDeadlineMs,
+              alphaLo,
+              alphaHi,
+              coarseSteps,
+              fineSteps);
       if (outcome == null) {
         // Should be rare; fall back to a conservative value in the middle of the canonical bracket.
         return 0.005;
@@ -2664,7 +2685,8 @@ public class CGenerator extends GeneratorBase {
 
   private record AlphaCandidate(double alpha, int collisions) {}
 
-  private record AlphaSearchOutcome(AlphaCandidate best, boolean hitLowerBoundary, boolean hitUpperBoundary) {}
+  private record AlphaSearchOutcome(
+      AlphaCandidate best, boolean hitLowerBoundary, boolean hitUpperBoundary) {}
 
   private record GridSearchResult(AlphaCandidate best, int bestIndex, int steps) {}
 
@@ -2677,7 +2699,8 @@ public class CGenerator extends GeneratorBase {
       int coarseSteps,
       int fineSteps) {
     final GridSearchResult coarse =
-        bestAlphaOnLogGrid(sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs, alphaLo, alphaHi, coarseSteps);
+        bestAlphaOnLogGrid(
+            sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs, alphaLo, alphaHi, coarseSteps);
     if (coarse == null) return null;
 
     // Refine around the coarse winner (in log space).
@@ -2716,7 +2739,8 @@ public class CGenerator extends GeneratorBase {
     for (int i = 0; i < steps; i++) {
       final double t = (double) i / (steps - 1);
       final double alpha = Math.pow(10.0, lo + t * (hi - lo));
-      final AlphaCandidate cand = scoreAlpha(alpha, sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs);
+      final AlphaCandidate cand =
+          scoreAlpha(alpha, sortedDistinctDeadlinesMs, minDeadlineMs, maxDeadlineMs);
       if (cand == null) continue;
       if (best == null) {
         best = cand;
@@ -2738,7 +2762,10 @@ public class CGenerator extends GeneratorBase {
    * Score a candidate alpha on the program deadlines.
    */
   private static AlphaCandidate scoreAlpha(
-      double alpha, List<Double> sortedDistinctDeadlinesMs, double minDeadlineMs, double maxDeadlineMs) {
+      double alpha,
+      List<Double> sortedDistinctDeadlinesMs,
+      double minDeadlineMs,
+      double maxDeadlineMs) {
     if (!(alpha > 0.0) || !Double.isFinite(alpha)) return null;
     if (sortedDistinctDeadlinesMs == null || sortedDistinctDeadlinesMs.size() < 2) return null;
 
@@ -2766,7 +2793,8 @@ public class CGenerator extends GeneratorBase {
   /** Format a finite double as a C floating literal (decimal, US locale). */
   private static String formatDoubleForC(double value) {
     if (!Double.isFinite(value)) {
-      throw new IllegalArgumentException("Non-finite double cannot be emitted as C literal: " + value);
+      throw new IllegalArgumentException(
+          "Non-finite double cannot be emitted as C literal: " + value);
     }
     return String.format(Locale.US, "%.17g", value);
   }

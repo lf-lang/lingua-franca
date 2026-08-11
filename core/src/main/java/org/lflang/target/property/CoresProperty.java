@@ -53,4 +53,3 @@ public final class CoresProperty extends TargetProperty<Integer, PrimitiveType> 
     return "cores";
   }
 }
-
