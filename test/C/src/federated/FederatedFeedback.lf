@@ -1,0 +1,24 @@
+target C {
+  timeout: 1 ms
+}
+
+reactor UI {
+  input current_value: int
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_set(out, 42);
+  =}
+
+  reaction(current_value) {=
+    lf_print("UI: current_value = %d", current_value->value);
+    if (current_value->value != 42) {
+      lf_print_error_and_exit("Expected 42.");
+    }
+  =}
+}
+
+federated reactor {
+  u = new UI()
+  u.out -> u.current_value
+}
