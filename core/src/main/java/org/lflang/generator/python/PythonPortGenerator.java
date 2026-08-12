@@ -207,11 +207,15 @@ public class PythonPortGenerator {
   }
 
   public static String generateAliasTypeDef(
-      TypeParameterizedReactor tpr, Port port, boolean isTokenType, String genericPortType) {
+      TypeParameterizedReactor tpr,
+      Port port,
+      boolean isTokenType,
+      String genericPortType,
+      boolean userFacing) {
     return "typedef "
         + genericPortType
         + " "
-        + CGenerator.variableStructType(port, tpr, false)
+        + CGenerator.variableStructType(port, tpr, userFacing)
         + ";";
   }
 

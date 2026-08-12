@@ -586,12 +586,11 @@ public class FederateInstance {
       FederateInstance end, FederateInstance next, HashSet<FederateInstance> visited) {
     next.sendsTo.forEach(
         (destination, setOfDelays) -> {
-          // Return if we've already found a cycle.
-          // Also skip self loops because these get optimized away.
-          // Also skip any we've visited.
-          if (end._isInZeroDelayCycle
-              || (end == next && destination == next)
-              || visited.contains(destination)) return;
+          // Return if we've already found a cycle or already visited this destination.
+          // Note: zero-delay self-loops (destination == next) are not skipped; they are
+          // genuine ZDCs and must trigger port-absent / MLAA handling even though the
+          // connection still routes through the RTI.
+          if (end._isInZeroDelayCycle || visited.contains(destination)) return;
           if (setOfDelays.contains(null)) {
             // Only if we have a zero-delay connection to destination do we add it to visited.
             // If we have a delayed connection to destination, we should not skip a future
@@ -600,7 +599,7 @@ public class FederateInstance {
             visited.add(destination);
             // There is a zero-delay connection to destination.
             if (destination == end) {
-              // Found a zero delay cycle.
+              // Found a zero delay cycle (including a self-loop on end).
               end._isInZeroDelayCycle = true;
               return;
             }
