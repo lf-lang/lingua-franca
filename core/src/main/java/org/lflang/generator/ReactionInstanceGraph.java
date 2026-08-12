@@ -60,7 +60,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     // If there are cycles present in the graph, it will be detected here.
     // This will destroy the graph, leaving only nodes in cycles.
     assignLevels();
-    tightenInferredDeadlinesForLevelScheduling();
+    if (shouldTightenInferredDeadlinesForLevelScheduling()) {
+      tightenInferredDeadlinesForLevelScheduling();
+    }
     // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
 
@@ -72,7 +74,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     addNodesAndEdges(main);
     assignInferredDeadlines();
     assignLevels();
-    tightenInferredDeadlinesForLevelScheduling();
+    if (shouldTightenInferredDeadlinesForLevelScheduling()) {
+      tightenInferredDeadlinesForLevelScheduling();
+    }
     this.clear();
   }
 
@@ -438,6 +442,27 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
   }
 
   /**
+   * Return true if level-based deadline tightening should run: only for federated apps that use a
+   * real-time priority thread scheduler ({@code rt-fifo} or {@code rt-rr}) via {@code @platform}.
+   */
+  private boolean shouldTightenInferredDeadlinesForLevelScheduling() {
+    // Tightening is only needed when federates share cores under OS priorities; skip ordinary
+    // (non-federated) programs so GEDF and default scheduling keep unmodified inferred deadlines.
+    if (main.reactorDefinition == null || !main.reactorDefinition.isFederated()) {
+      return false;
+    }
+    // Read @platform(..., scheduler=...) on the federation reactor, if present.
+    String[] platform = AttributeUtils.getPlatform(main.reactorDefinition);
+    if (platform == null || platform[1] == null) {
+      // No @platform attribute, or platform without an explicit scheduler policy.
+      return false;
+    }
+    // Only rt-fifo / rt-rr make deadline-based OS priorities meaningful for level barriers.
+    String scheduler = platform[1].toLowerCase();
+    return "rt-fifo".equals(scheduler) || "rt-rr".equals(scheduler);
+  }
+
+  /**
    * Tighten inferred deadlines so that, within each level-scheduling scope, every reaction's
    * inferred deadline is at most the minimum inferred deadline among all reactions at higher
    * levels in that scope. Reactions that already have a tighter deadline keep it.
@@ -452,7 +477,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * shared level barrier, so they are tightened independently.
    *
    * <p>This must run after {@link #assignInferredDeadlines()} (downstream propagation) and {@link
-   * #assignLevels()} (level assignment).
+   * #assignLevels()} (level assignment). It is invoked only when {@link
+   * #shouldTightenInferredDeadlinesForLevelScheduling()} is true.
    */
   private void tightenInferredDeadlinesForLevelScheduling() {
     for (List<Runtime> federateRuntimes : groupRuntimesByFederateScope().values()) {
