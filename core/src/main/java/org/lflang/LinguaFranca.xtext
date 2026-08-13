@@ -466,7 +466,9 @@ Code:
 ;
 
 FSName:
-    (ID | '.' | '_' | '-')+
+    // Include '..' so parent-directory path segments still parse after Range introduced
+    // the '..' keyword (otherwise '../foo' is lexed as one '..' token, not two '.'s).
+    (ID | '.' | '..' | '_' | '-')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:
