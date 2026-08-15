@@ -5,6 +5,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest =
     [ "compatibleWithThreadingOff", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#aab6c0b1f08e0e439dd301d628a8548ae", null ],
     [ "getExecCommand", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#ab7eb2f2d3c228ab7984b5a2df5cbe589", null ],
     [ "getGeneratorArguments", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#aab4725f7eda0dbd2a3162800dc6ab7d5", null ],
+    [ "getMaxExecutionTimeSeconds", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#ac3023dc25f71161659a0c3aa8861fc5e", null ],
     [ "isLinux", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#aacafa215f9876c94aa4fa896429a5e43", null ],
     [ "isMac", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#a349bc196ce85c7b24927a28b0db751b0", null ],
     [ "isWindows", "classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html#ab4c75980dccb274f675d183201afde3b", null ],

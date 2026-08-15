@@ -1597,6 +1597,11 @@
               <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
               <Anchor>a14faafcaaa1a8c5b4499cdfa1e254f4e</Anchor>
              </Node>
+             <Node>
+              <Name>TRANSIENT_BORDER_COLOR</Name>
+              <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
+              <Anchor>a3ff031b67815ce193db0395218110321</Anchor>
+             </Node>
             </Subnodes>
            </Node>
            <Node>
@@ -3167,7 +3172,7 @@
              <Node>
               <Name>generatePreamble</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</Path>
-              <Anchor>a4e6e932b53426fb4e7e16e6c455622c0</Anchor>
+              <Anchor>a295bc5a82b166e3652d521df6e159d84</Anchor>
              </Node>
              <Node>
               <Name>generateSerializationIncludes</Name>
@@ -3202,7 +3207,7 @@
              <Node>
               <Name>writePreambleFile</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</Path>
-              <Anchor>aad2a1e995287f289925c13da725bd095</Anchor>
+              <Anchor>aacffcc6ff977522d405cd59b3f8cd51e</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -3344,7 +3349,7 @@
              <Node>
               <Name>generatePreamble</Name>
               <Path>interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html</Path>
-              <Anchor>a9ab525ad95ab8bdb4ee69c70048df120</Anchor>
+              <Anchor>a5988d5558c25191fbb4029c866813c12</Anchor>
              </Node>
              <Node>
               <Name>getNetworkBufferType</Name>
@@ -3421,7 +3426,7 @@
              <Node>
               <Name>generatePreamble</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
-              <Anchor>ad0f0c29fed196b31b2fe55ee1c8d7ba7</Anchor>
+              <Anchor>a1aa9bcc00931f79b9fc097fda1073e1d</Anchor>
              </Node>
              <Node>
               <Name>generateSerializationIncludes</Name>
@@ -3456,7 +3461,7 @@
              <Node>
               <Name>writePreambleFile</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
-              <Anchor>aad2a1e995287f289925c13da725bd095</Anchor>
+              <Anchor>aacffcc6ff977522d405cd59b3f8cd51e</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -3492,7 +3497,7 @@
              <Node>
               <Name>generatePreamble</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html</Path>
-              <Anchor>a760473614ce3142e63499c20968c547e</Anchor>
+              <Anchor>acce978fddb3898abf06761ec9a8f7bb2</Anchor>
              </Node>
              <Node>
               <Name>getNetworkBufferType</Name>
@@ -3685,7 +3690,7 @@
              <Node>
               <Name>generateFederate</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html</Path>
-              <Anchor>af06f4f44b30377880fcf2e5e760939ec</Anchor>
+              <Anchor>a13db3ab3c04a03b353c6396c1f4b2689</Anchor>
              </Node>
              <Node>
               <Name>lfFilePath</Name>
@@ -3819,6 +3824,11 @@
               <Anchor>a241c0d4aa022944a3bbf5b15de8b36c1</Anchor>
              </Node>
              <Node>
+              <Name>isTransient</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
+              <Anchor>af07be58cbd459cc243daaee8c344e34b</Anchor>
+             </Node>
+             <Node>
               <Name>name</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
               <Anchor>a1823e46b5758701c421f719ee9ac5b40</Anchor>
@@ -3937,6 +3947,11 @@
               <Name>zeroDelayCycleNetworkMessageActions</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
               <Anchor>aeb7ddc921ca3cca3dea34437daf5960f</Anchor>
+             </Node>
+             <Node>
+              <Name>zeroDelayCycleNetworkUpstreamFeds</Name>
+              <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
+              <Anchor>a2a73ecd7c6a2446b1aece0f03b80b841</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -4412,7 +4427,7 @@
              <Node>
               <Name>generatePreamble</Name>
               <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html</Path>
-              <Anchor>a5410ee2027e3ab8e9a69a205cb571ef6</Anchor>
+              <Anchor>ab0b9021effc7ecf867edf56272e35171</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -12899,6 +12914,21 @@
               <Anchor>ae29cded6728e9e32ebf29655f5f2a660</Anchor>
              </Node>
              <Node>
+              <Name>testTransientAttributeOnFederateInstantiation</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>af884499ddf5c32d1619b378974017f8a</Anchor>
+             </Node>
+             <Node>
+              <Name>testTransientAttributeRejectedOnInput</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a4b2580b15d982f5d22d706c084b7434b</Anchor>
+             </Node>
+             <Node>
+              <Name>testTransientAttributeRejectedOnMainReactor</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+              <Anchor>a489029a05df087c88d0449918812bb54</Anchor>
+             </Node>
+             <Node>
               <Name>testUnnamedReactor</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
               <Anchor>ab9ba81f21a3efe59a9c5c82f50f46e67</Anchor>
@@ -13770,6 +13800,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -13884,6 +13919,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -14022,6 +14062,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -14136,6 +14181,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html</Path>
+              <Anchor>a15acb1d895b2a22879b8f807deb45c19</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -14257,6 +14307,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -14383,6 +14438,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -14596,6 +14656,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CSchedulerTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CSchedulerTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -14720,6 +14785,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -14933,6 +15003,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -15079,6 +15154,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -15198,6 +15278,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -15409,6 +15494,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -15627,6 +15717,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -15836,6 +15931,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -16054,6 +16154,11 @@
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
              </Node>
              <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+             </Node>
+             <Node>
               <Name>isLinux</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
               <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -16258,6 +16363,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -16551,6 +16661,11 @@
               <Name>getGeneratorArguments</Name>
               <Path>classorg_1_1lflang_1_1tests_1_1TestBase.html</Path>
               <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+             </Node>
+             <Node>
+              <Name>getMaxExecutionTimeSeconds</Name>
+              <Path>classorg_1_1lflang_1_1tests_1_1TestBase.html</Path>
+              <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
              </Node>
              <Node>
               <Name>isLinux</Name>
@@ -18915,6 +19030,11 @@
               <Name>isSparse</Name>
               <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
               <Anchor>a185a2b854090082ea6f134b629a61471</Anchor>
+             </Node>
+             <Node>
+              <Name>isTransient</Name>
+              <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+              <Anchor>a46ef046b4a1fc931dcc89dc821de802a</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -27608,6 +27728,11 @@
                         <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
                         <Anchor>a14faafcaaa1a8c5b4499cdfa1e254f4e</Anchor>
                        </Node>
+                       <Node>
+                        <Name>TRANSIENT_BORDER_COLOR</Name>
+                        <Path>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</Path>
+                        <Anchor>a3ff031b67815ce193db0395218110321</Anchor>
+                       </Node>
                       </Subnodes>
                      </Node>
                      <Node>
@@ -28641,7 +28766,7 @@
                      <Node>
                       <Name>generatePreamble</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</Path>
-                      <Anchor>a4e6e932b53426fb4e7e16e6c455622c0</Anchor>
+                      <Anchor>a295bc5a82b166e3652d521df6e159d84</Anchor>
                      </Node>
                      <Node>
                       <Name>generateSerializationIncludes</Name>
@@ -28676,7 +28801,7 @@
                      <Node>
                       <Name>writePreambleFile</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</Path>
-                      <Anchor>aad2a1e995287f289925c13da725bd095</Anchor>
+                      <Anchor>aacffcc6ff977522d405cd59b3f8cd51e</Anchor>
                      </Node>
                     </Subnodes>
                    </Node>
@@ -28818,7 +28943,7 @@
                      <Node>
                       <Name>generatePreamble</Name>
                       <Path>interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html</Path>
-                      <Anchor>a9ab525ad95ab8bdb4ee69c70048df120</Anchor>
+                      <Anchor>a5988d5558c25191fbb4029c866813c12</Anchor>
                      </Node>
                      <Node>
                       <Name>getNetworkBufferType</Name>
@@ -28895,7 +29020,7 @@
                      <Node>
                       <Name>generatePreamble</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
-                      <Anchor>ad0f0c29fed196b31b2fe55ee1c8d7ba7</Anchor>
+                      <Anchor>a1aa9bcc00931f79b9fc097fda1073e1d</Anchor>
                      </Node>
                      <Node>
                       <Name>generateSerializationIncludes</Name>
@@ -28930,7 +29055,7 @@
                      <Node>
                       <Name>writePreambleFile</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
-                      <Anchor>aad2a1e995287f289925c13da725bd095</Anchor>
+                      <Anchor>aacffcc6ff977522d405cd59b3f8cd51e</Anchor>
                      </Node>
                     </Subnodes>
                    </Node>
@@ -28966,7 +29091,7 @@
                      <Node>
                       <Name>generatePreamble</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html</Path>
-                      <Anchor>a760473614ce3142e63499c20968c547e</Anchor>
+                      <Anchor>acce978fddb3898abf06761ec9a8f7bb2</Anchor>
                      </Node>
                      <Node>
                       <Name>getNetworkBufferType</Name>
@@ -29165,7 +29290,7 @@
                      <Node>
                       <Name>generateFederate</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html</Path>
-                      <Anchor>af06f4f44b30377880fcf2e5e760939ec</Anchor>
+                      <Anchor>a13db3ab3c04a03b353c6396c1f4b2689</Anchor>
                      </Node>
                      <Node>
                       <Name>lfFilePath</Name>
@@ -29299,6 +29424,11 @@
                       <Anchor>a241c0d4aa022944a3bbf5b15de8b36c1</Anchor>
                      </Node>
                      <Node>
+                      <Name>isTransient</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
+                      <Anchor>af07be58cbd459cc243daaee8c344e34b</Anchor>
+                     </Node>
+                     <Node>
                       <Name>name</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
                       <Anchor>a1823e46b5758701c421f719ee9ac5b40</Anchor>
@@ -29417,6 +29547,11 @@
                       <Name>zeroDelayCycleNetworkMessageActions</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
                       <Anchor>aeb7ddc921ca3cca3dea34437daf5960f</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>zeroDelayCycleNetworkUpstreamFeds</Name>
+                      <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</Path>
+                      <Anchor>a2a73ecd7c6a2446b1aece0f03b80b841</Anchor>
                      </Node>
                     </Subnodes>
                    </Node>
@@ -29892,7 +30027,7 @@
                      <Node>
                       <Name>generatePreamble</Name>
                       <Path>classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html</Path>
-                      <Anchor>a5410ee2027e3ab8e9a69a205cb571ef6</Anchor>
+                      <Anchor>ab0b9021effc7ecf867edf56272e35171</Anchor>
                      </Node>
                     </Subnodes>
                    </Node>
@@ -47600,6 +47735,21 @@
                       <Anchor>ae29cded6728e9e32ebf29655f5f2a660</Anchor>
                      </Node>
                      <Node>
+                      <Name>testTransientAttributeOnFederateInstantiation</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>af884499ddf5c32d1619b378974017f8a</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>testTransientAttributeRejectedOnInput</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a4b2580b15d982f5d22d706c084b7434b</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>testTransientAttributeRejectedOnMainReactor</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
+                      <Anchor>a489029a05df087c88d0449918812bb54</Anchor>
+                     </Node>
+                     <Node>
                       <Name>testUnnamedReactor</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</Path>
                       <Anchor>ab9ba81f21a3efe59a9c5c82f50f46e67</Anchor>
@@ -48100,6 +48250,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CArduinoTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -48214,6 +48369,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CCliTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -48362,6 +48522,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CCppTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -48498,6 +48663,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CFlexPRETTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -48612,6 +48782,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html</Path>
+                      <Anchor>a15acb1d895b2a22879b8f807deb45c19</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -48733,6 +48908,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -48859,6 +49039,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CppTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -49072,6 +49257,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CSchedulerTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CSchedulerTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -49196,6 +49386,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -49409,6 +49604,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CVerifierTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -49555,6 +49755,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CZephyrTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -49674,6 +49879,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PolyglotTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -49885,6 +50095,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -50103,6 +50318,11 @@
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                      </Node>
                      <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                     </Node>
+                     <Node>
                       <Name>isLinux</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1RustTest.html</Path>
                       <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -50312,6 +50532,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1TypeScriptTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -50524,6 +50749,11 @@
                       <Name>getGeneratorArguments</Name>
                       <Path>classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html</Path>
                       <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>getMaxExecutionTimeSeconds</Name>
+                      <Path>classorg_1_1lflang_1_1tests_1_1serialization_1_1SerializationTest.html</Path>
+                      <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                      </Node>
                      <Node>
                       <Name>isLinux</Name>
@@ -51069,6 +51299,11 @@
                     <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
                    </Node>
                    <Node>
+                    <Name>getMaxExecutionTimeSeconds</Name>
+                    <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
+                    <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
+                   </Node>
+                   <Node>
                     <Name>isLinux</Name>
                     <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
                     <Anchor>aacafa215f9876c94aa4fa896429a5e43</Anchor>
@@ -51440,6 +51675,11 @@
                     <Name>getGeneratorArguments</Name>
                     <Path>classorg_1_1lflang_1_1tests_1_1TestBase.html</Path>
                     <Anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</Anchor>
+                   </Node>
+                   <Node>
+                    <Name>getMaxExecutionTimeSeconds</Name>
+                    <Path>classorg_1_1lflang_1_1tests_1_1TestBase.html</Path>
+                    <Anchor>ac3023dc25f71161659a0c3aa8861fc5e</Anchor>
                    </Node>
                    <Node>
                     <Name>isLinux</Name>
@@ -52893,6 +53133,11 @@
                   <Name>isSparse</Name>
                   <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
                   <Anchor>a185a2b854090082ea6f134b629a61471</Anchor>
+                 </Node>
+                 <Node>
+                  <Name>isTransient</Name>
+                  <Path>classorg_1_1lflang_1_1AttributeUtils.html</Path>
+                  <Anchor>a46ef046b4a1fc931dcc89dc821de802a</Anchor>
                  </Node>
                 </Subnodes>
                </Node>

@@ -175,6 +175,8 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memdesc:ad500b685465318af9d50271109acc68d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the reactor is marked to be a federate.  <br /></td></tr>
 <tr class="memitem:a185a2b854090082ea6f134b629a61471" id="r_a185a2b854090082ea6f134b629a61471"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a185a2b854090082ea6f134b629a61471">isSparse</a> (EObject node)</td></tr>
 <tr class="memdesc:a185a2b854090082ea6f134b629a61471"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the specified node is an Input and has an <span class="tt">@sparse</span> attribute.  <br /></td></tr>
+<tr class="memitem:a46ef046b4a1fc931dcc89dc821de802a" id="r_a46ef046b4a1fc931dcc89dc821de802a"><td class="memItemLeft">static boolean&#160;</td><td class="memItemRight"><a class="el" href="#a46ef046b4a1fc931dcc89dc821de802a">isTransient</a> (Instantiation node)</td></tr>
+<tr class="memdesc:a46ef046b4a1fc931dcc89dc821de802a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return true if the node has an <code class="JavaDocCode">@transient</code> attribute.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>A helper class for processing attributes in the AST. </p>
@@ -967,6 +969,33 @@ Alexander Schulz-Rosengarten </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>True if the specified node is an Input and has an <span class="tt">@sparse</span> attribute. </dd></dl>
+
+</div>
+</div>
+<a id="a46ef046b4a1fc931dcc89dc821de802a" name="a46ef046b4a1fc931dcc89dc821de802a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a46ef046b4a1fc931dcc89dc821de802a">&#9670;&#160;</a></span>isTransient()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.AttributeUtils.isTransient </td>
+          <td>(</td>
+          <td class="paramtype">Instantiation</td>          <td class="paramname"><span class="paramname"><em>node</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return true if the node has an <code class="JavaDocCode">@transient</code> attribute. </p>
 
 </div>
 </div>

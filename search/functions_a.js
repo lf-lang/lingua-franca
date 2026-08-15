@@ -84,10 +84,11 @@ var searchData=
   ['issupported_81',['isSupported',['../classorg_1_1lflang_1_1target_1_1TargetConfig.html#a890efbc7d1331aac4ea77a3e2beb8537',1,'org::lflang::target::TargetConfig']]],
   ['istokentype_82',['isTokenType',['../classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ad2d5ec78412ce03ca2c39dfb08151e7e',1,'org::lflang::generator::c::CUtil']]],
   ['istoplevel_83',['isTopLevel',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ad69c98a46f88598be5c12a7294ad5463',1,'org::lflang::ast::ASTUtils']]],
-  ['isundefined_84',['isUndefined',['../classorg_1_1lflang_1_1InferredType.html#a6cce40db7401c440e1f596947d21bb26',1,'org::lflang::InferredType']]],
-  ['isvalidtime_85',['isValidTime',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ac731693b07d1f76b73d04cd17917ba8d',1,'org::lflang::ast::ASTUtils']]],
-  ['isvalidunit_86',['isValidUnit',['../enumorg_1_1lflang_1_1TimeUnit.html#a47b604fb75087113bd53a021f11b1f7a',1,'org::lflang::TimeUnit']]],
-  ['iswindows_87',['isWindows',['../classorg_1_1lflang_1_1tests_1_1TestBase.html#ab4c75980dccb274f675d183201afde3b',1,'org::lflang::tests::TestBase']]],
-  ['iszero_88',['isZero',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7c7e212f76b57748221a9a1bfedac207',1,'org.lflang.ast.ASTUtils.isZero(String literal)'],['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7bcb20b1dbd9f9d10546ab950c59a5aa',1,'org.lflang.ast.ASTUtils.isZero(Expression expr)']]],
-  ['iterationorder_89',['iterationOrder',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html#a496381d2b077a9724f58775386390517',1,'org::lflang::generator::RuntimeRange']]]
+  ['istransient_84',['isTransient',['../classorg_1_1lflang_1_1AttributeUtils.html#a46ef046b4a1fc931dcc89dc821de802a',1,'org::lflang::AttributeUtils']]],
+  ['isundefined_85',['isUndefined',['../classorg_1_1lflang_1_1InferredType.html#a6cce40db7401c440e1f596947d21bb26',1,'org::lflang::InferredType']]],
+  ['isvalidtime_86',['isValidTime',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ac731693b07d1f76b73d04cd17917ba8d',1,'org::lflang::ast::ASTUtils']]],
+  ['isvalidunit_87',['isValidUnit',['../enumorg_1_1lflang_1_1TimeUnit.html#a47b604fb75087113bd53a021f11b1f7a',1,'org::lflang::TimeUnit']]],
+  ['iswindows_88',['isWindows',['../classorg_1_1lflang_1_1tests_1_1TestBase.html#ab4c75980dccb274f675d183201afde3b',1,'org::lflang::tests::TestBase']]],
+  ['iszero_89',['isZero',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7c7e212f76b57748221a9a1bfedac207',1,'org.lflang.ast.ASTUtils.isZero(String literal)'],['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7bcb20b1dbd9f9d10546ab950c59a5aa',1,'org.lflang.ast.ASTUtils.isZero(Expression expr)']]],
+  ['iterationorder_90',['iterationOrder',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html#a496381d2b077a9724f58775386390517',1,'org::lflang::generator::RuntimeRange']]]
 ];

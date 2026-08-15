@@ -125,11 +125,12 @@ var searchData=
   ['istime_122',['isTime',['../classorg_1_1lflang_1_1InferredType.html#a58e464cd0fe64e2d468756179b51064f',1,'org::lflang::InferredType']]],
   ['istokentype_123',['isTokenType',['../classorg_1_1lflang_1_1generator_1_1c_1_1CUtil.html#ad2d5ec78412ce03ca2c39dfb08151e7e',1,'org::lflang::generator::c::CUtil']]],
   ['istoplevel_124',['isTopLevel',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ad69c98a46f88598be5c12a7294ad5463',1,'org::lflang::ast::ASTUtils']]],
-  ['isundefined_125',['isUndefined',['../classorg_1_1lflang_1_1InferredType.html#a6cce40db7401c440e1f596947d21bb26',1,'org::lflang::InferredType']]],
-  ['isvalidtime_126',['isValidTime',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ac731693b07d1f76b73d04cd17917ba8d',1,'org::lflang::ast::ASTUtils']]],
-  ['isvalidunit_127',['isValidUnit',['../enumorg_1_1lflang_1_1TimeUnit.html#a47b604fb75087113bd53a021f11b1f7a',1,'org::lflang::TimeUnit']]],
-  ['iswindows_128',['isWindows',['../classorg_1_1lflang_1_1tests_1_1TestBase.html#ab4c75980dccb274f675d183201afde3b',1,'org::lflang::tests::TestBase']]],
-  ['iszero_129',['isZero',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7c7e212f76b57748221a9a1bfedac207',1,'org.lflang.ast.ASTUtils.isZero(String literal)'],['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7bcb20b1dbd9f9d10546ab950c59a5aa',1,'org.lflang.ast.ASTUtils.isZero(Expression expr)']]],
-  ['iterationorder_130',['iterationOrder',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html#a496381d2b077a9724f58775386390517',1,'org::lflang::generator::RuntimeRange']]],
-  ['iteratorutil_131',['IteratorUtil',['../classorg_1_1lflang_1_1util_1_1IteratorUtil.html',1,'org::lflang::util']]]
+  ['istransient_125',['isTransient',['../classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#af07be58cbd459cc243daaee8c344e34b',1,'org.lflang.federated.generator.FederateInstance.isTransient'],['../classorg_1_1lflang_1_1AttributeUtils.html#a46ef046b4a1fc931dcc89dc821de802a',1,'org.lflang.AttributeUtils.isTransient()']]],
+  ['isundefined_126',['isUndefined',['../classorg_1_1lflang_1_1InferredType.html#a6cce40db7401c440e1f596947d21bb26',1,'org::lflang::InferredType']]],
+  ['isvalidtime_127',['isValidTime',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#ac731693b07d1f76b73d04cd17917ba8d',1,'org::lflang::ast::ASTUtils']]],
+  ['isvalidunit_128',['isValidUnit',['../enumorg_1_1lflang_1_1TimeUnit.html#a47b604fb75087113bd53a021f11b1f7a',1,'org::lflang::TimeUnit']]],
+  ['iswindows_129',['isWindows',['../classorg_1_1lflang_1_1tests_1_1TestBase.html#ab4c75980dccb274f675d183201afde3b',1,'org::lflang::tests::TestBase']]],
+  ['iszero_130',['isZero',['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7c7e212f76b57748221a9a1bfedac207',1,'org.lflang.ast.ASTUtils.isZero(String literal)'],['../classorg_1_1lflang_1_1ast_1_1ASTUtils.html#a7bcb20b1dbd9f9d10546ab950c59a5aa',1,'org.lflang.ast.ASTUtils.isZero(Expression expr)']]],
+  ['iterationorder_131',['iterationOrder',['../classorg_1_1lflang_1_1generator_1_1RuntimeRange.html#a496381d2b077a9724f58775386390517',1,'org::lflang::generator::RuntimeRange']]],
+  ['iteratorutil_132',['IteratorUtil',['../classorg_1_1lflang_1_1util_1_1IteratorUtil.html',1,'org::lflang::util']]]
 ];

@@ -8,14 +8,14 @@ var group__Federated =
       [ "generateNetworkReceiverBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a0c9be1e8d1254243b608ecb72c70b403", null ],
       [ "generateNetworkSenderBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#ab4dcde870b015a2f0b247be98494342d", null ],
       [ "generatePortAbsentReactionBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#afeb3f291c25d8891ecc6bbe1ee4cde73", null ],
-      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a4e6e932b53426fb4e7e16e6c455622c0", null ],
+      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a295bc5a82b166e3652d521df6e159d84", null ],
       [ "generateSerializationIncludes", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a4b097631ccdf1b01d7d47c29d5717ef7", null ],
       [ "getNetworkBufferType", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#ab5d0d904ac9aee4356de254643f46268", null ],
       [ "initializeTargetConfig", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a24b55065de83025e310d0f8dbb1fee45", null ],
       [ "outputInitializationBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a7ed73d694cd735fffd2b558758c28138", null ],
       [ "serializeAndSend", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a9517036129bfdc11bab975ff4a6e0fdb", null ],
       [ "supplySenderIndexParameter", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a89d64b10567428d49f62326b87b6d70e", null ],
-      [ "writePreambleFile", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#aad2a1e995287f289925c13da725bd095", null ]
+      [ "writePreambleFile", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#aacffcc6ff977522d405cd59b3f8cd51e", null ]
     ] ],
     [ "org.lflang.federated.extensions.CExtensionUtils", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtensionUtils.html", [
       [ "addClockSyncCompileDefinitions", "classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtensionUtils.html#a74469d7e03300fc4054cc2ff2cf243ac", null ],
@@ -45,7 +45,7 @@ var group__Federated =
       [ "generateNetworkReceiverBody", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a21717e68c234d697d6a1f1600cb8498f", null ],
       [ "generateNetworkSenderBody", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#aba1e39393dddeaf49b3ee89f39d0632c", null ],
       [ "generatePortAbsentReactionBody", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#aa9faae24b5a147c058ee31075763d9df", null ],
-      [ "generatePreamble", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a9ab525ad95ab8bdb4ee69c70048df120", null ],
+      [ "generatePreamble", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a5988d5558c25191fbb4029c866813c12", null ],
       [ "getNetworkBufferType", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#aeea539b862b9138f83cea0efa41f4c70", null ],
       [ "initializeTargetConfig", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a7c352cb0a21b906d5acccc9eff264ac7", null ],
       [ "outputInitializationBody", "interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#ae28a0e10f35dbf074a5c9e70f66073f8", null ],
@@ -62,14 +62,14 @@ var group__Federated =
       [ "generateNetworkReceiverBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a14c2e3726ad7821cf309f2206dfea961", null ],
       [ "generateNetworkSenderBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#ae58e4867bb6daf989141ce8dae655fe3", null ],
       [ "generatePortAbsentReactionBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#afeb3f291c25d8891ecc6bbe1ee4cde73", null ],
-      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#ad0f0c29fed196b31b2fe55ee1c8d7ba7", null ],
+      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a1aa9bcc00931f79b9fc097fda1073e1d", null ],
       [ "generateSerializationIncludes", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#adfdc19eb99c3a7da2ebd6321110b6b13", null ],
       [ "getNetworkBufferType", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a8c1241ca562a1a703ae2f13ba1a30e02", null ],
       [ "initializeTargetConfig", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a24b55065de83025e310d0f8dbb1fee45", null ],
       [ "outputInitializationBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a0701cf024a6d795bc56df2855670ebf6", null ],
       [ "serializeAndSend", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#a4875794e4cdede18be3b9aa1f1a23872", null ],
       [ "supplySenderIndexParameter", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#af383be034468fb6a8bab93f6c19dd166", null ],
-      [ "writePreambleFile", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#aad2a1e995287f289925c13da725bd095", null ]
+      [ "writePreambleFile", "classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html#aacffcc6ff977522d405cd59b3f8cd51e", null ]
     ] ],
     [ "org.lflang.federated.extensions.TSExtension", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html", [
       [ "addSenderIndexParameter", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a57f7f350210880b84efe844eb3f94c27", null ],
@@ -77,7 +77,7 @@ var group__Federated =
       [ "generateNetworkReceiverBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a9acf3daf36bc1c73b24b5b972d62b567", null ],
       [ "generateNetworkSenderBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#ada5625852f42cbe432d5f049b28074f1", null ],
       [ "generatePortAbsentReactionBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a612a14fd2f4e843a8bcac236ab35d32d", null ],
-      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a760473614ce3142e63499c20968c547e", null ],
+      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#acce978fddb3898abf06761ec9a8f7bb2", null ],
       [ "getNetworkBufferType", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a391c2e03d70b9d281ef2e2f4b729eb20", null ],
       [ "initializeTargetConfig", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a5f131b432b226812b6846db6f0db4a81", null ],
       [ "outputInitializationBody", "classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html#a60aca9a4e7e9a44dfa0c955941c544b0", null ],
@@ -118,7 +118,7 @@ var group__Federated =
     ] ],
     [ "org.lflang.federated.generator.FedEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html", [
       [ "FedEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html#a53dafe87d08729c6b9c3af8bd3f73a60", null ],
-      [ "generateFederate", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html#af06f4f44b30377880fcf2e5e760939ec", null ],
+      [ "generateFederate", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html#a13db3ab3c04a03b353c6396c1f4b2689", null ],
       [ "lfFilePath", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html#a428339fab729f689f2aa49fcc2ab9f51", null ]
     ] ],
     [ "org.lflang.federated.generator.FederateInstance", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html", [
@@ -146,6 +146,7 @@ var group__Federated =
       [ "inboundP2PConnections", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f800b9c19e9a05c6666e9d09547a50a", null ],
       [ "instantiation", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#ac2f14954bebfe850d6cc7d9409c5eb16", null ],
       [ "isRemote", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a241c0d4aa022944a3bbf5b15de8b36c1", null ],
+      [ "isTransient", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#af07be58cbd459cc243daaee8c344e34b", null ],
       [ "name", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a1823e46b5758701c421f719ee9ac5b40", null ],
       [ "networkActionToInstantiation", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a77991e32c22bee085bd00a2d9429f8d6", null ],
       [ "networkConnections", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a4a8895a8455c192f175288db86e06bef", null ],
@@ -169,7 +170,8 @@ var group__Federated =
       [ "staToNetworkActionMap", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#ab2954ecbbccb124173ce61d6d68d93fe", null ],
       [ "targetConfig", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a963b3728b40a5680a8935afb64fc286c", null ],
       [ "user", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aad0ce08e5cc8e02b63a2209a49c541d6", null ],
-      [ "zeroDelayCycleNetworkMessageActions", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aeb7ddc921ca3cca3dea34437daf5960f", null ]
+      [ "zeroDelayCycleNetworkMessageActions", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aeb7ddc921ca3cca3dea34437daf5960f", null ],
+      [ "zeroDelayCycleNetworkUpstreamFeds", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a2a73ecd7c6a2446b1aece0f03b80b841", null ]
     ] ],
     [ "org.lflang.federated.generator.FederateTargetConfig", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html", [
       [ "FederateTargetConfig", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateTargetConfig.html#a88ae1650807780acaddfa566401e343d", null ],
@@ -269,7 +271,7 @@ var group__Federated =
     ] ],
     [ "org.lflang.federated.generator.FedPreambleEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html", [
       [ "FedPreambleEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html#a35ba461bae3a4341dcefe44e387b1536", null ],
-      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html#a5410ee2027e3ab8e9a69a205cb571ef6", null ]
+      [ "generatePreamble", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html#ab0b9021effc7ecf867edf56272e35171", null ]
     ] ],
     [ "org.lflang.federated.generator.FedReactorEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedReactorEmitter.html", [
       [ "FedReactorEmitter", "classorg_1_1lflang_1_1federated_1_1generator_1_1FedReactorEmitter.html#a225fe13c76cd11a84c52e41b3f9dbaa7", null ],

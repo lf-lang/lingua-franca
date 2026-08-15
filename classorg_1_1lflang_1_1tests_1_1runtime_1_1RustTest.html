@@ -179,6 +179,8 @@ Protected Member Functions</h2></td></tr>
 <tr class="memdesc:ab7eb2f2d3c228ab7984b5a2df5cbe589"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a preconfigured ProcessBuilder for executing the test program.  <br /></td></tr>
 <tr class="memitem:aab4725f7eda0dbd2a3162800dc6ab7d5" id="r_aab4725f7eda0dbd2a3162800dc6ab7d5"><td class="memItemLeft">GeneratorArguments&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#aab4725f7eda0dbd2a3162800dc6ab7d5">getGeneratorArguments</a> ()</td></tr>
 <tr class="memdesc:aab4725f7eda0dbd2a3162800dc6ab7d5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return generator arguments suitable for testing.  <br /></td></tr>
+<tr class="memitem:ac3023dc25f71161659a0c3aa8861fc5e" id="r_ac3023dc25f71161659a0c3aa8861fc5e"><td class="memItemLeft">long&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#ac3023dc25f71161659a0c3aa8861fc5e">getMaxExecutionTimeSeconds</a> ()</td></tr>
+<tr class="memdesc:ac3023dc25f71161659a0c3aa8861fc5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum wall-clock seconds allowed for executing a single test binary.  <br /></td></tr>
 <tr class="memitem:aff3ae7508377e27da65c5deaf4c31534" id="r_aff3ae7508377e27da65c5deaf4c31534"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#aff3ae7508377e27da65c5deaf4c31534">runTestsAndPrintResults</a> (<a class="el" href="enumorg_1_1lflang_1_1target_1_1Target.html">Target</a> target, Predicate&lt; <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html">TestCategory</a> &gt; selected, <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html">TestLevel</a> level, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Transformers_1_1Transformer.html">Transformer</a> transformer, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Configurators_1_1Configurator.html">Configurator</a> configurator, boolean copy)</td></tr>
 <tr class="memdesc:aff3ae7508377e27da65c5deaf4c31534"><td class="mdescLeft">&#160;</td><td class="mdescRight">Run selected tests for a given target and configurator up to the specified level.  <br /></td></tr>
 <tr class="memitem:a0b6820b95f35eff2cf460e32920bf015" id="r_a0b6820b95f35eff2cf460e32920bf015"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1tests_1_1TestBase.html#a0b6820b95f35eff2cf460e32920bf015">runTestsFor</a> (List&lt; <a class="el" href="enumorg_1_1lflang_1_1target_1_1Target.html">Target</a> &gt; subset, String description, Predicate&lt; <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html">TestCategory</a> &gt; selected, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Transformers_1_1Transformer.html">Transformer</a> transformer, <a class="el" href="interfaceorg_1_1lflang_1_1tests_1_1Configurators_1_1Configurator.html">Configurator</a> configurator, <a class="el" href="enumorg_1_1lflang_1_1tests_1_1TestBase_1_1TestLevel.html">TestLevel</a> level, boolean copy)</td></tr>
@@ -351,6 +353,36 @@ Package Attributes</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Return generator arguments suitable for testing. </p>
+
+</div>
+</div>
+<a id="ac3023dc25f71161659a0c3aa8861fc5e" name="ac3023dc25f71161659a0c3aa8861fc5e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac3023dc25f71161659a0c3aa8861fc5e">&#9670;&#160;</a></span>getMaxExecutionTimeSeconds()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">long org.lflang.tests.TestBase.getMaxExecutionTimeSeconds </td>
+          <td>(</td>
+          <td class="paramname"><span class="paramname"><em></em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel protected">protected</span><span class="mlabel inherited">inherited</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Maximum wall-clock seconds allowed for executing a single test binary. </p>
+<p>Subclasses may override this for platforms whose simulators/emulators are much slower than native execution (e.g. cycle-accurate Patmos <code class="JavaDocCode">patemu</code>). </p>
+
+<p>Reimplemented in <a class="el" href="classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#a15acb1d895b2a22879b8f807deb45c19">org.lflang.tests.runtime.CPatmosTest</a>.</p>
 
 </div>
 </div>

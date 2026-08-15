@@ -165,7 +165,8 @@ var group__Diagram =
       [ "DEADLINE_COLOR", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a7b61289db33196d2f0103d44e0d774cb", null ],
       [ "ENCLAVE_BORDER_COLOR", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#ad0d904ecc6700405f36b9067edabdb6e", null ],
       [ "REACTION_POINTINESS", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a24eff681a0ae4203912bbd6ff55da054", null ],
-      [ "REACTOR_CONTENT_CONTAINER", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a14faafcaaa1a8c5b4499cdfa1e254f4e", null ]
+      [ "REACTOR_CONTENT_CONTAINER", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a14faafcaaa1a8c5b4499cdfa1e254f4e", null ],
+      [ "TRANSIENT_BORDER_COLOR", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html#a3ff031b67815ce193db0395218110321", null ]
     ] ],
     [ "org.lflang.diagram.synthesis.styles.LinguaFrancaStyleExtensions", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html", [
       [ "addArrayDecorator", "classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaStyleExtensions.html#a5b39f3d3dc6a5e2a8bbcc20b4ffdca29", null ],

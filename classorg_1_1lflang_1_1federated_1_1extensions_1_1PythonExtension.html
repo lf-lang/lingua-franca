@@ -143,8 +143,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ae58e4867bb6daf989141ce8dae655fe3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the body of a reaction that handles an output that is to be sent over the network.  <br /></td></tr>
 <tr class="memitem:afeb3f291c25d8891ecc6bbe1ee4cde73" id="r_afeb3f291c25d8891ecc6bbe1ee4cde73"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#afeb3f291c25d8891ecc6bbe1ee4cde73">generatePortAbsentReactionBody</a> (VarRef srcOutputPort, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FedConnectionInstance.html">FedConnectionInstance</a> connection)</td></tr>
 <tr class="memdesc:afeb3f291c25d8891ecc6bbe1ee4cde73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the body of a reaction that sends a port status message for the given port if it is absent.  <br /></td></tr>
-<tr class="memitem:ad0f0c29fed196b31b2fe55ee1c8d7ba7" id="r_ad0f0c29fed196b31b2fe55ee1c8d7ba7"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#ad0f0c29fed196b31b2fe55ee1c8d7ba7">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException </td></tr>
-<tr class="memdesc:ad0f0c29fed196b31b2fe55ee1c8d7ba7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to a separate file to set up federated execution.  <br /></td></tr>
+<tr class="memitem:a1aa9bcc00931f79b9fc097fda1073e1d" id="r_a1aa9bcc00931f79b9fc097fda1073e1d"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a1aa9bcc00931f79b9fc097fda1073e1d">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, List&lt; <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> &gt; allFederates, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException </td></tr>
+<tr class="memdesc:a1aa9bcc00931f79b9fc097fda1073e1d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to a separate file to set up federated execution.  <br /></td></tr>
 <tr class="memitem:a8c1241ca562a1a703ae2f13ba1a30e02" id="r_a8c1241ca562a1a703ae2f13ba1a30e02"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a8c1241ca562a1a703ae2f13ba1a30e02">getNetworkBufferType</a> ()</td></tr>
 <tr class="memdesc:a8c1241ca562a1a703ae2f13ba1a30e02"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C).  <br /></td></tr>
 <tr class="memitem:a24b55065de83025e310d0f8dbb1fee45" id="r_a24b55065de83025e310d0f8dbb1fee45"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a24b55065de83025e310d0f8dbb1fee45">initializeTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, List&lt; String &gt; federateNames, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig)  throws IOException </td></tr>
@@ -164,8 +164,8 @@ Protected Member Functions</h2></td></tr>
 <tr class="memdesc:adfdc19eb99c3a7da2ebd6321110b6b13"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate preamble code needed for enabled serializers of the federate.  <br /></td></tr>
 <tr class="memitem:a4875794e4cdede18be3b9aa1f1a23872" id="r_a4875794e4cdede18be3b9aa1f1a23872"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a4875794e4cdede18be3b9aa1f1a23872">serializeAndSend</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FedConnectionInstance.html">FedConnectionInstance</a> connection, <a class="el" href="classorg_1_1lflang_1_1InferredType.html">InferredType</a> type, String sendRef, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> result, String sendingFunction, String commonArgs, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
 <tr class="memdesc:a4875794e4cdede18be3b9aa1f1a23872"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for serializing data and sending it over the given connection.  <br /></td></tr>
-<tr class="memitem:aad2a1e995287f289925c13da725bd095" id="r_aad2a1e995287f289925c13da725bd095"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#aad2a1e995287f289925c13da725bd095">writePreambleFile</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException </td></tr>
-<tr class="memdesc:aad2a1e995287f289925c13da725bd095"><td class="mdescLeft">&#160;</td><td class="mdescRight">Put the C preamble in a <span class="tt">include/_federate.name + _preamble.h</span> file.  <br /></td></tr>
+<tr class="memitem:aacffcc6ff977522d405cd59b3f8cd51e" id="r_aacffcc6ff977522d405cd59b3f8cd51e"><td class="memItemLeft">final void&#160;</td><td class="memItemRight"><a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#aacffcc6ff977522d405cd59b3f8cd51e">writePreambleFile</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, List&lt; <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> &gt; allFederates, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)  throws IOException </td></tr>
+<tr class="memdesc:aacffcc6ff977522d405cd59b3f8cd51e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Put the C preamble in a <span class="tt">include/_federate.name + _preamble.h</span> file.  <br /></td></tr>
 </table>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>An extension class to the PythonGenerator that enables certain federated functionalities. </p>
@@ -474,8 +474,8 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="ad0f0c29fed196b31b2fe55ee1c8d7ba7" name="ad0f0c29fed196b31b2fe55ee1c8d7ba7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad0f0c29fed196b31b2fe55ee1c8d7ba7">&#9670;&#160;</a></span>generatePreamble()</h2>
+<a id="a1aa9bcc00931f79b9fc097fda1073e1d" name="a1aa9bcc00931f79b9fc097fda1073e1d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1aa9bcc00931f79b9fc097fda1073e1d">&#9670;&#160;</a></span>generatePreamble()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -484,6 +484,11 @@ Protected Member Functions</h2></td></tr>
           <td class="memname">String org.lflang.federated.extensions.PythonExtension.generatePreamble </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a></td>          <td class="paramname"><span class="paramname"><em>federate</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">List&lt; <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> &gt;</td>          <td class="paramname"><span class="paramname"><em>allFederates</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -506,7 +511,7 @@ Protected Member Functions</h2></td></tr>
 <p>Add preamble to a separate file to set up federated execution. </p>
 <p>Return an a string containing the <span class="tt">#include</span> directives that are needed by the federate. </p>
 
-<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a4e6e932b53426fb4e7e16e6c455622c0">org.lflang.federated.extensions.CExtension</a>.</p>
+<p>Reimplemented from <a class="el" href="classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html#a295bc5a82b166e3652d521df6e159d84">org.lflang.federated.extensions.CExtension</a>.</p>
 
 </div>
 </div>
@@ -745,8 +750,8 @@ Protected Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="aad2a1e995287f289925c13da725bd095" name="aad2a1e995287f289925c13da725bd095"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aad2a1e995287f289925c13da725bd095">&#9670;&#160;</a></span>writePreambleFile()</h2>
+<a id="aacffcc6ff977522d405cd59b3f8cd51e" name="aacffcc6ff977522d405cd59b3f8cd51e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aacffcc6ff977522d405cd59b3f8cd51e">&#9670;&#160;</a></span>writePreambleFile()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -758,6 +763,11 @@ Protected Member Functions</h2></td></tr>
           <td class="memname">final void org.lflang.federated.extensions.CExtension.writePreambleFile </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a></td>          <td class="paramname"><span class="paramname"><em>federate</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">List&lt; <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> &gt;</td>          <td class="paramname"><span class="paramname"><em>allFederates</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>

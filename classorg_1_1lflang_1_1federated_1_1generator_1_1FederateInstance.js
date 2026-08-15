@@ -24,6 +24,7 @@ var classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance =
     [ "inboundP2PConnections", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a0f800b9c19e9a05c6666e9d09547a50a", null ],
     [ "instantiation", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#ac2f14954bebfe850d6cc7d9409c5eb16", null ],
     [ "isRemote", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a241c0d4aa022944a3bbf5b15de8b36c1", null ],
+    [ "isTransient", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#af07be58cbd459cc243daaee8c344e34b", null ],
     [ "name", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a1823e46b5758701c421f719ee9ac5b40", null ],
     [ "networkActionToInstantiation", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a77991e32c22bee085bd00a2d9429f8d6", null ],
     [ "networkConnections", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a4a8895a8455c192f175288db86e06bef", null ],
@@ -47,5 +48,6 @@ var classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance =
     [ "staToNetworkActionMap", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#ab2954ecbbccb124173ce61d6d68d93fe", null ],
     [ "targetConfig", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a963b3728b40a5680a8935afb64fc286c", null ],
     [ "user", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aad0ce08e5cc8e02b63a2209a49c541d6", null ],
-    [ "zeroDelayCycleNetworkMessageActions", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aeb7ddc921ca3cca3dea34437daf5960f", null ]
+    [ "zeroDelayCycleNetworkMessageActions", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#aeb7ddc921ca3cca3dea34437daf5960f", null ],
+    [ "zeroDelayCycleNetworkUpstreamFeds", "classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a2a73ecd7c6a2446b1aece0f03b80b841", null ]
 ];

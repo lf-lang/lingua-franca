@@ -178,6 +178,8 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:ac2f14954bebfe850d6cc7d9409c5eb16"><td class="mdescLeft">&#160;</td><td class="mdescRight">The instantiation of the top-level reactor, or null if there is no federation.  <br /></td></tr>
 <tr class="memitem:a241c0d4aa022944a3bbf5b15de8b36c1" id="r_a241c0d4aa022944a3bbf5b15de8b36c1"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="#a241c0d4aa022944a3bbf5b15de8b36c1">isRemote</a> = false</td></tr>
 <tr class="memdesc:a241c0d4aa022944a3bbf5b15de8b36c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Indicates whether the federate is remote or local.  <br /></td></tr>
+<tr class="memitem:af07be58cbd459cc243daaee8c344e34b" id="r_af07be58cbd459cc243daaee8c344e34b"><td class="memItemLeft">boolean&#160;</td><td class="memItemRight"><a class="el" href="#af07be58cbd459cc243daaee8c344e34b">isTransient</a> = false</td></tr>
+<tr class="memdesc:af07be58cbd459cc243daaee8c344e34b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of the federate: transient if true, and peristent if false .  <br /></td></tr>
 <tr class="memitem:a1823e46b5758701c421f719ee9ac5b40" id="r_a1823e46b5758701c421f719ee9ac5b40"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a1823e46b5758701c421f719ee9ac5b40">name</a></td></tr>
 <tr class="memdesc:a1823e46b5758701c421f719ee9ac5b40"><td class="mdescLeft">&#160;</td><td class="mdescRight">The name of this federate instance.  <br /></td></tr>
 <tr class="memitem:a77991e32c22bee085bd00a2d9429f8d6" id="r_a77991e32c22bee085bd00a2d9429f8d6"><td class="memItemLeft">HashMap&lt; Action, Instantiation &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a77991e32c22bee085bd00a2d9429f8d6">networkActionToInstantiation</a> = new HashMap&lt;&gt;()</td></tr>
@@ -226,6 +228,8 @@ Public Attributes</h2></td></tr>
 <tr class="memdesc:aad0ce08e5cc8e02b63a2209a49c541d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">The user, if specified using the 'at' keyword.  <br /></td></tr>
 <tr class="memitem:aeb7ddc921ca3cca3dea34437daf5960f" id="r_aeb7ddc921ca3cca3dea34437daf5960f"><td class="memItemLeft">List&lt; Action &gt;&#160;</td><td class="memItemRight"><a class="el" href="#aeb7ddc921ca3cca3dea34437daf5960f">zeroDelayCycleNetworkMessageActions</a> = new ArrayList&lt;&gt;()</td></tr>
 <tr class="memdesc:aeb7ddc921ca3cca3dea34437daf5960f"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of networkMessage actions corresponding to network input ports whose upstream federates are in zero-delay cycles and the connection has no after delay.  <br /></td></tr>
+<tr class="memitem:a2a73ecd7c6a2446b1aece0f03b80b841" id="r_a2a73ecd7c6a2446b1aece0f03b80b841"><td class="memItemLeft">List&lt; <a class="el" href="#af7b85fee3f81e914288a73b15f1d51e1">FederateInstance</a> &gt;&#160;</td><td class="memItemRight"><a class="el" href="#a2a73ecd7c6a2446b1aece0f03b80b841">zeroDelayCycleNetworkUpstreamFeds</a> = new ArrayList&lt;&gt;()</td></tr>
+<tr class="memdesc:a2a73ecd7c6a2446b1aece0f03b80b841"><td class="mdescLeft">&#160;</td><td class="mdescRight">List of upstream federates corresponding to actions in the zeroDelayCycleNetworkMessageActions list.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pac-methods" class="groupheader"><a id="pac-methods" name="pac-methods"></a>
 Package Functions</h2></td></tr>
@@ -766,6 +770,22 @@ Soroush Bateni </dd></dl>
 
 </div>
 </div>
+<a id="af07be58cbd459cc243daaee8c344e34b" name="af07be58cbd459cc243daaee8c344e34b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af07be58cbd459cc243daaee8c344e34b">&#9670;&#160;</a></span>isTransient</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">boolean org.lflang.federated.generator.FederateInstance.isTransient = false</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Type of the federate: transient if true, and peristent if false . </p>
+
+</div>
+</div>
 <a id="a1823e46b5758701c421f719ee9ac5b40" name="a1823e46b5758701c421f719ee9ac5b40"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a1823e46b5758701c421f719ee9ac5b40">&#9670;&#160;</a></span>name</h2>
 
@@ -1154,6 +1174,22 @@ Soroush Bateni </dd></dl>
 
 <p>List of networkMessage actions corresponding to network input ports whose upstream federates are in zero-delay cycles and the connection has no after delay. </p>
 <p>This should be a subset of the networkMessageActions. </p>
+
+</div>
+</div>
+<a id="a2a73ecd7c6a2446b1aece0f03b80b841" name="a2a73ecd7c6a2446b1aece0f03b80b841"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2a73ecd7c6a2446b1aece0f03b80b841">&#9670;&#160;</a></span>zeroDelayCycleNetworkUpstreamFeds</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">List&lt;<a class="el" href="#af7b85fee3f81e914288a73b15f1d51e1">FederateInstance</a>&gt; org.lflang.federated.generator.FederateInstance.zeroDelayCycleNetworkUpstreamFeds = new ArrayList&lt;&gt;()</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>List of upstream federates corresponding to actions in the zeroDelayCycleNetworkMessageActions list. </p>
 
 </div>
 </div>

@@ -4,6 +4,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test =
     [ "applyDefaultConfiguration", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#acbbd37d213419ddbc3ee9a577b86b895", null ],
     [ "getExecCommand", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#ab7eb2f2d3c228ab7984b5a2df5cbe589", null ],
     [ "getGeneratorArguments", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#aab4725f7eda0dbd2a3162800dc6ab7d5", null ],
+    [ "getMaxExecutionTimeSeconds", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#ac3023dc25f71161659a0c3aa8861fc5e", null ],
     [ "isLinux", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#aacafa215f9876c94aa4fa896429a5e43", null ],
     [ "isMac", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#a349bc196ce85c7b24927a28b0db751b0", null ],
     [ "isWindows", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CppRos2Test.html#ab4c75980dccb274f675d183201afde3b", null ],

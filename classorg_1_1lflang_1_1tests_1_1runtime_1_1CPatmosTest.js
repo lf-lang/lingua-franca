@@ -4,6 +4,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest =
     [ "applyDefaultConfiguration", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#acbbd37d213419ddbc3ee9a577b86b895", null ],
     [ "getExecCommand", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#ad25d62612518ff3bcbbef416500bf577", null ],
     [ "getGeneratorArguments", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#aab4725f7eda0dbd2a3162800dc6ab7d5", null ],
+    [ "getMaxExecutionTimeSeconds", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#a15acb1d895b2a22879b8f807deb45c19", null ],
     [ "isLinux", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#aacafa215f9876c94aa4fa896429a5e43", null ],
     [ "isMac", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#a349bc196ce85c7b24927a28b0db751b0", null ],
     [ "isWindows", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html#ab4c75980dccb274f675d183201afde3b", null ],

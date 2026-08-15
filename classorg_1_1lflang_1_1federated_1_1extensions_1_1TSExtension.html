@@ -143,8 +143,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ada5625852f42cbe432d5f049b28074f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the body of a reaction that handles an output that is to be sent over the network.  <br /></td></tr>
 <tr class="memitem:a612a14fd2f4e843a8bcac236ab35d32d" id="r_a612a14fd2f4e843a8bcac236ab35d32d"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a612a14fd2f4e843a8bcac236ab35d32d">generatePortAbsentReactionBody</a> (VarRef srcOutputPort, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FedConnectionInstance.html">FedConnectionInstance</a> connection)</td></tr>
 <tr class="memdesc:a612a14fd2f4e843a8bcac236ab35d32d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Generate code for the body of a reaction that sends a port status message for the given port if it is absent.  <br /></td></tr>
-<tr class="memitem:a760473614ce3142e63499c20968c547e" id="r_a760473614ce3142e63499c20968c547e"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a760473614ce3142e63499c20968c547e">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
-<tr class="memdesc:a760473614ce3142e63499c20968c547e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to the source to set up federated execution.  <br /></td></tr>
+<tr class="memitem:acce978fddb3898abf06761ec9a8f7bb2" id="r_acce978fddb3898abf06761ec9a8f7bb2"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#acce978fddb3898abf06761ec9a8f7bb2">generatePreamble</a> (<a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, List&lt; <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> &gt; allFederates, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter)</td></tr>
+<tr class="memdesc:acce978fddb3898abf06761ec9a8f7bb2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Add preamble to the source to set up federated execution.  <br /></td></tr>
 <tr class="memitem:a391c2e03d70b9d281ef2e2f4b729eb20" id="r_a391c2e03d70b9d281ef2e2f4b729eb20"><td class="memItemLeft">String&#160;</td><td class="memItemRight"><a class="el" href="#a391c2e03d70b9d281ef2e2f4b729eb20">getNetworkBufferType</a> ()</td></tr>
 <tr class="memdesc:a391c2e03d70b9d281ef2e2f4b729eb20"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the type for the raw network buffer in the target language (e.g., <span class="tt">uint_8</span> in C).  <br /></td></tr>
 <tr class="memitem:a5f131b432b226812b6846db6f0db4a81" id="r_a5f131b432b226812b6846db6f0db4a81"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#a5f131b432b226812b6846db6f0db4a81">initializeTargetConfig</a> (<a class="el" href="interfaceorg_1_1lflang_1_1generator_1_1LFGeneratorContext.html">LFGeneratorContext</a> context, List&lt; String &gt; federateNames, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> federate, <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederationFileConfig.html">FederationFileConfig</a> fileConfig, <a class="el" href="interfaceorg_1_1lflang_1_1MessageReporter.html">MessageReporter</a> messageReporter, <a class="el" href="classorg_1_1lflang_1_1federated_1_1launcher_1_1RtiConfig.html">RtiConfig</a> rtiConfig)</td></tr>
@@ -357,8 +357,8 @@ Public Member Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a760473614ce3142e63499c20968c547e" name="a760473614ce3142e63499c20968c547e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a760473614ce3142e63499c20968c547e">&#9670;&#160;</a></span>generatePreamble()</h2>
+<a id="acce978fddb3898abf06761ec9a8f7bb2" name="acce978fddb3898abf06761ec9a8f7bb2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acce978fddb3898abf06761ec9a8f7bb2">&#9670;&#160;</a></span>generatePreamble()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -367,6 +367,11 @@ Public Member Functions</h2></td></tr>
           <td class="memname">String org.lflang.federated.extensions.TSExtension.generatePreamble </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a></td>          <td class="paramname"><span class="paramname"><em>federate</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">List&lt; <a class="el" href="classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html">FederateInstance</a> &gt;</td>          <td class="paramname"><span class="paramname"><em>allFederates</em></span>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -390,6 +395,7 @@ Public Member Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">federate</td><td>The federate to which the generated setup code will correspond. </td></tr>
+    <tr><td class="paramname">allFederates</td><td>The list of all federates in the federation. </td></tr>
     <tr><td class="paramname">fileConfig</td><td>The federation file configuration. </td></tr>
     <tr><td class="paramname">rtiConfig</td><td>The settings of the RTI. </td></tr>
     <tr><td class="paramname">messageReporter</td><td>Used to report errors and warnings. </td></tr>
@@ -397,7 +403,7 @@ Public Member Functions</h2></td></tr>
   </dd>
 </dl>
 
-<p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a9ab525ad95ab8bdb4ee69c70048df120">org.lflang.federated.extensions.FedTargetExtension</a>.</p>
+<p>Implements <a class="el" href="interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html#a5988d5558c25191fbb4029c866813c12">org.lflang.federated.extensions.FedTargetExtension</a>.</p>
 
 </div>
 </div>

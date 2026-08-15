@@ -7059,6 +7059,13 @@
       <anchor>a185a2b854090082ea6f134b629a61471</anchor>
       <arglist>(EObject node)</arglist>
     </member>
+    <member kind="function" static="yes">
+      <type>static boolean</type>
+      <name>isTransient</name>
+      <anchorfile>classorg_1_1lflang_1_1AttributeUtils.html</anchorfile>
+      <anchor>a46ef046b4a1fc931dcc89dc821de802a</anchor>
+      <arglist>(Instantiation node)</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>org::lflang::cli::CliBase</name>
@@ -9994,6 +10001,13 @@
       <anchor>a14faafcaaa1a8c5b4499cdfa1e254f4e</anchor>
       <arglist></arglist>
     </member>
+    <member kind="variable" static="yes">
+      <type>static final Colors</type>
+      <name>TRANSIENT_BORDER_COLOR</name>
+      <anchorfile>classorg_1_1lflang_1_1diagram_1_1synthesis_1_1styles_1_1LinguaFrancaShapeExtensions.html</anchorfile>
+      <anchor>a3ff031b67815ce193db0395218110321</anchor>
+      <arglist></arglist>
+    </member>
     <member kind="function" protection="package">
       <type>public&lt; T extends EObject &gt; T</type>
       <name>associateWith</name>
@@ -10930,8 +10944,8 @@
       <type>String</type>
       <name>generatePreamble</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</anchorfile>
-      <anchor>a4e6e932b53426fb4e7e16e6c455622c0</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>a295bc5a82b166e3652d521df6e159d84</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -10993,8 +11007,8 @@
       <type>final void</type>
       <name>writePreambleFile</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</anchorfile>
-      <anchor>aad2a1e995287f289925c13da725bd095</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>aacffcc6ff977522d405cd59b3f8cd51e</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -11183,8 +11197,8 @@
       <type>String</type>
       <name>generatePreamble</name>
       <anchorfile>interfaceorg_1_1lflang_1_1federated_1_1extensions_1_1FedTargetExtension.html</anchorfile>
-      <anchor>a9ab525ad95ab8bdb4ee69c70048df120</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>a5988d5558c25191fbb4029c866813c12</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -11269,8 +11283,8 @@
       <type>String</type>
       <name>generatePreamble</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</anchorfile>
-      <anchor>ad0f0c29fed196b31b2fe55ee1c8d7ba7</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>a1aa9bcc00931f79b9fc097fda1073e1d</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -11332,8 +11346,8 @@
       <type>final void</type>
       <name>writePreambleFile</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1CExtension.html</anchorfile>
-      <anchor>aad2a1e995287f289925c13da725bd095</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>aacffcc6ff977522d405cd59b3f8cd51e</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -11379,8 +11393,8 @@
       <type>String</type>
       <name>generatePreamble</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1extensions_1_1TSExtension.html</anchorfile>
-      <anchor>a760473614ce3142e63499c20968c547e</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>acce978fddb3898abf06761ec9a8f7bb2</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
     <member kind="function">
       <type>String</type>
@@ -11643,8 +11657,8 @@
       <type>Map&lt; Path, CodeMap &gt;</type>
       <name>generateFederate</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FedEmitter.html</anchorfile>
-      <anchor>af06f4f44b30377880fcf2e5e760939ec</anchor>
-      <arglist>(LFGeneratorContext context, FederateInstance federate, List&lt; String &gt; federateNames)</arglist>
+      <anchor>a13db3ab3c04a03b353c6396c1f4b2689</anchor>
+      <arglist>(LFGeneratorContext context, FederateInstance federate, List&lt; FederateInstance &gt; allFederates, List&lt; String &gt; federateNames)</arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -11809,6 +11823,13 @@
       <name>isRemote</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</anchorfile>
       <anchor>a241c0d4aa022944a3bbf5b15de8b36c1</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>boolean</type>
+      <name>isTransient</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</anchorfile>
+      <anchor>af07be58cbd459cc243daaee8c344e34b</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable">
@@ -11977,6 +11998,13 @@
       <name>zeroDelayCycleNetworkMessageActions</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</anchorfile>
       <anchor>aeb7ddc921ca3cca3dea34437daf5960f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type>List&lt; FederateInstance &gt;</type>
+      <name>zeroDelayCycleNetworkUpstreamFeds</name>
+      <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html</anchorfile>
+      <anchor>a2a73ecd7c6a2446b1aece0f03b80b841</anchor>
       <arglist></arglist>
     </member>
     <member kind="function" protection="package">
@@ -12625,8 +12653,8 @@
       <type>String</type>
       <name>generatePreamble</name>
       <anchorfile>classorg_1_1lflang_1_1federated_1_1generator_1_1FedPreambleEmitter.html</anchorfile>
-      <anchor>a5410ee2027e3ab8e9a69a205cb571ef6</anchor>
-      <arglist>(FederateInstance federate, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
+      <anchor>ab0b9021effc7ecf867edf56272e35171</anchor>
+      <arglist>(FederateInstance federate, List&lt; FederateInstance &gt; allFederates, FederationFileConfig fileConfig, RtiConfig rtiConfig, MessageReporter messageReporter)</arglist>
     </member>
   </compound>
   <compound kind="class">
@@ -37170,6 +37198,27 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>testTransientAttributeOnFederateInstantiation</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>af884499ddf5c32d1619b378974017f8a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>testTransientAttributeRejectedOnInput</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a4b2580b15d982f5d22d706c084b7434b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>testTransientAttributeRejectedOnMainReactor</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
+      <anchor>a489029a05df087c88d0449918812bb54</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>testUnnamedReactor</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1compiler_1_1LinguaFrancaValidationTest.html</anchorfile>
       <anchor>ab9ba81f21a3efe59a9c5c82f50f46e67</anchor>
@@ -38333,6 +38382,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -38527,6 +38583,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -38697,6 +38760,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -38880,6 +38950,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -39046,6 +39123,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CPatmosTest.html</anchorfile>
+      <anchor>a15acb1d895b2a22879b8f807deb45c19</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -39209,6 +39293,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -39483,6 +39574,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -39674,6 +39772,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -39948,6 +40053,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -40142,6 +40254,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -40333,6 +40452,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -40597,6 +40723,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -40899,6 +41032,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -41188,6 +41328,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
@@ -41483,6 +41630,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -41768,6 +41922,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -41976,6 +42137,13 @@
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
       <type>final void</type>
       <name>runTestsAndPrintResults</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
@@ -42134,6 +42302,13 @@
       <name>getGeneratorArguments</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
       <anchor>aab4725f7eda0dbd2a3162800dc6ab7d5</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function" protection="protected">
+      <type>long</type>
+      <name>getMaxExecutionTimeSeconds</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase.html</anchorfile>
+      <anchor>ac3023dc25f71161659a0c3aa8861fc5e</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function" protection="protected">

@@ -409,7 +409,8 @@ var group__Utilities =
       [ "isEnclave", "classorg_1_1lflang_1_1AttributeUtils.html#a4b28498531bd12bdb006c6038cbdaeba", null ],
       [ "isEnclaveConnection", "classorg_1_1lflang_1_1AttributeUtils.html#ac9f26d728910c2d87d47dccffa8affc9", null ],
       [ "isFederate", "classorg_1_1lflang_1_1AttributeUtils.html#ad500b685465318af9d50271109acc68d", null ],
-      [ "isSparse", "classorg_1_1lflang_1_1AttributeUtils.html#a185a2b854090082ea6f134b629a61471", null ]
+      [ "isSparse", "classorg_1_1lflang_1_1AttributeUtils.html#a185a2b854090082ea6f134b629a61471", null ],
+      [ "isTransient", "classorg_1_1lflang_1_1AttributeUtils.html#a46ef046b4a1fc931dcc89dc821de802a", null ]
     ] ],
     [ "org.lflang.FileConfig", "classorg_1_1lflang_1_1FileConfig.html", [
       [ "FileConfig", "classorg_1_1lflang_1_1FileConfig.html#ab9be752caaf298cd2998c3533a8ce976", null ],

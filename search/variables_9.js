@@ -32,5 +32,6 @@ var searchData=
   ['isphysicalparamname_29',['isPhysicalParamName',['../classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html#a332044b3ab7b80dc60da2b42ee214f3c',1,'org::lflang::generator::c::CEnclavedReactorTransformation']]],
   ['isremote_30',['isRemote',['../classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#a241c0d4aa022944a3bbf5b15de8b36c1',1,'org::lflang::federated::generator::FederateInstance']]],
   ['issuecollector_31',['issueCollector',['../classorg_1_1lflang_1_1cli_1_1CliBase.html#a77321343ea0ae6cd43bf28c8c16ed88b',1,'org::lflang::cli::CliBase']]],
-  ['istime_32',['isTime',['../classorg_1_1lflang_1_1InferredType.html#a58e464cd0fe64e2d468756179b51064f',1,'org::lflang::InferredType']]]
+  ['istime_32',['isTime',['../classorg_1_1lflang_1_1InferredType.html#a58e464cd0fe64e2d468756179b51064f',1,'org::lflang::InferredType']]],
+  ['istransient_33',['isTransient',['../classorg_1_1lflang_1_1federated_1_1generator_1_1FederateInstance.html#af07be58cbd459cc243daaee8c344e34b',1,'org::lflang::federated::generator::FederateInstance']]]
 ];
