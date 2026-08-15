@@ -70,6 +70,7 @@ import org.lflang.lf.StateVar;
 public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
 
   public static final Colors ENCLAVE_BORDER_COLOR = Colors.CORAL_3;
+  public static final Colors TRANSIENT_BORDER_COLOR = Colors.DARK_GREEN;
   public static final Colors DEADLINE_COLOR = Colors.WHITE; // Formerly Colors.BROWN
   public static final Colors CODE_COLOR = Colors.BLACK;
 
@@ -162,10 +163,14 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
       KNode node, ReactorInstance reactorInstance, String text) {
     int padding = getBooleanValue(LinguaFrancaSynthesis.SHOW_HYPERLINKS) ? 8 : 6;
 
-    var color =
-        AttributeUtils.isEnclave(reactorInstance.getDefinition())
-            ? ENCLAVE_BORDER_COLOR
-            : Colors.GRAY;
+    Colors color;
+    if (AttributeUtils.isTransient(reactorInstance.getDefinition())) {
+      color = TRANSIENT_BORDER_COLOR;
+    } else if (AttributeUtils.isEnclave(reactorInstance.getDefinition())) {
+      color = ENCLAVE_BORDER_COLOR;
+    } else {
+      color = Colors.GRAY;
+    }
 
     Function1<KRoundedRectangle, KRendering> style =
         r -> {

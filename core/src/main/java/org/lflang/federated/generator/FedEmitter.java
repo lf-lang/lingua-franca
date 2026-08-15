@@ -37,7 +37,10 @@ public class FedEmitter {
 
   /** Generate a .lf file for federate `federate`. */
   Map<Path, CodeMap> generateFederate(
-      LFGeneratorContext context, FederateInstance federate, List<String> federateNames)
+      LFGeneratorContext context,
+      FederateInstance federate,
+      List<FederateInstance> allFederates,
+      List<String> federateNames)
       throws IOException {
     String fedName = federate.name;
     Files.createDirectories(fileConfig.getSrcPath());
@@ -57,7 +60,7 @@ public class FedEmitter {
                     context, federateNames, federate, fileConfig, messageReporter, rtiConfig),
             new FedImportEmitter().generateImports(federate, fileConfig),
             new FedPreambleEmitter()
-                .generatePreamble(federate, fileConfig, rtiConfig, messageReporter),
+                .generatePreamble(federate, allFederates, fileConfig, rtiConfig, messageReporter),
             new FedReactorEmitter().generateReactorDefinitions(federate),
             new FedMainEmitter()
                 .generateMainReactor(federate, originalMainReactor, messageReporter));
