@@ -1,6 +1,7 @@
 package org.lflang.federated.extensions;
 
 import java.io.IOException;
+import java.util.List;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -406,11 +407,12 @@ lf_enqueue_port_absent_reactions(self->base.environment);
   @Override
   public String generatePreamble(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)
       throws IOException {
-    writePreambleFile(federate, fileConfig, rtiConfig, messageReporter);
+    writePreambleFile(federate, allFederates, fileConfig, rtiConfig, messageReporter);
     return "";
   }
 }

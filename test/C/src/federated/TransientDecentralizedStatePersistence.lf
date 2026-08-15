@@ -1,0 +1,141 @@
+/**
+ * This LF program showcases and tests the persistance of the internal state of a transient federate
+ * across executions. Using the hot swap mechanism, the transient federate `Middle` leaves and then
+ * joins. Whenever the state (of type `federate_state_t`) changes, it notifies `Persistence`.
+ * `Middle` notifies `Persistence` also when it joins. When `Middle` joins, it receives the saved
+ * state and sets it. In this, the order of the reactions is important.
+ *
+ * Note that this test is intrinsically flaky. The `maxwait` and `absent_after` parameters are
+ * chosen to be large enough to cover the flakiness most of the time, but it is not guaranteed to
+ * pass every time.
+ *
+ * @author Chadlia Jerad
+ */
+target C {
+  timeout: 9 s,
+  coordination: decentralized
+}
+
+import TransientExec from "TransientDownstreamWithTimer.lf"
+import Up from "TransientDownstreamWithTimer.lf"
+import Down from "TransientStatePersistence.lf"
+
+preamble {=
+    #include <stdlib.h>
+    #include <string.h>
+    // The internal federate state to be persistent across executions
+    // It is made idempotent
+  #ifndef FEDERATE_STATE_T_DEFINED
+  #define FEDERATE_STATE_T_DEFINED
+  // The internal federate state to be persistent across executions
+  typedef struct federate_state_t {
+      char state_char;
+      int state_count;
+  } federate_state_t;
+  #endif
+=}
+
+reactor Persistence {
+  state middle_state: federate_state_t = {'A', 0}
+
+  input in_from_middle: federate_state_t
+  input in_middle_join: bool
+  output out_to_middle: federate_state_t
+
+  // Need to send the previous state even the first time Middle joins because
+  // otherwise, Middle will delay by the absent_after before sending out_to_persistence.
+  reaction(in_middle_join) -> out_to_middle {=
+    lf_set(out_to_middle, self->middle_state);
+    lf_print("Notifying Mid of the latest state: {%c,%d}", self->middle_state.state_char,
+          self->middle_state.state_count);
+  =} tardy {=
+    lf_print_error_and_exit("Received a tardy in_middle_join event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_middle_join->intended_tag.time - lf_time_start(), in_middle_join->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
+  =}
+
+  reaction(in_from_middle) {=
+    self->middle_state.state_char = in_from_middle->value.state_char;
+    self->middle_state.state_count = in_from_middle->value.state_count;
+    lf_print("Latest received state: {%c,%d}", self->middle_state.state_char,
+              self->middle_state.state_count);
+  =} tardy {=
+    lf_print_error_and_exit("Received a tardy in_from_middle event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_from_middle->intended_tag.time - lf_time_start(), in_from_middle->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
+  =}
+}
+
+/**
+ * Transient federate that forwards whatever it receives from Up to down. It reacts twice to in
+ * input ports, then stops. It will execute twice during the lifetime of the federation. The second
+ * launch is done by TransientExec at logical time 1 s. Each time Middle joins, it notifies Down.
+ */
+reactor Middle {
+  input in: int
+  output out: int
+  output join: bool
+  state middle_state: federate_state_t = {'A', 0}
+
+  output out_to_persistence: federate_state_t  // State Persistence
+  input in_from_persistence: federate_state_t
+
+  // Middle notifies its downstream that he joined
+  reaction(startup) -> join {=
+    lf_set(join, true);
+  =}
+
+  reaction(in_from_persistence) {=
+    self->middle_state = in_from_persistence->value;
+    lf_print("Received the latest state of: {%c,%d} at " PRINTF_TIME ".",
+          self->middle_state.state_char,
+          self->middle_state.state_count,
+          lf_time_logical_elapsed());
+  =} tardy {=
+    lf_print_error_and_exit("Received a tardy in_from_persistence event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in_from_persistence->intended_tag.time - lf_time_start(), in_from_persistence->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
+  =}
+
+  // When an input is received, the internal state is updated, and then sent to
+  // Persistance.
+  reaction(in) -> out, out_to_persistence {=
+    self->middle_state.state_char++;
+    self->middle_state.state_count += 2;
+    lf_set(out, self->middle_state.state_count);
+    lf_set(out_to_persistence, self->middle_state);
+    lf_print("Mid state is: {count='%c', count=%d}",
+                self->middle_state.state_char,
+                self->middle_state.state_count);
+
+    if (self->middle_state.state_count == 4) {
+      lf_stop();
+    }
+  =} tardy {=
+    lf_print_error_and_exit("Received a tardy in event at intended tag " PRINTF_TAG ". Current tag is " PRINTF_TAG ".",
+        in->intended_tag.time - lf_time_start(), in->intended_tag.microstep, lf_time_logical() - lf_time_start(), lf_tag().microstep);
+  =}
+}
+
+federated reactor {
+  // Persistent downstream and upstream federates of the transient
+  up = new Up(period = 500 ms)
+  down = new Down(period = 500 ms)
+  @maxwait(200 ms)
+  persistence = new Persistence()
+  // Persistent federate that is responsible for lauching the transient once, after 1s
+  midExec = new TransientExec(launch_time = 3 s, fed_instance_name="mid")
+
+  // Transient federate
+  @transient
+  @maxwait(0)
+  mid = new Middle()
+
+  // Give time for Up to start up and provide its first output.
+  @absent_after(200 ms)
+  up.out -> mid.in
+  mid.join -> down.join
+  mid.join -> persistence.in_middle_join
+  mid.out -> down.in
+  @absent_after(400 ms)
+  persistence.out_to_middle -> mid.in_from_persistence
+  @absent_after(200 ms)
+  mid.out_to_persistence -> persistence.in_from_middle
+}

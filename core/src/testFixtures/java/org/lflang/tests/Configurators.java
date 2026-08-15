@@ -1,6 +1,7 @@
 package org.lflang.tests;
 
 import org.lflang.target.TargetConfig;
+import org.lflang.target.property.FastProperty;
 import org.lflang.target.property.LoggingProperty;
 import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.PlatformProperty.Option;
@@ -117,6 +118,16 @@ public class Configurators {
      * <p>This is to avoid failing tests that have e.g., `workers: 16`.
      */
     WorkersProperty.INSTANCE.override(config, 0);
+
+    // Skip physical busy-waits in the simulator. Cycle-accurate patemu (and even pasim) can spend
+    // unbounded wall time spinning for millisecond-scale timeouts; smoke tests validate logical
+    // behavior, not real-time pacing on the emulator.
+    FastProperty.INSTANCE.override(config, true);
+
+    // NOTE: like Zephyr emulations (see makeZephyrCompatible), debug log-levels are suspected to
+    // cause hangs/crashes on Patmos's constrained, MMU-less memory (extra stack depth from
+    // variadic debug-print marshaling). Use WARN instead.
+    LoggingProperty.INSTANCE.override(config, LogLevel.WARN);
 
     var platform = config.get(PlatformProperty.INSTANCE);
     PlatformProperty.INSTANCE.override(

@@ -115,12 +115,14 @@ public interface FedTargetExtension {
    * Add preamble to the source to set up federated execution.
    *
    * @param federate The federate to which the generated setup code will correspond.
+   * @param allFederates The list of all federates in the federation.
    * @param fileConfig The federation file configuration.
    * @param rtiConfig The settings of the RTI.
    * @param messageReporter Used to report errors and warnings.
    */
   String generatePreamble(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter)

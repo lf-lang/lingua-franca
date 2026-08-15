@@ -162,6 +162,7 @@ public class TSExtension implements FedTargetExtension {
   @Override
   public String generatePreamble(
       FederateInstance federate,
+      List<FederateInstance> allFederates,
       FederationFileConfig fileConfig,
       RtiConfig rtiConfig,
       MessageReporter messageReporter) {

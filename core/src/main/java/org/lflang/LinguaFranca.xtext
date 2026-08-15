@@ -37,7 +37,7 @@ Model:
 /**
  * Import declaration.
  */
-Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | '<' importPackage=Path '>') ';'?;
+Import: 'import' reactorClasses+=ImportedReactor (',' reactorClasses+=ImportedReactor)* 'from' (importURI=STRING | '<' importPackage=PackagePath '>') ';'?;
 
 ReactorDecl: Reactor | ImportedReactor;
 
@@ -473,6 +473,15 @@ FSName:
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:
     (FSName ':\\')? ('\\' | '/')? FSName (('\\' | '/') FSName)*
+;
+
+// Like Path, but allows numeric segments (INT/NEGINT). Used only for
+// package imports inside <...>, so Element's Literal vs Path stay unambiguous.
+PackageFSName:
+    (ID | INT | NEGINT | '.' | '_' | '-')+
+;
+PackagePath:
+    (PackageFSName ':\\')? ('\\' | '/')? PackageFSName (('\\' | '/') PackageFSName)*
 ;
 
 /////////// Enums
