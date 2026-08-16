@@ -1,4 +1,101 @@
 # Changelog
+ 
+## [v0.13.0](https://github.com/lf-lang/lingua-franca/tree/v0.13.0) (2026-08-16)
+
+** Highlights **
+
+This release adds a number of major features, mostly concerning federated programs:
+
+- **Security:** You can now encrypt communication between federates using TLS (Transport Layer Security), a public-key encryption technology that is standard on the internet.  You can also specify to use SST (Secure Swarm Toolkit), A decentralized authorization and communication security framework using the [iotauth](https://github.com/iotauth/iotauth) platform. See the [Security](https://www.lf-lang.org/docs/reference/security/) page of the handbook.
+
+- **Package System:** You can create and use packages of reusable reactors more simply without using [lingo](https://www.lf-lang.org/blog/lingo/). An evolving set of [standard packages](https://github.com/lf-lang/pkgs) is in progress. See the [Importing Packages](https://www.lf-lang.org/docs/writing-reactors/importing-packages/) page of the handbook.
+
+- **Transient Federates:** Federated programs in the C and Python targets can have transient federates, which need not be present when the federation starts up and can come and go during the execution of the federation. See the [Transient Federates](https://www.lf-lang.org/docs/writing-reactors/transient-federates/) page of the handbook.
+
+- **Polyglot Federations:** A new `Polyglot` target supports creating federations where some federates use the C target and some use the Python target. See See the [Polyglot Federations](https://www.lf-lang.org/docs/writing-reactors/polyglot/) page of the handbook.
+
+- **Protobuf Serialization:** Communication between federates can now use [Protocol Buffers](https://github.com/protocolbuffers/protobuf), Google's data interchange format, also known as `protobufs`.
+
+- **Control over Start Time:** You can now specify on the command line that the start time of a program should be a multiple of a time value. Use the `--start-time-multiple <num> <units>` or `-m <num> <units>` command-line arguments.
+
+**🚀 New Features**
+
+- Support Protobufs serialization and deserialization in the C and CCpp targets [\#2628](https://github.com/lf-lang/lingua-franca/pull/2628) (@edwardalee)
+- Implement protobuf serialization between LF federates in Python runtime and add a test [\#2632](https://github.com/lf-lang/lingua-franca/pull/2632) (@hokeun)
+- Apply pluggable security (TLS, SST) for federated execution [\#2466](https://github.com/lf-lang/lingua-franca/pull/2466) (@Jakio815)
+- Implement Polyglot target supporting a mixture of C and Python targets. [\#2635](https://github.com/lf-lang/lingua-franca/pull/2635) (@hokeun)
+- Add --start-time-multiple (-m) command-line option [\#2641](https://github.com/lf-lang/lingua-franca/pull/2641) (@edwardalee)
+- Simpler package system based on git clones. [\#2654](https://github.com/lf-lang/lingua-franca/pull/2654) (@edwardalee)
+- Add support of transient federates in C and Python targets for centralized and decentralized coordination. [\#2213](https://github.com/lf-lang/lingua-franca/pull/2213) (@ChadliaJerad)
+
+**✨ Enhancements**
+
+- Import top-level preamble of all imported files [\#2620](https://github.com/lf-lang/lingua-franca/pull/2620) (@edwardalee)
+- Support Protobufs serialization and deserialization in the C and CCpp targets [\#2628](https://github.com/lf-lang/lingua-franca/pull/2628) (@edwardalee)
+- Expose lf.set_fed_maxwait and lf.get_fed_maxwait in the Python target [\#2631](https://github.com/lf-lang/lingua-franca/pull/2631) (@edwardalee)
+- Add support for extends keyword in rust target [\#2630](https://github.com/lf-lang/lingua-franca/pull/2630) (@Eggsrael)
+- Update validator to acknowledge that micro-LF supports multiports [\#2639](https://github.com/lf-lang/lingua-franca/pull/2639) (@edwardalee)
+- Show `absent_after` in diagrams if explicitly given by the programmer [\#2640](https://github.com/lf-lang/lingua-franca/pull/2640) (@edwardalee)
+- Support changing Rust Editions in Rust target [\#2637](https://github.com/lf-lang/lingua-franca/pull/2637) (@Eggsrael)
+- Add endpoint option to trace-plugin target property [\#2589](https://github.com/lf-lang/lingua-franca/pull/2589) (@lsk567)
+- Add support for Docker in the Rust target [\#2648](https://github.com/lf-lang/lingua-franca/pull/2648) (@Eggsrael)
+- Support the `.ulf` file extension for micro-LF programs [\#2646](https://github.com/lf-lang/lingua-franca/pull/2646) (@edwardalee)
+- Make target declaration optional for .ulf files [\#2653](https://github.com/lf-lang/lingua-franca/pull/2653) (@edwardalee)
+- Simpler package system based on git clones. [\#2654](https://github.com/lf-lang/lingua-franca/pull/2654) (@edwardalee)
+- Support .ulf extension for package imports [\#2668](https://github.com/lf-lang/lingua-franca/pull/2668) (@edwardalee)
+- Support numbers in import package names [\#2677](https://github.com/lf-lang/lingua-franca/pull/2677) (@edwardalee)
+
+**🔧 Fixes**
+
+- Fix Python target on macOS with statically-linked Python (e.g., conda) [\#2623](https://github.com/lf-lang/lingua-franca/pull/2623) (@depetrol)
+- Exclude `FEDERATED_SST` from `runWithThreadingOff` and `runAsFederated` tests [\#2636](https://github.com/lf-lang/lingua-franca/pull/2636) (@Jakio815)
+- Add startup delay for local SST Auth server [\#2638](https://github.com/lf-lang/lingua-franca/pull/2638) (@Jakio815)
+- Make default maxwait forever [\#2629](https://github.com/lf-lang/lingua-franca/pull/2629) (@edwardalee)
+- Raising error for unsupported decentralized coordination for TypeScript target. [\#2642](https://github.com/lf-lang/lingua-franca/pull/2642) (@hokeun)
+- Fix connection bug with port to multiport bank broadcast [\#2645](https://github.com/lf-lang/lingua-franca/pull/2645) (@edwardalee)
+- Fix named reactions compile error in the Python target [\#2673](https://github.com/lf-lang/lingua-franca/pull/2673) (@edwardalee)
+- Fixed federate self loops. [\#2674](https://github.com/lf-lang/lingua-franca/pull/2674) (@edwardalee)
+- Fix ZDC hang with upstream physical action [\#2675](https://github.com/lf-lang/lingua-franca/pull/2675) (@edwardalee)
+
+**🧪 Tests**
+
+- Deflake test by using default maxwait [\#2643](https://github.com/lf-lang/lingua-franca/pull/2643) (@edwardalee)
+
+- Remove the deprecated pnpm block and replace with new file [\#2624](https://github.com/lf-lang/lingua-franca/pull/2624) (@edwardalee)
+
+### Submodule [lf-lang/reactor-c](http://github.com/lf-lang/reactor-c)
+
+**🚀 New Features**
+
+- Apply pluggable security (TLS, SST) for federated execution. [\#515](https://github.com/lf-lang/reactor-c/pull/515) (@Jakio815)
+- Add --start-time-multiple (-m) command-line option. [\#585](https://github.com/lf-lang/reactor-c/pull/585) (@edwardalee)
+- Add support for transient federates for centralized and decentralized coordination. [\#358](https://github.com/lf-lang/reactor-c/pull/358) (@ChadliaJerad)
+
+**✨ Enhancements**
+
+- Expose lf.set_fed_maxwait and lf.get_fed_maxwait functions in the Python target [\#584](https://github.com/lf-lang/reactor-c/pull/584) (@edwardalee)
+
+**🔧 Fixes**
+
+- Change maxwait default to forever. [\#583](https://github.com/lf-lang/reactor-c/pull/583) (@edwardalee)
+- Update `sst-c-api`'s default branch from `master` to `main`. [\#586](https://github.com/lf-lang/reactor-c/pull/586) (@Jakio815)
+- Fix ZDC hang with upstream physical action [\#593](https://github.com/lf-lang/reactor-c/pull/593) (@edwardalee)
+
+**🚧 Maintenance and Refactoring**
+
+- Improve socket messages and add a needed mutex [\#587](https://github.com/lf-lang/reactor-c/pull/587) (@edwardalee)
+
+
+### Submodule [lf-lang/reactor-cpp](http://github.com/lf-lang/reactor-cpp)
+
+- No Changes
+
+
+### Submodule [lf-lang/reactor-rs](http://github.com/lf-lang/reactor-rs)
+
+- No Changes
+
+
 
 ## [v0.12.1](https://github.com/lf-lang/lingua-franca/tree/v0.12.1) (2026-04-17)
 
