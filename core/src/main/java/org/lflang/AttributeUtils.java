@@ -400,6 +400,9 @@ public class AttributeUtils {
         int high = parm.getRange().getHigh();
         for (int i = low; i <= high; i++) {
           coreIds.add(i);
+          if (i == high) {
+            break; // avoid overflow when high == Integer.MAX_VALUE
+          }
         }
       } else if (parm.getValue() != null) {
         // Single integer like "2"

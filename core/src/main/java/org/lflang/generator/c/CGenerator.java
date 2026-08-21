@@ -80,7 +80,6 @@ import org.lflang.target.property.BuildCommandsProperty;
 import org.lflang.target.property.CmakeIncludeProperty;
 import org.lflang.target.property.CmakeInitIncludeProperty;
 import org.lflang.target.property.CompileDefinitionsProperty;
-import org.lflang.target.property.CoresProperty;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.FedSetupProperty;
 import org.lflang.target.property.LoggingProperty;
@@ -91,7 +90,6 @@ import org.lflang.target.property.PlatformProperty.PlatformOption;
 import org.lflang.target.property.ProtobufsProperty;
 import org.lflang.target.property.SchedulerProperty;
 import org.lflang.target.property.SingleThreadedProperty;
-import org.lflang.target.property.ThreadPolicyProperty;
 import org.lflang.target.property.TracingProperty;
 import org.lflang.target.property.WorkersProperty;
 import org.lflang.target.property.type.PlatformType.Platform;
@@ -2187,20 +2185,7 @@ public class CGenerator extends GeneratorBase {
               "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
 
-      // Add thread policy and cores if set
-      if (targetConfig.isSet(ThreadPolicyProperty.INSTANCE)) {
-        CompileDefinitionsProperty.INSTANCE.update(
-            targetConfig,
-            Map.of("LF_THREAD_POLICY", targetConfig.get(ThreadPolicyProperty.INSTANCE).cDefine));
-      }
-      if (targetConfig.isSet(CoresProperty.INSTANCE)) {
-        CompileDefinitionsProperty.INSTANCE.update(
-            targetConfig,
-            Map.of("LF_NUMBER_OF_CORES", String.valueOf(targetConfig.get(CoresProperty.INSTANCE))));
-      }
-
-      // Check for @cores attribute on the main reactor definition.
-      // This overrides the cores target property with specific core IDs.
+      // Check for @cores / @platform attributes on the main reactor definition.
       if (mainDef != null) {
         Reactor mainReactor = ASTUtils.toDefinition(mainDef.getReactorClass());
         List<Integer> coreIds = AttributeUtils.getCores(mainReactor);
@@ -2211,8 +2196,7 @@ public class CGenerator extends GeneratorBase {
               targetConfig, Map.of("LF_CORE_IDS_INIT", coreIdsInit));
         }
 
-        // Check for @platform attribute on the main reactor definition.
-        // If it specifies a scheduler policy, this overrides the thread-policy target property.
+        // If @platform specifies a scheduler policy, emit LF_THREAD_POLICY.
         String[] platformAttr = AttributeUtils.getPlatform(mainReactor);
         if (platformAttr != null && platformAttr[1] != null) {
           String cDefine = policyNameToCDefine(platformAttr[1]);
@@ -2540,7 +2524,8 @@ public class CGenerator extends GeneratorBase {
       }
     }
 
-    // No valid deadlines — all reactions get the highest priority
+    // No valid deadlines — all inferred deadlines are the no-deadline sentinel, so every
+    // reaction gets the lowest priority (1), matching the documented no-deadline rule.
     if (minDeadline == 0.0 && maxDeadline == 0.0 && medianDeadline == 0.0) {
       prGetPriorityFunction(
           String.join(
@@ -2548,7 +2533,7 @@ public class CGenerator extends GeneratorBase {
               "// Priority assignment function (no deadlines found)",
               "int get_priority_value(interval_t rel_deadline) {",
               "    if (rel_deadline <= 0) return 0;",
-              "    return 98;",
+              "    return 1;",
               "}"));
       return;
     }
@@ -2561,6 +2546,9 @@ public class CGenerator extends GeneratorBase {
               "\n",
               "int get_priority_value(interval_t rel_deadline) {",
               "  if (rel_deadline <= 0) return 0;",
+              // Sentinels encode the absence of a deadline even when every finite deadline
+              // in the program is the same; those reactions get the lowest priority (1).
+              "  if (rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
               "  return 98;",
               "}"));
     } else {
@@ -2624,6 +2612,12 @@ public class CGenerator extends GeneratorBase {
     code.pr(function);
   }
 
+  /** Smallest alpha (ms^-1) the log-grid search will consider. */
+  private static final double MIN_ALPHA_LIMIT = 1e-12;
+
+  /** Largest alpha (ms^-1) the log-grid search will consider. */
+  private static final double MAX_ALPHA_LIMIT = 1e3;
+
   /**
    * Find alpha (ms^-1) that minimizes collisions after rounding, for a given program's distinct
    * inferred deadlines.
@@ -2651,8 +2645,6 @@ public class CGenerator extends GeneratorBase {
     final int fineSteps = 2000;
 
     // Hard safety limits (only used if boundary widening keeps triggering).
-    final double minAlphaLimit = 1e-12;
-    final double maxAlphaLimit = 1e3;
     final int maxExpansions = 8;
 
     AlphaSearchOutcome outcome = null;
@@ -2667,20 +2659,40 @@ public class CGenerator extends GeneratorBase {
               coarseSteps,
               fineSteps);
       if (outcome == null) {
-        // Should be rare; fall back to a conservative value in the middle of the canonical bracket.
-        return 0.005;
+        // Every alpha in [alphaLo, alphaHi] underflowed exp(-alpha * d), so the whole
+        // bracket is too steep. Shift the window one decade downward.
+        if (alphaLo > MIN_ALPHA_LIMIT) {
+          alphaHi = alphaLo;
+          alphaLo = Math.max(MIN_ALPHA_LIMIT, alphaLo / 10.0);
+          continue;
+        }
+        return fallbackAlpha(maxDeadlineMs);
       }
-      if (outcome.hitLowerBoundary && alphaLo > minAlphaLimit) {
-        alphaLo = Math.max(minAlphaLimit, alphaLo / 10.0);
+      if (outcome.hitLowerBoundary && alphaLo > MIN_ALPHA_LIMIT) {
+        alphaLo = Math.max(MIN_ALPHA_LIMIT, alphaLo / 10.0);
         continue;
       }
-      if (outcome.hitUpperBoundary && alphaHi < maxAlphaLimit) {
-        alphaHi = Math.min(maxAlphaLimit, alphaHi * 10.0);
+      if (outcome.hitUpperBoundary && alphaHi < MAX_ALPHA_LIMIT) {
+        alphaHi = Math.min(MAX_ALPHA_LIMIT, alphaHi * 10.0);
         continue;
       }
       break;
     }
-    return outcome != null ? outcome.best.alpha : 0.005;
+    return outcome != null ? outcome.best.alpha : fallbackAlpha(maxDeadlineMs);
+  }
+
+  /**
+   * Alpha that keeps {@code exp(-alpha * maxDeadlineMs)} representable in double, used only if
+   * the log-grid search never finds a finite candidate. Do not clamp this up to the search floor
+   * {@code minAlphaLimit}: that floor can still overflow {@code alpha * d} for huge deadlines.
+   */
+  private static double fallbackAlpha(double maxDeadlineMs) {
+    if (!(maxDeadlineMs > 0.0) || !Double.isFinite(maxDeadlineMs)) {
+      return MIN_ALPHA_LIMIT;
+    }
+    // Target alpha * d_max = 1 so neither exponential underflows, even if 1/d_max
+    // is below the search bracket.
+    return 1.0 / maxDeadlineMs;
   }
 
   private record AlphaCandidate(double alpha, int collisions) {}

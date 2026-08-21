@@ -446,12 +446,15 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * real-time priority thread scheduler ({@code rt-fifo} or {@code rt-rr}) via {@code @platform}.
    */
   private boolean shouldTightenInferredDeadlinesForLevelScheduling() {
-    // Tightening is only needed when federates share cores under OS priorities; skip ordinary
-    // (non-federated) programs so GEDF and default scheduling keep unmodified inferred deadlines.
-    if (main.reactorDefinition == null || !main.reactorDefinition.isFederated()) {
+    // Tightening is only needed with federated applications and the priority scheduler;
+    // skip ordinary (non-federated) programs. Emitted federates are `main reactor`s, so
+    // isFederated() is false; they are marked with @_fed_config instead.
+    if (main.reactorDefinition == null
+        || (!main.reactorDefinition.isFederated()
+            && !AttributeUtils.isFederate(main.reactorDefinition))) {
       return false;
     }
-    // Read @platform(..., scheduler=...) on the federation reactor, if present.
+    // Read @platform(..., scheduler=...) on the federation or federate reactor, if present.
     String[] platform = AttributeUtils.getPlatform(main.reactorDefinition);
     if (platform == null || platform[1] == null) {
       // No @platform attribute, or platform without an explicit scheduler policy.

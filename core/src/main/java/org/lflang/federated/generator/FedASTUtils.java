@@ -405,9 +405,7 @@ public class FedASTUtils {
     // priority under real-time scheduling policies, preventing it from being
     // starved by lower-priority reactions in other federates sharing the same core.
     TimeValue minInferredDeadline = getMinInferredDeadlineFromDownstream(connection);
-    if (minInferredDeadline != null
-        && !TimeValue.MAX_VALUE.equals(minInferredDeadline)
-        && !TimeValue.FOREVER.equals(minInferredDeadline)) {
+    if (minInferredDeadline != null && !isNoDeadlineSentinel(minInferredDeadline)) {
       Deadline deadline = factory.createDeadline();
       Time time = factory.createTime();
       time.setInterval((int) minInferredDeadline.time);
@@ -823,9 +821,7 @@ public class FedASTUtils {
     // the destination port. This is more precise than using the upstream reaction's
     // inferred deadline, which may aggregate deadlines from multiple downstream paths.
     TimeValue minInferredDeadline = getMinInferredDeadlineFromDownstream(connection);
-    if (minInferredDeadline != null
-        && !TimeValue.MAX_VALUE.equals(minInferredDeadline)
-        && !TimeValue.FOREVER.equals(minInferredDeadline)) {
+    if (minInferredDeadline != null && !isNoDeadlineSentinel(minInferredDeadline)) {
       LfFactory factory = LfFactory.eINSTANCE;
       Deadline deadline = factory.createDeadline();
       Time time = factory.createTime();
@@ -859,7 +855,7 @@ public class FedASTUtils {
     TimeValue minDeadline = null;
     for (ReactionInstance reaction : destPort.getDependentReactions()) {
       for (TimeValue deadline : reaction.getInferredDeadlinesList()) {
-        if (TimeValue.MAX_VALUE.equals(deadline) || TimeValue.FOREVER.equals(deadline)) {
+        if (isNoDeadlineSentinel(deadline)) {
           continue; // Skip sentinel values indicating no deadline
         }
         if (minDeadline == null || deadline.isEarlierThan(minDeadline)) {
@@ -868,6 +864,13 @@ public class FedASTUtils {
       }
     }
     return minDeadline;
+  }
+
+  /** Whether {@code deadline} is a sentinel meaning no deadline (NEVER, MAX_VALUE, or FOREVER). */
+  private static boolean isNoDeadlineSentinel(TimeValue deadline) {
+    return TimeValue.NEVER.equals(deadline)
+        || TimeValue.MAX_VALUE.equals(deadline)
+        || TimeValue.FOREVER.equals(deadline);
   }
 
   /**
