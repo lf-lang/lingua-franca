@@ -1454,11 +1454,15 @@ public class LFValidator extends BaseLFValidator {
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
-    // Above generic check is not sufficient for maxwait and absent_after.
+    // Above generic check is not sufficient for maxwait, absent_after, and cores.
     if (name.equals("maxwait")) {
       checkMaxWaitAttribute(attr);
     } else if (name.equals("absent_after")) {
       checkAbsentAfterAttribute(attr);
+    } else if (name.equals("cores")) {
+      checkCoresAttribute(attr);
+    } else if (name.equals("platform")) {
+      checkPlatformAttribute(attr);
     } else if (name.equals("transient")) {
       checkTransientAttribute(attr);
     }
@@ -1523,6 +1527,105 @@ public class LFValidator extends BaseLFValidator {
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
+    }
+  }
+
+  private void checkCoresAttribute(Attribute attr) {
+    // Check that the attribute is on an Instantiation or a Reactor (main reactor).
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
+      warning(
+          "cores attribute can only be used on a reactor or an instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    // Validate that all parameters are either ranges or integer values.
+    if (attr.getAttrParms() == null || attr.getAttrParms().isEmpty()) {
+      error("cores attribute requires at least one parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    for (var parm : attr.getAttrParms()) {
+      if (parm.getRange() != null) {
+        // Valid range parameter
+        if (parm.getRange().getLow() < 0 || parm.getRange().getHigh() < 0) {
+          error("Core IDs must be non-negative.", Literals.ATTRIBUTE__ATTR_NAME);
+        }
+        if (parm.getRange().getLow() > parm.getRange().getHigh()) {
+          error(
+              "Invalid range: low value must be less than or equal to high value.",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+      } else if (parm.getValue() != null) {
+        try {
+          int val = Integer.parseInt(parm.getValue());
+          if (val < 0) {
+            error("Core IDs must be non-negative.", Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        } catch (NumberFormatException e) {
+          error(
+              "cores attribute parameters must be integers or ranges (e.g., 0..3).",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+      } else {
+        error(
+            "cores attribute parameters must be integers or ranges (e.g., 0..3).",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+  }
+
+  private void checkPlatformAttribute(Attribute attr) {
+    // Allowed on a reactor (including main/federated) or an instantiation (per-federate override).
+    // Intentionally not in GLOBAL_ATTRIBUTE_NAMES so instantiations remain valid.
+    var container = attr.eContainer();
+    if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
+      warning(
+          "platform attribute can only be used on a reactor or an instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    // Validate the "value" parameter (the platform name).
+    // It can be unnamed (first positional parameter) or explicitly named "value".
+    var valueParm =
+        attr.getAttrParms().stream()
+            .filter(p -> p.getName() == null || "value".equals(p.getName()))
+            .findFirst()
+            .orElse(null);
+    String platform = null;
+    if (valueParm != null && valueParm.getValue() != null) {
+      platform = org.lflang.util.StringUtil.removeQuotes(valueParm.getValue());
+      if (!AttributeUtils.isValidPlatformAttributeValue(platform)) {
+        error(
+            "Unsupported platform: \""
+                + platform
+                + "\". Allowed values are: "
+                + AttributeUtils.allowedPlatformAttributeValues()
+                + ".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+    // Validate the optional "scheduler" parameter (posix only).
+    var schedulerParm =
+        attr.getAttrParms().stream()
+            .filter(p -> "scheduler".equals(p.getName()))
+            .findFirst()
+            .orElse(null);
+    if (schedulerParm != null && schedulerParm.getValue() != null) {
+      if (platform == null || !"posix".equalsIgnoreCase(platform)) {
+        error(
+            "The \"scheduler\" parameter is only allowed when the platform value is \"posix\".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+      String scheduler = org.lflang.util.StringUtil.removeQuotes(schedulerParm.getValue());
+      if (!"rt-fifo".equalsIgnoreCase(scheduler)
+          && !"rt-rr".equalsIgnoreCase(scheduler)
+          && !"normal".equalsIgnoreCase(scheduler)) {
+        error(
+            "Unsupported scheduling policy: \""
+                + scheduler
+                + "\". Allowed values are: \"rt-fifo\", \"rt-rr\", \"normal\".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
     }
   }
 
@@ -2276,8 +2379,10 @@ public class LFValidator extends BaseLFValidator {
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
+  // "platform" is intentionally omitted: @platform may also appear on instantiations for
+  // per-federate scheduler overrides (see checkPlatformAttribute).
   private static final Set<String> GLOBAL_ATTRIBUTE_NAMES =
-      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync", "platform");
+      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync");
 
   private static List<String> SPACING_VIOLATION_POLICIES =
       List.of("defer", "drop", "replace", "update");

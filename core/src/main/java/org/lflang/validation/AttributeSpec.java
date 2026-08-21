@@ -277,6 +277,33 @@ public class AttributeSpec {
                 new AttrParamSpec("expect", AttrParamType.BOOLEAN, true))));
     ATTRIBUTE_SPECS_BY_NAME.put("_c_body", new AttributeSpec(null));
 
+    // @cores(0..3) or @cores(0, 2, 4) specify CPU cores for thread pinning.
+    // Using a custom check because the grammar's Range and multi-param list don't fit
+    // the standard named-parameter validation.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "cores",
+        new AttributeSpec(List.of()) {
+          @Override
+          public void check(LFValidator validator, Attribute attr) {
+            // Validation is done in LFValidator.checkCoresAttribute
+          }
+        });
+
+    // @platform("value") or @platform(value="posix", scheduler="rt-fifo") specifies the
+    // target platform and (optionally, posix only) the thread scheduling policy.
+    // When only the platform is given, "value" can be omitted: @platform("Native").
+    // When both parameters are given, "value" must be explicit and must be "posix":
+    //   @platform(value="posix", scheduler="rt-fifo").
+    // The "value" parameter (mandatory) is a PlatformType name (e.g. "Native", "Zephyr",
+    // "Linux") or "posix".
+    // The "scheduler" parameter (optional, posix only) is "rt-fifo", "rt-rr", or "normal".
+    // On a federate instantiation, the optional scheduler overrides that federate only.
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "platform",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false),
+                new AttrParamSpec("scheduler", AttrParamType.STRING, true))));
     // @build_type("value") - e.g. @build_type("DEBUG") or @build_type("RELEASE")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "build_type",
@@ -310,10 +337,6 @@ public class AttributeSpec {
                 new AttrParamSpec("max_adj", AttrParamType.BIGINT, true),
                 new AttrParamSpec("kp", AttrParamType.FLOAT, true),
                 new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
-    // @platform("value") - e.g. @platform("NATIVE")
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "platform",
-        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
 
     // Attributes used internally only by the federated code generation
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));

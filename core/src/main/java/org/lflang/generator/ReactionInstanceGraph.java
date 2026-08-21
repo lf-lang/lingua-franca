@@ -3,6 +3,7 @@ package org.lflang.generator;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.lflang.AttributeUtils;
+import org.lflang.TimeValue;
 import org.lflang.generator.ReactionInstance.Runtime;
 import org.lflang.generator.c.CUtil;
 import org.lflang.graph.PrecedenceGraph;
@@ -59,6 +60,9 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     // If there are cycles present in the graph, it will be detected here.
     // This will destroy the graph, leaving only nodes in cycles.
     assignLevels();
+    if (shouldTightenInferredDeadlinesForLevelScheduling()) {
+      tightenInferredDeadlinesForLevelScheduling();
+    }
     // Do not throw an exception when nodeCount != 0 so that cycle visualization can proceed.
   }
 
@@ -69,6 +73,10 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     this.clear();
     addNodesAndEdges(main);
     assignInferredDeadlines();
+    assignLevels();
+    if (shouldTightenInferredDeadlinesForLevelScheduling()) {
+      tightenInferredDeadlinesForLevelScheduling();
+    }
     this.clear();
   }
 
@@ -431,6 +439,136 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         if (isLeaf) start.add(upstream);
       }
     }
+  }
+
+  /**
+   * Return true if level-based deadline tightening should run: only for federated apps that use a
+   * real-time priority thread scheduler ({@code rt-fifo} or {@code rt-rr}) via {@code @platform}.
+   */
+  private boolean shouldTightenInferredDeadlinesForLevelScheduling() {
+    // Tightening is only needed with federated applications and the priority scheduler;
+    // skip ordinary (non-federated) programs. Emitted federates are `main reactor`s, so
+    // isFederated() is false; they are marked with @_fed_config instead.
+    if (main.reactorDefinition == null
+        || (!main.reactorDefinition.isFederated()
+            && !AttributeUtils.isFederate(main.reactorDefinition))) {
+      return false;
+    }
+    // Read @platform(..., scheduler=...) on the federation or federate reactor, if present.
+    String[] platform = AttributeUtils.getPlatform(main.reactorDefinition);
+    if (platform == null || platform[1] == null) {
+      // No @platform attribute, or platform without an explicit scheduler policy.
+      return false;
+    }
+    // Only rt-fifo / rt-rr make deadline-based OS priorities meaningful for level barriers.
+    String scheduler = platform[1].toLowerCase();
+    return "rt-fifo".equals(scheduler) || "rt-rr".equals(scheduler);
+  }
+
+  /**
+   * Tighten inferred deadlines so that, within each level-scheduling scope, every reaction's
+   * inferred deadline is at most the minimum inferred deadline among all reactions at higher
+   * levels in that scope. Reactions that already have a tighter deadline keep it.
+   *
+   * <p>Level scheduling applies only within a single federate and a single enclave: lower-level
+   * reactions in that scope must complete before higher-level ones can execute. Under
+   * deadline-based priorities, lower-level reactions with loose deadlines can be preempted by
+   * other lower-level reactions with tighter deadlines, delaying completion of the level and
+   * effectively inverting priority relative to higher-level reactions with tight deadlines. This
+   * pass prevents that by giving lower-level reactions scheduling priority over all higher-level
+   * reactions in the same scope. Distinct enclaves and distinct federates are not subject to a
+   * shared level barrier, so they are tightened independently.
+   *
+   * <p>This must run after {@link #assignInferredDeadlines()} (downstream propagation) and {@link
+   * #assignLevels()} (level assignment). It is invoked only when {@link
+   * #shouldTightenInferredDeadlinesForLevelScheduling()} is true.
+   */
+  private void tightenInferredDeadlinesForLevelScheduling() {
+    for (List<Runtime> federateRuntimes : groupRuntimesByFederateScope().values()) {
+      for (List<Runtime> enclaveRuntimes : groupRuntimesByEnclave(federateRuntimes).values()) {
+        tightenInferredDeadlinesWithinScope(enclaveRuntimes);
+      }
+    }
+  }
+
+  /**
+   * Group runtime reaction instances by federate scope. For a federated program, each top-level
+   * federate instantiation is a separate scope. For non-federated programs, the entire program is
+   * one scope.
+   */
+  private Map<ReactorInstance, List<Runtime>> groupRuntimesByFederateScope() {
+    Map<ReactorInstance, List<Runtime>> runtimesByScope = new LinkedHashMap<>();
+    if (main.reactorDefinition != null && main.reactorDefinition.isFederated()) {
+      for (ReactorInstance federate : main.children) {
+        List<Runtime> runtimes = new ArrayList<>();
+        collectAllRuntimes(federate, runtimes);
+        runtimesByScope.put(federate, runtimes);
+      }
+    } else {
+      List<Runtime> runtimes = new ArrayList<>();
+      collectAllRuntimes(main, runtimes);
+      runtimesByScope.put(main, runtimes);
+    }
+    return runtimesByScope;
+  }
+
+  /**
+   * Group runtime reaction instances by containing enclave. Level scheduling is per-enclave, so
+   * deadline tightening must not cross enclave boundaries.
+   */
+  private Map<ReactorInstance, List<Runtime>> groupRuntimesByEnclave(List<Runtime> runtimes) {
+    Map<ReactorInstance, List<Runtime>> runtimesByEnclave = new LinkedHashMap<>();
+    for (Runtime runtime : runtimes) {
+      ReactorInstance enclave = runtime.getReaction().getContainingEnclaveReactor();
+      runtimesByEnclave.computeIfAbsent(enclave, key -> new ArrayList<>()).add(runtime);
+    }
+    return runtimesByEnclave;
+  }
+
+  /** Recursively collect all runtime reaction instances rooted at {@code reactor}. */
+  private void collectAllRuntimes(ReactorInstance reactor, List<Runtime> runtimes) {
+    for (ReactionInstance reaction : reactor.reactions) {
+      runtimes.addAll(reaction.getRuntimeInstances());
+    }
+    for (ReactorInstance child : reactor.children) {
+      collectAllRuntimes(child, runtimes);
+    }
+  }
+
+  /**
+   * For each reaction in a level-scheduling scope (one federate and one enclave), cap its inferred
+   * deadline at the minimum inferred deadline among all reactions at higher levels in that scope.
+   * Reactions that already have a tighter deadline are unchanged.
+   */
+  private void tightenInferredDeadlinesWithinScope(List<Runtime> runtimes) {
+    for (Runtime runtime : runtimes) {
+      TimeValue minHigherLevelDeadline = minDeadlineAtHigherLevel(runtimes, runtime.level);
+      if (minHigherLevelDeadline == null) {
+        continue;
+      }
+      runtime.deadline = TimeValue.min(runtime.deadline, minHigherLevelDeadline);
+    }
+  }
+
+  /**
+   * Return the minimum inferred deadline among all reactions in {@code runtimes} whose level is
+   * strictly greater than {@code level}, ignoring reactions with no deadline.
+   */
+  private TimeValue minDeadlineAtHigherLevel(List<Runtime> runtimes, int level) {
+    TimeValue minDeadline = null;
+    for (Runtime other : runtimes) {
+      if (other.level <= level || isNoDeadline(other.deadline)) {
+        continue;
+      }
+      if (minDeadline == null || other.deadline.isEarlierThan(minDeadline)) {
+        minDeadline = other.deadline;
+      }
+    }
+    return minDeadline;
+  }
+
+  private static boolean isNoDeadline(TimeValue deadline) {
+    return TimeValue.MAX_VALUE.equals(deadline) || TimeValue.FOREVER.equals(deadline);
   }
 
   /**
