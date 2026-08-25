@@ -1640,9 +1640,7 @@ public class LFValidator extends BaseLFValidator {
     if (container instanceof Reactor reactor) {
       if (!reactor.isMain() && !reactor.isFederated()) {
         error(
-            "The @"
-                + attrName
-                + " attribute is only allowed on a main or federated reactor.",
+            "The @" + attrName + " attribute is only allowed on a main or federated reactor.",
             attr,
             Literals.ATTRIBUTE__ATTR_NAME);
         return false;

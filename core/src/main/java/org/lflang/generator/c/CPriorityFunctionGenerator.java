@@ -125,7 +125,8 @@ public class CPriorityFunctionGenerator {
               "  if (rel_deadline == 0) return 98;",
               // Negative values (e.g. NEVER if deadline(never) leaks into index) and large
               // sentinels encode the absence of a deadline -> lowest priority (1).
-              "  if (rel_deadline < 0 || rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
+              "  if (rel_deadline < 0 || rel_deadline == FOREVER || rel_deadline >="
+                  + " 281474976710655LL) return 1;",
               "  return 98;",
               "}"));
     } else {
@@ -161,7 +162,8 @@ public class CPriorityFunctionGenerator {
               // Negative values (e.g. NEVER) and large sentinels (e.g. TimeValue.MAX_VALUE)
               // encode the absence of a deadline. Values above maxDeadline would otherwise map
               // to priorities below the curve floor; treat all as \"no deadline\" -> priority 1.
-              "  if (rel_deadline < 0 || rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
+              "  if (rel_deadline < 0 || rel_deadline == FOREVER || rel_deadline >="
+                  + " 281474976710655LL) return 1;",
               "  double rel_deadline_ms = rel_deadline / 1000000.0;",
               "  if (rel_deadline_ms >= " + formatDoubleForC(maxDeadlineMsFinal) + ") return 2;",
               "  const double K = " + formatDoubleForC(k) + ";",
