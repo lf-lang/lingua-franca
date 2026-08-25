@@ -109,7 +109,7 @@ public class CPriorityFunctionGenerator {
               "\n",
               "// Priority assignment function (no deadlines found)",
               "int get_priority_value(interval_t rel_deadline) {",
-              "    if (rel_deadline <= 0) return 0;",
+              "    (void) rel_deadline;",
               "    return 1;",
               "}"));
       return;
@@ -122,10 +122,10 @@ public class CPriorityFunctionGenerator {
           String.join(
               "\n",
               "int get_priority_value(interval_t rel_deadline) {",
-              "  if (rel_deadline <= 0) return 0;",
-              // Sentinels encode the absence of a deadline even when every finite deadline
-              // in the program is the same; those reactions get the lowest priority (1).
-              "  if (rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
+              "  if (rel_deadline == 0) return 98;",
+              // Negative values (e.g. NEVER if deadline(never) leaks into index) and large
+              // sentinels encode the absence of a deadline -> lowest priority (1).
+              "  if (rel_deadline < 0 || rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
               "  return 98;",
               "}"));
     } else {
@@ -157,13 +157,11 @@ public class CPriorityFunctionGenerator {
           String.join(
               "\n",
               "int get_priority_value(interval_t rel_deadline) {",
-              "  if (rel_deadline <= 0) return 0;",
-              // Lingua Franca uses large sentinel values (e.g., TimeValue.MAX_VALUE) to encode
-              // the absence of a deadline. These can be much larger than maxDeadline and would
-              // otherwise map to negative priorities (because g(d) continues decreasing past
-              // d_max).
-              // Treat these as \"no deadline\" -> lowest priority (1).
-              "  if (rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
+              "  if (rel_deadline == 0) return 98;",
+              // Negative values (e.g. NEVER) and large sentinels (e.g. TimeValue.MAX_VALUE)
+              // encode the absence of a deadline. Values above maxDeadline would otherwise map
+              // to priorities below the curve floor; treat all as \"no deadline\" -> priority 1.
+              "  if (rel_deadline < 0 || rel_deadline == FOREVER || rel_deadline >= 281474976710655LL) return 1;",
               "  double rel_deadline_ms = rel_deadline / 1000000.0;",
               "  if (rel_deadline_ms >= " + formatDoubleForC(maxDeadlineMsFinal) + ") return 2;",
               "  const double K = " + formatDoubleForC(k) + ";",

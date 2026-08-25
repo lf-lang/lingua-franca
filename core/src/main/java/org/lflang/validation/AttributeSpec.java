@@ -153,6 +153,12 @@ public class AttributeSpec {
     // Check if a parameter has the right type.
     // Currently, only String, Int, Boolean, Float, and target language are supported.
     public void check(LFValidator validator, AttrParm parm) {
+      if (parm.getRange() != null) {
+        validator.error(
+            "Range parameters (e.g., 0..3) are only supported for the @cores attribute.",
+            Literals.ATTRIBUTE__ATTR_NAME);
+        return;
+      }
       switch (type) {
         case STRING -> {
           if (!StringUtil.hasQuotes(parm.getValue())) {

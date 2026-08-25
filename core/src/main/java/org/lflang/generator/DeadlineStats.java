@@ -100,9 +100,9 @@ public class DeadlineStats {
         deadlinesMs);
   }
 
-  /** Whether there are no finite deadlines, i.e. every statistic is zero. */
+  /** Whether no finite deadlines were found in the reactor tree. */
   public boolean isEmpty() {
-    return minDeadlineMs == 0.0 && maxDeadlineMs == 0.0 && medianDeadlineMs == 0.0;
+    return deadlinesMs.isEmpty();
   }
 
   public double getMinDeadlineMs() {

@@ -1530,14 +1530,12 @@ public class LFValidator extends BaseLFValidator {
     }
   }
 
+  /** Maximum core ID allowed in {@code @cores} (inclusive). */
+  private static final int MAX_CORE_ID = 1024;
+
   private void checkCoresAttribute(Attribute attr) {
-    // Check that the attribute is on an Instantiation or a Reactor (main reactor).
-    var container = attr.eContainer();
-    if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
-      warning(
-          "cores attribute can only be used on a reactor or an instantiation.",
-          attr,
-          Literals.ATTRIBUTE__ATTR_NAME);
+    if (!checkMainFederatedOrFederateInstantiationPlacement(attr, "cores")) {
+      return;
     }
     // Validate that all parameters are either ranges or integer values.
     if (attr.getAttrParms() == null || attr.getAttrParms().isEmpty()) {
@@ -1546,11 +1544,14 @@ public class LFValidator extends BaseLFValidator {
     }
     for (var parm : attr.getAttrParms()) {
       if (parm.getRange() != null) {
-        // Valid range parameter
-        if (parm.getRange().getLow() < 0 || parm.getRange().getHigh() < 0) {
-          error("Core IDs must be non-negative.", Literals.ATTRIBUTE__ATTR_NAME);
+        int low = parm.getRange().getLow();
+        int high = parm.getRange().getHigh();
+        if (low < 0 || high < 0 || low > MAX_CORE_ID || high > MAX_CORE_ID) {
+          error(
+              "Core IDs must be in the range [0, " + MAX_CORE_ID + "].",
+              Literals.ATTRIBUTE__ATTR_NAME);
         }
-        if (parm.getRange().getLow() > parm.getRange().getHigh()) {
+        if (low > high) {
           error(
               "Invalid range: low value must be less than or equal to high value.",
               Literals.ATTRIBUTE__ATTR_NAME);
@@ -1558,8 +1559,10 @@ public class LFValidator extends BaseLFValidator {
       } else if (parm.getValue() != null) {
         try {
           int val = Integer.parseInt(parm.getValue());
-          if (val < 0) {
-            error("Core IDs must be non-negative.", Literals.ATTRIBUTE__ATTR_NAME);
+          if (val < 0 || val > MAX_CORE_ID) {
+            error(
+                "Core IDs must be in the range [0, " + MAX_CORE_ID + "].",
+                Literals.ATTRIBUTE__ATTR_NAME);
           }
         } catch (NumberFormatException e) {
           error(
@@ -1575,14 +1578,10 @@ public class LFValidator extends BaseLFValidator {
   }
 
   private void checkPlatformAttribute(Attribute attr) {
-    // Allowed on a reactor (including main/federated) or an instantiation (per-federate override).
+    // Allowed on a reactor (main/federated) or a top-level federate instantiation.
     // Intentionally not in GLOBAL_ATTRIBUTE_NAMES so instantiations remain valid.
-    var container = attr.eContainer();
-    if (!(container instanceof Instantiation) && !(container instanceof Reactor)) {
-      warning(
-          "platform attribute can only be used on a reactor or an instantiation.",
-          attr,
-          Literals.ATTRIBUTE__ATTR_NAME);
+    if (!checkMainFederatedOrFederateInstantiationPlacement(attr, "platform")) {
+      return;
     }
     // Validate the "value" parameter (the platform name).
     // It can be unnamed (first positional parameter) or explicitly named "value".
@@ -1627,6 +1626,51 @@ public class LFValidator extends BaseLFValidator {
             Literals.ATTRIBUTE__ATTR_NAME);
       }
     }
+  }
+
+  /**
+   * Check that {@code attr} is on a placement supported by code generation: the main or federated
+   * reactor definition, or a top-level federate instantiation inside a federated reactor.
+   *
+   * @return {@code true} if placement is valid; {@code false} if an error was reported.
+   */
+  private boolean checkMainFederatedOrFederateInstantiationPlacement(
+      Attribute attr, String attrName) {
+    EObject container = attr.eContainer();
+    if (container instanceof Reactor reactor) {
+      if (!reactor.isMain() && !reactor.isFederated()) {
+        error(
+            "The @"
+                + attrName
+                + " attribute is only allowed on a main or federated reactor.",
+            attr,
+            Literals.ATTRIBUTE__ATTR_NAME);
+        return false;
+      }
+      return true;
+    }
+    if (container instanceof Instantiation) {
+      EObject parent = container.eContainer();
+      if (!(parent instanceof Reactor reactor) || !reactor.isFederated()) {
+        error(
+            "The @"
+                + attrName
+                + " attribute on an instantiation is only allowed for top-level federates"
+                + " in a federated reactor.",
+            attr,
+            Literals.ATTRIBUTE__ATTR_NAME);
+        return false;
+      }
+      return true;
+    }
+    error(
+        "The @"
+            + attrName
+            + " attribute can only be used on a main or federated reactor, or on a federate"
+            + " instantiation.",
+        attr,
+        Literals.ATTRIBUTE__ATTR_NAME);
+    return false;
   }
 
   private void checkGlobalAttribute(Attribute attr) {
