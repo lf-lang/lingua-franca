@@ -546,6 +546,9 @@ public class FedASTUtils {
    * If the connection does not have an `absent_after` attribute, find the maximum STP
    * or STAA for the reactions that react to the destination port (for backward compatibility).
    * This maximum may be nested in contained reactors in the federate.
+   * If there is still no offset and the source federate is in a zero-delay cycle with no
+   * `after` delay, return TimeValue.FOREVER so the destination waits for a present or
+   * port-absent message instead of assuming the port is absent immediately.
    * This method returns TimeValue.ZERO if there are no `absent_after` offsets for the port.
    * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
@@ -558,10 +561,9 @@ public class FedASTUtils {
 
     // Start by checking for an `absent_after` attribute on the connection.
     Connection conn = connection.getDefinition();
-    // If the connection has an `absent_after` attribute, return it.
-    var absentAfter = AttributeUtils.getAbsentAfter(conn);
-    if (absentAfter != TimeValue.ZERO) {
-      return absentAfter;
+    // If the connection has an explicit `absent_after` attribute, use it (including 0).
+    if (AttributeUtils.hasAbsentAfter(conn)) {
+      return AttributeUtils.getAbsentAfter(conn);
     }
 
     // For backward compatibility, check for STP offsets on the reactions that
@@ -660,10 +662,24 @@ public class FedASTUtils {
       }
     }
 
-    return STPList.stream()
-        .map(ASTUtils::getLiteralTimeValue)
-        .filter(Objects::nonNull)
-        .reduce(TimeValue.ZERO, TimeValue::max);
+    TimeValue fromReactions =
+        STPList.stream()
+            .map(ASTUtils::getLiteralTimeValue)
+            .filter(Objects::nonNull)
+            .reduce(TimeValue.ZERO, TimeValue::max);
+    if (fromReactions.compareTo(TimeValue.ZERO) > 0) {
+      return fromReactions;
+    }
+
+    // On a zero-delay cycle, wait for a present or port-absent message from the
+    // peer rather than assuming the input is absent immediately (STAA of 0).
+    // An explicit `@absent_after` above remains a safety timeout.
+    if (connection.srcFederate.isInZeroDelayCycle()
+        && connection.dstFederate.isInZeroDelayCycle()
+        && connection.getDefinition().getDelay() == null) {
+      return TimeValue.FOREVER;
+    }
+    return TimeValue.ZERO;
   }
 
   /**
