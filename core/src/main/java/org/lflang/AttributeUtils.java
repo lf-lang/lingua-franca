@@ -379,6 +379,46 @@ public class AttributeUtils {
   }
 
   /**
+   * Return the list of integers specified by an attribute whose parameters are integers and/or
+   * ranges (e.g. {@code 0..3}, {@code 0, 2, 4}, or a mix).
+   *
+   * <p>Each attribute parameter is either a single integer or a range; ranges are expanded to the
+   * inclusive sequence of integers from low to high.
+   *
+   * @param node The AST node that may carry the attribute.
+   * @param attrName The attribute name (e.g. {@code "cores"}).
+   * @return A list of integers, or an empty list if the attribute is not present.
+   */
+  public static List<Integer> getIntegerListAttribute(EObject node, String attrName) {
+    final var attr = findAttributeByName(node, attrName);
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return List.of();
+    }
+    List<Integer> values = new ArrayList<>();
+    for (AttrParm parm : attr.getAttrParms()) {
+      if (parm.getRange() != null) {
+        // Range of integers from low to high
+        int low = parm.getRange().getLow();
+        int high = parm.getRange().getHigh();
+        for (int i = low; i <= high; i++) {
+          values.add(i);
+          if (i == high) {
+            break; // avoid overflow when high == Integer.MAX_VALUE
+          }
+        }
+      } else if (parm.getValue() != null) {
+        // Single integer value
+        try {
+          values.add(Integer.parseInt(parm.getValue()));
+        } catch (NumberFormatException e) {
+          // Invalid value; validation should catch this
+        }
+      }
+    }
+    return values;
+  }
+
+  /**
    * Return the list of CPU core IDs specified by the `@cores` attribute of the given node.
    * The attribute accepts either a range (e.g., `@cores(0..3)` meaning cores 0,1,2,3)
    * or a comma-separated list of integers (e.g., `@cores(0, 2, 4)`),
@@ -388,32 +428,7 @@ public class AttributeUtils {
    * @return A list of specific core IDs, or an empty list if the attribute is not present.
    */
   public static List<Integer> getCores(EObject node) {
-    final var attr = findAttributeByName(node, "cores");
-    if (attr == null || attr.getAttrParms().isEmpty()) {
-      return List.of();
-    }
-    List<Integer> coreIds = new ArrayList<>();
-    for (AttrParm parm : attr.getAttrParms()) {
-      if (parm.getRange() != null) {
-        // Range like 0-3 → expand to 0,1,2,3
-        int low = parm.getRange().getLow();
-        int high = parm.getRange().getHigh();
-        for (int i = low; i <= high; i++) {
-          coreIds.add(i);
-          if (i == high) {
-            break; // avoid overflow when high == Integer.MAX_VALUE
-          }
-        }
-      } else if (parm.getValue() != null) {
-        // Single integer like "2"
-        try {
-          coreIds.add(Integer.parseInt(parm.getValue()));
-        } catch (NumberFormatException e) {
-          // Invalid value; validation should catch this
-        }
-      }
-    }
-    return coreIds;
+    return getIntegerListAttribute(node, "cores");
   }
 
   /**
