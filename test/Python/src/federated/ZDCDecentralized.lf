@@ -1,0 +1,93 @@
+target Python {
+  timeout: 50 ms,
+  coordination: decentralized
+}
+
+preamble {=
+  import time
+=}
+
+reactor Sensor {
+  output s
+  timer t(0, 10ms)  // Sample at 100 Hz
+
+  reaction s1(t) -> s {=
+    s.set(42)
+    print("Sensor produced output.")
+  =}
+}
+
+reactor Planner {
+  input s
+  output e
+    
+  // Reaction 1: Collect sensor data in buffer
+  reaction p1(s) -> e {=
+    time.sleep(0.02)
+    e.set(42)
+    print("Planner produced output.")
+  =}
+}
+
+/**
+ * Controller that receives high-frequency sensor data and periodic state estimates.
+ * Makes control decisions based on both.
+ */
+reactor Controller {
+  input s
+  input e
+  output p
+  output c
+  state count = 0
+
+  reaction c1(s) -> p {=
+    if self.count % 2 == 0:
+      p.set(42)
+      print("Controller requesting planning.")
+    else:
+      print("Controller skipping planning.")
+    self.count = self.count + 1
+  =}
+    
+  reaction c2(e) {=
+    print("Controller received planning information.")
+  =}
+  
+  reaction c3(s) -> c {=
+    c.set(42)
+    print("Controller sending control signal")
+  =}
+}
+
+/**
+ * Actuator that receives control signals and takes action.
+ */
+reactor Actuator {
+  input c  
+  reaction a1(c) {=
+    print("Actuator received command.")
+  =}
+}
+
+reactor Control {
+  input e
+  output p
+  
+  actuator = new Actuator()
+  sensor = new Sensor()
+  controller = new Controller()
+  sensor.s -> controller.s
+  controller.c -> actuator.c
+  e -> controller.e
+  controller.p -> p
+}
+
+federated reactor {
+  planner = new Planner()
+  @maxwait(0)
+  control = new Control()
+  # absent_after defaults to forever because of ZDC
+  control.p -> planner.s
+  @absent_after(5s)
+  planner.e -> control.e
+}
