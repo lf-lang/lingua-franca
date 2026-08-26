@@ -546,10 +546,10 @@ public class FedASTUtils {
    * If the connection does not have an `absent_after` attribute, find the maximum STP
    * or STAA for the reactions that react to the destination port (for backward compatibility).
    * This maximum may be nested in contained reactors in the federate.
-   * If there is still no offset and the source federate is in a zero-delay cycle with no
-   * `after` delay, return TimeValue.FOREVER so the destination waits for a present or
+   * If there is still no offset and this zero-delay logical connection joins federates that are
+   * each in a zero-delay cycle, return TimeValue.FOREVER so the destination waits for a present or
    * port-absent message instead of assuming the port is absent immediately.
-   * This method returns TimeValue.ZERO if there are no `absent_after` offsets for the port.
+   * Otherwise, this method returns TimeValue.ZERO.
    * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
    */
