@@ -36,6 +36,11 @@ java {
 
 configurations.all {
     resolutionStrategy {
+        // Pin version ranges from transitive Eclipse/sprotty dependencies so Gradle
+        // does not need to fetch maven-metadata.xml (required for offline builds).
+        force 'jakarta.platform:jakarta.jakartaee-api:10.0.0'
+        force 'log4j:log4j:1.2.17'
+
         dependencySubstitution {
             // The maven property ${osgi.platform} is not handled by Gradle
             // so we replace the dependency, using the osgi platform from the project settings
