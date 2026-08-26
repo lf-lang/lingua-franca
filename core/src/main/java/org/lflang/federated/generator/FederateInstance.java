@@ -573,6 +573,10 @@ public class FederateInstance {
    * determine whether absent messages need to be sent. Note that this is not the same as causality
    * loop detection. A federate may be in a zero-delay cycle (ZDC) even if there is no causality
    * loop.
+   *
+   * <p>This walks {@link #connections} rather than {@link #sendsTo}. The {@code sendsTo} map is
+   * populated only for centralized coordination (it also drives RTI neighbor-structure and NET/TAG
+   * signaling), so using it here would miss zero-delay cycles under decentralized coordination.
    */
   public boolean isInZeroDelayCycle() {
     if (_isInZeroDelayCycleCalculated) return _isInZeroDelayCycle;
@@ -584,28 +588,28 @@ public class FederateInstance {
   /** Internal helper function for isInZeroDelayCycle(). */
   private boolean _isInZeroDelayCycleInternal(
       FederateInstance end, FederateInstance next, HashSet<FederateInstance> visited) {
-    next.sendsTo.forEach(
-        (destination, setOfDelays) -> {
-          // Return if we've already found a cycle or already visited this destination.
-          // Note: zero-delay self-loops (destination == next) are not skipped; they are
-          // genuine ZDCs and must trigger port-absent / MLAA handling even though the
-          // connection still routes through the RTI.
-          if (end._isInZeroDelayCycle || visited.contains(destination)) return;
-          if (setOfDelays.contains(null)) {
-            // Only if we have a zero-delay connection to destination do we add it to visited.
-            // If we have a delayed connection to destination, we should not skip a future
-            // zero-delay
-            // connection there.
-            visited.add(destination);
-            // There is a zero-delay connection to destination.
-            if (destination == end) {
-              // Found a zero delay cycle (including a self-loop on end).
-              end._isInZeroDelayCycle = true;
-              return;
-            }
-            _isInZeroDelayCycleInternal(end, destination, visited);
-          }
-        });
+    for (FedConnectionInstance connection : next.connections) {
+      // connections includes both incoming and outgoing; follow only outgoing edges.
+      if (connection.srcFederate != next) continue;
+      // Physical connections (~>) are not zero-delay logical paths.
+      if (connection.getDefinition().isPhysical()) continue;
+      FederateInstance destination = connection.dstFederate;
+      // Skip if we've already found a cycle or already visited this destination.
+      // Note: zero-delay self-loops (destination == next) are not skipped; they are
+      // genuine ZDCs and must trigger port-absent / MLAA handling even though the
+      // connection still routes through the RTI.
+      if (end._isInZeroDelayCycle || visited.contains(destination)) continue;
+      // Only zero-delay (no `after`) connections count. A delayed connection to
+      // destination must not prevent a future zero-delay path there from being considered.
+      if (connection.getDefinition().getDelay() != null) continue;
+      visited.add(destination);
+      if (destination == end) {
+        // Found a zero delay cycle (including a self-loop on end).
+        end._isInZeroDelayCycle = true;
+        return true;
+      }
+      _isInZeroDelayCycleInternal(end, destination, visited);
+    }
     return end._isInZeroDelayCycle;
   }
 
