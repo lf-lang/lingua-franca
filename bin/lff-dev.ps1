@@ -10,6 +10,11 @@
 $base="$PSScriptRoot\..\"
 $gradlew="${base}/gradlew.bat"
 
-# invoke script
-& "${gradlew}" --quiet -p "${base}" assemble ":cli:lff:assemble"
-& "${base}/build/install/lf-cli/bin/lff" @args
+# Build only the lff CLI (not the whole project, which would also build :lsp).
+# Try offline first so dev workflows work without network after an initial build.
+$buildArgs = @("--quiet", "-p", "${base}", ":cli:lff:installDist")
+& "${gradlew}" @buildArgs --offline
+if ($LASTEXITCODE -ne 0) {
+    & "${gradlew}" @buildArgs
+}
+& "${base}/cli/lff/build/install/lff/bin/lff" @args
