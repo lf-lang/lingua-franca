@@ -1,0 +1,44 @@
+/** Test that a blocking reaction in one enclave does not block the main enclave. */
+target Python {
+  keepalive: true,
+  timeout: 2 sec
+}
+
+preamble {=
+  import time
+=}
+
+reactor BlockingReactor {
+  output out
+  timer t(0, 1 s)
+
+  reaction(t) -> out {=
+    print("Blocking reactor invoked")
+    time.sleep(1); # Simulate blocking
+    print("Blocking reactor sending output")
+    out.set(42)
+  =}
+}
+
+reactor Print {
+  input inp
+
+  reaction(inp) {=
+    print("Print reactor received enclave output at tag (", lf.time.logical_elapsed(), ", ", lf.tag().microstep, ")")
+  =}
+}
+
+main reactor {
+  timer t(0, 100 ms)
+  @enclave
+  blocking = new BlockingReactor()
+  print = new Print()
+  blocking.out ~> print.inp
+
+  reaction(t) {=
+    print("Tick at tag (", lf.time.logical_elapsed(), ", ", lf.tag().microstep, ")")
+  =} deadline(300 ms) {=
+    print("Main reactor deadline was violated!")
+    exit(1)
+  =}
+}
