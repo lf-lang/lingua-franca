@@ -460,6 +460,7 @@ public class LinguaFrancaShapeExtensions extends AbstractSynthesisExtensions {
     if (reaction.declaredDeadline != null) {
       boolean hasDeadlineCode =
           getBooleanValue(LinguaFrancaSynthesis.SHOW_REACTION_CODE)
+              && reaction.getDefinition().getDeadline().getCode() != null
               && !StringExtensions.isNullOrEmpty(
                   reaction.getDefinition().getDeadline().getCode().getBody());
       if (hasCode || hasDeadlineCode) {

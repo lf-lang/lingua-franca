@@ -721,8 +721,12 @@ public class ToLf extends LfSwitch<MalleableString> {
 
   @Override
   public MalleableString caseDeadline(Deadline object) {
-    // 'deadline' '(' delay=Expression ')' code=Code
-    return handler(object, "deadline", Deadline::getDelay, Deadline::getCode);
+    // 'deadline' '(' delay=Expression ')' (code=Code)?
+    if (object.getCode() != null) {
+      return handler(object, "deadline", Deadline::getDelay, Deadline::getCode);
+    } else {
+      return new Builder().append("deadline").append(list(false, object.getDelay())).get();
+    }
   }
 
   @Override
