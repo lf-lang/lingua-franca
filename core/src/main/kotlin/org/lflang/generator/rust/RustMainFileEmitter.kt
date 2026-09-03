@@ -28,7 +28,6 @@ import org.lflang.camelToSnakeCase
 import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
-import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.joinWithCommasLn
 import org.lflang.joinWithLn
 import org.lflang.withoutQuotes
