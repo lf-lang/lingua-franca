@@ -200,7 +200,7 @@ public class PythonReactionGenerator {
               generateCPythonSTPCaller(tpr, reactionIndex, pyObjects)));
     }
     // Generate code for the deadline violation function, if there is one.
-    if (reaction.getDeadline() != null) {
+    if (reaction.getDeadline() != null && reaction.getDeadline().getCode() != null) {
       code.pr(
           generateFunction(
               CReactionGenerator.generateDeadlineFunctionHeader(tpr, reactionIndex),
@@ -476,7 +476,8 @@ public class PythonReactionGenerator {
               nameOfSelfStruct, generateCPythonSTPFunctionName(reaction.index),
               instance, generatePythonSTPFunctionName(reaction.index)));
     }
-    if (reaction.getDefinition().getDeadline() != null) {
+    if (reaction.getDefinition().getDeadline() != null
+        && reaction.getDefinition().getDeadline().getCode() != null) {
       code.pr(
           generateCPythonFunctionLinker(
               nameOfSelfStruct, generateCPythonDeadlineFunctionName(reaction.index),
@@ -596,7 +597,7 @@ public class PythonReactionGenerator {
               reactionParameters));
     }
     // Generate code for the deadline violation function, if there is one.
-    if (reaction.getDeadline() != null) {
+    if (reaction.getDeadline() != null && reaction.getDeadline().getCode() != null) {
       code.pr(
           generatePythonFunction(
               generatePythonDeadlineFunctionName(reactionIndex),

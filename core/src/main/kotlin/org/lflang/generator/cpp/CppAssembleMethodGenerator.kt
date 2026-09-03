@@ -141,7 +141,10 @@ class CppAssembleMethodGenerator(private val reactor: Reactor) {
     private fun setDeadline(reaction: Reaction): String {
         val delay = reaction.deadline.delay
         val value = if (delay is ParameterReference) "__lf_inner.${delay.parameter.name}" else delay.toCppTime()
-        return "${reaction.codeName}.set_deadline($value, [this]() { ${reaction.codeName}_deadline_handler(); });"
+        val handler =
+            if (reaction.deadline.code != null) "${reaction.codeName}_deadline_handler()"
+            else "${reaction.codeName}_body()"
+        return "${reaction.codeName}.set_deadline($value, [this]() { $handler; });"
     }
 
     private fun assembleReaction(reaction: Reaction): String {
