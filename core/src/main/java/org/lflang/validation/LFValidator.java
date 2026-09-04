@@ -1454,11 +1454,15 @@ public class LFValidator extends BaseLFValidator {
     }
     // Check the validity of the attribute.
     spec.check(this, attr);
-    // Above generic check is not sufficient for maxwait and absent_after.
+    // Above generic check is not sufficient for maxwait, absent_after, and cores.
     if (name.equals("maxwait")) {
       checkMaxWaitAttribute(attr);
     } else if (name.equals("absent_after")) {
       checkAbsentAfterAttribute(attr);
+    } else if (name.equals("cores")) {
+      checkCoresAttribute(attr);
+    } else if (name.equals("platform")) {
+      checkPlatformAttribute(attr);
     } else if (name.equals("transient")) {
       checkTransientAttribute(attr);
     }
@@ -1524,6 +1528,147 @@ public class LFValidator extends BaseLFValidator {
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
+  }
+
+  /** Maximum core ID allowed in {@code @cores} (inclusive). */
+  private static final int MAX_CORE_ID = 1024;
+
+  private void checkCoresAttribute(Attribute attr) {
+    if (!checkMainFederatedOrFederateInstantiationPlacement(attr, "cores")) {
+      return;
+    }
+    // Validate that all parameters are either ranges or integer values.
+    if (attr.getAttrParms() == null || attr.getAttrParms().isEmpty()) {
+      error("cores attribute requires at least one parameter.", Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    for (var parm : attr.getAttrParms()) {
+      if (parm.getRange() != null) {
+        int low = parm.getRange().getLow();
+        int high = parm.getRange().getHigh();
+        if (low < 0 || high < 0 || low > MAX_CORE_ID || high > MAX_CORE_ID) {
+          error(
+              "Core IDs must be in the range [0, " + MAX_CORE_ID + "].",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+        if (low > high) {
+          error(
+              "Invalid range: low value must be less than or equal to high value.",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+      } else if (parm.getValue() != null) {
+        try {
+          int val = Integer.parseInt(parm.getValue());
+          if (val < 0 || val > MAX_CORE_ID) {
+            error(
+                "Core IDs must be in the range [0, " + MAX_CORE_ID + "].",
+                Literals.ATTRIBUTE__ATTR_NAME);
+          }
+        } catch (NumberFormatException e) {
+          error(
+              "cores attribute parameters must be integers or ranges (e.g., 0..3).",
+              Literals.ATTRIBUTE__ATTR_NAME);
+        }
+      } else {
+        error(
+            "cores attribute parameters must be integers or ranges (e.g., 0..3).",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+  }
+
+  private void checkPlatformAttribute(Attribute attr) {
+    // Allowed on a reactor (main/federated) or a top-level federate instantiation.
+    // Intentionally not in GLOBAL_ATTRIBUTE_NAMES so instantiations remain valid.
+    if (!checkMainFederatedOrFederateInstantiationPlacement(attr, "platform")) {
+      return;
+    }
+    // Validate the "value" parameter (the platform name).
+    // It can be unnamed (first positional parameter) or explicitly named "value".
+    var valueParm =
+        attr.getAttrParms().stream()
+            .filter(p -> p.getName() == null || "value".equals(p.getName()))
+            .findFirst()
+            .orElse(null);
+    String platform = null;
+    if (valueParm != null && valueParm.getValue() != null) {
+      platform = org.lflang.util.StringUtil.removeQuotes(valueParm.getValue());
+      if (!AttributeUtils.isValidPlatformAttributeValue(platform)) {
+        error(
+            "Unsupported platform: \""
+                + platform
+                + "\". Allowed values are: "
+                + AttributeUtils.allowedPlatformAttributeValues()
+                + ".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+    // Validate the optional "scheduler" parameter (posix only).
+    var schedulerParm =
+        attr.getAttrParms().stream()
+            .filter(p -> "scheduler".equals(p.getName()))
+            .findFirst()
+            .orElse(null);
+    if (schedulerParm != null && schedulerParm.getValue() != null) {
+      if (platform == null || !"posix".equalsIgnoreCase(platform)) {
+        error(
+            "The \"scheduler\" parameter is only allowed when the platform value is \"posix\".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+      String scheduler = org.lflang.util.StringUtil.removeQuotes(schedulerParm.getValue());
+      if (!"rt-fifo".equalsIgnoreCase(scheduler)
+          && !"rt-rr".equalsIgnoreCase(scheduler)
+          && !"normal".equalsIgnoreCase(scheduler)) {
+        error(
+            "Unsupported scheduling policy: \""
+                + scheduler
+                + "\". Allowed values are: \"rt-fifo\", \"rt-rr\", \"normal\".",
+            Literals.ATTRIBUTE__ATTR_NAME);
+      }
+    }
+  }
+
+  /**
+   * Check that {@code attr} is on a placement supported by code generation: the main or federated
+   * reactor definition, or a top-level federate instantiation inside a federated reactor.
+   *
+   * @return {@code true} if placement is valid; {@code false} if an error was reported.
+   */
+  private boolean checkMainFederatedOrFederateInstantiationPlacement(
+      Attribute attr, String attrName) {
+    EObject container = attr.eContainer();
+    if (container instanceof Reactor reactor) {
+      if (!reactor.isMain() && !reactor.isFederated()) {
+        error(
+            "The @" + attrName + " attribute is only allowed on a main or federated reactor.",
+            attr,
+            Literals.ATTRIBUTE__ATTR_NAME);
+        return false;
+      }
+      return true;
+    }
+    if (container instanceof Instantiation) {
+      EObject parent = container.eContainer();
+      if (!(parent instanceof Reactor reactor) || !reactor.isFederated()) {
+        error(
+            "The @"
+                + attrName
+                + " attribute on an instantiation is only allowed for top-level federates"
+                + " in a federated reactor.",
+            attr,
+            Literals.ATTRIBUTE__ATTR_NAME);
+        return false;
+      }
+      return true;
+    }
+    error(
+        "The @"
+            + attrName
+            + " attribute can only be used on a main or federated reactor, or on a federate"
+            + " instantiation.",
+        attr,
+        Literals.ATTRIBUTE__ATTR_NAME);
+    return false;
   }
 
   private void checkGlobalAttribute(Attribute attr) {
@@ -2276,8 +2421,10 @@ public class LFValidator extends BaseLFValidator {
       "Reserved words in the target language are not allowed for objects (inputs, outputs, actions,"
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
+  // "platform" is intentionally omitted: @platform may also appear on instantiations for
+  // per-federate scheduler overrides (see checkPlatformAttribute).
   private static final Set<String> GLOBAL_ATTRIBUTE_NAMES =
-      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync", "platform");
+      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync");
 
   private static List<String> SPACING_VIOLATION_POLICIES =
       List.of("defer", "drop", "replace", "update");

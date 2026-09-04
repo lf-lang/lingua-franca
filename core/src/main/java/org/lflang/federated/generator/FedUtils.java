@@ -1,6 +1,11 @@
 package org.lflang.federated.generator;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import org.lflang.MessageReporter;
 import org.lflang.federated.serialization.SupportedSerializers;
+import org.lflang.generator.DeadlineStats;
+import org.lflang.generator.ReactorInstance;
 import org.lflang.lf.Connection;
 
 /**
@@ -34,5 +39,24 @@ public class FedUtils {
     srcFederate.enabledSerializers.add(serializer);
     dstFederate.enabledSerializers.add(serializer);
     return serializer;
+  }
+
+  /**
+   * Generate a JSON file with federation-level deadline statistics.
+   * This is called once from FedGenerator for the entire federation.
+   *
+   * @param fileConfig The federation file configuration.
+   * @param federationMain The ReactorInstance representing the entire federation.
+   * @param messageReporter Used to report errors.
+   * @throws IOException If file writing fails.
+   */
+  public static void generateFederationPropertiesFile(
+      FederationFileConfig fileConfig,
+      ReactorInstance federationMain,
+      MessageReporter messageReporter)
+      throws IOException {
+    DeadlineStats stats = DeadlineStats.fromReactorInstance(federationMain);
+    Path jsonPath = fileConfig.getSrcPath().resolve(DeadlineStats.FEDERATION_PROPERTIES_REL_PATH);
+    stats.writeJson(jsonPath);
   }
 }

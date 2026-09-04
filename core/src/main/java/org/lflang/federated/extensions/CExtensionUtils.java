@@ -7,6 +7,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import org.lflang.AttributeUtils;
 import org.lflang.InferredType;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
@@ -24,6 +26,7 @@ import org.lflang.lf.Action;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.ParameterReference;
+import org.lflang.lf.Reactor;
 import org.lflang.target.property.AuthProperty;
 import org.lflang.target.property.ClockSyncModeProperty;
 import org.lflang.target.property.ClockSyncOptionsProperty;
@@ -222,9 +225,50 @@ public class CExtensionUtils {
 
     CompileDefinitionsProperty.INSTANCE.update(federate.targetConfig, definitions);
 
+    // Handle @cores attribute for CPU pinning.
+    // Check the federate's instantiation first; if not present, check the parent (main) reactor.
+    List<Integer> coreIds = AttributeUtils.getCores(federate.instantiation);
+    if (coreIds.isEmpty() && federate.instantiation.eContainer() instanceof Reactor parentReactor) {
+      coreIds = AttributeUtils.getCores(parentReactor);
+    }
+    if (!coreIds.isEmpty()) {
+      String coreIdsInit =
+          "{" + coreIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + "}";
+      CompileDefinitionsProperty.INSTANCE.update(
+          federate.targetConfig, java.util.Map.of("LF_CORE_IDS_INIT", coreIdsInit));
+    }
+
+    // Handle @platform attribute for thread scheduling policy.
+    // Check the federate's instantiation first; if not present, check the parent (main) reactor.
+    String[] platformAttr = AttributeUtils.getPlatform(federate.instantiation);
+    if (platformAttr == null
+        && federate.instantiation.eContainer() instanceof Reactor parentReactor2) {
+      platformAttr = AttributeUtils.getPlatform(parentReactor2);
+    }
+    if (platformAttr != null && platformAttr[1] != null) {
+      String cDefine = schedulerPolicyToCDefine(platformAttr[1]);
+      if (cDefine != null) {
+        CompileDefinitionsProperty.INSTANCE.update(
+            federate.targetConfig, java.util.Map.of("LF_THREAD_POLICY", cDefine));
+      }
+    }
+
     handleAdvanceMessageInterval(federate);
 
     initializeClockSynchronization(federate, rtiConfig, messageReporter);
+  }
+
+  /**
+   * Map a policy name string (from the @platform attribute's scheduler parameter) to the
+   * corresponding C #define value.
+   */
+  private static String schedulerPolicyToCDefine(String policyName) {
+    return switch (policyName.toLowerCase()) {
+      case "rt-fifo" -> "LF_SCHED_PRIORITY";
+      case "rt-rr" -> "LF_SCHED_TIMESLICE";
+      case "normal" -> "LF_SCHED_FAIR";
+      default -> null;
+    };
   }
 
   private static void handleAdvanceMessageInterval(FederateInstance federate) {
