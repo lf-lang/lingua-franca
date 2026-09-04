@@ -54,6 +54,14 @@ fi
 
 gradlew="${base}/gradlew"
 
-# Launch the tool.
-"${gradlew}" --quiet -p "${base}" assemble ":cli:lff:assemble"
-"${base}/build/install/lf-cli/bin/lff" "$@"
+# Build only the lff CLI (not the whole project, which would also build :lsp).
+# Try offline first so dev workflows work without network after an initial build.
+build_lff() {
+    "${gradlew}" --quiet "$@" -p "${base}" ":cli:lff:installDist"
+}
+
+if ! build_lff --offline; then
+    build_lff
+fi
+
+"${base}/cli/lff/build/install/lff/bin/lff" "$@"

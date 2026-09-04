@@ -188,7 +188,7 @@ BuiltinTriggerRef:
     type = BuiltinTrigger;
 
 Deadline:
-    'deadline' '(' delay=Expression ')' code=Code;
+    'deadline' '(' delay=Expression ')' (code=Code)?;
 
 Watchdog:
     (attributes+=Attribute)*

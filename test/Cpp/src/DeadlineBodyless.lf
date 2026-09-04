@@ -1,0 +1,48 @@
+/**
+ * Test that a deadline without a handler body still executes the regular reaction body when the
+ * deadline is violated (analogous to body-less `tardy`).
+ */
+target Cpp
+
+reactor Deadline(threshold: time = 100 msec) {
+  private preamble {=
+    #include <thread>
+  =}
+  input x: int
+  output done: bool
+
+  reaction(x) -> done {=
+    std::cout << "Regular reaction body executed despite deadline violation." << std::endl;
+    done.set(true);
+  =} deadline(threshold)
+}
+
+reactor Print {
+  input in: bool
+  state success: bool = false
+
+  reaction(in) {=
+    if (*in.get()) {
+      std::cout << "Output successfully produced by regular reaction body." << std::endl;
+      success = true;
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!success) {
+      std::cerr << "ERROR: Regular reaction body was not executed." << std::endl;
+      exit(1);
+    }
+  =}
+}
+
+main reactor {
+  d = new Deadline(threshold = 10 msec)
+  p = new Print()
+  d.done -> p.in
+
+  reaction(startup) -> d.x {=
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    d.x.set(42);
+  =}
+}
