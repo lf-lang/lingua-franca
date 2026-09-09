@@ -1534,6 +1534,13 @@ public class LFValidator extends BaseLFValidator {
   private static final int MAX_CORE_ID = 1024;
 
   private void checkCoresAttribute(Attribute attr) {
+    if (!isCBasedTarget()) {
+      error(
+          "The @cores attribute is only supported for the C and CCpp targets.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
     if (!checkMainFederatedOrFederateInstantiationPlacement(attr, "cores")) {
       return;
     }
@@ -1578,6 +1585,13 @@ public class LFValidator extends BaseLFValidator {
   }
 
   private void checkPlatformAttribute(Attribute attr) {
+    if (!isCBasedTarget()) {
+      error(
+          "The @platform attribute is only supported for the C and CCpp targets.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
     // Allowed on a reactor (main/federated) or a top-level federate instantiation.
     // Intentionally not in GLOBAL_ATTRIBUTE_NAMES so instantiations remain valid.
     if (!checkMainFederatedOrFederateInstantiationPlacement(attr, "platform")) {

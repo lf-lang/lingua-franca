@@ -63,11 +63,7 @@ public class DeadlineStats {
   public static DeadlineStats fromReactorInstance(ReactorInstance root) {
     List<TimeValue> validDeadlines =
         collectAllDeadlines(root).stream()
-            .filter(
-                d ->
-                    !TimeValue.NEVER.equals(d)
-                        && !TimeValue.MAX_VALUE.equals(d)
-                        && !TimeValue.FOREVER.equals(d))
+            .filter(d -> !TimeValue.isNoDeadlineSentinel(d))
             .sorted()
             .collect(Collectors.toList());
 

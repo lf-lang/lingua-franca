@@ -197,6 +197,14 @@ public final class TimeValue implements Comparable<TimeValue> {
   }
 
   /**
+   * Return true if {@code deadline} is a sentinel meaning no deadline constraint: {@link #NEVER},
+   * {@link #MAX_VALUE}, or {@link #FOREVER}.
+   */
+  public static boolean isNoDeadlineSentinel(TimeValue deadline) {
+    return NEVER.equals(deadline) || MAX_VALUE.equals(deadline) || FOREVER.equals(deadline);
+  }
+
+  /**
    * Return the sum of this duration and the one represented by b.
    *
    * <p>The unit of the returned TimeValue will be the minimum of the units of both operands except

@@ -73,6 +73,7 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     this.clear();
     addNodesAndEdges(main);
     assignInferredDeadlines();
+    numReactionsPerEnclavePerLevel.clear();
     assignLevels();
     if (shouldTightenInferredDeadlinesForLevelScheduling()) {
       tightenInferredDeadlinesForLevelScheduling();
@@ -159,7 +160,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
             }
 
             // Propagate the deadlines, if any.
-            if (srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
+            if (!TimeValue.isNoDeadlineSentinel(dstRuntime.deadline)
+                && srcRuntime.deadline.compareTo(dstRuntime.deadline) > 0) {
               srcRuntime.deadline = dstRuntime.deadline;
             }
 
@@ -428,7 +430,8 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
         // an error condition. Skip it.
         if (visited.contains(upstream)) continue;
         // Update deadline of upstream node if origins deadline is earlier.
-        if (origin.deadline.isEarlierThan(upstream.deadline)) {
+        if (!TimeValue.isNoDeadlineSentinel(origin.deadline)
+            && origin.deadline.isEarlierThan(upstream.deadline)) {
           upstream.deadline = origin.deadline;
         }
         // Determine whether the upstream node is now a leaf node.
@@ -541,8 +544,36 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
    * Reactions that already have a tighter deadline are unchanged.
    */
   private void tightenInferredDeadlinesWithinScope(List<Runtime> runtimes) {
+    if (runtimes.isEmpty()) {
+      return;
+    }
+
+    // Pass 1: min finite inferred deadline at each level (O(R)).
+    int maxLevel = 0;
+    Map<Integer, TimeValue> minDeadlineAtLevel = new HashMap<>();
     for (Runtime runtime : runtimes) {
-      TimeValue minHigherLevelDeadline = minDeadlineAtHigherLevel(runtimes, runtime.level);
+      maxLevel = Math.max(maxLevel, runtime.level);
+      if (TimeValue.isNoDeadlineSentinel(runtime.deadline)) {
+        continue;
+      }
+      minDeadlineAtLevel.merge(
+          runtime.level,
+          runtime.deadline,
+          (existing, incoming) -> TimeValue.min(existing, incoming));
+    }
+
+    // Pass 2: suffix minimum — minDeadlineAboveLevel[L] is the tightest deadline at any level > L
+    // (O(L)).
+    TimeValue[] minDeadlineAboveLevel = new TimeValue[maxLevel + 1];
+    minDeadlineAboveLevel[maxLevel] = null;
+    for (int level = maxLevel - 1; level >= 0; level--) {
+      minDeadlineAboveLevel[level] =
+          earliestNonNull(minDeadlineAtLevel.get(level + 1), minDeadlineAboveLevel[level + 1]);
+    }
+
+    // Pass 3: tighten each runtime using its level's suffix minimum (O(R)).
+    for (Runtime runtime : runtimes) {
+      TimeValue minHigherLevelDeadline = minDeadlineAboveLevel[runtime.level];
       if (minHigherLevelDeadline == null) {
         continue;
       }
@@ -550,25 +581,15 @@ public class ReactionInstanceGraph extends PrecedenceGraph<ReactionInstance.Runt
     }
   }
 
-  /**
-   * Return the minimum inferred deadline among all reactions in {@code runtimes} whose level is
-   * strictly greater than {@code level}, ignoring reactions with no deadline.
-   */
-  private TimeValue minDeadlineAtHigherLevel(List<Runtime> runtimes, int level) {
-    TimeValue minDeadline = null;
-    for (Runtime other : runtimes) {
-      if (other.level <= level || isNoDeadline(other.deadline)) {
-        continue;
-      }
-      if (minDeadline == null || other.deadline.isEarlierThan(minDeadline)) {
-        minDeadline = other.deadline;
-      }
+  /** Return the earlier of two nullable deadlines, or null if both are absent. */
+  private static TimeValue earliestNonNull(TimeValue a, TimeValue b) {
+    if (a == null) {
+      return b;
     }
-    return minDeadline;
-  }
-
-  private static boolean isNoDeadline(TimeValue deadline) {
-    return TimeValue.MAX_VALUE.equals(deadline) || TimeValue.FOREVER.equals(deadline);
+    if (b == null) {
+      return a;
+    }
+    return TimeValue.min(a, b);
   }
 
   /**

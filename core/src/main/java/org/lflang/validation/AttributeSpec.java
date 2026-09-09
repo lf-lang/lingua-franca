@@ -133,6 +133,12 @@ public class AttributeSpec {
               Literals.ATTRIBUTE__ATTR_NAME);
           continue;
         }
+        if (seen.contains(parm.getName())) {
+          validator.error(
+              "Duplicate attribute parameter '" + parm.getName() + "'.",
+              Literals.ATTRIBUTE__ATTR_NAME);
+          continue;
+        }
         // Check whether a parameter conforms to its spec.
         parmSpec.check(validator, parm);
         seen.add(parm.getName());
