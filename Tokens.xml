@@ -4670,17 +4670,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>[static initializer]</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.validation.AttributeSpec</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</Path>
-    <Anchor>a0827d0a9a51580debf72c6d5375c0c4f</Anchor>
-    <DeclaredIn>AttributeSpec.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>_instantiations</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -5707,37 +5696,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>addComments</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a4c3bf2f58f9096ec5fb0526b51a8b6c5</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>addComments</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a4c3bf2f58f9096ec5fb0526b51a8b6c5</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>addComments</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a4c3bf2f58f9096ec5fb0526b51a8b6c5</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>addDestination</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -6719,99 +6677,6 @@
     <Path>classorg_1_1lflang_1_1federated_1_1extensions_1_1PythonExtension.html</Path>
     <Anchor>aad9f2db994798140c7dfcac33f54ec54</Anchor>
     <DeclaredIn>PythonExtension.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>ac2519947851e094d9d6fdc4c54b8bc8a</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a322a5692d239fa5c21623fd88aaadf3d</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>java</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a40d2c18e3129eb382a5ae3ef15f905b1</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>ac2519947851e094d9d6fdc4c54b8bc8a</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>ac2519947851e094d9d6fdc4c54b8bc8a</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a322a5692d239fa5c21623fd88aaadf3d</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a322a5692d239fa5c21623fd88aaadf3d</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a40d2c18e3129eb382a5ae3ef15f905b1</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>anyOf</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>clm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a40d2c18e3129eb382a5ae3ef15f905b1</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -12316,36 +12181,6 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1GeneratorBase.html</Path>
     <Anchor>a4bfacb8fb4e80bb444d1c1ff4fb773b2</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>comments</Name>
-      <APILanguage>java</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a9600a5c0cbc2cf3e15964960524ca125</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>comments</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a9600a5c0cbc2cf3e15964960524ca125</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>comments</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a9600a5c0cbc2cf3e15964960524ca125</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -29602,42 +29437,11 @@
       <Name>indent</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a3b4d4aa976d6f7c7c6ca95935651e536</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>indent</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
       <Scope>org.lflang.generator.CodeBuilder</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1CodeBuilder.html</Path>
     <Anchor>a4556f9b7d7735bde41a71da3948d431e</Anchor>
     <DeclaredIn>CodeBuilder.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>indent</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a3b4d4aa976d6f7c7c6ca95935651e536</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>indent</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a3b4d4aa976d6f7c7c6ca95935651e536</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -40207,37 +40011,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>RenderResult</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>afa9739f4a757826a5fc849e81189bf22</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>RenderResult</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>afa9739f4a757826a5fc849e81189bf22</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>RenderResult</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>afa9739f4a757826a5fc849e81189bf22</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>replace</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -43126,37 +42899,6 @@
   </Token>
   <Token>
     <TokenIdentifier>
-      <Name>setSourceEObject</Name>
-      <APILanguage>java</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a6c75b1b01856d0a34acfb31925777597</Anchor>
-    <DeclaredIn>MalleableString.java</DeclaredIn>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>setSourceEObject</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a6c75b1b01856d0a34acfb31925777597</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>setSourceEObject</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>instm</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>a6c75b1b01856d0a34acfb31925777597</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
       <Name>settings</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -43663,36 +43405,6 @@
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CEnclavedReactorTransformation.html</Path>
     <Anchor>aaa2f02ce8c83b955a2ec403f7bf6eb6f</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>sourceEObject</Name>
-      <APILanguage>java</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.ast.MalleableString</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>ac524f42f0db5bd0c28f6099e4edfc0af</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>sourceEObject</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; MalleableString &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>ac524f42f0db5bd0c28f6099e4edfc0af</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>sourceEObject</Name>
-      <APILanguage>unknown</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.ast.MalleableString.MalleableStringWithAlternatives&lt; String &gt;</Scope>
-    </TokenIdentifier>
-    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-    <Anchor>ac524f42f0db5bd0c28f6099e4edfc0af</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -44205,6 +43917,17 @@
     <Path>classorg_1_1lflang_1_1analyses_1_1c_1_1CAst_1_1StateVarNode.html</Path>
     <Anchor>a1228ec8419b963d827259199bb8daf23</Anchor>
     <DeclaredIn>CAst.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>[static initializer]</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.validation.AttributeSpec</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</Path>
+    <Anchor>a0827d0a9a51580debf72c6d5375c0c4f</Anchor>
+    <DeclaredIn>AttributeSpec.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

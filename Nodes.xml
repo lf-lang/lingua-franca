@@ -18060,26 +18060,6 @@
               </Subnodes>
              </Node>
              <Node>
-              <Name>addComments</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>a4c3bf2f58f9096ec5fb0526b51a8b6c5</Anchor>
-             </Node>
-             <Node>
-              <Name>anyOf</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>ac2519947851e094d9d6fdc4c54b8bc8a</Anchor>
-             </Node>
-             <Node>
-              <Name>anyOf</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>a40d2c18e3129eb382a5ae3ef15f905b1</Anchor>
-             </Node>
-             <Node>
-              <Name>anyOf</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>a322a5692d239fa5c21623fd88aaadf3d</Anchor>
-             </Node>
-             <Node>
               <Name>constrain</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
               <Anchor>a3edcfdc5b1ed82301e11c3aebe5f475f</Anchor>
@@ -18088,11 +18068,6 @@
               <Name>findBestRepresentation</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
               <Anchor>a512a2677dec224b3d26485131e692485</Anchor>
-             </Node>
-             <Node>
-              <Name>indent</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>a3b4d4aa976d6f7c7c6ca95935651e536</Anchor>
              </Node>
              <Node>
               <Name>isEmpty</Name>
@@ -18105,29 +18080,9 @@
               <Anchor>a9856cce4ea3ce3b2bc832fe347cd6f4f</Anchor>
              </Node>
              <Node>
-              <Name>RenderResult</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>afa9739f4a757826a5fc849e81189bf22</Anchor>
-             </Node>
-             <Node>
-              <Name>setSourceEObject</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>a6c75b1b01856d0a34acfb31925777597</Anchor>
-             </Node>
-             <Node>
               <Name>toString</Name>
               <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
               <Anchor>af8d92829dc9aa0642a57af6af9b377db</Anchor>
-             </Node>
-             <Node>
-              <Name>comments</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>a9600a5c0cbc2cf3e15964960524ca125</Anchor>
-             </Node>
-             <Node>
-              <Name>sourceEObject</Name>
-              <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-              <Anchor>ac524f42f0db5bd0c28f6099e4edfc0af</Anchor>
              </Node>
             </Subnodes>
            </Node>
@@ -24999,26 +24954,6 @@
                     </Subnodes>
                    </Node>
                    <Node>
-                    <Name>addComments</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>a4c3bf2f58f9096ec5fb0526b51a8b6c5</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>anyOf</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>ac2519947851e094d9d6fdc4c54b8bc8a</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>anyOf</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>a40d2c18e3129eb382a5ae3ef15f905b1</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>anyOf</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>a322a5692d239fa5c21623fd88aaadf3d</Anchor>
-                   </Node>
-                   <Node>
                     <Name>constrain</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
                     <Anchor>a3edcfdc5b1ed82301e11c3aebe5f475f</Anchor>
@@ -25027,11 +24962,6 @@
                     <Name>findBestRepresentation</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
                     <Anchor>a512a2677dec224b3d26485131e692485</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>indent</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>a3b4d4aa976d6f7c7c6ca95935651e536</Anchor>
                    </Node>
                    <Node>
                     <Name>isEmpty</Name>
@@ -25044,29 +24974,9 @@
                     <Anchor>a9856cce4ea3ce3b2bc832fe347cd6f4f</Anchor>
                    </Node>
                    <Node>
-                    <Name>RenderResult</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>afa9739f4a757826a5fc849e81189bf22</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>setSourceEObject</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>a6c75b1b01856d0a34acfb31925777597</Anchor>
-                   </Node>
-                   <Node>
                     <Name>toString</Name>
                     <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
                     <Anchor>af8d92829dc9aa0642a57af6af9b377db</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>comments</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>a9600a5c0cbc2cf3e15964960524ca125</Anchor>
-                   </Node>
-                   <Node>
-                    <Name>sourceEObject</Name>
-                    <Path>classorg_1_1lflang_1_1ast_1_1MalleableString.html</Path>
-                    <Anchor>ac524f42f0db5bd0c28f6099e4edfc0af</Anchor>
                    </Node>
                   </Subnodes>
                  </Node>
@@ -56696,12 +56606,8 @@
             <Path>functions.html</Path>
           <Subnodes>
              <Node>
-              <Name>[</Name>
-              <Path>functions.html</Path>
-             </Node>
-             <Node>
               <Name>_</Name>
-              <Path>functions__.html</Path>
+              <Path>functions.html</Path>
              </Node>
              <Node>
               <Name>a</Name>
@@ -56806,12 +56712,8 @@
             <Path>functions_func.html</Path>
           <Subnodes>
              <Node>
-              <Name>[</Name>
-              <Path>functions_func.html</Path>
-             </Node>
-             <Node>
               <Name>_</Name>
-              <Path>functions_func__.html</Path>
+              <Path>functions_func.html</Path>
              </Node>
              <Node>
               <Name>a</Name>

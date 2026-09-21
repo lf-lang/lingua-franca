@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
-<tagfile doxygen_version="1.17.0">
+<tagfile doxygen_version="1.18.0">
   <compound kind="class">
     <name>org::lflang::analyses::c::AbstractAstVisitor</name>
     <filename>classorg_1_1lflang_1_1analyses_1_1c_1_1AbstractAstVisitor.html</filename>
@@ -5611,13 +5611,6 @@
     <class kind="class">org::lflang::ast::MalleableString::Builder</class>
     <class kind="class">org::lflang::ast::MalleableString::Joiner</class>
     <member kind="function">
-      <type>MalleableString</type>
-      <name>addComments</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>a4c3bf2f58f9096ec5fb0526b51a8b6c5</anchor>
-      <arglist>(Stream&lt; String &gt; comments)</arglist>
-    </member>
-    <member kind="function">
       <type>abstract MalleableString</type>
       <name>constrain</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
@@ -5630,13 +5623,6 @@
       <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
       <anchor>a512a2677dec224b3d26485131e692485</anchor>
       <arglist>(Supplier&lt; RenderResult &gt; providedRender, ToLongFunction&lt; RenderResult &gt; badness, int width, int indentation, String singleLineCommentPrefix)</arglist>
-    </member>
-    <member kind="function">
-      <type>MalleableString</type>
-      <name>indent</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>a3b4d4aa976d6f7c7c6ca95935651e536</anchor>
-      <arglist>()</arglist>
     </member>
     <member kind="function">
       <type>abstract boolean</type>
@@ -5653,60 +5639,11 @@
       <arglist>(int indentation, String singleLineCommentMarker, boolean codeMapTag, EObject enclosingEObject)</arglist>
     </member>
     <member kind="function">
-      <type>record</type>
-      <name>RenderResult</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>afa9739f4a757826a5fc849e81189bf22</anchor>
-      <arglist>(Stream&lt; String &gt; unplacedComments, String rendering, int levelsOfCommentDisplacement)</arglist>
-    </member>
-    <member kind="function">
-      <type>MalleableString</type>
-      <name>setSourceEObject</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>a6c75b1b01856d0a34acfb31925777597</anchor>
-      <arglist>(EObject sourceEObject)</arglist>
-    </member>
-    <member kind="function">
       <type>String</type>
       <name>toString</name>
       <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
       <anchor>af8d92829dc9aa0642a57af6af9b377db</anchor>
       <arglist>()</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static MalleableString</type>
-      <name>anyOf</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>ac2519947851e094d9d6fdc4c54b8bc8a</anchor>
-      <arglist>(MalleableString... possibilities)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static MalleableString</type>
-      <name>anyOf</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>a40d2c18e3129eb382a5ae3ef15f905b1</anchor>
-      <arglist>(Object... possibilities)</arglist>
-    </member>
-    <member kind="function" static="yes">
-      <type>static MalleableString</type>
-      <name>anyOf</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>a322a5692d239fa5c21623fd88aaadf3d</anchor>
-      <arglist>(String... possibilities)</arglist>
-    </member>
-    <member kind="variable" protection="protected">
-      <type>List&lt; String &gt;</type>
-      <name>comments</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>a9600a5c0cbc2cf3e15964960524ca125</anchor>
-      <arglist></arglist>
-    </member>
-    <member kind="variable" protection="protected">
-      <type>EObject</type>
-      <name>sourceEObject</name>
-      <anchorfile>classorg_1_1lflang_1_1ast_1_1MalleableString.html</anchorfile>
-      <anchor>ac524f42f0db5bd0c28f6099e4edfc0af</anchor>
-      <arglist></arglist>
     </member>
   </compound>
   <compound kind="class">
