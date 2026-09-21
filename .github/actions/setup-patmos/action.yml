@@ -23,6 +23,7 @@ runs:
         mkdir ~/t-crest
         cd ~/t-crest
         git clone https://github.com/t-crest/patmos-misc.git misc
+        export BOARD=altde2-115-multicore
         ./misc/build.sh -q toolchain1
         patmos-clang --version
         which patmos-clang
