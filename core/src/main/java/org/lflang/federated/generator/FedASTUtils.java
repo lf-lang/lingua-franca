@@ -27,11 +27,15 @@ import org.lflang.federated.serialization.SupportedSerializers;
 import org.lflang.generator.MixedRadixInt;
 import org.lflang.generator.PortInstance;
 import org.lflang.generator.ReactionInstance;
+import org.lflang.generator.RuntimeRange;
+import org.lflang.generator.SendRange;
 import org.lflang.lf.Action;
 import org.lflang.lf.ActionOrigin;
 import org.lflang.lf.BuiltinTrigger;
 import org.lflang.lf.BuiltinTriggerRef;
+import org.lflang.lf.Code;
 import org.lflang.lf.Connection;
+import org.lflang.lf.Deadline;
 import org.lflang.lf.Expression;
 import org.lflang.lf.Input;
 import org.lflang.lf.Instantiation;
@@ -42,6 +46,7 @@ import org.lflang.lf.ParameterReference;
 import org.lflang.lf.Reaction;
 import org.lflang.lf.Reactor;
 import org.lflang.lf.StateVar;
+import org.lflang.lf.Time;
 import org.lflang.lf.Type;
 import org.lflang.lf.VarRef;
 import org.lflang.lf.Variable;
@@ -385,18 +390,38 @@ public class FedASTUtils {
 
     // Generate code for the network receiver reaction
     networkReceiverReaction.setCode(factory.createCode());
-    networkReceiverReaction
-        .getCode()
-        .setBody(
-            FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target)
-                .generateNetworkReceiverBody(
-                    networkAction,
-                    sourceRef,
-                    outRef,
-                    connection,
-                    ASTUtils.getInferredType(networkAction),
-                    coordination,
-                    messageReporter));
+    String receiverBody =
+        FedTargetExtensionFactory.getExtension(connection.dstFederate.targetConfig.target)
+            .generateNetworkReceiverBody(
+                networkAction,
+                sourceRef,
+                outRef,
+                connection,
+                ASTUtils.getInferredType(networkAction),
+                coordination,
+                messageReporter);
+    networkReceiverReaction.getCode().setBody(receiverBody);
+
+    // Inherit the inferred deadline from the downstream reaction(s) that consume
+    // the destination port. This ensures the network receiver gets an appropriate
+    // priority under real-time scheduling policies, preventing it from being
+    // starved by lower-priority reactions in other federates sharing the same core.
+    TimeValue minInferredDeadline = getMinInferredDeadlineFromDownstream(connection);
+    if (minInferredDeadline != null && !TimeValue.isNoDeadlineSentinel(minInferredDeadline)) {
+      Deadline deadline = factory.createDeadline();
+      Time time = factory.createTime();
+      time.setInterval((int) minInferredDeadline.time);
+      if (minInferredDeadline.unit != null) {
+        time.setUnit(minInferredDeadline.unit.toString());
+      }
+      deadline.setDelay(time);
+      // Duplicate the reaction body as the deadline violation handler,
+      // so the message is forwarded even if the deadline is violated.
+      Code deadlineCode = factory.createCode();
+      deadlineCode.setBody(receiverBody);
+      deadline.setCode(deadlineCode);
+      networkReceiverReaction.setDeadline(deadline);
+    }
 
     // Add the network receiver reaction to the federate instance's list
     // of network reactions
@@ -783,18 +808,152 @@ public class FedASTUtils {
     var networkSenderReaction = LfFactory.eINSTANCE.createReaction();
     networkSenderReaction.getTriggers().add(inRef);
     networkSenderReaction.setCode(LfFactory.eINSTANCE.createCode());
-    networkSenderReaction
-        .getCode()
-        .setBody(
-            FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
-                .generateNetworkSenderBody(
-                    inRef,
-                    destRef,
-                    connection,
-                    InferredType.fromAST(type),
-                    coordination,
-                    messageReporter));
+    String reactionBody =
+        FedTargetExtensionFactory.getExtension(connection.srcFederate.targetConfig.target)
+            .generateNetworkSenderBody(
+                inRef,
+                destRef,
+                connection,
+                InferredType.fromAST(type),
+                coordination,
+                messageReporter);
+    networkSenderReaction.getCode().setBody(reactionBody);
+
+    // Inherit a deadline for OS priority assignment:
+    // - zero-delay connections: min inferred deadline of eventual downstream consumers
+    // - after-delay connections: min inferred deadline of eventual upstream producers
+    //   (destination deadlines apply at a later tag, so they must not tighten the sender)
+    TimeValue minInferredDeadline =
+        connection.getDefinition().getDelay() != null
+            ? getMinInferredDeadlineFromUpstream(connection)
+            : getMinInferredDeadlineFromDownstream(connection);
+    if (minInferredDeadline != null && !TimeValue.isNoDeadlineSentinel(minInferredDeadline)) {
+      LfFactory factory = LfFactory.eINSTANCE;
+      Deadline deadline = factory.createDeadline();
+      Time time = factory.createTime();
+      time.setInterval((int) minInferredDeadline.time);
+      if (minInferredDeadline.unit != null) {
+        time.setUnit(minInferredDeadline.unit.toString());
+      }
+      deadline.setDelay(time);
+      // Set the deadline violation handler to the same body as the reaction,
+      // so the message is sent even if the deadline is violated.
+      Code deadlineCode = factory.createCode();
+      deadlineCode.setBody(reactionBody);
+      deadline.setCode(deadlineCode);
+      networkSenderReaction.setDeadline(deadline);
+    }
+
     return networkSenderReaction;
+  }
+
+  /**
+   * Minimum inferred deadline among reactions that eventually consume the destination port of
+   * {@code connection}, following internal forwards via {@link PortInstance#eventualDestinations}
+   * and scoped to this connection's destination bank and channel.
+   *
+   * @param connection The federated connection instance.
+   * @return The minimum inferred deadline, or null if no downstream reaction has a deadline.
+   */
+  private static TimeValue getMinInferredDeadlineFromDownstream(FedConnectionInstance connection) {
+    RuntimeRange<PortInstance> destRange = getConnectionDestinationRange(connection);
+    TimeValue minDeadline = null;
+    for (SendRange sendRange : PortInstance.eventualDestinations(destRange)) {
+      for (RuntimeRange<PortInstance> eventual : sendRange.destinations) {
+        TimeValue candidate = minInferredDeadlineOnDependentReactions(eventual);
+        if (candidate != null && (minDeadline == null || candidate.isEarlierThan(minDeadline))) {
+          minDeadline = candidate;
+        }
+      }
+    }
+    return minDeadline;
+  }
+
+  /**
+   * Minimum inferred deadline among reactions that eventually write the source port of {@code
+   * connection}, following internal forwards via {@link PortInstance#eventualSources} and scoped to
+   * this connection's source bank and channel. Used for network senders on connections with an
+   * {@code after} delay, where destination deadlines must not be inherited.
+   *
+   * @param connection The federated connection instance.
+   * @return The minimum inferred deadline, or null if no upstream reaction has a deadline.
+   */
+  private static TimeValue getMinInferredDeadlineFromUpstream(FedConnectionInstance connection) {
+    RuntimeRange<PortInstance> srcRange = getConnectionSourceRange(connection);
+    TimeValue minDeadline = null;
+    for (RuntimeRange<PortInstance> eventual : PortInstance.eventualSources(srcRange)) {
+      TimeValue candidate = minInferredDeadlineOnDependsOnReactions(eventual);
+      if (candidate != null && (minDeadline == null || candidate.isEarlierThan(minDeadline))) {
+        minDeadline = candidate;
+      }
+    }
+    return minDeadline;
+  }
+
+  /**
+   * Return a width-1 subrange of {@code connection.dstRange} for this connection's destination bank
+   * and channel.
+   */
+  private static RuntimeRange<PortInstance> getConnectionDestinationRange(
+      FedConnectionInstance connection) {
+    return getConnectionPortRange(connection.dstRange, getDstIndex(connection));
+  }
+
+  /**
+   * Return a width-1 subrange of {@code connection.srcRange} for this connection's source bank and
+   * channel.
+   */
+  private static RuntimeRange<PortInstance> getConnectionSourceRange(
+      FedConnectionInstance connection) {
+    return getConnectionPortRange(connection.srcRange, getSrcIndex(connection));
+  }
+
+  /** Width-1 slice of {@code range} whose mixed-radix index equals {@code target}. */
+  private static RuntimeRange<PortInstance> getConnectionPortRange(
+      RuntimeRange<PortInstance> range, MixedRadixInt target) {
+    MixedRadixInt cursor = range.startMR();
+    for (int i = 0; i < range.width; i++) {
+      if (cursor.getDigits().equals(target.getDigits())) {
+        RuntimeRange<PortInstance> slice = range.tail(i);
+        if (slice != null) {
+          RuntimeRange<PortInstance> one = slice.head(1);
+          if (one != null) {
+            return one;
+          }
+        }
+        break;
+      }
+      cursor.increment();
+    }
+    RuntimeRange<PortInstance> fallback = range.head(1);
+    return fallback != null ? fallback : range;
+  }
+
+  /** Minimum non-sentinel inferred deadline among reactions triggered by {@code portRange}. */
+  private static TimeValue minInferredDeadlineOnDependentReactions(
+      RuntimeRange<PortInstance> portRange) {
+    return minInferredDeadlineAmong(portRange.instance.getDependentReactions());
+  }
+
+  /** Minimum non-sentinel inferred deadline among reactions that write {@code portRange}. */
+  private static TimeValue minInferredDeadlineOnDependsOnReactions(
+      RuntimeRange<PortInstance> portRange) {
+    return minInferredDeadlineAmong(portRange.instance.getDependsOnReactions());
+  }
+
+  private static TimeValue minInferredDeadlineAmong(Iterable<ReactionInstance> reactions) {
+    TimeValue minDeadline = null;
+    for (ReactionInstance reaction : reactions) {
+      for (TimeValue deadline : reaction.getInferredDeadlinesList()) {
+        if (TimeValue.isNoDeadlineSentinel(deadline)) {
+          continue;
+        }
+        if (minDeadline == null || deadline.isEarlierThan(minDeadline)) {
+          minDeadline = deadline;
+        }
+      }
+    }
+    return minDeadline;
   }
 
   /**

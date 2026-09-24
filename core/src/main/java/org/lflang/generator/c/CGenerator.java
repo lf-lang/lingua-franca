@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.resource.Resource;
 import org.eclipse.xtext.xbase.lib.Exceptions;
+import org.lflang.AttributeUtils;
 import org.lflang.FileConfig;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.DelayedConnectionTransformation;
@@ -646,6 +647,10 @@ public class CGenerator extends GeneratorBase {
               CExtensionUtils.surroundWithIfElseFederatedCentralized(
                   "    lf_latest_tag_confirmed(tag_to_send);", "    (void) tag_to_send;"),
               "}"));
+
+      new CPriorityFunctionGenerator(
+              code, targetConfig, main, fileConfig.srcPath, messageReporter, targetLanguageIsCpp())
+          .generate();
 
       // Generate an empty termination function for non-federated
       // execution. For federated execution, an implementation is
@@ -2174,6 +2179,28 @@ public class CGenerator extends GeneratorBase {
           Map.of(
               "SCHEDULER", targetConfig.get(SchedulerProperty.INSTANCE).getSchedulerCompileDef(),
               "NUMBER_OF_WORKERS", String.valueOf(targetConfig.get(WorkersProperty.INSTANCE))));
+
+      // Check for @cores / @platform attributes on the main reactor definition.
+      if (mainDef != null) {
+        Reactor mainReactor = ASTUtils.toDefinition(mainDef.getReactorClass());
+        List<Integer> coreIds = AttributeUtils.getCores(mainReactor);
+        if (!coreIds.isEmpty()) {
+          String coreIdsInit =
+              "{" + coreIds.stream().map(String::valueOf).collect(Collectors.joining(",")) + "}";
+          CompileDefinitionsProperty.INSTANCE.update(
+              targetConfig, Map.of("LF_CORE_IDS_INIT", coreIdsInit));
+        }
+
+        // If @platform specifies a scheduler policy, emit LF_THREAD_POLICY.
+        String[] platformAttr = AttributeUtils.getPlatform(mainReactor);
+        if (platformAttr != null && platformAttr[1] != null) {
+          String cDefine = policyNameToCDefine(platformAttr[1]);
+          if (cDefine != null) {
+            CompileDefinitionsProperty.INSTANCE.update(
+                targetConfig, Map.of("LF_THREAD_POLICY", cDefine));
+          }
+        }
+      }
     }
     if (targetConfig.isSet(PlatformProperty.INSTANCE)) {
 
@@ -2394,5 +2421,21 @@ public class CGenerator extends GeneratorBase {
 
   private Stream<TypeParameterizedReactor> allTypeParameterizedReactors() {
     return ASTUtils.recursiveChildren(main).stream().map(it -> it.tpr).distinct();
+  }
+
+  /**
+   * Map a policy name string (from the @platform attribute's scheduler parameter) to the
+   * corresponding C #define value.
+   *
+   * @param policyName The policy name ("rt-fifo", "rt-rr", or "normal").
+   * @return The C define string, or null if the policy name is not recognised.
+   */
+  private static String policyNameToCDefine(String policyName) {
+    return switch (policyName.toLowerCase()) {
+      case "rt-fifo" -> "LF_SCHED_PRIORITY";
+      case "rt-rr" -> "LF_SCHED_TIMESLICE";
+      case "normal" -> "LF_SCHED_FAIR";
+      default -> null;
+    };
   }
 }

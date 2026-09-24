@@ -4,9 +4,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.util.EcoreUtil;
+import org.lflang.AttributeUtils;
 import org.lflang.MessageReporter;
 import org.lflang.ast.ASTUtils;
 import org.lflang.ast.FormattingUtil;
+import org.lflang.lf.Attribute;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Reactor;
 
@@ -106,10 +108,35 @@ public class FedMainEmitter {
             .map(renderer)
             .collect(Collectors.joining(",", "(", ")"));
 
+    var attributes = new StringBuilder();
+    attributes.append("@_fed_config()\n");
+    // Duplicate the effective @platform onto this federate main so compile-time
+    // consumers (e.g. deadline tightening) can see the scheduler after reparse.
+    // Same resolution as CExtensionUtils: instantiation override, then federation.
+    Attribute platform = effectivePlatformAttribute(federate, originalMainReactor);
+    if (platform != null) {
+      attributes.append(renderer.apply(platform)).append("\n");
+    }
+
     return """
-           @_fed_config()
-           main reactor %s {
+           %smain reactor %s {
            """
-        .formatted(paramList.equals("()") ? "" : paramList);
+        .formatted(attributes, paramList.equals("()") ? "" : paramList);
+  }
+
+  /**
+   * Return the {@code @platform} that applies to {@code federate}: the instantiation's attribute
+   * if present, otherwise the federation reactor's.
+   */
+  private static Attribute effectivePlatformAttribute(
+      FederateInstance federate, Reactor originalMainReactor) {
+    Attribute platform = AttributeUtils.findAttributeByName(federate.instantiation, "platform");
+    if (platform != null) {
+      return platform;
+    }
+    if (originalMainReactor != null) {
+      return AttributeUtils.findAttributeByName(originalMainReactor, "platform");
+    }
+    return null;
   }
 }

@@ -234,7 +234,10 @@ Attribute:
 ;
 
 AttrParm:
-    (name=ID '=')? (value=Literal | time=Time) | name=ID;
+    (name=ID '=')? (value=Literal | time=Time | range=Range) | name=ID;
+
+Range:
+    low=INT '..' high=INT;
 
 /////////// For target parameters
 
@@ -463,7 +466,9 @@ Code:
 ;
 
 FSName:
-    (ID | '.' | '_' | '-')+
+    // Include '..' so parent-directory path segments still parse after Range introduced
+    // the '..' keyword (otherwise '../foo' is lexed as one '..' token, not two '.'s).
+    (ID | '.' | '..' | '_' | '-')+
 ;
 // Absolute or relative directory path in Windows, Linux, or MacOS.
 Path:
@@ -528,7 +533,7 @@ Token:
     // Brackets
     '[' | ']' | '<' | '>' |
     // Punctuation
-    ':' | ';' | ',' | '.' | '::' |
+    ':' | ';' | ',' | '.' | '..' | '::' |
     // Slashes
     ':\\' | '\\' |
     // Arithmetic
