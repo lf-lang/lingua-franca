@@ -1,1 +1,1 @@
-Testing LFC DEV - 6
+Docker image test - 1
