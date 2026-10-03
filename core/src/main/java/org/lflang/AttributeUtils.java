@@ -1,5 +1,6 @@
 package org.lflang;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Objects;
 import org.eclipse.emf.ecore.EObject;
 import org.lflang.ast.ASTUtils;
 import org.lflang.lf.*;
+import org.lflang.target.property.type.PlatformType;
 import org.lflang.util.StringUtil;
 import org.lflang.validation.AttributeSpec;
 
@@ -374,6 +376,132 @@ public class AttributeUtils {
    */
   public static boolean hasAbsentAfter(EObject node) {
     return findAttributeByName(node, "absent_after") != null;
+  }
+
+  /**
+   * Return the list of integers specified by an attribute whose parameters are integers and/or
+   * ranges (e.g. {@code 0..3}, {@code 0, 2, 4}, or a mix).
+   *
+   * <p>Each attribute parameter is either a single integer or a range; ranges are expanded to the
+   * inclusive sequence of integers from low to high.
+   *
+   * @param node The AST node that may carry the attribute.
+   * @param attrName The attribute name (e.g. {@code "cores"}).
+   * @return A list of integers, or an empty list if the attribute is not present.
+   */
+  public static List<Integer> getIntegerListAttribute(EObject node, String attrName) {
+    final var attr = findAttributeByName(node, attrName);
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return List.of();
+    }
+    List<Integer> values = new ArrayList<>();
+    for (AttrParm parm : attr.getAttrParms()) {
+      if (parm.getRange() != null) {
+        // Range of integers from low to high
+        int low = parm.getRange().getLow();
+        int high = parm.getRange().getHigh();
+        for (int i = low; i <= high; i++) {
+          values.add(i);
+          if (i == high) {
+            break; // avoid overflow when high == Integer.MAX_VALUE
+          }
+        }
+      } else if (parm.getValue() != null) {
+        // Single integer value
+        try {
+          values.add(Integer.parseInt(parm.getValue()));
+        } catch (NumberFormatException e) {
+          // Invalid value; validation should catch this
+        }
+      }
+    }
+    return values;
+  }
+
+  /**
+   * Return the list of CPU core IDs specified by the `@cores` attribute of the given node.
+   * The attribute accepts either a range (e.g., `@cores(0..3)` meaning cores 0,1,2,3)
+   * or a comma-separated list of integers (e.g., `@cores(0, 2, 4)`),
+   * or a mix of both (e.g., `@cores(0..3, 6, 8..10)`).
+   *
+   * @param node The AST node (Instantiation or Reactor).
+   * @return A list of specific core IDs, or an empty list if the attribute is not present.
+   */
+  public static List<Integer> getCores(EObject node) {
+    return getIntegerListAttribute(node, "cores");
+  }
+
+  /**
+   * Return the platform configuration specified by the {@code @platform} attribute of the given
+   * node, or null if the attribute is not present.
+   *
+   * <p>The attribute has one mandatory parameter and one optional parameter:
+   * <ul>
+   *   <li>{@code value} (mandatory) – a {@link PlatformType.Platform} name (e.g. {@code "Native"},
+   *       {@code "Zephyr"}, {@code "Linux"}) or {@code "posix"} for a host POSIX target. When it is
+   *       the only parameter, {@code "value"} can be omitted: {@code @platform("Native")}. When
+   *       both parameters are given, {@code "value"} must be explicit:
+   *       {@code @platform(value="posix", scheduler="rt-fifo")}.</li>
+   *   <li>{@code scheduler} (optional, only when {@code value} is {@code "posix"}) – the thread
+   *       scheduling policy name ({@code "rt-fifo"}, {@code "rt-rr"}, or {@code "normal"})</li>
+   * </ul>
+   *
+   * @param node The AST node (Instantiation or Reactor).
+   * @return A two-element String array {@code [platformName, schedulerPolicy]}, where
+   *     {@code schedulerPolicy} may be null if not specified. Returns null if the attribute
+   *     is not present.
+   */
+  public static String[] getPlatform(EObject node) {
+    final var attr = findAttributeByName(node, "platform");
+    if (attr == null || attr.getAttrParms().isEmpty()) {
+      return null;
+    }
+    String platformName = null;
+    String schedulerPolicy = null;
+    for (AttrParm parm : attr.getAttrParms()) {
+      if (parm.getName() == null || "value".equals(parm.getName())) {
+        // The default (unnamed) parameter or explicitly named "value"
+        platformName = StringUtil.removeQuotes(parm.getValue());
+      } else if ("scheduler".equals(parm.getName())) {
+        schedulerPolicy = StringUtil.removeQuotes(parm.getValue());
+      }
+    }
+    if (platformName != null) {
+      return new String[] {platformName, schedulerPolicy};
+    }
+    return null;
+  }
+
+  /**
+   * Resolve a {@code @platform} attribute value to a {@link PlatformType.Platform}.
+   *
+   * <p>{@code "posix"} is accepted as an alias for {@link PlatformType.Platform#AUTO} (host
+   * detection). Other names are matched against {@link PlatformType}.
+   *
+   * @param name The platform name from the attribute (quotes already removed).
+   * @return The matching platform, or null if the name is not recognized.
+   */
+  public static PlatformType.Platform toPlatformEnum(String name) {
+    if (name == null) {
+      return null;
+    }
+    if ("posix".equalsIgnoreCase(name)) {
+      return PlatformType.Platform.AUTO;
+    }
+    return new PlatformType().forName(name);
+  }
+
+  /**
+   * Return whether {@code name} is a valid {@code @platform} value (a {@link PlatformType} name or
+   * {@code "posix"}).
+   */
+  public static boolean isValidPlatformAttributeValue(String name) {
+    return toPlatformEnum(name) != null;
+  }
+
+  /** Return a comma-separated list of allowed {@code @platform} values for error messages. */
+  public static String allowedPlatformAttributeValues() {
+    return new PlatformType().optionsString() + ", posix";
   }
 
   /**

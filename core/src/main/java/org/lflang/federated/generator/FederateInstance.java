@@ -185,6 +185,20 @@ public class FederateInstance {
   public Set<FederateInstance> inboundP2PConnections = new LinkedHashSet<>();
 
   /**
+   * Min inferred deadline (ns) over reactions that execute in this federate. Used to set the OS
+   * priority of the RTI listener thread when {@code rt-fifo}/{@code rt-rr} is enabled. Defaults to
+   * {@code Long.MAX_VALUE} (no deadline / lowest RT priority).
+   */
+  public long rtiListenerDeadlineNs = Long.MAX_VALUE;
+
+  /**
+   * Min inferred deadline (ns) among network receivers fed by each inbound P2P peer, keyed by remote
+   * federate ID. Used for that peer's {@code listen_to_federates} thread priority under
+   * {@code rt-fifo}/{@code rt-rr}. Missing keys mean no deadline (lowest RT priority).
+   */
+  public Map<Integer, Long> inboundP2PListenerDeadlineNs = new LinkedHashMap<>();
+
+  /**
    * A list of federate with which this federate has an outbound physical connection. There will
    * only be one physical connection even if federate A has defined multiple physical connections to
    * federate B. The message handler on federate B will be responsible for distinguishing the
