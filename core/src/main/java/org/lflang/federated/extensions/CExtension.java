@@ -533,6 +533,17 @@ public class CExtension implements FedTargetExtension {
     return "uint8_t*";
   }
 
+  /**
+   * Format a deadline in nanoseconds as a C {@code interval_t} literal. {@link Long#MAX_VALUE}
+   * becomes {@code FOREVER}.
+   */
+  private static String formatDeadlineLiteral(long deadlineNs) {
+    if (deadlineNs == Long.MAX_VALUE) {
+      return "FOREVER";
+    }
+    return deadlineNs + "LL";
+  }
+
   /** Put the C preamble in a `include/_federate.name + _preamble.h` file. */
   protected final void writePreambleFile(
       FederateInstance federate,
@@ -643,6 +654,30 @@ public class CExtension implements FedTargetExtension {
         size_t num_network_input_reactions = %1$s;
         """
             .formatted(numOfNetworkReactions));
+
+    // Deadlines for federate network listener thread priorities under rt-fifo / rt-rr.
+    // Referenced from federate.c when LF_THREAD_POLICY is set.
+    code.pr("// Scheduling deadlines (ns) for network listener threads (see get_priority_value).");
+    code.pr(
+        "interval_t _lf_rti_listener_deadline = "
+            + formatDeadlineLiteral(federate.rtiListenerDeadlineNs)
+            + ";");
+    int numFederates = allFederates.size();
+    StringBuilder p2pDeadlines = new StringBuilder();
+    p2pDeadlines
+        .append("interval_t _lf_inbound_p2p_listener_deadline[")
+        .append(numFederates)
+        .append("] = {");
+    for (int i = 0; i < numFederates; i++) {
+      if (i > 0) {
+        p2pDeadlines.append(", ");
+      }
+      Long peerDeadline = federate.inboundP2PListenerDeadlineNs.get(i);
+      p2pDeadlines.append(
+          formatDeadlineLiteral(peerDeadline != null ? peerDeadline : Long.MAX_VALUE));
+    }
+    p2pDeadlines.append("};");
+    code.pr(p2pDeadlines.toString());
 
     int numOfPortAbsentReactions = federate.portAbsentReactions.size();
     code.pr(

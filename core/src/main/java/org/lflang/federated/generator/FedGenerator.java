@@ -171,6 +171,12 @@ public class FedGenerator {
     // for logical connections.
     replaceFederateConnectionsWithProxies(federation, main, resource);
 
+    // Use pre-proxy inferred deadlines (kept by clearCaches(false)) plus the special-case
+    // AST deadlines FedASTUtils already assigned to network sender/receiver reactions.
+    // Do not rebuild the reaction graph here: that would change federation_properties.json
+    // and is unnecessary for network deadline inheritance.
+    FedUtils.computeNetworkListenerDeadlines(main, federates);
+
     // Generate federation-level properties JSON file
     try {
       FedUtils.generateFederationPropertiesFile(fileConfig, main, messageReporter);
