@@ -187,7 +187,7 @@ public class FederateInstance {
   /**
    * Min inferred deadline (ns) over reactions that execute in this federate. Used to set the OS
    * priority of the RTI listener thread when {@code rt-fifo}/{@code rt-rr} is enabled. Defaults to
-   * {@link Long#MAX_VALUE} (no deadline / lowest RT priority).
+   * {@code Long.MAX_VALUE} (no deadline / lowest RT priority).
    */
   public long rtiListenerDeadlineNs = Long.MAX_VALUE;
 
