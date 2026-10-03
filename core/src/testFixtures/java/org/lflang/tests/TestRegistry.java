@@ -314,6 +314,11 @@ public class TestRegistry {
   public enum TestCategory {
     /** Tests about concurrent execution. */
     CONCURRENT(true, "", TestLevel.EXECUTION),
+    /**
+     * Tests about asynchronous interaction with the runtime, such as reactions that block and
+     * add worker threads to compensate. These require the threaded runtime.
+     */
+    ASYNC(false, "", TestLevel.EXECUTION),
     /** Test about enclaves */
     ENCLAVE(false, "", TestLevel.EXECUTION),
     /** Basic tests, ie, tests that all targets are supposed to implement. */
