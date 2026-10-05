@@ -26,4 +26,3 @@ runs:
         export BOARD=altde2-115-multicore
         ./misc/build.sh -q toolchain1
         patmos-clang --version
-        which patmos-clang
