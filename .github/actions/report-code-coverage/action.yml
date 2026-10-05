@@ -11,7 +11,7 @@ runs:
       uses: codecov/codecov-action@v4.0.0
       with:
         files: ${{ inputs.files }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
         token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
       continue-on-error: true
@@ -24,7 +24,7 @@ runs:
       uses: codecov/codecov-action@v4.0.0
       with:
         files: ${{ inputs.files }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
         token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
       continue-on-error: true
