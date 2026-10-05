@@ -1,4 +1,5 @@
 name: Report code coverage to CodeCov
+description: 'Report code coverage to CodeCov'
 inputs:
   files:
     description: 'list of coverage files to send to CodeCov'
@@ -38,7 +39,7 @@ runs:
       uses: codecov/codecov-action@v4.0.0
       with:
         files: ${{ inputs.files }}
-        fail_ci_if_error: true
+        fail_ci_if_error: false
         verbose: true
         token: 18fd5ab8-d6ba-4f5d-b0f4-7c26340ab98c
       if: steps.codecov2.outcome == 'failure'
