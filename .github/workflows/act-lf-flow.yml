@@ -9,20 +9,10 @@ on:
       - act-test
 
 jobs:
-  getapptoken:
-    timeout-minutes: 60
-    steps:
-    - name: Get a token from the GitHub App
-      id: app-token
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ vars.ACT_CLIENT_ID }}
-        private-key: ${{ secrets.ACT_PRIVATE_KEY }}
-        owner: ${{ github.repository_owner }}
-        repositories: lf-lang/act-lf-testbed
-        permission-actions: read
-
   led-test:
     if: contains(github.event.pull_request.labels.*.name, 'act-lf-led')
     uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
+    with:
+      act_client_id: ${{ vars.ACT_CLIENT_ID }}
+      act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
     #secrets: inherit
