@@ -14,5 +14,6 @@ jobs:
     uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
     with:
       act_client_id: ${{ vars.ACT_CLIENT_ID }}
+    secrets:
       act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
     #secrets: inherit
