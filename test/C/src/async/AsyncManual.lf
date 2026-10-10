@@ -2,18 +2,22 @@
  * Test lf_async(), which invokes a function that may block for a long time without blocking the
  * advancement of logical time or the execution of other reactions.
  *
- * The Blocker reactor invokes slow(), which takes about 500 ms, through lf_async(). While it runs,
- * the timer reaction of the main reactor keeps firing every 20 ms, which is verified by checking
- * that the physical time lag at each firing stays small. When slow() returns, lf_async() schedules
- * the physical action awake and resumes the calling reaction at the tag of that event, so the
- * result is reported at a logical time at least 500 ms after the start.
+ * Each Blocker reactor invokes slow(), which takes about 500 ms, through lf_async(), and then, at
+ * the logical time at which it is resumed, invokes it again for about 200 ms. While these run, the
+ * timer reaction of the main reactor keeps firing every 20 ms, which is verified by checking that
+ * the physical time lag at each firing stays small. When slow() returns, lf_async() schedules the
+ * physical action awake and resumes the calling reaction at the tag of that event, so the results
+ * are reported at logical times at least 500 ms and 700 ms after the start.
+ *
+ * The two Blockers call lf_async() concurrently, so two worker threads get added, but the second
+ * call of each Blocker reuses them, so no further threads get added.
  */
 target C {
   timeout: 1 sec,
   workers: 1
 }
 
-reactor Blocker {
+reactor Blocker(id: int = 0) {
   preamble {=
     int slow(int iterations) {
       int result = 0;
@@ -33,25 +37,30 @@ reactor Blocker {
   =}
 
   reaction(startup) {=
-    lf_print("Starting Blocker");
+    lf_print("Starting Blocker %d", self->id);
     int result = lf_async(slow, 50);
-    lf_print("Result: %d at time " PRINTF_TIME, result, lf_time_logical_elapsed());
-    self->result = result;
+    lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
     if (lf_time_logical_elapsed() < MSEC(500)) {
       lf_print_error_and_exit("Expected lf_async() to return at a logical time of at least 500 ms.");
     }
+    result += lf_async(slow, 20);
+    lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
+    if (lf_time_logical_elapsed() < MSEC(700)) {
+      lf_print_error_and_exit("Expected second lf_async() to return at a logical time of at least 700 ms.");
+    }
+    self->result = result;
   =}
 
   reaction(shutdown) {=
-    if (self->result != 50) {
-      lf_print_error_and_exit("Expected result 50 from lf_async(). Got %d.", self->result);
+    if (self->result != 70) {
+      lf_print_error_and_exit("Expected result 70 from lf_async(). Got %d.", self->result);
     }
   =}
 }
 
 main reactor {
   timer t(0, 20 ms)
-  b = new Blocker()
+  b = new[2] Blocker(id = {= bank_index =})
   state count: int = 0
 
   reaction(t) {=
@@ -69,8 +78,8 @@ main reactor {
     if (self->count < 50) {
       lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 50.", self->count);
     }
-    if (lf_added_worker_thread_count() != 1) {
-      lf_print_error_and_exit("Expected lf_async() to add 1 worker thread. Got %d.", lf_added_worker_thread_count());
+    if (lf_added_worker_thread_count() != 2) {
+      lf_print_error_and_exit("Expected lf_async() to add 2 worker threads. Got %d.", lf_added_worker_thread_count());
     }
     lf_print("SUCCESS");
   =}
