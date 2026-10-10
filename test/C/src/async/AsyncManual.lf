@@ -1,0 +1,77 @@
+/**
+ * Test lf_async(), which invokes a function that may block for a long time without blocking the
+ * advancement of logical time or the execution of other reactions.
+ *
+ * The Blocker reactor invokes slow(), which takes about 500 ms, through lf_async(). While it runs,
+ * the timer reaction of the main reactor keeps firing every 20 ms, which is verified by checking
+ * that the physical time lag at each firing stays small. When slow() returns, lf_async() schedules
+ * the physical action awake and resumes the calling reaction at the tag of that event, so the
+ * result is reported at a logical time at least 500 ms after the start.
+ */
+target C {
+  timeout: 1 sec,
+  workers: 1
+}
+
+reactor Blocker {
+  preamble {=
+    int slow(int iterations) {
+      int result = 0;
+      for (int j = 0; j < iterations; j++) {
+        result++;
+        lf_sleep(MSEC(10));
+      }
+      return result;
+    }
+  =}
+  physical action awake
+  state result: int = 0
+
+  reaction(awake) {=
+    // Unblock the `lf_async` function.
+    lf_async_resume(awake);
+  =}
+
+  reaction(startup) {=
+    lf_print("Starting Blocker");
+    int result = lf_async(slow, 50);
+    lf_print("Result: %d at time " PRINTF_TIME, result, lf_time_logical_elapsed());
+    self->result = result;
+    if (lf_time_logical_elapsed() < MSEC(500)) {
+      lf_print_error_and_exit("Expected lf_async() to return at a logical time of at least 500 ms.");
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->result != 50) {
+      lf_print_error_and_exit("Expected result 50 from lf_async(). Got %d.", self->result);
+    }
+  =}
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  b = new Blocker()
+  state count: int = 0
+
+  reaction(t) {=
+    interval_t lag = lf_time_physical_elapsed() - lf_time_logical_elapsed();
+    lf_print("Main at time " PRINTF_TIME " (lag " PRINTF_TIME ")", lf_time_logical_elapsed(), lag);
+    self->count++;
+    // If lf_async() blocked the advancement of logical time, the timer events during the
+    // 500 ms that slow() takes would all be processed late, with a lag of several hundred ms.
+    if (lag > MSEC(250)) {
+      lf_print_error_and_exit("Timer reaction is lagging physical time by " PRINTF_TIME " ns.", lag);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->count < 50) {
+      lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 50.", self->count);
+    }
+    if (lf_added_worker_thread_count() != 1) {
+      lf_print_error_and_exit("Expected lf_async() to add 1 worker thread. Got %d.", lf_added_worker_thread_count());
+    }
+    lf_print("SUCCESS");
+  =}
+}
