@@ -1,0 +1,94 @@
+/**
+ * Test lf_add_worker_thread() and lf_added_worker_thread_count().
+ *
+ * The program is configured with a single worker thread. The startup reaction adds three worker
+ * threads, checking the counter after each addition. Then, at each timer tick, four reactions at
+ * the same level each block for 50 ms. With a single worker these would have to execute one after
+ * the other, so the test verifies that they in fact execute concurrently, which requires that the
+ * added worker threads participate in executing reactions. Additional workers are also added while
+ * the blocking reactions are executing, to exercise adding a worker in the middle of a tag.
+ */
+target C {
+  timeout: 1 sec,
+  workers: 1
+}
+
+preamble {=
+  #include "platform/lf_atomic.h"
+  // Number of Blocker reactions currently executing and the maximum observed.
+  extern int in_flight;
+  extern int max_in_flight;
+=}
+
+reactor Blocker(id: int = 0) {
+  preamble {=
+    int in_flight = 0;
+    int max_in_flight = 0;
+  =}
+  timer t(100 ms, 200 ms)
+  state count: int = 0
+
+  reaction(t) {=
+    int now_in_flight = lf_atomic_add_fetch(&in_flight, 1);
+    // Record the maximum observed concurrency. The max is only ever read after all
+    // Blocker reactions have completed, so this plain update is sufficient.
+    if (now_in_flight > max_in_flight) max_in_flight = now_in_flight;
+    lf_sleep(MSEC(50));
+    lf_atomic_add_fetch(&in_flight, -1);
+    lf_print("Blocker %d: reaction at " PRINTF_TIME " on thread %d (in flight: %d)", self->id,
+        lf_time_logical_elapsed(), lf_thread_id(), now_in_flight);
+    self->count++;
+  =}
+
+  reaction(shutdown) {=
+    if (self->count != 5) {
+      lf_print_error_and_exit("Blocker %d fired %d times. Expected 5.", self->id, self->count);
+    }
+  =}
+}
+
+main reactor {
+  b = new[4] Blocker(id = {= bank_index =})
+  timer add(100 ms, 200 ms)  // Fires while the Blocker reactions are still executing.
+  state added: int = 0
+
+  reaction(startup) {=
+    if (lf_added_worker_thread_count() != 0) {
+      lf_print_error_and_exit("Expected 0 added workers at startup. Got %d.", lf_added_worker_thread_count());
+    }
+    for (int i = 0; i < 3; i++) {
+      if (lf_add_worker_thread() != 0) {
+        lf_print_error_and_exit("Failed to add worker thread %d.", i);
+      }
+      self->added++;
+      if (lf_added_worker_thread_count() != self->added) {
+        lf_print_error_and_exit("Expected %d added workers. Got %d.", self->added, lf_added_worker_thread_count());
+      }
+    }
+    lf_print("Added %d worker threads at startup.", lf_added_worker_thread_count());
+  =}
+
+  reaction(add) {=
+      lf_sleep(MSEC(10));
+    // Add a worker while other reactions at this tag are blocked.
+    if (lf_add_worker_thread() != 0) {
+      lf_print_error_and_exit("Failed to add worker thread at " PRINTF_TIME ".", lf_time_logical_elapsed());
+    }
+    self->added++;
+    if (lf_added_worker_thread_count() != self->added) {
+      lf_print_error_and_exit("Expected %d added workers. Got %d.", self->added, lf_added_worker_thread_count());
+    }
+  =}
+
+  reaction(shutdown) {=
+    // 3 at startup plus one per firing of the add timer (at 110, 310, 510, 710, and 910 ms).
+    if (lf_added_worker_thread_count() != 8) {
+      lf_print_error_and_exit("Expected 8 added workers at shutdown. Got %d.", lf_added_worker_thread_count());
+    }
+    if (max_in_flight < 2) {
+      lf_print_error_and_exit("Blocking reactions did not execute concurrently (max in flight: %d).", max_in_flight);
+    }
+    lf_print("SUCCESS: %d worker threads were added. Maximum concurrency observed: %d.",
+        lf_added_worker_thread_count(), max_in_flight);
+  =}
+}
