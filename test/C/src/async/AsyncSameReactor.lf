@@ -1,14 +1,13 @@
 /**
  * Test that lf_async() queues downstream reactions instead of executing them in this thread.
  *
- * Source sets ping, and Relay copies it to pong, which triggers another reaction of
- * Source. With the usual inline optimization, that chain would execute the pong
- * reaction in this same thread: the relay is the only downstream reaction of startup,
- * and the pong reaction is the only downstream reaction of the relay. The pong
- * reaction also calls lf_async(). Executing it in place on the first call would
- * create Source's reactor mutex and leave the outer call unlocking a mutex it does
- * not hold. On the second call the outer reaction already holds that mutex, so
- * executing the pong reaction in place would deadlock trying to lock it.
+ * Source sets ping, and Relay copies it to pong, which triggers another reaction of Source. With
+ * the usual inline optimization, that chain would execute the pong reaction in this same thread:
+ * the relay is the only downstream reaction of startup, and the pong reaction is the only
+ * downstream reaction of the relay. The pong reaction also calls lf_async(). Executing it in place
+ * on the first call would create Source's reactor mutex and leave the outer call unlocking a mutex
+ * it does not hold. On the second call the outer reaction already holds that mutex, so executing
+ * the pong reaction in place would deadlock trying to lock it.
  */
 target C {
   timeout: 1 sec,
@@ -26,7 +25,7 @@ reactor Relay {
 
 reactor Source {
   preamble {=
-    int pause(int milliseconds) {
+    int take_time_ms(int milliseconds) {
       lf_sleep(MSEC(milliseconds));
       return milliseconds;
     }
@@ -46,15 +45,15 @@ reactor Source {
     // The relay runs in place and sets pong. The pong reaction of this reactor
     // must be queued, then run at this tag after this call releases the mutex.
     lf_set(ping, 1);
-    self->from_async = lf_async(pause, 20);
+    self->from_async = lf_async(take_time_ms, 20);
     // This call holds the reactor mutex created by the first call.
     lf_set(ping, 2);
-    self->from_async += lf_async(pause, 20);
+    self->from_async += lf_async(take_time_ms, 20);
   =}
 
   reaction(pong) {=
     self->saw += pong->value;
-    self->from_pong += lf_async(pause, 1);
+    self->from_pong += lf_async(take_time_ms, 1);
   =}
 
   reaction(shutdown) {=
