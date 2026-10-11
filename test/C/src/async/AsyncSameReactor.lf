@@ -8,10 +8,14 @@
  * on the first call would create Source's reactor mutex and leave the outer call unlocking a mutex
  * it does not hold. On the second call the outer reaction already holds that mutex, so executing
  * the pong reaction in place would deadlock trying to lock it.
+ *
+ * Each reaction has its own physical action. Two reactions calling lf_async() on one physical
+ * action is a fatal error.
  */
 target C {
   timeout: 1 sec,
-  workers: 1
+  workers: 1,
+  keepalive: true
 }
 
 reactor Relay {
@@ -31,6 +35,7 @@ reactor Source {
     }
   =}
   physical action awake
+  physical action awake_pong
   output ping: int
   input pong: int
   state from_async: int = 0
@@ -41,19 +46,23 @@ reactor Source {
     lf_async_resume(awake);
   =}
 
-  reaction(startup) -> ping {=
+  reaction(awake_pong) {=
+    lf_async_resume(awake_pong);
+  =}
+
+  reaction(startup) -> ping, awake {=
     // The relay runs in place and sets pong. The pong reaction of this reactor
     // must be queued, then run at this tag after this call releases the mutex.
     lf_set(ping, 1);
-    self->from_async = lf_async(take_time_ms, 20);
+    self->from_async = lf_async(awake, take_time_ms, 20);
     // This call holds the reactor mutex created by the first call.
     lf_set(ping, 2);
-    self->from_async += lf_async(take_time_ms, 20);
+    self->from_async += lf_async(awake, take_time_ms, 20);
   =}
 
-  reaction(pong) {=
+  reaction(pong) -> awake_pong {=
     self->saw += pong->value;
-    self->from_pong += lf_async(take_time_ms, 1);
+    self->from_pong += lf_async(awake_pong, take_time_ms, 1);
   =}
 
   reaction(shutdown) {=
