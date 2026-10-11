@@ -9,6 +9,10 @@
  * physical action awake and resumes the calling reaction at the tag of that event, so the results
  * are reported at logical times at least 500 ms and 700 ms after the start.
  *
+ * Before each lf_async() call, the Blocker sets outputs carrying the current tag. Those outputs are
+ * propagated at that tag, before lf_async() allows logical time to advance. The Checker fails if it
+ * observes them at any other tag.
+ *
  * The two Blockers call lf_async() concurrently, so two worker threads get added, but the second
  * call of each Blocker reuses them, so no further threads get added.
  */
@@ -29,6 +33,8 @@ reactor Blocker(id: int = 0) {
     }
   =}
   physical action awake
+  output stamp: time
+  output microstep: int
   state result: int = 0
 
   reaction(awake) {=
@@ -36,13 +42,18 @@ reactor Blocker(id: int = 0) {
     lf_async_resume(awake);
   =}
 
-  reaction(startup) {=
+  reaction(startup) -> stamp, microstep {=
     lf_print("Starting Blocker %d", self->id);
+    // These outputs must be delivered at this tag, before lf_async() lets logical time advance.
+    lf_set(stamp, lf_time_logical());
+    lf_set(microstep, (int)lf_tag().microstep);
     int result = lf_async(slow, 50);
     lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
     if (lf_time_logical_elapsed() < MSEC(500)) {
       lf_print_error_and_exit("Expected lf_async() to return at a logical time of at least 500 ms.");
     }
+    lf_set(stamp, lf_time_logical());
+    lf_set(microstep, (int)lf_tag().microstep);
     result += lf_async(slow, 20);
     lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
     if (lf_time_logical_elapsed() < MSEC(700)) {
@@ -58,9 +69,52 @@ reactor Blocker(id: int = 0) {
   =}
 }
 
+// Fails unless each output written before lf_async() arrives at the tag at which it was written.
+reactor Checker {
+  input stamp: time
+  input microstep: int
+  state count: int = 0
+  state saw_start: bool = false
+  state saw_resume: bool = false
+
+  reaction(stamp, microstep) {=
+    if (!stamp->is_present || !microstep->is_present) {
+      lf_print_error_and_exit("Expected the logical time and microstep to be propagated together.");
+    }
+    tag_t now = lf_tag();
+    if (stamp->value != now.time || (microstep_t)microstep->value != now.microstep) {
+      lf_print_error_and_exit("Output set at tag (" PRINTF_TIME ", %d) was propagated at tag (" PRINTF_TIME
+                              ", %u).",
+                              stamp->value - lf_time_start(), microstep->value, now.time - lf_time_start(),
+                              now.microstep);
+    }
+    interval_t elapsed = lf_time_logical_elapsed();
+    lf_print("Checker received tag (" PRINTF_TIME ", %u).", elapsed, now.microstep);
+    self->count++;
+    if (elapsed == 0) {
+      self->saw_start = true;
+    } else if (elapsed >= MSEC(500)) {
+      self->saw_resume = true;
+    } else {
+      lf_print_error_and_exit("Output propagated at unexpected logical time " PRINTF_TIME ".", elapsed);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->count != 2 || !self->saw_start || !self->saw_resume) {
+      lf_print_error_and_exit(
+          "Expected outputs at the start tag and at the first lf_async() resume. count=%d start=%d resume=%d.",
+          self->count, self->saw_start, self->saw_resume);
+    }
+  =}
+}
+
 main reactor {
   timer t(0, 20 ms)
   b = new[2] Blocker(id = {= bank_index =})
+  c = new[2] Checker()
+  b.stamp -> c.stamp
+  b.microstep -> c.microstep
   state count: int = 0
 
   reaction(t) {=
