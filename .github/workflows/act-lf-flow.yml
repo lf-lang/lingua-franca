@@ -1,17 +1,18 @@
 name: TEST_FLOW 
 
 on:
-  #push:
-  pull_request:
-    types:
-      - opened
-    branches:
-      - act-test
+  push:
+  # pull_request:
+  #   types:
+  #     - opened
+  #   branches:
+  #     - act-test
 
 jobs:
   led-test:
     #if: contains(github.event.pull_request.labels.*.name, 'act-lf-led')
-    uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
+    #uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
+    uses: lf-lang/act-lf-testbed/.github/workflows/act-lf-motor.yml@main
     with:
       act_client_id: ${{ vars.ACT_CLIENT_ID }}
     secrets:
