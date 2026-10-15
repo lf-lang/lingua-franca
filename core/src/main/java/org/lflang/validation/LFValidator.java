@@ -1530,9 +1530,7 @@ public class LFValidator extends BaseLFValidator {
     var container = attr.eContainer();
     if (!(container instanceof Reactor)) {
       error(
-          "The @"
-              + attr.getAttrName()
-              + " attribute is only allowed on a reactor.",
+          "The @" + attr.getAttrName() + " attribute is only allowed on a reactor.",
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
