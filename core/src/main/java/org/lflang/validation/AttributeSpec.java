@@ -25,6 +25,7 @@
 
 package org.lflang.validation;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -147,8 +148,14 @@ public class AttributeSpec {
    * @param name The name of the attribute parameter
    * @param type The type of the parameter
    * @param isOptional True if the parameter is optional.
+   * @param customvalidator A custom validator function (optional).
    */
-  record AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
+  record AttrParamSpec(
+      String name, AttrParamType type, boolean isOptional, CustomValidator customvalidator) {
+
+    public AttrParamSpec(String name, AttrParamType type, boolean isOptional) {
+      this(name, type, isOptional, null);
+    }
 
     // Check if a parameter has the right type.
     // Currently, only String, Int, Boolean, Float, and target language are supported.
@@ -297,25 +304,14 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put(
         "keepalive",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.BOOLEAN, false))));
-    // @clock_sync("value") - simple form: @clock_sync("on") or @clock_sync("off")
-    // detailed form: @clock_sync(grandmaster=true, period=3500000000, max_adj=512000, kp=0.5,
-    // ki=0.1)
-    ATTRIBUTE_SPECS_BY_NAME.put(
-        "clock_sync",
-        new AttributeSpec(
-            List.of(
-                new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, true),
-                new AttrParamSpec("grandmaster", AttrParamType.BOOLEAN, true),
-                new AttrParamSpec("period", AttrParamType.BIGINT, true),
-                new AttrParamSpec("max_adj", AttrParamType.BIGINT, true),
-                new AttrParamSpec("kp", AttrParamType.FLOAT, true),
-                new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
     // @platform("value") - e.g. @platform("NATIVE")
     ATTRIBUTE_SPECS_BY_NAME.put(
         "platform",
         new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
 
+    //////////////////////////////////////////////////////////////
     // Attributes used internally only by the federated code generation
+
     ATTRIBUTE_SPECS_BY_NAME.put("_fed_config", new AttributeSpec(List.of()));
     // Marker for total port order (TPO) levels.
     ATTRIBUTE_SPECS_BY_NAME.put(
@@ -325,5 +321,166 @@ public class AttributeSpec {
     ATTRIBUTE_SPECS_BY_NAME.put("_network_sender", new AttributeSpec(null));
     // Marker for network receiver.
     ATTRIBUTE_SPECS_BY_NAME.put("_network_receiver", new AttributeSpec(null));
+
+    //////////////////////////////////////////////////////////////
+    // Attributes used in micro-LF (reactor-uc), included here so VSCode extension can recognize
+    // them.
+
+    // @clock_sync(grandmaster=true, server_port=1042)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "clock_sync",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("disabled", AttrParamType.BOOLEAN, true),
+                new AttrParamSpec("grandmaster", AttrParamType.BOOLEAN, true),
+                new AttrParamSpec("period", AttrParamType.BIGINT, true),
+                new AttrParamSpec("max_adj", AttrParamType.INT, true),
+                new AttrParamSpec("kp", AttrParamType.FLOAT, true),
+                new AttrParamSpec("ki", AttrParamType.FLOAT, true))));
+
+    // @max_pending_event(<value>)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "max_pending_events",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+
+    // @buffer(<value>)
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "buffer",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.INT, false))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_uart",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("uart_device", AttrParamType.INT, true),
+                new AttrParamSpec("baud_rate", AttrParamType.INT, true),
+                new AttrParamSpec("data_bits", AttrParamType.INT, true),
+                new AttrParamSpec("parity", AttrParamType.STRING, true),
+                new AttrParamSpec("stop_bits", AttrParamType.INT, true),
+                new AttrParamSpec("async", AttrParamType.BOOLEAN, true))));
+
+    // @interface_tcp(name="string", address="string") e.g. @interface:tcp(name="if1",
+    // address="127.0.0.1")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_tcp",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("address", AttrParamType.STRING, true))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_coap",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec("address", AttrParamType.STRING, true))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_s4noc",
+        new AttributeSpec(List.of(new AttrParamSpec("core", AttrParamType.INT, false))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_ble",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, true),
+                new AttrParamSpec(
+                    "device_name",
+                    AttrParamType.STRING,
+                    true,
+                    AttributeSpec::validateBleDeviceName))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "interface_custom",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("name", AttrParamType.STRING, false),
+                new AttrParamSpec("args", AttrParamType.STRING, true),
+                new AttrParamSpec("include", AttrParamType.STRING, false))));
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "joining_policy",
+        new AttributeSpec(List.of(new AttrParamSpec("policy", AttrParamType.STRING, false))));
+    // @link(type="string", server_port=int, server_side="string", args="string") e.g.
+    // @link(type="TcpIp", server_port=1042)
+
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "link",
+        new AttributeSpec(
+            List.of(
+                new AttrParamSpec("left", AttrParamType.STRING, true),
+                new AttrParamSpec("right", AttrParamType.STRING, true),
+                new AttrParamSpec("server_port", AttrParamType.INT, true),
+                new AttrParamSpec("server_side", AttrParamType.STRING, true),
+                // BLE link-layer parameters.
+                new AttrParamSpec("interval", AttrParamType.TIME, true),
+                new AttrParamSpec("latency", AttrParamType.INT, true),
+                new AttrParamSpec("timeout", AttrParamType.TIME, true))));
+
+    // @platform("riot")
+    ATTRIBUTE_SPECS_BY_NAME.put(
+        "platform",
+        new AttributeSpec(List.of(new AttrParamSpec(VALUE_ATTR, AttrParamType.STRING, false))));
+
+    // @platform_riot
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_riot", new AttributeSpec(null));
+    // @platform_zephyr
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_zephyr", new AttributeSpec(null));
+    // @platform_patmos
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_patmos", new AttributeSpec(null));
+    // @platform_native
+    ATTRIBUTE_SPECS_BY_NAME.put("platform_native", new AttributeSpec(null));
+  }
+
+  //////////////////////////////////////////////////////////////
+  /// The following is included so that the VSCode plugin correctly handles micro-LF attributes.
+  /// They are not used by the lfc compiler.
+
+  /** A custom validator function. */
+  interface CustomValidator {
+    /** Validate the attribute parameter. */
+    void validate(LFValidator validator, AttrParm attr);
+  }
+
+  /**
+   * Longest BLE device_name that still fits the legacy advertising payload built by {@code
+   * ble_start_advertising()} in {@code src/platform/zephyr/ble_channel.c}. A legacy advertisement
+   * carries 31 bytes: 3 for the flags AD structure and 2 header bytes for the name AD structure,
+   * leaving 26 for the name itself. Must stay in sync with {@code BLE_MAX_DEVICE_NAME_LEN} there.
+   */
+  private static final int BLE_MAX_DEVICE_NAME_LENGTH = 26;
+
+  /**
+   * Validate the advertised name of a BLE interface.
+   *
+   * <p>This is the only key a BLE central matches advertisements on, so an over-long name fails
+   * silently and confusingly: the peripheral's {@code bt_le_adv_start()} rejects the oversized
+   * payload and never advertises, while the central scans forever without ever reporting an error.
+   * The name is also emitted verbatim into a C string literal, so a quote or backslash would
+   * produce code that does not compile.
+   */
+  private static void validateBleDeviceName(LFValidator validator, AttrParm parm) {
+    String name = StringUtil.removeQuotes(parm.getValue());
+    if (name == null) {
+      return;
+    }
+
+    // BLE advertisement lengths are in bytes, and so is the strlen() check on the C side.
+    int length = name.getBytes(StandardCharsets.UTF_8).length;
+    if (length == 0 || length > BLE_MAX_DEVICE_NAME_LENGTH) {
+      validator.error(
+          "BLE 'device_name' is "
+              + length
+              + " bytes. It must be between 1 and "
+              + BLE_MAX_DEVICE_NAME_LENGTH
+              + " bytes to fit the BLE advertising payload.",
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
+    if (name.indexOf('"') >= 0 || name.indexOf('\\') >= 0) {
+      validator.error(
+          "BLE 'device_name' must not contain quote or backslash characters.",
+          Literals.ATTRIBUTE__ATTR_NAME);
+    }
   }
 }
