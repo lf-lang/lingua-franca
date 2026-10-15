@@ -1,1 +1,3 @@
-Image test - 6
+Test:
+
+For tags - using the right tag
