@@ -126,10 +126,12 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lf
 Classes</h2></td></tr>
 <tr class="memitem:AttrParamType" id="r_AttrParamType"><td class="memItemLeft">enum &#160;</td><td class="memItemRight"><a class="el" href="enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html">AttrParamType</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The type of attribute parameters currently supported.  <a href="enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html#details">More...</a><br /></td></tr>
+<tr class="memitem:CustomValidator" id="r_CustomValidator"><td class="memItemLeft">interface &#160;</td><td class="memItemRight"><a class="el" href="interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html">CustomValidator</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">The following is included so that the VSCode plugin correctly handles micro-LF attributes.  <a href="interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html#details">More...</a><br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-methods" class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aeee4e274e571e3470bb3b1d5b927fe1d" id="r_aeee4e274e571e3470bb3b1d5b927fe1d"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#aeee4e274e571e3470bb3b1d5b927fe1d">AttributeSpec</a> (List&lt; <a class="el" href="#ac3efa641d7e599e7c37d660f50247b44">AttrParamSpec</a> &gt; params)</td></tr>
+<tr class="memitem:aeee4e274e571e3470bb3b1d5b927fe1d" id="r_aeee4e274e571e3470bb3b1d5b927fe1d"><td class="memItemLeft">&#160;</td><td class="memItemRight"><a class="el" href="#aeee4e274e571e3470bb3b1d5b927fe1d">AttributeSpec</a> (List&lt; <a class="el" href="#ac2cf87f5414d11af12edae01694e8360">AttrParamSpec</a> &gt; params)</td></tr>
 <tr class="memitem:ab539230b58d0b5765deb1eea50ccafb0" id="r_ab539230b58d0b5765deb1eea50ccafb0"><td class="memItemLeft">void&#160;</td><td class="memItemRight"><a class="el" href="#ab539230b58d0b5765deb1eea50ccafb0">check</a> (<a class="el" href="classorg_1_1lflang_1_1validation_1_1LFValidator.html">LFValidator</a> validator, Attribute attr)</td></tr>
 <tr class="memdesc:ab539230b58d0b5765deb1eea50ccafb0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check that the attribute conforms to this spec and whether attr has the correct name.  <br /></td></tr>
 </table><table class="memberdecls">
@@ -144,8 +146,8 @@ Static Public Attributes</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pac-methods" class="groupheader"><a id="pac-methods" name="pac-methods"></a>
 Package Functions</h2></td></tr>
-<tr class="memitem:ac3efa641d7e599e7c37d660f50247b44" id="r_ac3efa641d7e599e7c37d660f50247b44"><td class="memItemLeft">record&#160;</td><td class="memItemRight"><a class="el" href="#ac3efa641d7e599e7c37d660f50247b44">AttrParamSpec</a> (String name, <a class="el" href="enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html">AttrParamType</a> type, boolean isOptional)</td></tr>
-<tr class="memdesc:ac3efa641d7e599e7c37d660f50247b44"><td class="mdescLeft">&#160;</td><td class="mdescRight">The specification of the attribute parameter.  <br /></td></tr>
+<tr class="memitem:ac2cf87f5414d11af12edae01694e8360" id="r_ac2cf87f5414d11af12edae01694e8360"><td class="memItemLeft">record&#160;</td><td class="memItemRight"><a class="el" href="#ac2cf87f5414d11af12edae01694e8360">AttrParamSpec</a> (String name, <a class="el" href="enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html">AttrParamType</a> type, boolean isOptional, <a class="el" href="interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html">CustomValidator</a> customvalidator)</td></tr>
+<tr class="memdesc:ac2cf87f5414d11af12edae01694e8360"><td class="mdescLeft">&#160;</td><td class="mdescRight">The specification of the attribute parameter.  <br /></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pac-static-methods" class="groupheader"><a id="pac-static-methods" name="pac-static-methods"></a>
 Static Package Functions</h2></td></tr>
@@ -166,7 +168,7 @@ Shaokai Lin </dd></dl>
         <tr>
           <td class="memname">org.lflang.validation.AttributeSpec.AttributeSpec </td>
           <td>(</td>
-          <td class="paramtype">List&lt; <a class="el" href="#ac3efa641d7e599e7c37d660f50247b44">AttrParamSpec</a> &gt;</td>          <td class="paramname"><span class="paramname"><em>params</em></span></td><td>)</td>
+          <td class="paramtype">List&lt; <a class="el" href="#ac2cf87f5414d11af12edae01694e8360">AttrParamSpec</a> &gt;</td>          <td class="paramname"><span class="paramname"><em>params</em></span></td><td>)</td>
           <td></td>
         </tr>
       </table>
@@ -197,8 +199,8 @@ Shaokai Lin </dd></dl>
 
 </div>
 </div>
-<a id="ac3efa641d7e599e7c37d660f50247b44" name="ac3efa641d7e599e7c37d660f50247b44"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac3efa641d7e599e7c37d660f50247b44">&#9670;&#160;</a></span>AttrParamSpec()</h2>
+<a id="ac2cf87f5414d11af12edae01694e8360" name="ac2cf87f5414d11af12edae01694e8360"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac2cf87f5414d11af12edae01694e8360">&#9670;&#160;</a></span>AttrParamSpec()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -219,7 +221,12 @@ Shaokai Lin </dd></dl>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>isOptional</em></span>&#160;)</td>
+          <td class="paramtype">boolean</td>          <td class="paramname"><span class="paramname"><em>isOptional</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html">CustomValidator</a></td>          <td class="paramname"><span class="paramname"><em>customvalidator</em></span>&#160;)</td>
         </tr>
       </table>
   </td>
@@ -235,6 +242,7 @@ Shaokai Lin </dd></dl>
     <tr><td class="paramname">name</td><td>The name of the attribute parameter </td></tr>
     <tr><td class="paramname">type</td><td>The type of the parameter </td></tr>
     <tr><td class="paramname">isOptional</td><td>True if the parameter is optional. </td></tr>
+    <tr><td class="paramname">customvalidator</td><td>A custom validator function (optional). </td></tr>
   </table>
   </dd>
 </dl>

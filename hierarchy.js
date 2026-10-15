@@ -697,6 +697,7 @@ var hierarchy =
     [ "org.lflang.util.StringUtil", "classorg_1_1lflang_1_1util_1_1StringUtil.html", null ],
     [ "org.lflang.validation.AttributeSpec", "classorg_1_1lflang_1_1validation_1_1AttributeSpec.html", null ],
     [ "org.lflang.validation.AttributeSpec.AttrParamType", "enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html", null ],
+    [ "org.lflang.validation.AttributeSpec.CustomValidator", "interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html", null ],
     [ "org.lflang.validation.BaseLFValidator.ValidatorStateAccess", "classorg_1_1lflang_1_1validation_1_1BaseLFValidator_1_1ValidatorStateAccess.html", null ],
     [ "PriorityQueue", null, [
       [ "org.lflang.analyses.statespace.EventQueue", "classorg_1_1lflang_1_1analyses_1_1statespace_1_1EventQueue.html", null ]

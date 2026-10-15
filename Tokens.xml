@@ -4169,6 +4169,15 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>org::lflang::validation::AttributeSpec::CustomValidator</Name>
+      <APILanguage>java</APILanguage>
+      <Type>cl</Type>
+      <Scope>org.lflang.validation.AttributeSpec.CustomValidator</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</Path>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>org::lflang::validation::BaseLFValidator</Name>
       <APILanguage>java</APILanguage>
       <Type>cl</Type>
@@ -7536,7 +7545,7 @@
       <Scope>org.lflang.validation.AttributeSpec</Scope>
     </TokenIdentifier>
     <Path>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</Path>
-    <Anchor>ac3efa641d7e599e7c37d660f50247b44</Anchor>
+    <Anchor>ac2cf87f5414d11af12edae01694e8360</Anchor>
     <DeclaredIn>AttributeSpec.java</DeclaredIn>
   </Token>
   <Token>
@@ -50649,6 +50658,17 @@
     <Path>classorg_1_1lflang_1_1target_1_1TargetConfig.html</Path>
     <Anchor>a2ab8294cd6af1795f09f31dc6a59e16c</Anchor>
     <DeclaredIn>TargetConfig.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>validate</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.validation.AttributeSpec.CustomValidator</Scope>
+    </TokenIdentifier>
+    <Path>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</Path>
+    <Anchor>ae88b3e2e8eb215fc34856fc8ffad14f2</Anchor>
+    <DeclaredIn>AttributeSpec.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

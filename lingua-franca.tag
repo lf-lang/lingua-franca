@@ -43873,6 +43873,7 @@
     <name>org::lflang::validation::AttributeSpec</name>
     <filename>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</filename>
     <class kind="enum">org::lflang::validation::AttributeSpec::AttrParamType</class>
+    <class kind="interface">org::lflang::validation::AttributeSpec::CustomValidator</class>
     <member kind="function">
       <type></type>
       <name>AttributeSpec</name>
@@ -43926,8 +43927,8 @@
       <type>record</type>
       <name>AttrParamSpec</name>
       <anchorfile>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</anchorfile>
-      <anchor>ac3efa641d7e599e7c37d660f50247b44</anchor>
-      <arglist>(String name, AttrParamType type, boolean isOptional)</arglist>
+      <anchor>ac2cf87f5414d11af12edae01694e8360</anchor>
+      <arglist>(String name, AttrParamType type, boolean isOptional, CustomValidator customvalidator)</arglist>
     </member>
     <member kind="function" protection="package" static="yes">
       <type></type>
@@ -43981,6 +43982,17 @@
       <anchorfile>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</anchorfile>
       <anchor>aa54bc6bb311cc4c20cbde5366b16d36c</anchor>
       <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="interface">
+    <name>org::lflang::validation::AttributeSpec::CustomValidator</name>
+    <filename>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</filename>
+    <member kind="function">
+      <type>void</type>
+      <name>validate</name>
+      <anchorfile>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</anchorfile>
+      <anchor>ae88b3e2e8eb215fc34856fc8ffad14f2</anchor>
+      <arglist>(LFValidator validator, AttrParm attr)</arglist>
     </member>
   </compound>
   <compound kind="class">

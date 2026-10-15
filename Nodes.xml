@@ -52492,6 +52492,17 @@
                     </Subnodes>
                    </Node>
                    <Node>
+                    <Name>CustomValidator</Name>
+                    <Path>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</Path>
+                  <Subnodes>
+                     <Node>
+                      <Name>validate</Name>
+                      <Path>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</Path>
+                      <Anchor>ae88b3e2e8eb215fc34856fc8ffad14f2</Anchor>
+                     </Node>
+                    </Subnodes>
+                   </Node>
+                   <Node>
                     <Name>AttributeSpec</Name>
                     <Path>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</Path>
                     <Anchor>aeee4e274e571e3470bb3b1d5b927fe1d</Anchor>
@@ -52504,7 +52515,7 @@
                    <Node>
                     <Name>AttrParamSpec</Name>
                     <Path>classorg_1_1lflang_1_1validation_1_1AttributeSpec.html</Path>
-                    <Anchor>ac3efa641d7e599e7c37d660f50247b44</Anchor>
+                    <Anchor>ac2cf87f5414d11af12edae01694e8360</Anchor>
                    </Node>
                    <Node>
                     <Name>check</Name>
@@ -56492,6 +56503,10 @@
            <Node>
             <Name>org.lflang.validation.AttributeSpec.AttrParamType</Name>
             <Path>enumorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1AttrParamType.html</Path>
+           </Node>
+           <Node>
+            <Name>org.lflang.validation.AttributeSpec.CustomValidator</Name>
+            <Path>interfaceorg_1_1lflang_1_1validation_1_1AttributeSpec_1_1CustomValidator.html</Path>
            </Node>
            <Node>
             <Name>org.lflang.validation.BaseLFValidator.ValidatorStateAccess</Name>
