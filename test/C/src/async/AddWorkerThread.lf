@@ -69,7 +69,9 @@ main reactor {
   =}
 
   reaction(add) {=
-      lf_sleep(MSEC(10));
+    // To make the new worker thread appear while the four Blocker reactions
+    // at the same tag are already inside their 50ms sleep, we need to wait a bit.
+    lf_sleep(MSEC(10));
     // Add a worker while other reactions at this tag are blocked.
     if (lf_add_worker_thread() != 0) {
       lf_print_error_and_exit("Failed to add worker thread at " PRINTF_TIME ".", lf_time_logical_elapsed());

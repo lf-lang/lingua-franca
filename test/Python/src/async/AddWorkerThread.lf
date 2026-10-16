@@ -1,0 +1,94 @@
+/**
+ * Test lf_add_worker_thread() and lf_added_worker_thread_count().
+ *
+ * The program is configured with a single worker thread. The startup reaction adds three worker
+ * threads, checking the counter after each addition. Then, at each timer tick, four reactions at
+ * the same level each block for 50 ms. With a single worker these would have to execute one after
+ * the other, so the test verifies that they in fact execute concurrently, which requires that the
+ * added worker threads participate in executing reactions. Additional workers are also added while
+ * the blocking reactions are executing, to exercise adding a worker in the middle of a tag.
+ */
+target Python {
+  timeout: 1 sec,
+  workers: 1
+}
+
+preamble {=
+  import time
+
+  # Number of Blocker reactions currently executing and the maximum observed.
+  in_flight = 0
+  max_in_flight = 0
+
+  def fail(message):
+      sys.stderr.write(str(message) + "\n")
+      sys.exit(1)
+=}
+
+reactor Blocker(id=0) {
+  timer t(100 ms, 200 ms)
+  state count = 0
+
+  reaction(t) {=
+    global in_flight, max_in_flight
+    in_flight += 1
+    now_in_flight = in_flight
+    # The maximum is only read after every Blocker reaction has completed.
+    if now_in_flight > max_in_flight:
+        max_in_flight = now_in_flight
+    # time.sleep releases the GIL, so the added workers can run other reactions.
+    time.sleep(0.05)
+    in_flight -= 1
+    print(
+        f"Blocker {self.id}: reaction at {lf.time.logical_elapsed()} "
+        f"on thread {self.lf_thread_id()} (in flight: {now_in_flight})"
+    )
+    self.count += 1
+  =}
+
+  reaction(shutdown) {=
+    if self.count != 5:
+        fail(f"Blocker {self.id} fired {self.count} times. Expected 5.")
+  =}
+}
+
+main reactor {
+  b = new[4] Blocker(id = {= bank_index =})
+  timer add(100 ms, 200 ms)  # Fires while the Blocker reactions are still executing.
+  state added = 0
+
+  reaction(startup) {=
+    if self.lf_added_worker_thread_count() != 0:
+        fail(f"Expected 0 added workers at startup. Got {self.lf_added_worker_thread_count()}.")
+    for _ in range(3):
+        if self.lf_add_worker_thread() != 0:
+            fail(f"Failed to add worker thread {self.added}.")
+        self.added += 1
+        if self.lf_added_worker_thread_count() != self.added:
+            fail(f"Expected {self.added} added workers. Got {self.lf_added_worker_thread_count()}.")
+    print(f"Added {self.lf_added_worker_thread_count()} worker threads at startup.")
+  =}
+
+  reaction(add) {=
+    // To make the new worker thread appear while the four Blocker reactions
+    // at the same tag are already inside their 50ms sleep, we need to wait a bit.
+    // This releases the GIL, so other reactions can run.
+    time.sleep(0.01)
+    # Add a worker while other reactions at this tag are blocked.
+    if self.lf_add_worker_thread() != 0:
+        fail(f"Failed to add worker thread at {lf.time.logical_elapsed()}.")
+    self.added += 1
+    if self.lf_added_worker_thread_count() != self.added:
+        fail(f"Expected {self.added} added workers. Got {self.lf_added_worker_thread_count()}.")
+  =}
+
+  reaction(shutdown) {=
+    # 3 at startup plus one per firing of the add timer (at 100, 300, 500, 700, and 900 ms).
+    added = self.lf_added_worker_thread_count()
+    if added != 8:
+        fail(f"Expected 8 added workers at shutdown. Got {added}.")
+    if max_in_flight < 2:
+        fail(f"Blocking reactions did not execute concurrently (max in flight: {max_in_flight}).")
+    print(f"SUCCESS: {added} worker threads were added. Maximum concurrency observed: {max_in_flight}.")
+  =}
+}

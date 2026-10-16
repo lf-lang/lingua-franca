@@ -86,6 +86,17 @@ public class PythonTest extends RuntimeTest {
   }
 
   @Test
+  public void runAsyncTests() {
+    runTestsForTargets(
+        Message.DESC_ASYNC,
+        TestCategory.ASYNC::equals,
+        Transformers::noChanges,
+        Configurators::noChanges,
+        TestLevel.EXECUTION,
+        false);
+  }
+
+  @Test
   @Override
   public void runFederatedTests() {
     Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
