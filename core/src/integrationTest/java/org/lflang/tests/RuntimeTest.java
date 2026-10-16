@@ -106,6 +106,7 @@ public abstract class RuntimeTest extends TestBase {
     categories.removeAll(
         EnumSet.of(
             TestCategory.CONCURRENT,
+            TestCategory.ASYNC,
             TestCategory.FEDERATED,
             TestCategory.FEDERATED_SST,
             // FIXME: also run the multiport tests once these are supported.
@@ -244,11 +245,12 @@ public abstract class RuntimeTest extends TestBase {
   /** Given a test category, return true if it is compatible with single-threaded execution. */
   public static boolean compatibleWithThreadingOff(TestCategory category) {
 
-    // CONCURRENT, FEDERATED, DOCKER_FEDERATED, DOCKER
+    // CONCURRENT, ASYNC, FEDERATED, DOCKER_FEDERATED, DOCKER
     // are not compatible with single-threaded execution.
     // ARDUINO, ZEPHYR, FLEXPRET, and PATMOS have their own test suites, so we don't need to rerun.
     boolean excluded =
         category == TestCategory.CONCURRENT
+            || category == TestCategory.ASYNC
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.FEDERATED_SST

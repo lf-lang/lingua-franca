@@ -1,0 +1,95 @@
+/**
+ * Test lf_async() with a logical action whose minimum delay makes the resume tag later than the tag
+ * that triggered the calling reaction.
+ *
+ * The first call's function returns in about 50 ms, before the 200 ms delay elapses. Logical time
+ * keeps advancing while it runs, and the call resumes at logical time 200 ms.
+ *
+ * The second call's function takes about 350 ms. Its action is scheduled 200 ms after the calling
+ * tag, at logical time 400 ms, while the function is still running. lf_async_resume() blocks until
+ * the function returns, so the call resumes at logical time 400 ms.
+ */
+target C {
+  timeout: 1 sec,
+  workers: 1
+}
+
+reactor Blocker {
+  preamble {=
+    int slow(int milliseconds) {
+      lf_sleep(MSEC(milliseconds));
+      return milliseconds;
+    }
+  =}
+  logical action done(200 ms)
+  state early: int = 0
+  state late: int = 0
+
+  reaction(done) {=
+    lf_async_resume(done);
+  =}
+
+  reaction(startup) -> done {=
+    interval_t start = lf_time_logical_elapsed();
+    lf_print("Calling lf_async() at " PRINTF_TIME " (physical " PRINTF_TIME ")", start, lf_time_physical_elapsed());
+    self->early = lf_async(done, slow, 50);
+    interval_t first = lf_time_logical_elapsed();
+    lf_print("First resume at " PRINTF_TIME " (physical " PRINTF_TIME ")", first, lf_time_physical_elapsed());
+    if (first != MSEC(200)) {
+      lf_print_error_and_exit(
+          "Expected the first lf_async() to resume at logical time 200 ms. Got " PRINTF_TIME ".", first);
+    }
+    self->late = lf_async(done, slow, 350);
+    interval_t second = lf_time_logical_elapsed();
+    interval_t physical = lf_time_physical_elapsed();
+    lf_print("Second resume at " PRINTF_TIME " (physical " PRINTF_TIME ")", second, physical);
+    if (second != MSEC(400)) {
+      lf_print_error_and_exit(
+          "Expected the second lf_async() to resume at logical time 400 ms. Got " PRINTF_TIME ".", second);
+    }
+    // Resuming at 400 ms logical while the function takes 350 ms from the 200 ms tag means the
+    // function, not merely the delay, determined when the call returned.
+    if (physical < MSEC(500)) {
+      lf_print_error_and_exit(
+          "Expected the slow function to finish after the second resume. Physical time " PRINTF_TIME ".",
+          physical);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->early != 50 || self->late != 350) {
+      lf_print_error_and_exit("Unexpected results %d and %d.", self->early, self->late);
+    }
+  =}
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  b = new Blocker()
+  state early_ticks: int = 0
+
+  reaction(t) {=
+    interval_t logical = lf_time_logical_elapsed();
+    interval_t lag = lf_time_physical_elapsed() - logical;
+    // Once the second call's action triggers, at 400 ms, lf_async_resume() holds that tag until
+    // the function returns, so later timer events are expected to lag.
+    if (logical <= MSEC(400)) {
+      self->early_ticks++;
+      if (lag > MSEC(250)) {
+        lf_print_error_and_exit("Timer lagging by " PRINTF_TIME " at logical time " PRINTF_TIME ".", lag, logical);
+      }
+    }
+  =}
+
+  reaction(shutdown) {=
+    // Ticks at 0, 20, ..., 400 ms.
+    if (self->early_ticks < 19) {
+      lf_print_error_and_exit("Expected logical time to advance during lf_async(). Saw %d ticks before 400 ms.",
+                              self->early_ticks);
+    }
+    if (lf_added_worker_thread_count() != 1) {
+      lf_print_error_and_exit("Expected 1 added worker. Got %d.", lf_added_worker_thread_count());
+    }
+    lf_print("SUCCESS");
+  =}
+}

@@ -1,0 +1,144 @@
+/**
+ * Test lf_await(port), which suspends the calling reaction until another reaction of the same
+ * reactor calls lf_await_resume(port) on the same input port.
+ *
+ * Before calling lf_await(response), the startup reaction of Requester sets an output that triggers
+ * Relay, whose output feeds back to the response input of Requester through a connection with an
+ * `after` delay of 100 ms. The response reaction calls lf_await_resume(response), so lf_await()
+ * returns at a logical time exactly 100 ms later than the one at which it was called. The startup
+ * reaction then repeats this at the new tag.
+ *
+ * At 50 ms, a second reaction of Requester also calls lf_await(response). Both calls are pending
+ * when the first response arrives at 100 ms, and the single lf_await_resume(response) in the
+ * response reaction resumes both of them at that tag.
+ *
+ * The startup reaction of Forgotten calls lf_await() on an input that never receives anything and
+ * is never resumed. When the program stops, lf_await() returns at the stop tag so that the reaction
+ * can complete.
+ *
+ * While the reactions are suspended, the timer of the main reactor keeps firing every 20 ms, which
+ * is verified by checking that its lag behind physical time stays small.
+ */
+target Python {
+  timeout: 1 sec,
+  workers: 1
+}
+
+preamble {=
+  def fail(message):
+      sys.stderr.write(str(message) + "\n")
+      sys.exit(1)
+=}
+
+reactor Relay {
+  input inp
+  output out
+
+  reaction(inp) -> out {=
+    out.set(inp.value)
+  =}
+}
+
+reactor Requester {
+  output request
+  input response
+  timer late(50 ms)
+  state responses = 0
+  state completed = False
+  state late_resumed_at = 0
+
+  reaction(response) {=
+    self.responses += 1
+    print(f"Response {response.value} received at {lf.time.logical_elapsed()}.")
+    self.lf_await_resume(response)
+  =}
+
+  reaction(startup) response -> request {=
+    for i in range(1, 3):
+        before = lf.tag()
+        # This output is propagated at this tag, before lf_await() lets logical time advance.
+        request.set(i)
+        self.lf_await(response)
+        after = lf.tag()
+        print(
+            f"Request {i}: resumed at {lf.time.logical_elapsed()} "
+            f"(microstep {after.microstep}) with response {response.value}."
+        )
+        if after.time - before.time != MSEC(100) or after.microstep != 0:
+            fail(
+                f"Expected lf_await() to resume exactly 100 ms after {before.time - lf.time.start()}. "
+                f"Resumed at {after.time - lf.time.start()} (microstep {after.microstep})."
+            )
+        # The response reaction ran before this reaction resumed, and the response is present.
+        if self.responses != i or not response.is_present or response.value != i:
+            fail(f"Expected response {i} to be present before resuming. responses={self.responses}.")
+    self.completed = True
+  =}
+
+  reaction(late) response {=
+    print(f"Late reaction awaiting at {lf.time.logical_elapsed()}.")
+    self.lf_await(response)
+    self.late_resumed_at = lf.time.logical_elapsed()
+    print(f"Late reaction resumed at {self.late_resumed_at}.")
+    # The same lf_await_resume() that resumed the startup reaction resumed this one.
+    if self.late_resumed_at != MSEC(100):
+        fail(f"Expected the late reaction to resume at 100 ms. Resumed at {self.late_resumed_at}.")
+  =}
+
+  reaction(shutdown) {=
+    if not self.completed:
+        fail("Expected the startup reaction to complete before shutdown.")
+    if self.responses != 2:
+        fail(f"Expected 2 responses. Got {self.responses}.")
+    if self.late_resumed_at != MSEC(100):
+        fail("Expected the late reaction to have resumed at 100 ms.")
+  =}
+}
+
+reactor Forgotten {
+  input silent
+
+  reaction(startup) silent {=
+    print("Forgotten: suspending; nothing will resume this reaction.")
+    self.lf_await(silent)
+    # The program has stopped, so this must be the stop tag.
+    elapsed = lf.time.logical_elapsed()
+    if elapsed != SEC(1) or lf.tag().microstep != 0:
+        fail(
+            f"Expected lf_await() to return at the stop tag (1 s). "
+            f"Returned at {elapsed} (microstep {lf.tag().microstep})."
+        )
+    print("Forgotten: completed at the stop tag.")
+  =}
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  requester = new Requester()
+  relay = new Relay()
+  forgotten = new Forgotten()
+  requester.request -> relay.inp
+  relay.out -> requester.response after 100 ms
+  state count = 0
+
+  reaction(t) {=
+    lag = lf.time.physical_elapsed() - lf.time.logical_elapsed()
+    print(self.count)
+    self.count += 1
+    # If lf_await() blocked the advancement of logical time, the timer events would be
+    # processed late once the suspended reactions prevented the tag from advancing.
+    if lag > MSEC(80):
+        fail(f"Timer reaction is lagging physical time by {lag} ns.")
+  =}
+
+  reaction(shutdown) {=
+    if self.count < 50:
+        fail(f"Timer reaction fired {self.count} times. Expected at least 50.")
+    # Three reactions were suspended concurrently between 50 ms and 100 ms, so three worker
+    # threads were added.
+    added = self.lf_added_worker_thread_count()
+    if added != 3:
+        fail(f"Expected lf_await() to add 3 worker threads. Got {added}.")
+    print("SUCCESS")
+  =}
+}
