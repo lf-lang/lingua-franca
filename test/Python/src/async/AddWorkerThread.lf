@@ -70,16 +70,16 @@ main reactor {
   =}
 
   reaction(add) {=
-    // To make the new worker thread appear while the four Blocker reactions
-    // at the same tag are already inside their 50ms sleep, we need to wait a bit.
-    // This releases the GIL, so other reactions can run.
+    # To make the new worker thread appear while the four Blocker reactions
+    # at the same tag are already inside their 50ms sleep, we need to wait a bit.
+    # This releases the GIL, so other reactions can run.
     time.sleep(0.01)
     # Add a worker while other reactions at this tag are blocked.
     if self.lf_add_worker_thread() != 0:
-        fail(f"Failed to add worker thread at {lf.time.logical_elapsed()}.")
+      fail(f"Failed to add worker thread at {lf.time.logical_elapsed()}.")
     self.added += 1
     if self.lf_added_worker_thread_count() != self.added:
-        fail(f"Expected {self.added} added workers. Got {self.lf_added_worker_thread_count()}.")
+      fail(f"Expected {self.added} added workers. Got {self.lf_added_worker_thread_count()}.")
   =}
 
   reaction(shutdown) {=
