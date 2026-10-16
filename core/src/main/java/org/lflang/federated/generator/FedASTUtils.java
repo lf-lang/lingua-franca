@@ -819,14 +819,11 @@ public class FedASTUtils {
                 messageReporter);
     networkSenderReaction.getCode().setBody(reactionBody);
 
-    // Inherit a deadline for OS priority assignment:
-    // - zero-delay connections: min inferred deadline of eventual downstream consumers
-    // - after-delay connections: min inferred deadline of eventual upstream producers
-    //   (destination deadlines apply at a later tag, so they must not tighten the sender)
-    TimeValue minInferredDeadline =
-        connection.getDefinition().getDelay() != null
-            ? getMinInferredDeadlineFromUpstream(connection)
-            : getMinInferredDeadlineFromDownstream(connection);
+    // Inherit a deadline for OS priority assignment from eventual upstream producers.
+    // Treat the network sender as a prolongation of the sending reaction so it keeps
+    // the same priority; inheriting a looser destination deadline on zero-delay
+    // connections can cause priority inversion within the source federate.
+    TimeValue minInferredDeadline = getMinInferredDeadlineFromUpstream(connection);
     if (minInferredDeadline != null && !TimeValue.isNoDeadlineSentinel(minInferredDeadline)) {
       LfFactory factory = LfFactory.eINSTANCE;
       Deadline deadline = factory.createDeadline();
@@ -872,8 +869,8 @@ public class FedASTUtils {
   /**
    * Minimum inferred deadline among reactions that eventually write the source port of {@code
    * connection}, following internal forwards via {@link PortInstance#eventualSources} and scoped to
-   * this connection's source bank and channel. Used for network senders on connections with an
-   * {@code after} delay, where destination deadlines must not be inherited.
+   * this connection's source bank and channel. Used for network senders so they inherit the sending
+   * reaction's deadline (treated as a prolongation of that reaction).
    *
    * @param connection The federated connection instance.
    * @return The minimum inferred deadline, or null if no upstream reaction has a deadline.
