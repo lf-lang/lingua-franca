@@ -6,15 +6,14 @@ target Python {
 
 reactor Blocker {
   preamble {=
-    import time
+    def fail(self, message):
+      sys.stderr.write(str(message) + "\n")
+      sys.exit(1)
 
-    def fail(message):
-        sys.stderr.write(str(message) + "\n")
-        sys.exit(1)
-
-    def slow():
-        time.sleep(0.05)
-        return 50
+    def slow(self):
+      import time
+      time.sleep(0.05)
+      return 50
   =}
   logical action done(200 ms)
   state early = 0
