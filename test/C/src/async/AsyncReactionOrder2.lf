@@ -16,7 +16,8 @@ main reactor {
   =}
   logical action async(50 ms)
   logical action async2(50 ms)
-  state check:int = 0
+  state check: int = 0
+
   reaction(async) {=
     if (self->check != 0) {
       lf_print_error_and_exit("First reaction was not executed first: %d", self->check);
@@ -24,6 +25,7 @@ main reactor {
     self->check = 1;
     lf_async_resume(async);
   =}
+
   reaction(startup) -> async {=
     lf_async(async, slow, 50);
     if (self->check != 1) {
@@ -31,6 +33,7 @@ main reactor {
     }
     self->check = 2;
   =}
+
   reaction(async2) {=
     if (self->check != 2) {
       lf_print_error_and_exit("Third reaction was not executed third: %d", self->check);
@@ -38,6 +41,7 @@ main reactor {
     self->check = 3;
     lf_async_resume(async2);
   =}
+
   reaction(startup) -> async2 {=
     lf_async(async2, slow, 50);
     if (self->check != 3) {
@@ -45,12 +49,14 @@ main reactor {
     }
     self->check = 4;
   =}
+
   reaction(async) {=
     if (self->check != 4) {
       lf_print_error_and_exit("Fifth reaction was not executed fifth: %d", self->check);
     }
     self->check = 5;
   =}
+
   reaction(shutdown) {=
     if (self->check != 5) {
       lf_print_error_and_exit("Not all reactions were executed: %d", self->check);

@@ -1,0 +1,42 @@
+/** Test lf_async() with a function that takes no parameters. */
+target C {
+  timeout: 1 sec,
+  workers: 1
+}
+
+reactor Blocker {
+  preamble {=
+    int slow() {
+      lf_sleep(MSEC(50));
+      return 50;
+    }
+  =}
+  logical action done(200 ms)
+  state early: int = 0
+
+  reaction(done) {=
+    lf_async_resume(done);
+  =}
+
+  reaction(startup) -> done {=
+    interval_t start = lf_time_logical_elapsed();
+    lf_print("Calling lf_async() at " PRINTF_TIME " (physical " PRINTF_TIME ")", start, lf_time_physical_elapsed());
+    self->early = lf_async(done, slow);
+    interval_t first = lf_time_logical_elapsed();
+    lf_print("Resume at " PRINTF_TIME " (physical " PRINTF_TIME ")", first, lf_time_physical_elapsed());
+    if (first != MSEC(200)) {
+      lf_print_error_and_exit(
+          "Expected the first lf_async() to resume at logical time 200 ms. Got " PRINTF_TIME ".", first);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->early != 50) {
+      lf_print_error_and_exit("Unexpected results %d.", self->early);
+    }
+  =}
+}
+
+main reactor {
+  b = new Blocker()
+}
