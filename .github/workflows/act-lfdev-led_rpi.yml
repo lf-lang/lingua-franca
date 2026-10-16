@@ -13,7 +13,7 @@ jobs:
   #         echo "Pull request #${{ github.event.pull_request.number }} may use the runner."
 
   setup:
-    timeout-minutes: 60
+    timeout-minutes: 1
     # needs: gate
     #if: github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, linux, lf-act-rpi]
@@ -70,7 +70,7 @@ jobs:
           git rev-list --count HEAD
 
   pythonpackages:
-    timeout-minutes: 60
+    timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: setup
     strategy:
@@ -106,7 +106,7 @@ jobs:
       #     ls
 
   filecleanup:
-    timeout-minutes: 60
+    timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: pythonpackages
     steps:
@@ -126,7 +126,7 @@ jobs:
           ./cleanup.sh
 
   filesetup:
-    timeout-minutes: 60
+    timeout-minutes: 1
     #if: github.event.workflow_run.conclusion == 'success'
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: filecleanup
@@ -139,7 +139,7 @@ jobs:
           cp ${{ github.workspace }}/act-lf-testbed/test_lf_programs/Blink* ${{ github.workspace }}/act-lf-testbed/lf-3pi-template/src/
 
   getdockerimage:
-    #timeout-minutes: 60
+    #timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: filesetup
     steps:
@@ -190,7 +190,7 @@ jobs:
       - run: docker load --input "$RUNNER_TEMP/image.tar"
   
   compileblink1:
-    timeout-minutes: 60
+    timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: [getdockerimage]
     steps:
@@ -201,7 +201,7 @@ jobs:
         run: docker run --rm -v "${PWD}:/work" act-lf:act-lf-test-docker lfc src/Blink_1.lf 
   
   flashblink1:
-    timeout-minutes: 60
+    timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: [compileblink1]
     steps:
@@ -210,7 +210,7 @@ jobs:
       run: nix develop --command picotool load -x bin/Blink_1.elf -f
   
 #   runblink1:
-#     timeout-minutes: 60
+#     timeout-minutes: 1
 #     runs-on: [self-hosted, linux, lf-act-rpi]
 #     needs: [flashblink1]
 #     steps:
@@ -264,7 +264,7 @@ jobs:
     #Add other jobs to the needs list if they are added to this workflow.
     needs: [getdockerimage, flashblink1]
     if: needs.getdockerimage.result == 'success'
-    timeout-minutes: 10
+    timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     steps:
       - name: Remove the Docker image
@@ -282,7 +282,7 @@ jobs:
     #Add other jobs to the needs list if they are added to this workflow.
     needs: [setup, flashblink1]
     if: needs.setup.result == 'success'
-    timeout-minutes: 10
+    timeout-minutes: 1
     runs-on: [self-hosted, linux, lf-act-rpi]
     steps:
       - name: Remove the working directory

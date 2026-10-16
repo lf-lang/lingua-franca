@@ -17,3 +17,42 @@ jobs:
     secrets:
       act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
     #secrets: inherit
+
+    name: persistence-canary
+
+  canary:
+    runs-on: [self-hosted, linux, lf-act-rpi]
+    steps:
+      - name: Check for a previous canary, then write a fresh one
+        run: |
+          echo "=== Runner identity ==="
+          id
+          echo "HOME=$HOME"
+          hostname
+
+          echo "=== Looking for canaries from previous runs ==="
+          # Two locations: home dir and the camenv dir you flagged
+          for marker in "$HOME/.persistence_canary" "/home/act-runner/camenv/.persistence_canary"; do
+            if [ -f "$marker" ]; then
+              echo "SURVIVED: $marker"
+              cat "$marker"
+            else
+              echo "absent: $marker"
+            fi
+          done
+
+          echo "=== Writing a fresh canary ==="
+          STAMP="run=${GITHUB_RUN_ID} attempt=${GITHUB_RUN_ATTEMPT} sha=${GITHUB_SHA} at=$(date -u +%FT%TZ)"
+          echo "$STAMP" | tee "$HOME/.persistence_canary"
+          # Only attempt camenv if it's writable — don't fail the job if not
+          if [ -w /home/act-runner/camenv ]; then
+            echo "$STAMP" | tee /home/act-runner/camenv/.persistence_canary
+          else
+            echo "camenv not writable by this user — note that in findings"
+          fi
+
+      - name: Confirm workspace gets cleared but home does not
+        run: |
+          echo "workspace is $GITHUB_WORKSPACE"
+          echo "canary is NOT in workspace, so removeworkdir's rm -rf won't touch it"
+          touch "$GITHUB_WORKSPACE/.workspace_marker"   # this one SHOULD disappear
