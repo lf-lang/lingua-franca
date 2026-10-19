@@ -936,7 +936,13 @@ public class CGenerator extends GeneratorBase {
       }
       for (var directory :
           List.of(
-              "logging", "platform", "low_level_platform", "trace", "lf_version", "tag", "network")) {
+              "logging",
+              "platform",
+              "low_level_platform",
+              "trace",
+              "lf_version",
+              "tag",
+              "network")) {
         var entry = "/lib/c/reactor-c/" + directory;
         if (arduino) {
           if ("network".equals(directory)) {
