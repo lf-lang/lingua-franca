@@ -21,12 +21,35 @@ public class CSchedulerTest extends TestBase {
   }
 
   /**
-   * Swap the default runtime scheduler with other supported versions and run all the supported
-   * tests. Only run tests for a specific non-default scheduler if specified using a system property
-   * (e.g., -Dscheduler=GEDF_NP).
+   * Swap the default runtime scheduler with other supported versions and run the supported tests.
+   * Only run tests for a specific non-default scheduler if specified using a system property (e.g.,
+   * -Dscheduler=GEDF_NP).
+   *
+   * <p>ASYNC tests are included only for {@link Scheduler#GEDF_NP}; the adaptive scheduler does not
+   * support the async/await and dynamic worker-thread APIs.
    */
   @Test
   public void runWithNonDefaultSchedulers() {
+    var name = System.getProperty("scheduler");
+
+    if (name != null) {
+      var option =
+          EnumSet.allOf(Scheduler.class).stream().filter(it -> it.name().equals(name)).findFirst();
+      if (option.isPresent()) {
+        this.runTest(option.get());
+      } else {
+        throw new RuntimeException("Cannot find runtime scheduler called " + name);
+      }
+    } else {
+      for (Scheduler scheduler : EnumSet.allOf(Scheduler.class)) {
+        if (scheduler == Scheduler.getDefault()) continue;
+        this.runTest(scheduler);
+      }
+    }
+  }
+
+  /** Categories to re-run under the given non-default scheduler. */
+  private EnumSet<TestCategory> categoriesFor(Scheduler scheduler) {
     EnumSet<TestCategory> categories = EnumSet.of(TestCategory.CONCURRENT, TestCategory.MULTIPORT);
 
     // Add federated and docker tests if supported
@@ -36,28 +59,17 @@ public class CSchedulerTest extends TestBase {
         categories.add(TestCategory.DOCKER_FEDERATED);
       }
     }
-    var name = System.getProperty("scheduler");
-
-    if (name != null) {
-      var option =
-          EnumSet.allOf(Scheduler.class).stream().filter(it -> it.name().equals(name)).findFirst();
-      if (option.isPresent()) {
-        this.runTest(option.get(), categories);
-      } else {
-        throw new RuntimeException("Cannot find runtime scheduler called " + name);
-      }
-    } else {
-      for (Scheduler scheduler : EnumSet.allOf(Scheduler.class)) {
-        if (scheduler == Scheduler.getDefault()) continue;
-        this.runTest(scheduler, categories);
-      }
+    // ASYNC requires NP or GEDF_NP; skip ADAPTIVE (and other schedulers that lack support).
+    if (scheduler == Scheduler.GEDF_NP) {
+      categories.add(TestCategory.ASYNC);
     }
+    return categories;
   }
 
-  private void runTest(Scheduler scheduler, EnumSet<TestCategory> categories) {
+  private void runTest(Scheduler scheduler) {
     this.runTestsForTargets(
         Message.DESC_SCHED_SWAPPING + scheduler.toString() + ".",
-        categories::contains,
+        categoriesFor(scheduler)::contains,
         Transformers::noChanges,
         config -> {
           SchedulerProperty.INSTANCE.override(config, scheduler);
