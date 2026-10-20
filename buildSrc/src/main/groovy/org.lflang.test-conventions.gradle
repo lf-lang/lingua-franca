@@ -55,10 +55,15 @@ test {
     workingDir = rootProject.projectDir
 
     integrationTest {
-        // Pass properties on to the Java VM
-        systemProperty 'scheduler', System.getProperty('scheduler')
-        systemProperty 'runtime', System.getProperty('runtime')
-        systemProperty 'singleTest', System.getProperty('singleTest')
+        // Pass optional -D properties through to the test JVM only when set.
+        // Forwarding a null value becomes -Dname=null (the string "null"), which
+        // breaks callers that treat a non-null property as an intentional override.
+        ['scheduler', 'runtime', 'singleTest'].each { name ->
+            def value = System.getProperty(name)
+            if (value != null) {
+                systemProperty name, value
+            }
+        }
 
         if (project.hasProperty('target')) {
             filter {

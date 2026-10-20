@@ -30,9 +30,10 @@ public class CSchedulerTest extends TestBase {
    */
   @Test
   public void runWithNonDefaultSchedulers() {
+    // Only treat a non-blank -Dscheduler=... as an override. Gradle used to forward a
+    // null system property as the literal string "null", which must not select a scheduler.
     var name = System.getProperty("scheduler");
-
-    if (name != null) {
+    if (name != null && !name.isBlank() && !name.equals("null")) {
       var option =
           EnumSet.allOf(Scheduler.class).stream().filter(it -> it.name().equals(name)).findFirst();
       if (option.isPresent()) {
