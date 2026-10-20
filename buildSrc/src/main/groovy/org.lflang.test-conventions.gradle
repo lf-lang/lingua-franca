@@ -63,6 +63,11 @@ test {
         if (project.hasProperty('target')) {
             filter {
                 includeTestsMatching "org.lflang.tests.runtime.${project.property('target')}Test.*"
+                // CSchedulerTest is not matched by CTest.*; include it when running C tests so
+                // non-default schedulers (e.g. GEDF_NP) are exercised in CI and locally.
+                if (project.property('target') == 'C') {
+                    includeTestsMatching "org.lflang.tests.runtime.CSchedulerTest.*"
+                }
             }
         }
         if (System.getProperty('singleTest') != null) {
