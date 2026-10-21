@@ -169,8 +169,10 @@ public class FedASTUtils {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    // Add port absent reactions only if the federate is in a zero delay cycle.
-    if (isInZeroDelayCycle(connection)) {
+    // Send port-absent messages on every zero-delay connection leaving a ZDC,
+    // including connections whose destination is outside the cycle. The
+    // destination blocks until that present or absent status arrives.
+    if (mustWaitForZeroDelayCycleSource(connection)) {
       FedASTUtils.addPortAbsentReaction(connection);
     }
 
@@ -318,7 +320,7 @@ public class FedASTUtils {
     connection.dstFederate.networkMessageActions.add(networkAction);
     connection.dstFederate.networkMessageSourceFederate.add(connection.srcFederate);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
-    if (isInZeroDelayCycle(connection)) {
+    if (mustWaitForZeroDelayCycleSource(connection)) {
       connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
       connection.dstFederate.zeroDelayCycleNetworkUpstreamFeds.add(connection.srcFederate);
     }
@@ -409,15 +411,40 @@ public class FedASTUtils {
   }
 
   /**
-   * Return true if the connection is in a zero-delay cycle.
-   * @param connection The connection to check.
-   * @return True if the connection is in a zero-delay cycle, false otherwise.
+   * Return true if {@code connection} is a zero-delay logical connection. An {@code after} delay,
+   * including {@code after 0}, and a physical connection are not zero-delay logical paths.
+   */
+  private static boolean isZeroDelayLogical(FedConnectionInstance connection) {
+    return connection.getDefinition().getDelay() == null
+        && !connection.getDefinition().isPhysical();
+  }
+
+  /**
+   * Return true if the connection itself lies on a zero-delay cycle.
+   *
+   * <p>Both endpoints have to be in a cycle and the connection has to be zero-delay and not
+   * physical. Decentralized coordination uses this to default {@code absent_after} to forever, so
+   * that a federate waits for a present or port-absent message instead of assuming the input is
+   * absent immediately.
    */
   private static boolean isInZeroDelayCycle(FedConnectionInstance connection) {
     return connection.srcFederate.isInZeroDelayCycle()
         && connection.dstFederate.isInZeroDelayCycle()
-        && connection.getDefinition().getDelay() == null
-        && !connection.getDefinition().isPhysical();
+        && isZeroDelayLogical(connection);
+  }
+
+  /**
+   * Return true if the destination must not complete a tag until it has seen a present or
+   * port-absent message on this connection.
+   *
+   * <p>This holds for every zero-delay connection whose source is in a zero-delay cycle, even when
+   * the destination is not. The RTI ignores cycle members when computing a strict earliest incoming
+   * tag and may forward a provisional tag grant to a federate outside the cycle. With no blocking
+   * input, that federate commits the tag before the source has sent. {@code FeedbackDelay.lf} is
+   * this case: the planner is downstream of the plant/controller cycle on a zero-delay connection.
+   */
+  private static boolean mustWaitForZeroDelayCycleSource(FedConnectionInstance connection) {
+    return connection.srcFederate.isInZeroDelayCycle() && isZeroDelayLogical(connection);
   }
 
   private static MixedRadixInt getSrcIndex(FedConnectionInstance connection) {
@@ -766,9 +793,9 @@ public class FedASTUtils {
 
     extension.addSenderIndexParameter(sender);
 
-    // The initialization reaction is needed only for the reaction that sends absent, which is
-    // not included if the sending federate is not a zero-delay cycle.
-    if (isInZeroDelayCycle(connection)) {
+    // The initialization reaction registers the port-absent reaction, so it is
+    // needed exactly when that reaction is generated.
+    if (mustWaitForZeroDelayCycleSource(connection)) {
       sender
           .getReactions()
           .add(getInitializationReaction(extension, extension.outputInitializationBody()));
