@@ -17,7 +17,7 @@ jobs:
     secrets:
       act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
     #secrets: inherit
-  
+
   string_injection:
     runs-on: [self-hosted, linux, lf-act-rpi]
     needs: [led-test]
