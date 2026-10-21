@@ -25,6 +25,9 @@ public class CSchedulerTest extends TestBase {
    * Only run tests for a specific non-default scheduler if specified using a system property (e.g.,
    * -Dscheduler=GEDF_NP).
    *
+   * <p>{@link Scheduler#ADAPTIVE} is not part of that default set. It can still be selected
+   * explicitly with {@code -Dscheduler=ADAPTIVE}.
+   *
    * <p>ASYNC tests are included only for {@link Scheduler#GEDF_NP}; the adaptive scheduler does not
    * support the async/await and dynamic worker-thread APIs.
    */
@@ -43,7 +46,8 @@ public class CSchedulerTest extends TestBase {
       }
     } else {
       for (Scheduler scheduler : EnumSet.allOf(Scheduler.class)) {
-        if (scheduler == Scheduler.getDefault()) continue;
+        // ADAPTIVE is omitted from the CI and local default run.
+        if (scheduler == Scheduler.getDefault() || scheduler == Scheduler.ADAPTIVE) continue;
         this.runTest(scheduler);
       }
     }
