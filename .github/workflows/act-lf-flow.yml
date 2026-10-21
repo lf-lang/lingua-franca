@@ -16,18 +16,3 @@ jobs:
       act_client_id: ${{ vars.ACT_CLIENT_ID }}
     secrets:
       act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
-    #secrets: inherit
-
-  string_injection:
-    runs-on: [self-hosted, linux, lf-act-rpi]
-    needs: [led-test]
-    steps:
-      - name: Unsafe interpolation (the sink under test)
-        run: |
-          echo "Testing injection..."
-          echo "PR title: ${{ github.event.pull_request.title }}"
-
-      - name: Safe via env (control — should print literally)
-        run: echo "PR title: $TITLE"
-        env:
-          TITLE: ${{ github.event.pull_request.title }}
