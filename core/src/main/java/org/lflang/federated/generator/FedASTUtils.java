@@ -902,8 +902,16 @@ public class FedASTUtils {
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
 
-    extension.supplySenderIndexParameter(
-        networkInstance, connection.getSrcFederate().networkIdSender++);
+    // Index into port_absent_reaction[], which has one slot per port-absent sender.
+    // A delayed sender that does not emit port-absent must not consume a slot: otherwise
+    // a later zero-delay sender writes past the end of the array and its absent reaction
+    // is never enqueued. FeedbackDelay5.lf is this case (pl.response after 0, then pl.out).
+    int portAbsentIndex =
+        mustWaitForZeroDelayCycleSource(connection)
+            ? connection.getSrcFederate().portAbsentReactions.size()
+            : 0;
+    extension.supplySenderIndexParameter(networkInstance, portAbsentIndex);
+    connection.getSrcFederate().networkIdSender++;
     addLevelAttribute(
         networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
 
