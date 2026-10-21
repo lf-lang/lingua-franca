@@ -9,10 +9,18 @@ on:
       - act-test
 
 jobs:
-  led-test:
-    # if: contains(github.event.pull_request.labels.*.name, 'act-lf-led')
-    uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
-    with:
-      act_client_id: ${{ vars.ACT_CLIENT_ID }}
-    secrets:
-      act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
+  # led-test:
+  #   # if: contains(github.event.pull_request.labels.*.name, 'act-lf-led')
+  #   uses: lf-lang/act-lf-testbed/.github/workflows/act-lfdev-led_rpi.yml@main
+  #   with:
+  #     act_client_id: ${{ vars.ACT_CLIENT_ID }}
+  #   secrets:
+  #     act_private_key: ${{ secrets.ACT_PRIVATE_KEY }}
+  
+  string-test:
+    runs-on: [self-hosted, linux, lf-act-rpi]
+    steps:
+      - name: Unsafe interpolation
+        run: |
+          echo "Testing injection..."
+          echo "PR title: ${{ github.event.pull_request.title }}"
