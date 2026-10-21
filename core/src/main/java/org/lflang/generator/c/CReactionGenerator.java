@@ -928,8 +928,15 @@ public class CReactionGenerator {
 
       var deadlineFunctionPointer = "NULL";
       if (reaction.getDeadline() != null) {
-        // The following has to match the name chosen in generateReactions
-        var deadlineFunctionName = generateDeadlineFunctionName(tpr, reactionCount);
+        String deadlineFunctionName;
+        if (reaction.getDeadline().getCode() != null) {
+          // There is a deadline violation handler.
+          // The following has to match the name chosen in generateReactions
+          deadlineFunctionName = generateDeadlineFunctionName(tpr, reactionCount);
+        } else {
+          // There is no deadline handler body. Invoke the ordinary reaction.
+          deadlineFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         deadlineFunctionPointer = "&" + deadlineFunctionName;
       }
 
@@ -1228,7 +1235,7 @@ public class CReactionGenerator {
     }
 
     // Now generate code for the deadline violation function, if there is one.
-    if (reaction.getDeadline() != null) {
+    if (reaction.getDeadline() != null && reaction.getDeadline().getCode() != null) {
       code.pr(
           generateFunction(
               generateDeadlineFunctionHeader(tpr, reactionIndex),

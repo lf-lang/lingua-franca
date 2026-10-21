@@ -1,0 +1,49 @@
+/**
+ * Test that a deadline without a handler body still executes the regular reaction body when the
+ * deadline is violated (analogous to body-less `tardy`).
+ */
+target TypeScript
+
+reactor Deadline(threshold: time = 100 msec) {
+  input x: number
+  output done: boolean
+
+  reaction(x) -> done {=
+    console.log("Regular reaction body executed despite deadline violation.");
+    done = true;
+  =} deadline(threshold)
+}
+
+reactor Print {
+  input x: boolean
+  state success: boolean = false
+
+  reaction(x) {=
+    if (x) {
+      console.log("Output successfully produced by regular reaction body.");
+      success = true;
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!success) {
+      util.requestErrorStop("ERROR: Regular reaction body was not executed.");
+    }
+  =}
+}
+
+main reactor {
+  timer start
+  d = new Deadline(threshold = 10 msec)
+  p = new Print()
+  d.done -> p.x
+
+  reaction(start) -> d.x {=
+    let sleep_time = TimeValue.msec(20);
+    let startTime = util.getCurrentPhysicalTime();
+    let finishTime = startTime.add(sleep_time)
+    // Busy wait
+    while(util.getCurrentPhysicalTime().isEarlierThan(finishTime));
+    d.x = 42;
+  =}
+}

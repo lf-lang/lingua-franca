@@ -1,0 +1,57 @@
+/**
+ * Test that a deadline without a handler body still executes the regular reaction body when the
+ * deadline is violated (analogous to body-less `tardy`).
+ */
+target C
+
+preamble {=
+  #ifdef __cplusplus
+  extern "C" {
+  #endif
+  #include "platform.h"
+  #ifdef __cplusplus
+  }
+  #endif
+=}
+
+reactor Deadline(threshold: time = 100 msec) {
+  input x: int
+  output done: bool
+
+  reaction(x) -> done {=
+    printf("Regular reaction body executed despite deadline violation.\n");
+    lf_set(done, true);
+  =} deadline(threshold)
+}
+
+reactor Print {
+  input in: bool
+  state success: bool = false
+
+  reaction(in) {=
+    if (in->value) {
+      printf("Output successfully produced by regular reaction body.\n");
+      self->success = true;
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!self->success) {
+      fprintf(stderr, "ERROR: Regular reaction body was not executed.\n");
+      exit(1);
+    }
+  =}
+}
+
+main reactor {
+  timer start
+  d = new Deadline(threshold = 10 msec)
+  p = new Print()
+  d.done -> p.in
+
+  reaction(start) -> d.x {=
+    instant_t sleep_time_ns = 20000000;
+    lf_sleep(sleep_time_ns);
+    lf_set(d.x, 42);
+  =}
+}
