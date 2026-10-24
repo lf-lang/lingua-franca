@@ -29,6 +29,7 @@ It is also possible to run a subset of the tests. For example, the C tests are o
 
 * **generic** tests are `.lf` files located in `$LF/test/C/src`.
 * **concurrent** tests are `.lf` files located in `$LF/test/C/src/concurrent`.
+* **async** tests are `.lf` files located in `$LF/test/C/src/async`. These require the threaded runtime.
 * **federated** tests are `.lf` files located in `$LF/test/C/src/federated`.
 * **multiport** tests are `.lf` files located in `$LF/test/C/src/multiport`.
 
