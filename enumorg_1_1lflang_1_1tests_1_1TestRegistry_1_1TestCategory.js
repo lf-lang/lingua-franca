@@ -4,6 +4,7 @@ var enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory =
     [ "getHeader", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a5ac4d60fe696de12b0348ef830d453bd", null ],
     [ "getPath", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a736ab010ad255e93e3cb9efaad90e4a3", null ],
     [ "ARDUINO", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a2ab09c75c7fdee228705599a1564ab2a", null ],
+    [ "ASYNC", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ae4e835ebb521319d31837dd1201b4e9d", null ],
     [ "BASIC", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#afd8477c89599f085080659496a3c2a63", null ],
     [ "CONCURRENT", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ae1602efcce79a7d25a759ea4974b0c88", null ],
     [ "DOCKER", "enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ac166dfb3875db0cdb4238071a6f3eeac", null ],

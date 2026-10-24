@@ -11,8 +11,9 @@ var searchData=
   ['arduino_8',['ARDUINO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a54af8619f8ee8efc22ad51389f501d39',1,'org.lflang.target.property.type.PlatformType.Platform.ARDUINO'],['../enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a2ab09c75c7fdee228705599a1564ab2a',1,'org.lflang.tests.TestRegistry.TestCategory.ARDUINO']]],
   ['arraypattern_9',['arrayPattern',['../classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#a09a71fba301c77cb1499629637160329',1,'org::lflang::generator::c::CTypes']]],
   ['asttype_10',['astType',['../classorg_1_1lflang_1_1InferredType.html#a58bebffcb3e47c8b33e2c37fb78c4e9e',1,'org::lflang::InferredType']]],
-  ['attenuation_11',['ATTENUATION',['../enumorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOption.html#a6b2994762c72cb5e064ef8d35aa6219c',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOption']]],
-  ['attenuation_12',['attenuation',['../classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOptions.html#aecbf0bc120d58b64f70dfac8a1286e04',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOptions']]],
-  ['attribute_5fspecs_5fby_5fname_13',['ATTRIBUTE_SPECS_BY_NAME',['../classorg_1_1lflang_1_1validation_1_1AttributeSpec.html#a5f7cf0efe5362b07249b6a0472555e10',1,'org::lflang::validation::AttributeSpec']]],
-  ['auto_14',['AUTO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a032b0139a6e75709ec81a0c15d57792c',1,'org::lflang::target::property::type::PlatformType::Platform']]]
+  ['async_11',['ASYNC',['../enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ae4e835ebb521319d31837dd1201b4e9d',1,'org::lflang::tests::TestRegistry::TestCategory']]],
+  ['attenuation_12',['ATTENUATION',['../enumorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOption.html#a6b2994762c72cb5e064ef8d35aa6219c',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOption']]],
+  ['attenuation_13',['attenuation',['../classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOptions.html#aecbf0bc120d58b64f70dfac8a1286e04',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOptions']]],
+  ['attribute_5fspecs_5fby_5fname_14',['ATTRIBUTE_SPECS_BY_NAME',['../classorg_1_1lflang_1_1validation_1_1AttributeSpec.html#a5f7cf0efe5362b07249b6a0472555e10',1,'org::lflang::validation::AttributeSpec']]],
+  ['auto_15',['AUTO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a032b0139a6e75709ec81a0c15d57792c',1,'org::lflang::target::property::type::PlatformType::Platform']]]
 ];

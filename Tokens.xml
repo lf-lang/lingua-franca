@@ -7333,6 +7333,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ASYNC</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.tests.TestRegistry.TestCategory</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+    <Anchor>ae4e835ebb521319d31837dd1201b4e9d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>at</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>
@@ -14699,6 +14709,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>DESC_ASYNC</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.tests.TestBase.Message</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</Path>
+    <Anchor>abdfe1d75cec52aa6a571bb8b844af619</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>DESC_BASIC</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>
@@ -19334,16 +19354,6 @@
     </TokenIdentifier>
     <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType_1_1Scheduler.html</Path>
     <Anchor>a597fd32215833e1c386f2babe127785d</Anchor>
-  </Token>
-  <Token>
-    <TokenIdentifier>
-      <Name>GEDF_NP_CI</Name>
-      <APILanguage>java</APILanguage>
-      <Type>data</Type>
-      <Scope>org.lflang.target.property.type.SchedulerType.Scheduler</Scope>
-    </TokenIdentifier>
-    <Path>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType_1_1Scheduler.html</Path>
-    <Anchor>abf77dad5792fe42c7c153353b5a38232</Anchor>
   </Token>
   <Token>
     <TokenIdentifier>
@@ -41147,6 +41157,28 @@
     <Path>classorg_1_1lflang_1_1tests_1_1RuntimeTest.html</Path>
     <Anchor>ad3389138df5f2795c24443144941e0cc</Anchor>
     <DeclaredIn>RuntimeTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runAsyncTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.CTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</Path>
+    <Anchor>a3df38183dc5f0785c8d029bec4d4f62b</Anchor>
+    <DeclaredIn>CTest.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
+      <Name>runAsyncTests</Name>
+      <APILanguage>java</APILanguage>
+      <Type>instm</Type>
+      <Scope>org.lflang.tests.runtime.PythonTest</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</Path>
+    <Anchor>a220970515b1678879339cd3662afefbf</Anchor>
+    <DeclaredIn>PythonTest.java</DeclaredIn>
   </Token>
   <Token>
     <TokenIdentifier>

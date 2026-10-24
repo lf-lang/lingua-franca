@@ -35444,13 +35444,6 @@
     </member>
     <member kind="variable">
       <type></type>
-      <name>GEDF_NP_CI</name>
-      <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType_1_1Scheduler.html</anchorfile>
-      <anchor>abf77dad5792fe42c7c153353b5a38232</anchor>
-      <arglist></arglist>
-    </member>
-    <member kind="variable">
-      <type></type>
       <name>NP</name>
       <anchorfile>enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1SchedulerType_1_1Scheduler.html</anchorfile>
       <anchor>a24a3efbc4ce98671a57967f0be31a0c2</anchor>
@@ -39830,6 +39823,13 @@
     </member>
     <member kind="function">
       <type>void</type>
+      <name>runAsyncTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</anchorfile>
+      <anchor>a3df38183dc5f0785c8d029bec4d4f62b</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
       <name>runBasicTests</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html</anchorfile>
       <anchor>a5af7486e56a40a7c983c9cbb8546d063</anchor>
@@ -40805,6 +40805,13 @@
       <name>runAsFederated</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</anchorfile>
       <anchor>a51f476a57dabbd54e6fa067a234288b1</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type>void</type>
+      <name>runAsyncTests</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1runtime_1_1PythonTest.html</anchorfile>
+      <anchor>a220970515b1678879339cd3662afefbf</anchor>
       <arglist>()</arglist>
     </member>
     <member kind="function">
@@ -42380,6 +42387,13 @@
     </member>
     <member kind="variable" static="yes">
       <type>static final String</type>
+      <name>DESC_ASYNC</name>
+      <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</anchorfile>
+      <anchor>abdfe1d75cec52aa6a571bb8b844af619</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable" static="yes">
+      <type>static final String</type>
       <name>DESC_BASIC</name>
       <anchorfile>classorg_1_1lflang_1_1tests_1_1TestBase_1_1Message.html</anchorfile>
       <anchor>a5c388de3502c71e9239eb31eb470f4a0</anchor>
@@ -42702,6 +42716,13 @@
       <name>ARDUINO</name>
       <anchorfile>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</anchorfile>
       <anchor>a2ab09c75c7fdee228705599a1564ab2a</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
+      <name>ASYNC</name>
+      <anchorfile>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</anchorfile>
+      <anchor>ae4e835ebb521319d31837dd1201b4e9d</anchor>
       <arglist></arglist>
     </member>
     <member kind="variable">

@@ -12,6 +12,7 @@ var classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest =
     [ "pathToLevel", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a9538c294f1910e14c75d49476ec1c159", null ],
     [ "printTestHeader", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#ac847b48162a5aa845f798a78465ff5fb", null ],
     [ "runAsFederated", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a01202f04b1cc25a3a148eda5dacc4cdb", null ],
+    [ "runAsyncTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a3df38183dc5f0785c8d029bec4d4f62b", null ],
     [ "runBasicTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a5af7486e56a40a7c983c9cbb8546d063", null ],
     [ "runConcurrentTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#a9ff09eda59379e0ca230021af57f3228", null ],
     [ "runDockerFederatedTests", "classorg_1_1lflang_1_1tests_1_1runtime_1_1CTest.html#af1d6d00e0fb45d9cbde6177f50f81519", null ],
