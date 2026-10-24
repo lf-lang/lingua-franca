@@ -586,7 +586,9 @@ public class FedASTUtils {
    * This maximum may be nested in contained reactors in the federate.
    * If there is still no offset and this zero-delay logical connection joins federates that are
    * each in a zero-delay cycle, return TimeValue.FOREVER so the destination waits for a present or
-   * port-absent message instead of assuming the port is absent immediately.
+   * port-absent message instead of assuming the port is absent immediately. An upstream with no
+   * further local event sends an open-ended absent so the destination is not stuck waiting for a
+   * tag that upstream will never execute.
    * Otherwise, this method returns TimeValue.ZERO.
    * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
