@@ -65,7 +65,8 @@ public class CSchedulerTest extends TestBase {
       }
     }
     // ASYNC requires NP or GEDF_NP; skip ADAPTIVE (and other schedulers that lack support).
-    if (scheduler == Scheduler.GEDF_NP) {
+    // lf_async() also requires GNU statement expressions, so skip ASYNC on Windows (MSVC).
+    if (scheduler == Scheduler.GEDF_NP && !isWindows()) {
       categories.add(TestCategory.ASYNC);
       categories.add(TestCategory.ASYNC_NO_INLINING);
     }

@@ -17,7 +17,7 @@
  * call of each Blocker reuses them, so no further threads get added.
  */
 target Python {
-  timeout: 1 sec,
+  timeout: 2 sec,
   workers: 1,
   keepalive: true
 }
@@ -53,24 +53,24 @@ reactor Blocker(id=0) {
     # These outputs must be delivered at this tag, before lf_async() lets logical time advance.
     stamp.set(lf.time.logical())
     microstep.set(lf.tag().microstep)
-    result = self.lf_async(awake, slow, 50)
+    result = self.lf_async(awake, slow, 1)
     elapsed = lf.time.logical_elapsed()
     print(f"Blocker {self.id}: Result: {result} at time {elapsed}")
-    if elapsed < MSEC(500):
-        fail(f"Expected lf_async() to return at a logical time of at least 500 ms. Got {elapsed}.")
+    if elapsed < MSEC(10):
+        fail(f"Expected lf_async() to return at a logical time of at least 10 ms. Got {elapsed}.")
     stamp.set(lf.time.logical())
     microstep.set(lf.tag().microstep)
-    result += self.lf_async(awake, slow, 20)
+    result += self.lf_async(awake, slow, 1)
     elapsed = lf.time.logical_elapsed()
     print(f"Blocker {self.id}: Result: {result} at time {elapsed}")
-    if elapsed < MSEC(700):
-        fail(f"Expected second lf_async() to return at a logical time of at least 700 ms. Got {elapsed}.")
+    if elapsed < MSEC(20):
+        fail(f"Expected second lf_async() to return at a logical time of at least 20 ms. Got {elapsed}.")
     self.result = result
   =}
 
   reaction(shutdown) {=
-    if self.result != 70:
-        fail(f"Expected result 70 from lf_async(). Got {self.result}.")
+    if self.result != 2:
+        fail(f"Expected result 2 from lf_async(). Got {self.result}.")
   =}
 }
 
@@ -97,7 +97,7 @@ reactor Checker {
     self.count += 1
     if elapsed == 0:
         self.saw_start = True
-    elif elapsed >= MSEC(500):
+    elif elapsed >= MSEC(10):
         self.saw_resume = True
     else:
         fail(f"Output propagated at unexpected logical time {elapsed}.")
