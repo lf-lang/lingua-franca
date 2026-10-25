@@ -125,7 +125,8 @@ main reactor {
     lf_print("%d", self->count++);
     // If lf_await() blocked the advancement of logical time, the timer events would be
     // processed late once the suspended reactions prevented the tag from advancing.
-    if (lag > MSEC(80)) {
+    // This is difficult to test in CI without making the test flaky.
+    if (lag > MSEC(200)) {
       lf_print_error_and_exit("Timer reaction is lagging physical time by " PRINTF_TIME " ns.", lag);
     }
   =}

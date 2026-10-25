@@ -1,0 +1,23 @@
+// Check that an externally defined reaction with no triggers that lists an action as a source
+// compiles. The action must be declared in the generated reaction function so that it can be passed
+// to the external function. A reaction with no triggers is not invoked, so this is a build test.
+target C {
+  timeout: 100 msec,
+  fast: true,
+  cmake-include: ["../../c/action_source.cmake"],
+  files: ["../../c"]
+}
+
+reactor R {
+  logical action a(10 msec)
+
+  reaction handle() a
+
+  reaction(shutdown) {=
+    lf_print("Success.");
+  =}
+}
+
+main reactor {
+  r = new R()
+}

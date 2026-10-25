@@ -148,6 +148,14 @@ public class CReactionGenerator {
       for (Input input : tpr.reactor().getInputs()) {
         reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
       }
+      // Actions listed as sources are not inputs, so they are not covered above.
+      // They must still be declared, e.g., so that they can be passed to a reaction
+      // that has no body in the LF source.
+      for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+        if (src.getVariable() instanceof Action action && actionsAsTriggers.add(action)) {
+          reactionInitialization.pr(generateActionVariablesInReaction(action, tpr, types));
+        }
+      }
     } else {
       // Define argument for non-triggering inputs.
       for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
