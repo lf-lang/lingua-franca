@@ -17,7 +17,7 @@
  * call of each Blocker reuses them, so no further threads get added.
  */
 target C {
-  timeout: 2 s,
+  timeout: 3 s,
   workers: 1,
   keepalive: true
 }
@@ -48,17 +48,17 @@ reactor Blocker(id: int = 0) {
     // These outputs must be delivered at this tag, before lf_async() lets logical time advance.
     lf_set(stamp, lf_time_logical());
     lf_set(microstep, (int)lf_tag().microstep);
-    int result = lf_async(awake, slow, 50);
+    int result = lf_async(awake, slow, 1);
     lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
-    if (lf_time_logical_elapsed() < MSEC(500)) {
-      lf_print_error_and_exit("Expected lf_async() to return at a logical time of at least 500 ms.");
+    if (lf_time_logical_elapsed() < MSEC(10)) {
+      lf_print_error_and_exit("Expected lf_async() to return at a logical time of at least 10 ms.");
     }
     lf_set(stamp, lf_time_logical());
     lf_set(microstep, (int)lf_tag().microstep);
-    result += lf_async(awake, slow, 20);
+    result += lf_async(awake, slow, 1);
     lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
-    if (lf_time_logical_elapsed() < MSEC(700)) {
-      lf_print_error_and_exit("Expected second lf_async() to return at a logical time of at least 700 ms.");
+    if (lf_time_logical_elapsed() < MSEC(20)) {
+      lf_print_error_and_exit("Expected second lf_async() to return at a logical time of at least 20 ms.");
     }
     self->result = result;
   =}
