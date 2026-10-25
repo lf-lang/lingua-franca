@@ -1,13 +1,16 @@
 // Externally defined reactions that use lf_async_ext() and lf_async_resume().
 #include "../include/AsyncExtManual/Blocker.h"
 
+// Block for about 10 ms per iteration and return the number of iterations. The duration is
+// measured against a physical-time deadline rather than by summing sleeps, because lf_sleep()
+// can overshoot substantially on a loaded machine.
 static int slow(int iterations) {
-    int result = 0;
-    for (int j = 0; j < iterations; j++) {
-        result++;
-        lf_sleep(MSEC(10));
+    instant_t deadline = lf_time_physical() + MSEC(10) * iterations;
+    instant_t now;
+    while ((now = lf_time_physical()) < deadline) {
+        lf_sleep(deadline - now);
     }
-    return result;
+    return iterations;
 }
 
 void resume(blocker_self_t* self, blocker_awake_t* awake) {
