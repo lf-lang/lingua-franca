@@ -45,8 +45,11 @@ main reactor {
     interval_t logical = lf_time_logical_elapsed();
     interval_t lag = lf_time_physical_elapsed() - logical;
     // Once the second call's action triggers, at 400 ms, lf_async_resume() holds that tag until
-    // the function returns, so later timer events are expected to lag.
-    if (logical <= MSEC(400)) {
+    // The second call's action triggers at 400 ms, and lf_async_resume() holds that tag until the
+    // function returns, which is at least 350 ms of physical time after the first resume at 200 ms.
+    // The timer event at 400 ms is part of that tag, so it is inherently late by at least 150 ms
+    // and is excluded from the check. Earlier events must not lag.
+    if (logical < MSEC(400)) {
       self->early_ticks++;
       if (lag > MSEC(250)) {
         lf_print_error_and_exit("Timer lagging by " PRINTF_TIME " at logical time " PRINTF_TIME ".", lag, logical);

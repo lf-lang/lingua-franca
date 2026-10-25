@@ -69,16 +69,18 @@ main reactor {
   reaction(t) {=
     logical = lf.time.logical_elapsed()
     lag = lf.time.physical_elapsed() - logical
-    # Once the second call's action triggers, at 400 ms, lf_async_resume() holds that tag until
-    # the function returns, so later timer events are expected to lag.
-    if logical <= MSEC(400):
+    # The second call's action triggers at 400 ms, and lf_async_resume() holds that tag until the
+    # function returns, which is at least 350 ms of physical time after the first resume at 200 ms.
+    # The timer event at 400 ms is part of that tag, so it is inherently late by at least 150 ms
+    # and is excluded from the check. Earlier events must not lag.
+    if logical < MSEC(400):
         self.early_ticks += 1
         if lag > MSEC(250):
             fail(f"Timer lagging by {lag} at logical time {logical}.")
   =}
 
   reaction(shutdown) {=
-    # Ticks at 0, 20, ..., 400 ms.
+    # Ticks at 0, 20, ..., 380 ms.
     if self.early_ticks < 19:
         fail(f"Expected logical time to advance during lf_async(). Saw {self.early_ticks} ticks before 400 ms.")
     added = self.lf_added_worker_thread_count()
