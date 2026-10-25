@@ -13,7 +13,7 @@
  * action is a fatal error.
  */
 target C {
-  timeout: 1 sec,
+  timeout: 2 s,
   workers: 1,
   keepalive: true
 }
