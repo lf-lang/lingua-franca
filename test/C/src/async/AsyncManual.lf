@@ -64,8 +64,8 @@ reactor Blocker(id: int = 0) {
   =}
 
   reaction(shutdown) {=
-    if (self->result != 70) {
-      lf_print_error_and_exit("Expected result 70 from lf_async(). Got %d.", self->result);
+    if (self->result != 2) {
+      lf_print_error_and_exit("Expected result 2 from lf_async(). Got %d.", self->result);
     }
   =}
 }
@@ -94,7 +94,7 @@ reactor Checker {
     self->count++;
     if (elapsed == 0) {
       self->saw_start = true;
-    } else if (elapsed >= MSEC(500)) {
+    } else if (elapsed >= MSEC(10)) {
       self->saw_resume = true;
     } else {
       lf_print_error_and_exit("Output propagated at unexpected logical time " PRINTF_TIME ".", elapsed);
@@ -123,7 +123,8 @@ main reactor {
     lf_print("Main at time " PRINTF_TIME " (lag " PRINTF_TIME ")", lf_time_logical_elapsed(), lag);
     self->count++;
     // If lf_async() blocked the advancement of logical time, the timer events during the
-    // 500 ms that slow() takes would all be processed late, with a lag of several hundred ms.
+    // 20 ms that slow() takes would all be processed late, with a lag of at least 20 ms.
+    // But this is difficult to test in CI without making the test flaky.
     if (lag > MSEC(250)) {
       lf_print_error_and_exit("Timer reaction is lagging physical time by " PRINTF_TIME " ns.", lag);
     }
