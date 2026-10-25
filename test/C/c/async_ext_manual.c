@@ -21,21 +21,21 @@ void resume(blocker_self_t* self, blocker_awake_t* awake) {
 void block(blocker_self_t* self, blocker_awake_t* awake) {
     environment_t* env = self->base.environment;
     lf_print("Starting Blocker %d", self->id);
-    int result = lf_async_ext(self, awake, slow, 50);
+    int result = lf_async_ext(self, awake, slow, 1);
     lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed(env));
-    if (lf_time_logical_elapsed(env) < MSEC(500)) {
-        lf_print_error_and_exit("Expected lf_async_ext() to return at a logical time of at least 500 ms.");
+    if (lf_time_logical_elapsed(env) < MSEC(10)) {
+        lf_print_error_and_exit("Expected lf_async_ext() to return at a logical time of at least 10 ms.");
     }
-    result += lf_async_ext(self, awake, slow, 20);
+    result += lf_async_ext(self, awake, slow, 1);
     lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed(env));
-    if (lf_time_logical_elapsed(env) < MSEC(700)) {
-        lf_print_error_and_exit("Expected second lf_async_ext() to return at a logical time of at least 700 ms.");
+    if (lf_time_logical_elapsed(env) < MSEC(20)) {
+        lf_print_error_and_exit("Expected second lf_async_ext() to return at a logical time of at least 20 ms.");
     }
     self->result = result;
 }
 
 void check(blocker_self_t* self) {
-    if (self->result != 70) {
-        lf_print_error_and_exit("Expected result 70 from lf_async_ext(). Got %d.", self->result);
+    if (self->result != 2) {
+        lf_print_error_and_exit("Expected result 2 from lf_async_ext(). Got %d.", self->result);
     }
 }
