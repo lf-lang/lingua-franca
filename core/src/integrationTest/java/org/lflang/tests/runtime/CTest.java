@@ -102,7 +102,7 @@ public class CTest extends RuntimeTest {
   public void runAsyncTests() {
     runTestsForTargets(
         Message.DESC_ASYNC,
-        TestCategory.ASYNC::equals,
+        category -> category == TestCategory.ASYNC || category == TestCategory.ASYNC_NO_INLINING,
         Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,

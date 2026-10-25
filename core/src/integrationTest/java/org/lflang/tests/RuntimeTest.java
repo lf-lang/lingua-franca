@@ -107,6 +107,7 @@ public abstract class RuntimeTest extends TestBase {
         EnumSet.of(
             TestCategory.CONCURRENT,
             TestCategory.ASYNC,
+            TestCategory.ASYNC_NO_INLINING,
             TestCategory.FEDERATED,
             TestCategory.FEDERATED_SST,
             // FIXME: also run the multiport tests once these are supported.
@@ -251,6 +252,7 @@ public abstract class RuntimeTest extends TestBase {
     boolean excluded =
         category == TestCategory.CONCURRENT
             || category == TestCategory.ASYNC
+            || category == TestCategory.ASYNC_NO_INLINING
             || category == TestCategory.SERIALIZATION
             || category == TestCategory.FEDERATED
             || category == TestCategory.FEDERATED_SST

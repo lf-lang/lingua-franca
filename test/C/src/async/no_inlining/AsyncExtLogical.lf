@@ -1,0 +1,68 @@
+/**
+ * Test lf_async_ext() in an externally defined reaction with a logical action whose minimum delay
+ * makes the resume tag later than the tag that triggered the calling reaction. Compare to
+ * ../AsyncLogical.lf. The reaction that calls lf_async_resume() has a body in the LF source, so
+ * this also checks that an inlined reaction can resume an externally defined one.
+ *
+ * The first call's function returns in about 50 ms, before the 200 ms delay elapses. Logical time
+ * keeps advancing while it runs, and the call resumes at logical time 200 ms.
+ *
+ * The second call's function takes about 350 ms. Its action is scheduled 200 ms after the calling
+ * tag, at logical time 400 ms, while the function is still running. lf_async_resume() blocks until
+ * the function returns, so the call resumes at logical time 400 ms.
+ */
+target C {
+  timeout: 1 sec,
+  workers: 1,
+  cmake-include: ["../../../c/async_ext_logical.cmake"],
+  files: ["../../../c"]
+}
+
+reactor Blocker {
+  logical action done(200 ms)
+  state early: int = 0
+  state late: int = 0
+
+  reaction(done) {=
+    lf_async_resume(done);
+  =}
+
+  reaction block(startup) -> done
+
+  reaction(shutdown) {=
+    if (self->early != 50 || self->late != 350) {
+      lf_print_error_and_exit("Unexpected results %d and %d.", self->early, self->late);
+    }
+  =}
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  b = new Blocker()
+  state early_ticks: int = 0
+
+  reaction(t) {=
+    interval_t logical = lf_time_logical_elapsed();
+    interval_t lag = lf_time_physical_elapsed() - logical;
+    // Once the second call's action triggers, at 400 ms, lf_async_resume() holds that tag until
+    // the function returns, so later timer events are expected to lag.
+    if (logical <= MSEC(400)) {
+      self->early_ticks++;
+      if (lag > MSEC(250)) {
+        lf_print_error_and_exit("Timer lagging by " PRINTF_TIME " at logical time " PRINTF_TIME ".", lag, logical);
+      }
+    }
+  =}
+
+  reaction(shutdown) {=
+    // Ticks at 0, 20, ..., 400 ms.
+    if (self->early_ticks < 19) {
+      lf_print_error_and_exit("Expected logical time to advance during lf_async_ext(). Saw %d ticks before 400 ms.",
+                              self->early_ticks);
+    }
+    if (lf_added_worker_thread_count() != 1) {
+      lf_print_error_and_exit("Expected 1 added worker. Got %d.", lf_added_worker_thread_count());
+    }
+    lf_print("SUCCESS");
+  =}
+}

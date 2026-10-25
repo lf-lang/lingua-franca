@@ -1,0 +1,98 @@
+/**
+ * Test lf_await_ext() and lf_await_resume_ext(), the versions of lf_await() and lf_await_resume()
+ * for externally defined reactions, which do not have access to the lf_await() macros. Compare to
+ * ../AwaitFeedback.lf.
+ *
+ * The startup reaction of Requester sets an output that triggers Relay, whose output feeds back to
+ * the response input of Requester through a connection with an `after` delay of 100 ms. An
+ * externally defined reaction calls lf_await_ext(response) at the start tag. The response reaction,
+ * also externally defined, calls lf_await_resume_ext(response), so lf_await_ext() returns at a
+ * logical time exactly 100 ms later.
+ *
+ * At 50 ms, a second externally defined reaction of Requester also calls lf_await_ext(response).
+ * Both calls are pending when the response arrives at 100 ms, and the single
+ * lf_await_resume_ext(response) resumes both of them at that tag.
+ *
+ * An externally defined reaction of Forgotten calls lf_await_ext() on an input that never receives
+ * anything and is never resumed. When the program stops, lf_await_ext() returns at the stop tag so
+ * that the reaction can complete.
+ *
+ * While the reactions are suspended, the timer of the main reactor keeps firing every 20 ms, which
+ * is verified by checking that its lag behind physical time stays small.
+ */
+target C {
+  timeout: 1 sec,
+  workers: 1,
+  cmake-include: ["../../../c/await_ext.cmake"],
+  files: ["../../../c"]
+}
+
+reactor Relay {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
+}
+
+reactor Requester {
+  output request: int
+  input response: int
+  timer late(50 ms)
+  state responses: int = 0
+  state completed: bool = false
+  state late_resumed_at: time = 0
+
+  reaction on_response(response)
+
+  reaction(startup) -> request {=
+    // This output is propagated at this tag, before the next reaction suspends.
+    lf_set(request, 1);
+  =}
+
+  reaction wait_for_response(startup) response
+
+  reaction late_wait(late) response
+
+  reaction check(shutdown)
+}
+
+reactor Forgotten {
+  input silent: int
+
+  reaction forgotten(startup) silent
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  requester = new Requester()
+  relay = new Relay()
+  forgotten = new Forgotten()
+  requester.request -> relay.in
+  relay.out -> requester.response after 100 ms
+  state count: int = 0
+
+  reaction(t) {=
+    interval_t lag = lf_time_physical_elapsed() - lf_time_logical_elapsed();
+    lf_print("%d", self->count++);
+    // If lf_await_ext() blocked the advancement of logical time, the timer events would be
+    // processed late once the suspended reactions prevented the tag from advancing.
+    if (lag > MSEC(80)) {
+      lf_print_error_and_exit("Timer reaction is lagging physical time by " PRINTF_TIME " ns.", lag);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->count < 50) {
+      lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 50.", self->count);
+    }
+    // Three reactions were suspended concurrently between 50 ms and 100 ms, so three worker
+    // threads were added.
+    if (lf_added_worker_thread_count() != 3) {
+      lf_print_error_and_exit("Expected lf_await_ext() to add 3 worker threads. Got %d.",
+                              lf_added_worker_thread_count());
+    }
+    lf_print("SUCCESS");
+  =}
+}

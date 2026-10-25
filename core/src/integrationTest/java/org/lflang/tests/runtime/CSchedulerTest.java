@@ -67,6 +67,7 @@ public class CSchedulerTest extends TestBase {
     // ASYNC requires NP or GEDF_NP; skip ADAPTIVE (and other schedulers that lack support).
     if (scheduler == Scheduler.GEDF_NP) {
       categories.add(TestCategory.ASYNC);
+      categories.add(TestCategory.ASYNC_NO_INLINING);
     }
     return categories;
   }
