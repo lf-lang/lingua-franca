@@ -1,4 +1,4 @@
-name: TEST_FLOW 
+name: FORK_TEST_FLOW 
 
 on:
   push:
