@@ -525,7 +525,15 @@ public class CExtension implements FedTargetExtension {
                 + ", "
                 + connection.getDstFederate().id
                 + ");",
-            "}"));
+            "}",
+            "// No local event after this tag means this output will not be sent again",
+            "// until a network input arrives. Peers with STAA forever would otherwise",
+            "// wait for a port-absent at a tag this federate never executes.",
+            "lf_send_idle_absent_if_quiescent(self->base.environment, "
+                + receivingPortID
+                + ", "
+                + connection.getDstFederate().id
+                + ");"));
     return result.toString();
   }
 
