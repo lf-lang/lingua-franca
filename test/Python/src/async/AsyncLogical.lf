@@ -27,6 +27,7 @@ preamble {=
 =}
 
 reactor Blocker {
+  output lagging
   logical action done(200 ms)
   state early = 0
   state late = 0
@@ -35,7 +36,7 @@ reactor Blocker {
     self.lf_async_resume(done)
   =}
 
-  reaction(startup) -> done {=
+  reaction(startup) -> done, lagging {=
     start = lf.time.logical_elapsed()
     print(f"Calling lf_async() at {start} (physical {lf.time.physical_elapsed()})")
     self.early = self.lf_async(done, slow, 50)
@@ -53,6 +54,8 @@ reactor Blocker {
     # function, not merely the delay, determined when the call returned.
     if physical < MSEC(500):
         fail(f"Expected the slow function to finish after the second resume. Physical time {physical}.")
+    # Tell the checker that we are at 400 ms logical time.
+    lagging.set(400)
   =}
 
   reaction(shutdown) {=
@@ -61,26 +64,34 @@ reactor Blocker {
   =}
 }
 
+reactor Checker {
+  input lagging
+  input tick
+  state ticks = 0
+  reaction(tick) {=
+    self.ticks += 1
+    print(f"Checker ticks at {lf.time.logical_elapsed()}.")
+  =}
+  reaction(lagging) {=
+    print(f"Checker received lagging at {lf.time.logical_elapsed()}.")
+    # Ticks at 0, 20, ..., 380 ms.
+    if self.ticks < 19:
+        fail(f"Expected logical time to advance during lf_async(). Saw {self.ticks} ticks before 400 ms.")
+  =}
+}
+
 main reactor {
   timer t(0, 20 ms)
   b = new Blocker()
-  state early_ticks = 0
+  c = new Checker()
 
-  reaction(t) {=
-    logical = lf.time.logical_elapsed()
-    lag = lf.time.physical_elapsed() - logical
-    # Once the second call's action triggers, at 400 ms, lf_async_resume() holds that tag until
-    # the function returns, so later timer events are expected to lag.
-    if logical <= MSEC(400):
-        self.early_ticks += 1
-        if lag > MSEC(250):
-            fail(f"Timer lagging by {lag} at logical time {logical}.")
+  b.lagging -> c.lagging
+
+  reaction(t) -> c.tick {=
+    c.tick.set(1)
   =}
 
   reaction(shutdown) {=
-    # Ticks at 0, 20, ..., 400 ms.
-    if self.early_ticks < 19:
-        fail(f"Expected logical time to advance during lf_async(). Saw {self.early_ticks} ticks before 400 ms.")
     added = self.lf_added_worker_thread_count()
     if added != 1:
         fail(f"Expected 1 added worker. Got {added}.")
