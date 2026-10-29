@@ -1,0 +1,164 @@
+/**
+ * Test lf_await(port), which suspends the calling reaction until another reaction of the same
+ * reactor calls lf_await_resume(port) on the same input port.
+ *
+ * Before calling lf_await(response), the startup reaction of Requester sets an output that triggers
+ * Relay, whose output feeds back to the response input of Requester through a connection with an
+ * `after` delay of 100 ms. The response reaction calls lf_await_resume(response), so lf_await()
+ * returns at a logical time exactly 100 ms later than the one at which it was called. The startup
+ * reaction then repeats this at the new tag.
+ *
+ * At 50 ms, a second reaction of Requester also calls lf_await(response). Both calls are pending
+ * when the first response arrives at 100 ms, and the single lf_await_resume(response) in the
+ * response reaction resumes both of them at that tag.
+ *
+ * The startup reaction of Forgotten calls lf_await() on an input that never receives anything and
+ * is never resumed. When the program stops, lf_await() returns at the stop tag so that the reaction
+ * can complete.
+ *
+ * While the reactions are suspended, the timer of the main reactor keeps firing every 20 ms, which
+ * is verified by the Checker.
+ */
+target C {
+  timeout: 1 sec,
+  workers: 1
+}
+
+reactor Relay {
+  input in: int
+  output out: int
+
+  reaction(in) -> out {=
+    lf_set(out, in->value);
+  =}
+}
+
+reactor Requester {
+  output request: int
+  input response: int
+  timer late(50 ms)
+  state responses: int = 0
+  state completed: bool = false
+  state late_resumed_at: time = 0
+
+  reaction(response) {=
+    self->responses++;
+    lf_print("Response %d received at " PRINTF_TIME ".", response->value, lf_time_logical_elapsed());
+    lf_await_resume(response);
+  =}
+
+  reaction(startup) response -> request {=
+    for (int i = 1; i <= 2; i++) {
+      tag_t before = lf_tag();
+      // This output is propagated at this tag, before lf_await() lets logical time advance.
+      lf_set(request, i);
+      lf_await(response);
+      tag_t after = lf_tag();
+      lf_print("Request %d: resumed at " PRINTF_TIME " (microstep %u) with response %d.", i,
+               lf_time_logical_elapsed(), after.microstep, response->value);
+      if (after.time - before.time != MSEC(100) || after.microstep != 0) {
+        lf_print_error_and_exit("Expected lf_await() to resume exactly 100 ms after " PRINTF_TIME
+                                ". Resumed at " PRINTF_TIME " (microstep %u).",
+                                before.time - lf_time_start(), after.time - lf_time_start(), after.microstep);
+      }
+      // The response reaction ran before this reaction resumed, and the response is present.
+      if (self->responses != i || !response->is_present || response->value != i) {
+        lf_print_error_and_exit("Expected response %d to be present before resuming. responses=%d.", i,
+                                self->responses);
+      }
+    }
+    self->completed = true;
+  =}
+
+  reaction(late) response {=
+    lf_print("Late reaction awaiting at " PRINTF_TIME ".", lf_time_logical_elapsed());
+    lf_await(response);
+    self->late_resumed_at = lf_time_logical_elapsed();
+    lf_print("Late reaction resumed at " PRINTF_TIME ".", self->late_resumed_at);
+    // The same lf_await_resume() that resumed the startup reaction resumed this one.
+    if (self->late_resumed_at != MSEC(100)) {
+      lf_print_error_and_exit("Expected the late reaction to resume at 100 ms. Resumed at " PRINTF_TIME ".",
+                              self->late_resumed_at);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!self->completed) {
+      lf_print_error_and_exit("Expected the startup reaction to complete before shutdown.");
+    }
+    if (self->responses != 2) {
+      lf_print_error_and_exit("Expected 2 responses. Got %d.", self->responses);
+    }
+    if (self->late_resumed_at != MSEC(100)) {
+      lf_print_error_and_exit("Expected the late reaction to have resumed at 100 ms.");
+    }
+  =}
+}
+
+reactor Forgotten {
+  input silent: int
+
+  reaction(startup) silent {=
+    lf_print("Forgotten: suspending; nothing will resume this reaction.");
+    lf_await(silent);
+    // The program has stopped, so this must be the stop tag.
+    if (lf_time_logical_elapsed() != SEC(1) || lf_tag().microstep != 0) {
+      lf_print_error_and_exit("Expected lf_await() to return at the stop tag (1 s). Returned at " PRINTF_TIME
+                              " (microstep %u).",
+                              lf_time_logical_elapsed(), lf_tag().microstep);
+    }
+    lf_print("Forgotten: completed at the stop tag.");
+  =}
+}
+
+reactor Checker {
+  input tick: int
+  input request: int
+  state ticks: int = 0
+  state checked: bool = false
+
+  reaction(tick) {=
+    self->ticks++;
+  =}
+
+  reaction(request) {=
+    if (request->value == 2) {
+      // By the time the second request occurs, there should have been 5 ticks.
+      if (self->ticks < 5) {
+        lf_print_error_and_exit("Expected at least 5 ticks. Got %d.", self->ticks);
+      }
+      self->checked = true;
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!self->checked) {
+      lf_print_error_and_exit("Expected the checker to check the requests.");
+    }
+    lf_print("SUCCESS");
+  =}
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  requester = new Requester()
+  relay = new Relay()
+  forgotten = new Forgotten()
+  requester.request -> relay.in
+  relay.out -> requester.response after 100 ms
+
+  checker = new Checker()
+  requester.request -> checker.request
+
+  reaction(t) -> checker.tick {=
+    lf_set(checker.tick, 1);
+  =}
+
+  reaction(shutdown) {=
+    // Three reactions were suspended concurrently between 50 ms and 100 ms, so three worker
+    // threads were added.
+    if (lf_added_worker_thread_count() != 3) {
+      lf_print_error_and_exit("Expected lf_await() to add 3 worker threads. Got %d.", lf_added_worker_thread_count());
+    }
+  =}
+}

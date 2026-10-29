@@ -26,8 +26,7 @@ public class SchedulerType extends OptionsType<Scheduler> {
             Path.of("worker_assignments.h"),
             Path.of("worker_states.h"),
             Path.of("data_collection.h"))),
-    GEDF_NP(true), // Global EDF non-preemptive
-    GEDF_NP_CI(true); // Global EDF non-preemptive with chain ID
+    GEDF_NP(true); // Global EDF non-preemptive
 
     /** Indicate whether the scheduler prioritizes reactions by deadline. */
     private final boolean prioritizesDeadline;
