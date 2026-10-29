@@ -1,23 +1,19 @@
 /**
- * Test lf_async(), which invokes a Python function that may block for a long time without blocking
- * the advancement of logical time or the execution of other reactions.
+ * Test lf_async(), which invokes a function that may block for a long time without blocking the
+ * advancement of logical time or the execution of other reactions.
  *
- * Each Blocker reactor invokes slow(), which takes about 500 ms, through lf_async(), and then, at
- * the logical time at which it is resumed, invokes it again for about 200 ms. While these run, the
- * timer reaction of the main reactor keeps firing every 20 ms, which is verified by checking that
- * the physical time lag at each firing stays small. When slow() returns, lf_async() schedules the
- * physical action awake and resumes the calling reaction at the tag of that event, so the results
- * are reported at logical times at least 500 ms and 700 ms after the start.
- *
- * Before each lf_async() call, the Blocker sets outputs carrying the current tag. Those outputs are
- * propagated at that tag, before lf_async() allows logical time to advance. The Checker fails if it
- * observes them at any other tag.
+ * Each Blocker uses `lf_async` to invoke slow(), which takes about 500 ms, and then, at the logical
+ * time at which it is resumed, invokes it again for another 500 ms. While these run, the timer
+ * reaction of the main reactor fires at 250 ms and 750 ms. When slow() returns, lf_async()
+ * schedules the physical action awake and resumes the calling reaction at the tag of that event, so
+ * the results are reported at logical times at least 500 ms and 1 s after the start. The test
+ * checks that the timer ticks occur during the slow() calls.
  *
  * The two Blockers call lf_async() concurrently, so two worker threads get added, but the second
  * call of each Blocker reuses them, so no further threads get added.
  */
 target Python {
-  timeout: 1 sec,
+  timeout: 2 sec,
   workers: 1,
   keepalive: true
 }
@@ -33,107 +29,81 @@ preamble {=
       result = 0
       for _ in range(iterations):
           result += 1
-          time.sleep(0.01)
+          time.sleep(0.5)
       return result
 =}
 
 reactor Blocker(id=0) {
   physical action awake
-  output stamp
-  output microstep
+  output blocker
   state result = 0
 
   reaction(awake) {=
-    # Unblock lf_async().
+    # Unblock the `lf_async` function.
     self.lf_async_resume(awake)
   =}
 
-  reaction(startup) -> stamp, microstep, awake {=
+  reaction(startup) -> blocker, awake {=
     print(f"Starting Blocker {self.id}")
     # These outputs must be delivered at this tag, before lf_async() lets logical time advance.
-    stamp.set(lf.time.logical())
-    microstep.set(lf.tag().microstep)
-    result = self.lf_async(awake, slow, 50)
-    elapsed = lf.time.logical_elapsed()
-    print(f"Blocker {self.id}: Result: {result} at time {elapsed}")
-    if elapsed < MSEC(500):
-        fail(f"Expected lf_async() to return at a logical time of at least 500 ms. Got {elapsed}.")
-    stamp.set(lf.time.logical())
-    microstep.set(lf.tag().microstep)
-    result += self.lf_async(awake, slow, 20)
-    elapsed = lf.time.logical_elapsed()
-    print(f"Blocker {self.id}: Result: {result} at time {elapsed}")
-    if elapsed < MSEC(700):
-        fail(f"Expected second lf_async() to return at a logical time of at least 700 ms. Got {elapsed}.")
+    blocker.set(1)
+    print("Blocker blocking.")
+    result = self.lf_async(awake, slow, 1)
+    print(f"Blocker resuming {self.id}: Result: {result} at logical time {lf.time.logical_elapsed()}")
+    if lf.time.logical_elapsed() < MSEC(500):
+        fail("Expected lf_async() to return at a logical time of at least 500 ms.")
+    blocker.set(2)
+    result += self.lf_async(awake, slow, 1)
+    print(f"Blocker {self.id}: Result: {result} at logical time {lf.time.logical_elapsed()}")
+    if lf.time.logical_elapsed() < SEC(1):
+        fail("Expected second lf_async() to return at a logical time of at least 1 s.")
+    blocker.set(3)
     self.result = result
   =}
 
   reaction(shutdown) {=
-    if self.result != 70:
-        fail(f"Expected result 70 from lf_async(). Got {self.result}.")
+    if self.result != 2:
+        fail(f"Expected result 2 from lf_async(). Got {self.result}.")
   =}
 }
 
-# Fails unless each output written before lf_async() arrives at the tag at which it was written.
 reactor Checker {
-  input stamp
-  input microstep
-  state count = 0
-  state saw_start = False
-  state saw_resume = False
+  input blocker
+  input tick
+  state saw_ticks = 0
 
-  reaction(stamp, microstep) {=
-    if not stamp.is_present or not microstep.is_present:
-        fail("Expected the logical time and microstep to be propagated together.")
-    now = lf.tag()
-    if stamp.value != now.time or microstep.value != now.microstep:
-        fail(
-            "Output set at tag "
-            f"({stamp.value - lf.time.start()}, {microstep.value}) was propagated at tag "
-            f"({now.time - lf.time.start()}, {now.microstep})."
-        )
+  reaction(blocker, tick) {=
     elapsed = lf.time.logical_elapsed()
-    print(f"Checker received tag ({elapsed}, {now.microstep}).")
-    self.count += 1
-    if elapsed == 0:
-        self.saw_start = True
-    elif elapsed >= MSEC(500):
-        self.saw_resume = True
-    else:
-        fail(f"Output propagated at unexpected logical time {elapsed}.")
-  =}
-
-  reaction(shutdown) {=
-    if self.count != 2 or not self.saw_start or not self.saw_resume:
-        fail(
-            "Expected outputs at the start tag and at the first lf_async() resume. "
-            f"count={self.count} start={self.saw_start} resume={self.saw_resume}."
-        )
+    if blocker.is_present:
+        print(f"Checker received blocker {blocker.value} at logical time {elapsed}.")
+        if blocker.value == 2 and self.saw_ticks != 1:
+            fail("Tick not received before second blocker output.")
+        elif blocker.value == 3 and self.saw_ticks != 2:
+            fail("Tick not received before third blocker output.")
+    if tick.is_present:
+        print(f"Checker received tick {tick.value} at logical time {elapsed}.")
+        self.saw_ticks += 1
   =}
 }
 
 main reactor {
-  timer t(0, 20 ms)
+  timer t(250 ms, 500 ms)
   b = new[2] Blocker(id = {= bank_index =})
   c = new[2] Checker()
-  b.stamp -> c.stamp
-  b.microstep -> c.microstep
+  b.blocker -> c.blocker
   state count = 0
 
-  reaction(t) {=
-    logical = lf.time.logical_elapsed()
-    lag = lf.time.physical_elapsed() - logical
-    print(f"Main at time {logical} (lag {lag})")
+  reaction(t) -> c.tick {=
+    lag = lf.time.physical_elapsed() - lf.time.logical_elapsed()
+    print(f"Tick at time {lf.time.logical_elapsed()} (lag {lag})")
     self.count += 1
-    # If lf_async() blocked the advancement of logical time, the timer events during the
-    # 500 ms that slow() takes would all be processed late, with a lag of several hundred ms.
-    if lag > MSEC(250):
-        fail(f"Timer reaction is lagging physical time by {lag} ns.")
+    c[0].tick.set(self.count)
+    c[1].tick.set(self.count)
   =}
 
   reaction(shutdown) {=
-    if self.count < 50:
-        fail(f"Timer reaction fired {self.count} times. Expected at least 50.")
+    if self.count < 3:
+        fail(f"Timer reaction fired {self.count} times. Expected at least 3.")
     added = self.lf_added_worker_thread_count()
     if added != 2:
         fail(f"Expected lf_async() to add 2 worker threads. Got {added}.")

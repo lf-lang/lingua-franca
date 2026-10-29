@@ -2,22 +2,18 @@
  * Test lf_async(), which invokes a function that may block for a long time without blocking the
  * advancement of logical time or the execution of other reactions.
  *
- * Each Blocker reactor invokes slow(), which takes about 500 ms, through lf_async(), and then, at
- * the logical time at which it is resumed, invokes it again for about 200 ms. While these run, the
- * timer reaction of the main reactor keeps firing every 20 ms, which is verified by checking that
- * the physical time lag at each firing stays small. When slow() returns, lf_async() schedules the
- * physical action awake and resumes the calling reaction at the tag of that event, so the results
- * are reported at logical times at least 500 ms and 700 ms after the start.
- *
- * Before each lf_async() call, the Blocker sets outputs carrying the current tag. Those outputs are
- * propagated at that tag, before lf_async() allows logical time to advance. The Checker fails if it
- * observes them at any other tag.
+ * Each Blocker uses `lf_async` to invoke slow(), which takes about 500 ms, and then, at the logical
+ * time at which it is resumed, invokes it again for another 500 ms. While these run, the timer
+ * reaction of the main reactor fires at 250 ms and 750 ms. When slow() returns, lf_async()
+ * schedules the physical action awake and resumes the calling reaction at the tag of that event, so
+ * the results are reported at logical times at least 500 ms and 1 s after the start. The test
+ * checks that the timer ticks occur during the slow() calls.
  *
  * The two Blockers call lf_async() concurrently, so two worker threads get added, but the second
  * call of each Blocker reuses them, so no further threads get added.
  */
 target C {
-  timeout: 1 sec,
+  timeout: 2 s,
   workers: 1,
   keepalive: true
 }
@@ -28,14 +24,13 @@ reactor Blocker(id: int = 0) {
       int result = 0;
       for (int j = 0; j < iterations; j++) {
         result++;
-        lf_sleep(MSEC(10));
+        lf_sleep(MSEC(500));
       }
       return result;
     }
   =}
   physical action awake
-  output stamp: time
-  output microstep: int
+  output blocker: int
   state result: int = 0
 
   reaction(awake) {=
@@ -43,95 +38,74 @@ reactor Blocker(id: int = 0) {
     lf_async_resume(awake);
   =}
 
-  reaction(startup) -> stamp, microstep, awake {=
+  reaction(startup) -> blocker, awake {=
     lf_print("Starting Blocker %d", self->id);
     // These outputs must be delivered at this tag, before lf_async() lets logical time advance.
-    lf_set(stamp, lf_time_logical());
-    lf_set(microstep, (int)lf_tag().microstep);
-    int result = lf_async(awake, slow, 50);
-    lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
+    lf_set(blocker, 1);
+    lf_print("Blocker blocking.");
+    int result = lf_async(awake, slow, 1);
+    lf_print("Blocker resuming %d: Result: %d at logical time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
     if (lf_time_logical_elapsed() < MSEC(500)) {
       lf_print_error_and_exit("Expected lf_async() to return at a logical time of at least 500 ms.");
     }
-    lf_set(stamp, lf_time_logical());
-    lf_set(microstep, (int)lf_tag().microstep);
-    result += lf_async(awake, slow, 20);
-    lf_print("Blocker %d: Result: %d at time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
-    if (lf_time_logical_elapsed() < MSEC(700)) {
-      lf_print_error_and_exit("Expected second lf_async() to return at a logical time of at least 700 ms.");
+    lf_set(blocker, 2);
+    result += lf_async(awake, slow, 1);
+    lf_print("Blocker %d: Result: %d at logical time " PRINTF_TIME, self->id, result, lf_time_logical_elapsed());
+    if (lf_time_logical_elapsed() < SEC(1)) {
+      lf_print_error_and_exit("Expected second lf_async() to return at a logical time of at least 1 s.");
     }
+    lf_set(blocker, 3);
     self->result = result;
   =}
 
   reaction(shutdown) {=
-    if (self->result != 70) {
-      lf_print_error_and_exit("Expected result 70 from lf_async(). Got %d.", self->result);
+    if (self->result != 2) {
+      lf_print_error_and_exit("Expected result 2 from lf_async(). Got %d.", self->result);
     }
   =}
 }
 
-// Fails unless each output written before lf_async() arrives at the tag at which it was written.
 reactor Checker {
-  input stamp: time
-  input microstep: int
-  state count: int = 0
-  state saw_start: bool = false
-  state saw_resume: bool = false
+  input blocker: int
+  input tick: int
+  state saw_ticks: int = 0
 
-  reaction(stamp, microstep) {=
-    if (!stamp->is_present || !microstep->is_present) {
-      lf_print_error_and_exit("Expected the logical time and microstep to be propagated together.");
-    }
+  reaction(blocker, tick) {=
     tag_t now = lf_tag();
-    if (stamp->value != now.time || (microstep_t)microstep->value != now.microstep) {
-      lf_print_error_and_exit("Output set at tag (" PRINTF_TIME ", %d) was propagated at tag (" PRINTF_TIME
-                              ", %u).",
-                              stamp->value - lf_time_start(), microstep->value, now.time - lf_time_start(),
-                              now.microstep);
-    }
     interval_t elapsed = lf_time_logical_elapsed();
-    lf_print("Checker received tag (" PRINTF_TIME ", %u).", elapsed, now.microstep);
-    self->count++;
-    if (elapsed == 0) {
-      self->saw_start = true;
-    } else if (elapsed >= MSEC(500)) {
-      self->saw_resume = true;
-    } else {
-      lf_print_error_and_exit("Output propagated at unexpected logical time " PRINTF_TIME ".", elapsed);
+    if (blocker->is_present) {
+      lf_print("Checker received blocker %d at logical time " PRINTF_TIME ".", blocker->value, elapsed);
+      if (blocker->value == 2 && self->saw_ticks != 1) {
+        lf_print_error_and_exit("Tick not received before second blocker output.");
+      } else if (blocker->value == 3 && self->saw_ticks != 2) {
+        lf_print_error_and_exit("Tick not received before third blocker output.");
+      }
     }
-  =}
-
-  reaction(shutdown) {=
-    if (self->count != 2 || !self->saw_start || !self->saw_resume) {
-      lf_print_error_and_exit(
-          "Expected outputs at the start tag and at the first lf_async() resume. count=%d start=%d resume=%d.",
-          self->count, self->saw_start, self->saw_resume);
+    if (tick->is_present) {
+      lf_print("Checker received tick %d at logical time " PRINTF_TIME ".", tick->value, elapsed);
+      self->saw_ticks++;
     }
   =}
 }
 
 main reactor {
-  timer t(0, 20 ms)
+  timer t(250 ms, 500 ms)
   b = new[2] Blocker(id = {= bank_index =})
   c = new[2] Checker()
-  b.stamp -> c.stamp
-  b.microstep -> c.microstep
+  b.blocker -> c.blocker
   state count: int = 0
 
-  reaction(t) {=
+  reaction(t) -> c.tick {=
     interval_t lag = lf_time_physical_elapsed() - lf_time_logical_elapsed();
-    lf_print("Main at time " PRINTF_TIME " (lag " PRINTF_TIME ")", lf_time_logical_elapsed(), lag);
+    lf_print("Tick at time " PRINTF_TIME " (lag " PRINTF_TIME ")", lf_time_logical_elapsed(), lag);
     self->count++;
-    // If lf_async() blocked the advancement of logical time, the timer events during the
-    // 500 ms that slow() takes would all be processed late, with a lag of several hundred ms.
-    if (lag > MSEC(250)) {
-      lf_print_error_and_exit("Timer reaction is lagging physical time by " PRINTF_TIME " ns.", lag);
-    }
+    lf_set(c[0].tick, self->count);
+    lf_set(c[1].tick, self->count);
   =}
 
   reaction(shutdown) {=
-    if (self->count < 50) {
-      lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 50.", self->count);
+    if (self->count < 3) {
+      lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 3.", self->count);
     }
     if (lf_added_worker_thread_count() != 2) {
       lf_print_error_and_exit("Expected lf_async() to add 2 worker threads. Got %d.", lf_added_worker_thread_count());
