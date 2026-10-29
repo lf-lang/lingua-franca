@@ -70,10 +70,12 @@ reactor Checker {
   input lagging: int
   input tick: int
   state ticks: int = 0
+
   reaction(tick) {=
     self->ticks++;
     lf_print("Checker ticks at " PRINTF_TIME ".", lf_time_logical_elapsed());
   =}
+
   reaction(lagging) {=
     lf_print("Checker received lagging at " PRINTF_TIME ".", lf_time_logical_elapsed());
     // Ticks at 0, 20, ..., 380 ms.

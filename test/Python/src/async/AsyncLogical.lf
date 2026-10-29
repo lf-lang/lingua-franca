@@ -68,10 +68,12 @@ reactor Checker {
   input lagging
   input tick
   state ticks = 0
+
   reaction(tick) {=
     self.ticks += 1
     print(f"Checker ticks at {lf.time.logical_elapsed()}.")
   =}
+
   reaction(lagging) {=
     print(f"Checker received lagging at {lf.time.logical_elapsed()}.")
     # Ticks at 0, 20, ..., 380 ms.
