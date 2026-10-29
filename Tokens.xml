@@ -7343,6 +7343,16 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>ASYNC_NO_INLINING</Name>
+      <APILanguage>java</APILanguage>
+      <Type>data</Type>
+      <Scope>org.lflang.tests.TestRegistry.TestCategory</Scope>
+    </TokenIdentifier>
+    <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+    <Anchor>a8f7497429367df6369f32a6418b39c4d</Anchor>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>at</Name>
       <APILanguage>java</APILanguage>
       <Type>instm</Type>

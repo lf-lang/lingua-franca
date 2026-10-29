@@ -16844,6 +16844,11 @@
                 <Anchor>ae4e835ebb521319d31837dd1201b4e9d</Anchor>
                </Node>
                <Node>
+                <Name>ASYNC_NO_INLINING</Name>
+                <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+                <Anchor>a8f7497429367df6369f32a6418b39c4d</Anchor>
+               </Node>
+               <Node>
                 <Name>BASIC</Name>
                 <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
                 <Anchor>afd8477c89599f085080659496a3c2a63</Anchor>
@@ -51781,6 +51786,11 @@
                       <Name>ASYNC</Name>
                       <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
                       <Anchor>ae4e835ebb521319d31837dd1201b4e9d</Anchor>
+                     </Node>
+                     <Node>
+                      <Name>ASYNC_NO_INLINING</Name>
+                      <Path>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</Path>
+                      <Anchor>a8f7497429367df6369f32a6418b39c4d</Anchor>
                      </Node>
                      <Node>
                       <Name>BASIC</Name>

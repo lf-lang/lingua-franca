@@ -42727,6 +42727,13 @@
     </member>
     <member kind="variable">
       <type></type>
+      <name>ASYNC_NO_INLINING</name>
+      <anchorfile>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</anchorfile>
+      <anchor>a8f7497429367df6369f32a6418b39c4d</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="variable">
+      <type></type>
       <name>BASIC</name>
       <anchorfile>enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html</anchorfile>
       <anchor>afd8477c89599f085080659496a3c2a63</anchor>

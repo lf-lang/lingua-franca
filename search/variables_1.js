@@ -12,8 +12,9 @@ var searchData=
   ['arraypattern_9',['arrayPattern',['../classorg_1_1lflang_1_1generator_1_1c_1_1CTypes.html#a09a71fba301c77cb1499629637160329',1,'org::lflang::generator::c::CTypes']]],
   ['asttype_10',['astType',['../classorg_1_1lflang_1_1InferredType.html#a58bebffcb3e47c8b33e2c37fb78c4e9e',1,'org::lflang::InferredType']]],
   ['async_11',['ASYNC',['../enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#ae4e835ebb521319d31837dd1201b4e9d',1,'org::lflang::tests::TestRegistry::TestCategory']]],
-  ['attenuation_12',['ATTENUATION',['../enumorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOption.html#a6b2994762c72cb5e064ef8d35aa6219c',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOption']]],
-  ['attenuation_13',['attenuation',['../classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOptions.html#aecbf0bc120d58b64f70dfac8a1286e04',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOptions']]],
-  ['attribute_5fspecs_5fby_5fname_14',['ATTRIBUTE_SPECS_BY_NAME',['../classorg_1_1lflang_1_1validation_1_1AttributeSpec.html#a5f7cf0efe5362b07249b6a0472555e10',1,'org::lflang::validation::AttributeSpec']]],
-  ['auto_15',['AUTO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a032b0139a6e75709ec81a0c15d57792c',1,'org::lflang::target::property::type::PlatformType::Platform']]]
+  ['async_5fno_5finlining_12',['ASYNC_NO_INLINING',['../enumorg_1_1lflang_1_1tests_1_1TestRegistry_1_1TestCategory.html#a8f7497429367df6369f32a6418b39c4d',1,'org::lflang::tests::TestRegistry::TestCategory']]],
+  ['attenuation_13',['ATTENUATION',['../enumorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOption.html#a6b2994762c72cb5e064ef8d35aa6219c',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOption']]],
+  ['attenuation_14',['attenuation',['../classorg_1_1lflang_1_1target_1_1property_1_1ClockSyncOptionsProperty_1_1ClockSyncOptions.html#aecbf0bc120d58b64f70dfac8a1286e04',1,'org::lflang::target::property::ClockSyncOptionsProperty::ClockSyncOptions']]],
+  ['attribute_5fspecs_5fby_5fname_15',['ATTRIBUTE_SPECS_BY_NAME',['../classorg_1_1lflang_1_1validation_1_1AttributeSpec.html#a5f7cf0efe5362b07249b6a0472555e10',1,'org::lflang::validation::AttributeSpec']]],
+  ['auto_16',['AUTO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a032b0139a6e75709ec81a0c15d57792c',1,'org::lflang::target::property::type::PlatformType::Platform']]]
 ];
