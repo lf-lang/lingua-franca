@@ -1,0 +1,63 @@
+/**
+ * Test lf_async_ext(), the version of lf_async() for externally defined reactions, which do not
+ * have access to the lf_async() macro. Compare to ../AsyncManual.lf.
+ *
+ * Each Blocker has an externally defined reaction that uses `lf_async_ext` to invoke slow(), which
+ * takes about 500 ms, and then, at the logical time at which it is resumed, invokes it again for
+ * another 500 ms. The reaction that resumes it, which calls lf_async_resume(), is also externally
+ * defined. While these run, the timer reaction of the main reactor fires at 250 ms and 750 ms. When
+ * slow() returns, lf_async_ext() schedules the physical action awake and resumes the calling
+ * reaction at the tag of that event, so the results are reported at logical times at least 500 ms
+ * and 1 s after the start. The test checks that the timer ticks occur during the slow() calls.
+ *
+ * The two Blockers call lf_async_ext() concurrently, so two worker threads get added, but the
+ * second call of each Blocker reuses them, so no further threads get added.
+ */
+target C {
+  timeout: 2 s,
+  workers: 1,
+  keepalive: true,
+  cmake-include: ["../../../c/async_manual.cmake"],
+  files: ["../../../c"]
+}
+
+import Checker from "../AsyncManual.lf"
+
+reactor Blocker(id: int = 0) {
+  physical action awake
+  output blocker: int
+  state result: int = 0
+
+  reaction resume(awake)  // Unblock the lf_async_ext() function.
+
+  reaction block(startup) -> blocker, awake
+
+  reaction check(shutdown)
+}
+
+main reactor {
+  timer t(250 ms, 500 ms)
+  b = new[2] Blocker(id = {= bank_index =})
+  c = new[2] Checker()
+  b.blocker -> c.blocker
+  state count: int = 0
+
+  reaction(t) -> c.tick {=
+    interval_t lag = lf_time_physical_elapsed() - lf_time_logical_elapsed();
+    lf_print("Tick at time " PRINTF_TIME " (lag " PRINTF_TIME ")", lf_time_logical_elapsed(), lag);
+    self->count++;
+    lf_set(c[0].tick, self->count);
+    lf_set(c[1].tick, self->count);
+  =}
+
+  reaction(shutdown) {=
+    if (self->count < 3) {
+      lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 3.", self->count);
+    }
+    if (lf_added_worker_thread_count() != 2) {
+      lf_print_error_and_exit("Expected lf_async_ext() to add 2 worker threads. Got %d.",
+                              lf_added_worker_thread_count());
+    }
+    lf_print("SUCCESS");
+  =}
+}

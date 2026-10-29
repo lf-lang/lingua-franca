@@ -100,9 +100,11 @@ public class CTest extends RuntimeTest {
 
   @Test
   public void runAsyncTests() {
+    // lf_async() relies on GNU statement expressions, which MSVC does not support.
+    Assumptions.assumeFalse(isWindows(), Message.NO_WINDOWS_SUPPORT);
     runTestsForTargets(
         Message.DESC_ASYNC,
-        TestCategory.ASYNC::equals,
+        category -> category == TestCategory.ASYNC || category == TestCategory.ASYNC_NO_INLINING,
         Transformers::noChanges,
         Configurators::noChanges,
         TestLevel.EXECUTION,

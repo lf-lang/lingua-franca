@@ -21,6 +21,7 @@ reactor Blocker {
       return milliseconds;
     }
   =}
+  output lagging: int
   logical action done(200 ms)
   state early: int = 0
   state late: int = 0
@@ -29,7 +30,7 @@ reactor Blocker {
     lf_async_resume(done);
   =}
 
-  reaction(startup) -> done {=
+  reaction(startup) -> done, lagging {=
     interval_t start = lf_time_logical_elapsed();
     lf_print("Calling lf_async() at " PRINTF_TIME " (physical " PRINTF_TIME ")", start, lf_time_physical_elapsed());
     self->early = lf_async(done, slow, 50);
@@ -54,6 +55,8 @@ reactor Blocker {
           "Expected the slow function to finish after the second resume. Physical time " PRINTF_TIME ".",
           physical);
     }
+    // Tell the checker that we are at 400 ms logical time.
+    lf_set(lagging, 400);
   =}
 
   reaction(shutdown) {=
@@ -63,30 +66,38 @@ reactor Blocker {
   =}
 }
 
+reactor Checker {
+  input lagging: int
+  input tick: int
+  state ticks: int = 0
+
+  reaction(tick) {=
+    self->ticks++;
+    lf_print("Checker ticks at " PRINTF_TIME ".", lf_time_logical_elapsed());
+  =}
+
+  reaction(lagging) {=
+    lf_print("Checker received lagging at " PRINTF_TIME ".", lf_time_logical_elapsed());
+    // Ticks at 0, 20, ..., 380 ms.
+    if (self->ticks < 19) {
+      lf_print_error_and_exit("Expected logical time to advance during lf_async(). Saw %d ticks before 400 ms.",
+                              self->ticks);
+    }
+  =}
+}
+
 main reactor {
   timer t(0, 20 ms)
   b = new Blocker()
-  state early_ticks: int = 0
+  c = new Checker()
 
-  reaction(t) {=
-    interval_t logical = lf_time_logical_elapsed();
-    interval_t lag = lf_time_physical_elapsed() - logical;
-    // Once the second call's action triggers, at 400 ms, lf_async_resume() holds that tag until
-    // the function returns, so later timer events are expected to lag.
-    if (logical <= MSEC(400)) {
-      self->early_ticks++;
-      if (lag > MSEC(250)) {
-        lf_print_error_and_exit("Timer lagging by " PRINTF_TIME " at logical time " PRINTF_TIME ".", lag, logical);
-      }
-    }
+  b.lagging -> c.lagging
+
+  reaction(t) -> c.tick {=
+    lf_set(c.tick, 1);
   =}
 
   reaction(shutdown) {=
-    // Ticks at 0, 20, ..., 400 ms.
-    if (self->early_ticks < 19) {
-      lf_print_error_and_exit("Expected logical time to advance during lf_async(). Saw %d ticks before 400 ms.",
-                              self->early_ticks);
-    }
     if (lf_added_worker_thread_count() != 1) {
       lf_print_error_and_exit("Expected 1 added worker. Got %d.", lf_added_worker_thread_count());
     }

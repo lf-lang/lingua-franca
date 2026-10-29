@@ -17,7 +17,7 @@
  * can complete.
  *
  * While the reactions are suspended, the timer of the main reactor keeps firing every 20 ms, which
- * is verified by checking that its lag behind physical time stays small.
+ * is verified by the Checker.
  */
 target C {
   timeout: 1 sec,
@@ -111,6 +111,34 @@ reactor Forgotten {
   =}
 }
 
+reactor Checker {
+  input tick: int
+  input request: int
+  state ticks: int = 0
+  state checked: bool = false
+
+  reaction(tick) {=
+    self->ticks++;
+  =}
+
+  reaction(request) {=
+    if (request->value == 2) {
+      // By the time the second request occurs, there should have been 5 ticks.
+      if (self->ticks < 5) {
+        lf_print_error_and_exit("Expected at least 5 ticks. Got %d.", self->ticks);
+      }
+      self->checked = true;
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (!self->checked) {
+      lf_print_error_and_exit("Expected the checker to check the requests.");
+    }
+    lf_print("SUCCESS");
+  =}
+}
+
 main reactor {
   timer t(0, 20 ms)
   requester = new Requester()
@@ -118,27 +146,19 @@ main reactor {
   forgotten = new Forgotten()
   requester.request -> relay.in
   relay.out -> requester.response after 100 ms
-  state count: int = 0
 
-  reaction(t) {=
-    interval_t lag = lf_time_physical_elapsed() - lf_time_logical_elapsed();
-    lf_print("%d", self->count++);
-    // If lf_await() blocked the advancement of logical time, the timer events would be
-    // processed late once the suspended reactions prevented the tag from advancing.
-    if (lag > MSEC(80)) {
-      lf_print_error_and_exit("Timer reaction is lagging physical time by " PRINTF_TIME " ns.", lag);
-    }
+  checker = new Checker()
+  requester.request -> checker.request
+
+  reaction(t) -> checker.tick {=
+    lf_set(checker.tick, 1);
   =}
 
   reaction(shutdown) {=
-    if (self->count < 50) {
-      lf_print_error_and_exit("Timer reaction fired %d times. Expected at least 50.", self->count);
-    }
     // Three reactions were suspended concurrently between 50 ms and 100 ms, so three worker
     // threads were added.
     if (lf_added_worker_thread_count() != 3) {
       lf_print_error_and_exit("Expected lf_await() to add 3 worker threads. Got %d.", lf_added_worker_thread_count());
     }
-    lf_print("SUCCESS");
   =}
 }

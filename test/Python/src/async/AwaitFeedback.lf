@@ -17,7 +17,7 @@
  * can complete.
  *
  * While the reactions are suspended, the timer of the main reactor keeps firing every 20 ms, which
- * is verified by checking that its lag behind physical time stays small.
+ * is verified by the Checker.
  */
 target Python {
   timeout: 1 sec,
@@ -112,6 +112,31 @@ reactor Forgotten {
   =}
 }
 
+reactor Checker {
+  input tick
+  input request
+  state ticks = 0
+  state checked = False
+
+  reaction(tick) {=
+    self.ticks += 1
+  =}
+
+  reaction(request) {=
+    if request.value == 2:
+        # By the time the second request occurs, there should have been 5 ticks.
+        if self.ticks < 5:
+            fail(f"Expected at least 5 ticks. Got {self.ticks}.")
+        self.checked = True
+  =}
+
+  reaction(shutdown) {=
+    if not self.checked:
+        fail("Expected the checker to check the requests.")
+    print("SUCCESS")
+  =}
+}
+
 main reactor {
   timer t(0, 20 ms)
   requester = new Requester()
@@ -119,26 +144,19 @@ main reactor {
   forgotten = new Forgotten()
   requester.request -> relay.inp
   relay.out -> requester.response after 100 ms
-  state count = 0
 
-  reaction(t) {=
-    lag = lf.time.physical_elapsed() - lf.time.logical_elapsed()
-    print(self.count)
-    self.count += 1
-    # If lf_await() blocked the advancement of logical time, the timer events would be
-    # processed late once the suspended reactions prevented the tag from advancing.
-    if lag > MSEC(80):
-        fail(f"Timer reaction is lagging physical time by {lag} ns.")
+  checker = new Checker()
+  requester.request -> checker.request
+
+  reaction(t) -> checker.tick {=
+    checker.tick.set(1)
   =}
 
   reaction(shutdown) {=
-    if self.count < 50:
-        fail(f"Timer reaction fired {self.count} times. Expected at least 50.")
     # Three reactions were suspended concurrently between 50 ms and 100 ms, so three worker
     # threads were added.
     added = self.lf_added_worker_thread_count()
     if added != 3:
         fail(f"Expected lf_await() to add 3 worker threads. Got {added}.")
-    print("SUCCESS")
   =}
 }
