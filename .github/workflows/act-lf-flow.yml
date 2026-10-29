@@ -5,8 +5,6 @@ on:
   pull_request:
     types:
       - opened
-    branches:
-      - act-test
 
 jobs:
   led-test:
