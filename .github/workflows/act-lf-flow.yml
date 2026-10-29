@@ -1,12 +1,12 @@
 name: FORK_TEST_FLOW 
 
 on:
-  push:
-  # pull_request:
-  #   types:
-  #     - opened
-  #   branches:
-  #     - act-test
+  #push:
+  pull_request:
+    types:
+      - opened
+    branches:
+      - act-test
 
 jobs:
   led-test:
