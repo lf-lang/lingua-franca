@@ -122,7 +122,7 @@ object PortEmitter : RustEmitterBase() {
         return if (port.isGeneratedAsMultiport) {
             "$ref.iter_mut()"
         } else {
-            "std::iter::once(&mut $ref)"
+            "core::iter::once(&mut $ref)"
         }
     }
 }
