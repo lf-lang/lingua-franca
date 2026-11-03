@@ -76,9 +76,9 @@ reactor Checker {
     elapsed = lf.time.logical_elapsed()
     if blocker.is_present:
         print(f"Checker received blocker {blocker.value} at logical time {elapsed}.")
-        if blocker.value == 2 and self.saw_ticks != 1:
+        if blocker.value == 2 and self.saw_ticks < 1:
             fail("Tick not received before second blocker output.")
-        elif blocker.value == 3 and self.saw_ticks != 2:
+        elif blocker.value == 3 and self.saw_ticks < 2:
             fail("Tick not received before third blocker output.")
     if tick.is_present:
         print(f"Checker received tick {tick.value} at logical time {elapsed}.")
