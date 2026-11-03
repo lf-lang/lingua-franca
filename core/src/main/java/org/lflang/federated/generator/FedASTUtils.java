@@ -169,8 +169,10 @@ public class FedASTUtils {
 
     addNetworkSenderReactor(connection, coordination, resource, messageReporter);
 
-    // Add port absent reactions only if the federate is in a zero delay cycle.
-    if (connection.srcFederate.isInZeroDelayCycle()) {
+    // Send port-absent messages on every zero-delay connection leaving a ZDC,
+    // including connections whose destination is outside the cycle. The
+    // destination blocks until that present or absent status arrives.
+    if (mustWaitForZeroDelayCycleSource(connection)) {
       FedASTUtils.addPortAbsentReaction(connection);
     }
 
@@ -318,8 +320,7 @@ public class FedASTUtils {
     connection.dstFederate.networkMessageActions.add(networkAction);
     connection.dstFederate.networkMessageSourceFederate.add(connection.srcFederate);
     connection.dstFederate.networkMessageActionDelays.add(connection.getDefinition().getDelay());
-    if (connection.srcFederate.isInZeroDelayCycle()
-        && connection.getDefinition().getDelay() == null) {
+    if (mustWaitForZeroDelayCycleSource(connection)) {
       connection.dstFederate.zeroDelayCycleNetworkMessageActions.add(networkAction);
       connection.dstFederate.zeroDelayCycleNetworkUpstreamFeds.add(connection.srcFederate);
     }
@@ -407,6 +408,43 @@ public class FedASTUtils {
     connection.dstFederate.networkPortToInstantiation.put(
         connection.getDestinationPortInstance(), networkInstance);
     connection.dstFederate.networkActionToInstantiation.put(networkAction, networkInstance);
+  }
+
+  /**
+   * Return true if {@code connection} is a zero-delay logical connection. An {@code after} delay,
+   * including {@code after 0}, and a physical connection are not zero-delay logical paths.
+   */
+  private static boolean isZeroDelayLogical(FedConnectionInstance connection) {
+    return connection.getDefinition().getDelay() == null
+        && !connection.getDefinition().isPhysical();
+  }
+
+  /**
+   * Return true if the connection itself lies on a zero-delay cycle.
+   *
+   * <p>Both endpoints have to be in a cycle and the connection has to be zero-delay and not
+   * physical. Decentralized coordination uses this to default {@code absent_after} to forever, so
+   * that a federate waits for a present or port-absent message instead of assuming the input is
+   * absent immediately.
+   */
+  private static boolean isInZeroDelayCycle(FedConnectionInstance connection) {
+    return connection.srcFederate.isInZeroDelayCycle()
+        && connection.dstFederate.isInZeroDelayCycle()
+        && isZeroDelayLogical(connection);
+  }
+
+  /**
+   * Return true if the destination must not complete a tag until it has seen a present or
+   * port-absent message on this connection.
+   *
+   * <p>This holds for every zero-delay connection whose source is in a zero-delay cycle, even when
+   * the destination is not. The RTI ignores cycle members when computing a strict earliest incoming
+   * tag and may forward a provisional tag grant to a federate outside the cycle. With no blocking
+   * input, that federate commits the tag before the source has sent. {@code FeedbackDelay.lf} is
+   * this case: the planner is downstream of the plant/controller cycle on a zero-delay connection.
+   */
+  private static boolean mustWaitForZeroDelayCycleSource(FedConnectionInstance connection) {
+    return connection.srcFederate.isInZeroDelayCycle() && isZeroDelayLogical(connection);
   }
 
   private static MixedRadixInt getSrcIndex(FedConnectionInstance connection) {
@@ -546,7 +584,12 @@ public class FedASTUtils {
    * If the connection does not have an `absent_after` attribute, find the maximum STP
    * or STAA for the reactions that react to the destination port (for backward compatibility).
    * This maximum may be nested in contained reactors in the federate.
-   * This method returns TimeValue.ZERO if there are no `absent_after` offsets for the port.
+   * If there is still no offset and this zero-delay logical connection joins federates that are
+   * each in a zero-delay cycle, return TimeValue.FOREVER so the destination waits for a present or
+   * port-absent message instead of assuming the port is absent immediately. An upstream with no
+   * further local event sends an open-ended absent so the destination is not stuck waiting for a
+   * tag that upstream will never execute.
+   * Otherwise, this method returns TimeValue.ZERO.
    * @param connection The connection to find the `absent_after` offset for.
    * @param coordination The coordination scheme.
    */
@@ -558,10 +601,9 @@ public class FedASTUtils {
 
     // Start by checking for an `absent_after` attribute on the connection.
     Connection conn = connection.getDefinition();
-    // If the connection has an `absent_after` attribute, return it.
-    var absentAfter = AttributeUtils.getAbsentAfter(conn);
-    if (absentAfter != TimeValue.ZERO) {
-      return absentAfter;
+    // If the connection has an explicit `absent_after` attribute, use it (including 0).
+    if (AttributeUtils.hasAbsentAfter(conn)) {
+      return AttributeUtils.getAbsentAfter(conn);
     }
 
     // For backward compatibility, check for STP offsets on the reactions that
@@ -660,10 +702,22 @@ public class FedASTUtils {
       }
     }
 
-    return STPList.stream()
-        .map(ASTUtils::getLiteralTimeValue)
-        .filter(Objects::nonNull)
-        .reduce(TimeValue.ZERO, TimeValue::max);
+    TimeValue fromReactions =
+        STPList.stream()
+            .map(ASTUtils::getLiteralTimeValue)
+            .filter(Objects::nonNull)
+            .reduce(TimeValue.ZERO, TimeValue::max);
+    if (fromReactions.compareTo(TimeValue.ZERO) > 0) {
+      return fromReactions;
+    }
+
+    // On a zero-delay cycle, wait for a present or port-absent message from the
+    // peer rather than assuming the input is absent immediately (STAA of 0).
+    // An explicit `@absent_after` above remains a safety timeout.
+    if (isInZeroDelayCycle(connection)) {
+      return TimeValue.FOREVER;
+    }
+    return TimeValue.ZERO;
   }
 
   /**
@@ -741,9 +795,9 @@ public class FedASTUtils {
 
     extension.addSenderIndexParameter(sender);
 
-    // The initialization reaction is needed only for the reaction that sends absent, which is
-    // not included if the sending federate is not a zero-delay cycle.
-    if (connection.srcFederate.isInZeroDelayCycle()) {
+    // The initialization reaction registers the port-absent reaction, so it is
+    // needed exactly when that reaction is generated.
+    if (mustWaitForZeroDelayCycleSource(connection)) {
       sender
           .getReactions()
           .add(getInitializationReaction(extension, extension.outputInitializationBody()));
@@ -850,8 +904,16 @@ public class FedASTUtils {
         ASTUtils.getUniqueIdentifier(top, "ns_" + connection.getDstFederate().name));
     top.getInstantiations().add(networkInstance);
 
-    extension.supplySenderIndexParameter(
-        networkInstance, connection.getSrcFederate().networkIdSender++);
+    // Index into port_absent_reaction[], which has one slot per port-absent sender.
+    // A delayed sender that does not emit port-absent must not consume a slot: otherwise
+    // a later zero-delay sender writes past the end of the array and its absent reaction
+    // is never enqueued. FeedbackDelay5.lf is this case (pl.response after 0, then pl.out).
+    int portAbsentIndex =
+        mustWaitForZeroDelayCycleSource(connection)
+            ? connection.getSrcFederate().portAbsentReactions.size()
+            : 0;
+    extension.supplySenderIndexParameter(networkInstance, portAbsentIndex);
+    connection.getSrcFederate().networkIdSender++;
     addLevelAttribute(
         networkInstance, connection.getSourcePortInstance(), getSrcIndex(connection), connection);
 

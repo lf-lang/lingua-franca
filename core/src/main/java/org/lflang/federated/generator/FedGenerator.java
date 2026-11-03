@@ -686,8 +686,10 @@ public class FedGenerator {
                       dstFederate,
                       FedUtils.getSerializer(srcRange.connection, srcFederate, dstFederate));
 
-              // Create the maps that specify the delays (or absence of delays)
-              // on non-physical connections (for centralized coordination only).
+              // Record delays on non-physical connections for centralized coordination.
+              // These maps drive RTI neighbor-structure and NET/TAG signaling, so they
+              // must not be populated for decentralized coordination. Zero-delay cycle
+              // detection uses FederateInstance.connections instead, which is always filled.
               if (!connection.getDefinition().isPhysical()
                   && targetConfig.get(CoordinationProperty.INSTANCE)
                       != CoordinationMode.DECENTRALIZED) {
