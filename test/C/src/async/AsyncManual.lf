@@ -73,17 +73,17 @@ reactor Checker {
   reaction(blocker, tick) {=
     tag_t now = lf_tag();
     interval_t elapsed = lf_time_logical_elapsed();
-    if (blocker->is_present) {
-      lf_print("Checker received blocker %d at logical time " PRINTF_TIME ".", blocker->value, elapsed);
-      if (blocker->value == 2 && self->saw_ticks != 1) {
-        lf_print_error_and_exit("Tick not received before second blocker output.");
-      } else if (blocker->value == 3 && self->saw_ticks != 2) {
-        lf_print_error_and_exit("Tick not received before third blocker output.");
-      }
-    }
     if (tick->is_present) {
       lf_print("Checker received tick %d at logical time " PRINTF_TIME ".", tick->value, elapsed);
       self->saw_ticks++;
+    }
+    if (blocker->is_present) {
+      lf_print("Checker received blocker %d at logical time " PRINTF_TIME ".", blocker->value, elapsed);
+      if (blocker->value == 2 && self->saw_ticks < 1) {
+        lf_print_error_and_exit("Tick not received before second blocker output.");
+      } else if (blocker->value == 3 && self->saw_ticks < 2) {
+        lf_print_error_and_exit("Tick not received before third blocker output.");
+      }
     }
   =}
 }
