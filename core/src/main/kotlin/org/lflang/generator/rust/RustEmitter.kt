@@ -80,6 +80,9 @@ object RustEmitter : RustEmitterBase() {
                     makeConfigTomlFile(gen)
                 }
             }
+            for ((path, content) in RustBoardInfo.getBoardInfo(platformOptions).extraFiles) {
+                fileConfig.emit(codeMaps, path) { this += content }
+            }
         }
 
         if (!gen.properties.singleFile) {

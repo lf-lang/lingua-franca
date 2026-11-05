@@ -253,7 +253,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
         append(cliParamName).append(": ").append(type)
     }
 
-    private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
+    internal fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
         this += """
             |//-------------------//
             |//---- REACTORS -----//

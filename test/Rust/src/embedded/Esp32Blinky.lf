@@ -1,0 +1,46 @@
+/**
+ * Blinks the on-board LED of an ESP32 DevKit (GPIO2) once per second.
+ *
+ * Needs the `esp` Rust toolchain (install it with `espup`) and `espflash`.
+ * Build with `lfc Esp32Blinky.lf`, then flash from the generated project
+ * with `cargo run` (it runs `espflash flash --monitor`).
+ */
+target Rust {
+  platform: {
+    board: "esp32"
+  },
+  cargo-dependencies: {
+    esp-println: "0.18.0",
+  },
+  edition: "2024",
+  keepalive: true
+}
+
+reactor Blinky(period: time = 1000 ms) {
+  preamble {=
+    use esp_hal::gpio::{Level, Output, OutputConfig};
+    use esp_println::println;
+  =}
+  state button: {= Option<Output<'static>> =} = {= None =}
+  state led: {= Option<Output<'static>> =} = {= None =}
+
+  timer t(0, period)
+
+  reaction(startup) {=
+    // The generated `main` owns `esp_hal::init`'s peripherals, so take the pin directly.
+    // Safe as long as no other reactor uses GPIO2.
+    let pin = unsafe { esp_hal::peripherals::GPIO2::steal() };
+    println!("hello");
+    self.led = Some(Output::new(pin, Level::Low, OutputConfig::default()));
+  =}
+
+  reaction(t) {=
+    if let Some(led) = self.led.as_mut() {
+      led.toggle();
+    }
+  =}
+}
+
+main reactor {
+  blinky = new Blinky()
+}

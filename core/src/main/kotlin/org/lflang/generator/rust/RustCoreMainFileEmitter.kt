@@ -2,52 +2,68 @@ package org.lflang.generator.rust
 
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.rust.RustBoardInfo.getBoardInfo
+import org.lflang.joinWithCommasLn
 import org.lflang.joinWithLn
 
+/**
+ * Emits `main.rs` for programs that run on a microcontroller (`platform: { board: ... }`).
+ *
+ * The program is `no_std` and runs on [Embassy](https://embassy.dev):
+ * `main` is an embassy task that sets up the board, then awaits the
+ * runtime's async scheduler until the program shuts down.
+ */
 object RustCoreMainFileEmitter : RustEmitterBase() {
 
-    // TODO: remember to re add after testing run_main
     fun Emitter.makeCoreMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor
         val mainReactorNames = mainReactor.names
-        val boardInfo = getBoardInfo(gen.platform)
+        val board = getBoardInfo(gen.platform)
+        val timeout = gen.properties.timeoutLf?.toRustTimeExpr().toRustOption()
+
         this += with(PrependOperator) {
             """
             |${generatedByComment("//")}
             |#![no_std]
             |#![no_main]
             |#![allow(unused_imports)]
-            |#![allow(non_snake_cases)]
+            |#![allow(non_snake_case)]
             |
-            |extern crate core;
+            |extern crate alloc;
             |
-            |use ${boardInfo.panicHandler} as _;
-            |
-            |// Board HAL
-            |use ${boardInfo.boardHal};
-            |
-            |// Board bootloader (required to boot some devices)
-${"         |"..boardInfo.bootloader.joinWithLn { it }}
-            |
-            |// Application descriptor / tooling metadata
-${"         |"..boardInfo.applicationDescriptor.joinWithLn { it }};
+            |use panic_halt as _;
             |
             |// user dependencies
-${"         |"..gen.crate.dependencies.keys.joinWithLn { "use ${it.replace('-', '_')};" }}
+${"         |"..gen.crate.dependencies.keys.joinWithLn { "extern crate ${it.replace('-', '_')};" }}
             |
             |// user-defined modules
 ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
             |
-            |use $rsRuntime;
+            |use $rsRuntime::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
-            |#[${boardInfo.entryMacro}]
-            |fn main() -> !  {
-            |//   SyncScheduler::run_main::<__MainReactor>(options, main_args);
-            |  loop {
-            |    let _ = 1 + 1;
-            |  }
+            |// board: ${board.name}
+${"         |"..board.preamble}
+            |
+            |#[${board.mainAttribute}]
+            |async fn main(_spawner: embassy_executor::Spawner) {
+${"         |    "..board.init}
+            |
+            |    let mut options = SchedulerOptions::default();
+            |    options.timeout = $timeout;
+            |    options.keep_alive = ${gen.properties.keepAlive};
+            |
+            |    // main params are entirely defaulted
+            |    let main_args = __MainParams::new(
+${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.defaultValue ?: "Default::default()" }}
+            |    );
+            |
+            |    SyncScheduler::run_main_async::<__MainReactor>(options, main_args).await;
+            |
+            |    // The program has shut down. There is nothing to return to, so idle forever.
+            |    loop {
+            |        core::future::pending::<()>().await;
+            |    }
             |}
             |
         """.trimMargin()
@@ -55,43 +71,9 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
         skipLines(2)
 
         if (gen.properties.singleFile) {
-            makeSingleFileProject(gen)
+            with(RustMainFileEmitter) { makeSingleFileProject(gen) }
         } else {
             this += "mod reactors;\n"
-        }
-    }
-
-    private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
-        this += """
-            |//-------------------//
-            |//---- REACTORS -----//
-            |//-------------------//
-            |
-        """.trimMargin()
-
-        this.writeInBlock("mod reactors {") {
-            for (reactor in gen.reactors) {
-                this += with(reactor.names) {
-                    """
-                pub use self::$modName::$wrapperName;
-                pub use self::$modName::$paramStructName;
-                """.trimIndent()
-                }
-                skipLines(1)
-            }
-
-            for (reactor in gen.reactors) {
-                this += """
-                    |//--------------------------------------------//
-                    |//------------ ${reactor.lfName} -------//
-                    |//-------------------//
-                    """.trimMargin()
-
-                this.writeInBlock("mod ${reactor.names.modName} {") {
-                    with(RustReactorEmitter) { emitReactorModule(reactor) }
-                }
-                this.skipLines(2)
-            }
         }
     }
 }
