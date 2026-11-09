@@ -1,0 +1,16 @@
+name: Physical CI
+
+# Builds lfc from the pull request and runs it on the physical-ci hardware testbed
+# (https://github.com/lf-lang/physical-ci). Runs only on pull requests labeled
+# `physical-ci`, and each run waits for approval in the `physical-ci` environment.
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+jobs:
+  physical-ci:
+    # Only when the label is `physical-ci`
+    if: >-
+      github.event.action == 'labeled' && github.event.label.name == 'physical-ci' ||
+      github.event.action != 'labeled' && contains(github.event.pull_request.labels.*.name, 'physical-ci')
+    uses: lf-lang/physical-ci/.github/workflows/lf-pr.yml@main
