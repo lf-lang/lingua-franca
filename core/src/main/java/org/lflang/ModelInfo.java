@@ -93,8 +93,13 @@ public class ModelInfo {
       }
     }
 
-    // may be null if the target is invalid
-    var target = Target.forName(model.getTarget().getName()).orElse(null);
+    // may be null if the target is invalid or missing in a non-.ulf file
+    Target target = null;
+    if (model.getTarget() != null) {
+      target = Target.forName(model.getTarget().getName()).orElse(null);
+    } else if ("ulf".equalsIgnoreCase(model.eResource().getURI().fileExtension())) {
+      target = Target.UC;
+    }
 
     // Perform C-specific traversals.
     if (target == Target.C) {

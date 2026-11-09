@@ -6,15 +6,13 @@ main reactor ActionValuesCleanup {
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
     // set to true when destructor is called
-    static mut DROPPED: AtomicBool = AtomicBool::new(false);
+    static DROPPED: AtomicBool = AtomicBool::new(false);
 
     #[derive(Clone, Debug)]
     struct FooDrop { }
     impl std::ops::Drop for FooDrop {
       fn drop(&mut self) {
-        unsafe {
           DROPPED.store(true, Ordering::SeqCst);
-        }
       }
     }
   =}
@@ -36,7 +34,7 @@ main reactor ActionValuesCleanup {
     } else if self.count == 1 {
       assert!(ctx.is_present(act));
       assert!(ctx.use_ref(act, |v| v.is_none()));
-      assert!(unsafe { DROPPED.load(Ordering::SeqCst) });
+      assert!(DROPPED.load(Ordering::SeqCst));
       self.count = 2;
     } else {
       unreachable!();

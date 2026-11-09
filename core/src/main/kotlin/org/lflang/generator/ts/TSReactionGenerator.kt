@@ -67,7 +67,7 @@ class TSReactionGenerator(
         ${" |    "..reactPrologue}
             |    // =============== END deadline prologue
             |    try {
-        ${" |        "..reaction.deadline.code.toText()}
+        ${" |        "..(reaction.deadline.code?.toText() ?: reaction.code.toText())}
             |    } finally {
             |        // =============== START deadline epilogue
         ${" |        "..reactEpilogue}

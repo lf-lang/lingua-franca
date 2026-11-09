@@ -509,7 +509,7 @@ public class ToSExpr extends LfSwitch<SExpr> {
   @Override
   public SExpr caseDeadline(Deadline object) {
     //        Deadline:
-    //        'deadline' '(' delay=Expression ')' code=Code;
+    //        'deadline' '(' delay=Expression ')' (code=Code)?;
     return sList("deadline", object.getDelay(), object.getCode());
   }
 

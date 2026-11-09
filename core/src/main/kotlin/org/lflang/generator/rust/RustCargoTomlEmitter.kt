@@ -47,7 +47,7 @@ object RustCargoTomlEmitter : RustEmitterBase() {
             |name = "${crate.name}"
             |version = "${crate.version}"
             |authors = [${crate.authors.joinToString(", ") { it.withDQuotes() }}]
-            |edition = "2018"
+            |edition = "${crate.rustEdition}"
             |
             |[dependencies]
             |env_logger = "0.9"

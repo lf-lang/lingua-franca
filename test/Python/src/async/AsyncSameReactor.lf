@@ -1,0 +1,91 @@
+/**
+ * Test that lf_async() queues downstream reactions instead of executing them in this thread.
+ *
+ * Source sets ping, and Relay copies it to pong, which triggers another reaction of Source. With
+ * the usual inline optimization, that chain would execute the pong reaction in this same thread:
+ * the relay is the only downstream reaction of startup, and the pong reaction is the only
+ * downstream reaction of the relay. The pong reaction also calls lf_async(). Executing it in place
+ * on the first call would create Source's reactor mutex and leave the outer call unlocking a mutex
+ * it does not hold. On the second call the outer reaction already holds that mutex, so executing
+ * the pong reaction in place would deadlock trying to lock it.
+ *
+ * Each reaction has its own physical action. Two reactions calling lf_async() on one physical
+ * action is a fatal error.
+ */
+target Python {
+  timeout: 1 sec,
+  workers: 1,
+  keepalive: true
+}
+
+preamble {=
+  import time
+
+  def fail(message):
+      sys.stderr.write(str(message) + "\n")
+      sys.exit(1)
+
+  def take_time_ms(milliseconds):
+      time.sleep(milliseconds / 1000.0)
+      return milliseconds
+=}
+
+reactor Relay {
+  input inp
+  output out
+
+  reaction(inp) -> out {=
+    out.set(inp.value)
+  =}
+}
+
+reactor Source {
+  physical action awake
+  physical action awake_pong
+  output ping
+  input pong
+  state from_async = 0
+  state from_pong = 0
+  state saw = 0
+
+  reaction(awake) {=
+    self.lf_async_resume(awake)
+  =}
+
+  reaction(awake_pong) {=
+    self.lf_async_resume(awake_pong)
+  =}
+
+  reaction(startup) -> ping, awake {=
+    # The relay runs in place and sets pong. The pong reaction of this reactor
+    # must be queued, then run at this tag after this call releases the mutex.
+    ping.set(1)
+    self.from_async = self.lf_async(awake, take_time_ms, 20)
+    # This call holds the reactor mutex created by the first call.
+    ping.set(2)
+    self.from_async += self.lf_async(awake, take_time_ms, 20)
+  =}
+
+  reaction(pong) -> awake_pong {=
+    self.saw += pong.value
+    self.from_pong += self.lf_async(awake_pong, take_time_ms, 1)
+  =}
+
+  reaction(shutdown) {=
+    if self.from_async != 40:
+        fail(f"Expected lf_async() in startup to return 40. Got {self.from_async}.")
+    if self.saw != 3 or self.from_pong != 2:
+        fail(f"Expected both pong reactions to run. saw={self.saw} from_pong={self.from_pong}.")
+  =}
+}
+
+main reactor {
+  source = new Source()
+  relay = new Relay()
+  source.ping -> relay.inp
+  relay.out -> source.pong
+
+  reaction(shutdown) {=
+    print("SUCCESS")
+  =}
+}

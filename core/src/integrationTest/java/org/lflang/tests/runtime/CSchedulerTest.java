@@ -21,12 +21,40 @@ public class CSchedulerTest extends TestBase {
   }
 
   /**
-   * Swap the default runtime scheduler with other supported versions and run all the supported
-   * tests. Only run tests for a specific non-default scheduler if specified using a system property
-   * (e.g., -Dscheduler=GEDF_NP).
+   * Swap the default runtime scheduler with other supported versions and run the supported tests.
+   * Only run tests for a specific non-default scheduler if specified using a system property (e.g.,
+   * -Dscheduler=GEDF_NP).
+   *
+   * <p>{@link Scheduler#ADAPTIVE} is not part of that default set. It can still be selected
+   * explicitly with {@code -Dscheduler=ADAPTIVE}.
+   *
+   * <p>ASYNC tests are included only for {@link Scheduler#GEDF_NP}; the adaptive scheduler does not
+   * support the async/await and dynamic worker-thread APIs.
    */
   @Test
   public void runWithNonDefaultSchedulers() {
+    // Only treat a non-blank -Dscheduler=... as an override. Gradle used to forward a
+    // null system property as the literal string "null", which must not select a scheduler.
+    var name = System.getProperty("scheduler");
+    if (name != null && !name.isBlank() && !name.equals("null")) {
+      var option =
+          EnumSet.allOf(Scheduler.class).stream().filter(it -> it.name().equals(name)).findFirst();
+      if (option.isPresent()) {
+        this.runTest(option.get());
+      } else {
+        throw new RuntimeException("Cannot find runtime scheduler called " + name);
+      }
+    } else {
+      for (Scheduler scheduler : EnumSet.allOf(Scheduler.class)) {
+        // ADAPTIVE is omitted from the CI and local default run.
+        if (scheduler == Scheduler.getDefault() || scheduler == Scheduler.ADAPTIVE) continue;
+        this.runTest(scheduler);
+      }
+    }
+  }
+
+  /** Categories to re-run under the given non-default scheduler. */
+  private EnumSet<TestCategory> categoriesFor(Scheduler scheduler) {
     EnumSet<TestCategory> categories = EnumSet.of(TestCategory.CONCURRENT, TestCategory.MULTIPORT);
 
     // Add federated and docker tests if supported
@@ -36,28 +64,19 @@ public class CSchedulerTest extends TestBase {
         categories.add(TestCategory.DOCKER_FEDERATED);
       }
     }
-    var name = System.getProperty("scheduler");
-
-    if (name != null) {
-      var option =
-          EnumSet.allOf(Scheduler.class).stream().filter(it -> it.name().equals(name)).findFirst();
-      if (option.isPresent()) {
-        this.runTest(option.get(), categories);
-      } else {
-        throw new RuntimeException("Cannot find runtime scheduler called " + name);
-      }
-    } else {
-      for (Scheduler scheduler : EnumSet.allOf(Scheduler.class)) {
-        if (scheduler == Scheduler.getDefault()) continue;
-        this.runTest(scheduler, categories);
-      }
+    // ASYNC requires NP or GEDF_NP; skip ADAPTIVE (and other schedulers that lack support).
+    // lf_async() also requires GNU statement expressions, so skip ASYNC on Windows (MSVC).
+    if (scheduler == Scheduler.GEDF_NP && !isWindows()) {
+      categories.add(TestCategory.ASYNC);
+      categories.add(TestCategory.ASYNC_NO_INLINING);
     }
+    return categories;
   }
 
-  private void runTest(Scheduler scheduler, EnumSet<TestCategory> categories) {
+  private void runTest(Scheduler scheduler) {
     this.runTestsForTargets(
         Message.DESC_SCHED_SWAPPING + scheduler.toString() + ".",
-        categories::contains,
+        categoriesFor(scheduler)::contains,
         Transformers::noChanges,
         config -> {
           SchedulerProperty.INSTANCE.override(config, scheduler);

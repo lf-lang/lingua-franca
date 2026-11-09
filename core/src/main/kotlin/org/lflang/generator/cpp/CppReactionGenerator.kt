@@ -48,7 +48,8 @@ class CppReactionGenerator(
     private val portGenerator: CppPortGenerator
 ) {
 
-    private val reactionsWithDeadlines = reactor.reactions.filter { it.deadline != null }
+    private val reactionsWithDeadlineHandlers =
+        reactor.reactions.filter { it.deadline != null && it.deadline.code != null }
 
     private val VarRef.isContainedRef: Boolean get() = container != null
     private val TriggerRef.isContainedRef: Boolean get() = this is VarRef && isContainedRef
@@ -106,7 +107,7 @@ class CppReactionGenerator(
             val deadlineHandler =
                 "void ${codeName}_deadline_handler() { __lf_inner.${codeName}_deadline_handler(${parameters.joinToString(", ")}); }"
 
-            return if (deadline == null)
+            return if (deadline == null || deadline.code == null)
                 """
                     $body
                     reactor::Reaction $codeName{"$label", $priority, this, [this]() { ${codeName}_body(); }};
@@ -259,11 +260,11 @@ class CppReactionGenerator(
 
     /** Get all declarations of deadline handlers. */
     fun generateDeadlineHandlerDeclarations(): String =
-        reactionsWithDeadlines.joinToString("\n", "// deadline handlers\n", "\n") {
+        reactionsWithDeadlineHandlers.joinToString("\n", "// deadline handlers\n", "\n") {
             generateFunctionDeclaration(it, "deadline_handler")
         }
 
     /** Get all definitions of deadline handlers. */
     fun generateDeadlineHandlerDefinitions() =
-        reactionsWithDeadlines.joinToString(separator = "\n", postfix = "\n") { generateDeadlineHandlerDefinition(it) }
+        reactionsWithDeadlineHandlers.joinToString(separator = "\n", postfix = "\n") { generateDeadlineHandlerDefinition(it) }
 }

@@ -47,7 +47,7 @@ Workflow {
          */
         language = StandardLanguage {
             name = "org.lflang.LinguaFranca"
-            fileExtensions = "lf"
+            fileExtensions = "lf,ulf"
             serializer = {
                 generateStub = false
             }

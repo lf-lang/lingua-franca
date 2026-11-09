@@ -1,0 +1,56 @@
+/**
+ * At the tag where the logical action triggers, reactions run in declaration order, which is their
+ * level order. The two reactions suspended in lf_async() continue at their own levels, after
+ * lf_async_resume() and before the later reaction triggered by the same action.
+ */
+target C {
+  timeout: 1 s
+}
+
+main reactor {
+  preamble {=
+    int slow(int milliseconds) {
+      lf_sleep(MSEC(milliseconds));
+      return milliseconds;
+    }
+  =}
+  logical action async(50 ms)
+  state check: int = 0
+
+  reaction(async) {=
+    if (self->check != 0) {
+      lf_print_error_and_exit("First reaction was not executed first: %d", self->check);
+    }
+    self->check = 1;
+    lf_async_resume(async);
+  =}
+
+  reaction(startup) -> async {=
+    lf_async(async, slow, 50);
+    if (self->check != 1) {
+      lf_print_error_and_exit("Second reaction was not executed second: %d", self->check);
+    }
+    self->check = 2;
+  =}
+
+  reaction(startup) -> async {=
+    lf_async(async, slow, 50);
+    if (self->check != 2) {
+      lf_print_error_and_exit("Third reaction was not executed third: %d", self->check);
+    }
+    self->check = 3;
+  =}
+
+  reaction(async) {=
+    if (self->check != 3) {
+      lf_print_error_and_exit("Fourth reaction was not executed fourth: %d", self->check);
+    }
+    self->check = 4;
+  =}
+
+  reaction(shutdown) {=
+    if (self->check != 4) {
+      lf_print_error_and_exit("Not all reactions were executed: %d", self->check);
+    }
+  =}
+}

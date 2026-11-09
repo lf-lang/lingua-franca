@@ -594,7 +594,15 @@ public class LFValidator extends BaseLFValidator {
 
   @Check
   public void checkImport(Import imp) {
-    if (toDefinition(imp.getReactorClasses().get(0)).eResource().getErrors().size() > 0) {
+    if (imp.getReactorClasses().isEmpty()) {
+      return;
+    }
+    var imported = toDefinition(imp.getReactorClasses().get(0));
+    if (imported == null || imported.eResource() == null) {
+      error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
+      return;
+    }
+    if (imported.eResource().getErrors().size() > 0) {
       error("Error loading resource.", Literals.IMPORT__IMPORT_URI); // FIXME: print specifics.
       return;
     }
@@ -754,6 +762,15 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkModel(Model model) {
+    if (model.getTarget() == null) {
+      if (isUlfFile(model)) {
+        this.target = Target.UC;
+      } else {
+        error("Target declaration is required in .lf files.", Literals.MODEL__TARGET);
+        // Avoid NPEs in subsequent @Check methods that rely on `this.target`.
+        this.target = Target.Python;
+      }
+    }
     // Since we're doing a fast check, we only want to update
     // if the model info hasn't been initialized yet. If it has,
     // we use the old information and update it during a normal
@@ -1319,6 +1336,9 @@ public class LFValidator extends BaseLFValidator {
 
   @Check(CheckType.FAST)
   public void checkTargetDecl(TargetDecl target) throws IOException {
+    if (isUlfFile(target) && target.getConfig() != null) {
+      error("Target properties are not allowed in .ulf files.", Literals.TARGET_DECL__CONFIG);
+    }
     Optional<Target> targetOpt = Target.forName(target.getName());
     if (targetOpt.isEmpty()) {
       error("Unrecognized target: " + target.getName(), Literals.TARGET_DECL__NAME);
@@ -1439,6 +1459,8 @@ public class LFValidator extends BaseLFValidator {
       checkMaxWaitAttribute(attr);
     } else if (name.equals("absent_after")) {
       checkAbsentAfterAttribute(attr);
+    } else if (name.equals("transient")) {
+      checkTransientAttribute(attr);
     }
     if (GLOBAL_ATTRIBUTE_NAMES.contains(name)) {
       checkGlobalAttribute(attr);
@@ -1508,9 +1530,7 @@ public class LFValidator extends BaseLFValidator {
     var container = attr.eContainer();
     if (!(container instanceof Reactor)) {
       error(
-          "The @"
-              + attr.getAttrName()
-              + " attribute is only allowed on a main or federated reactor.",
+          "The @" + attr.getAttrName() + " attribute is only allowed on a reactor.",
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
@@ -1540,6 +1560,32 @@ public class LFValidator extends BaseLFValidator {
           attr,
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
+    }
+  }
+
+  /** @transient marks a federate instantiation as transient (join/leave during execution). */
+  private void checkTransientAttribute(Attribute attr) {
+    EObject container = attr.eContainer();
+    if (!(container instanceof Instantiation)) {
+      error(
+          "The @transient attribute can only be applied to a federate instantiation.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    EObject parent = container.eContainer();
+    if (!(parent instanceof Reactor reactor) || !reactor.isFederated()) {
+      error(
+          "The @transient attribute can only be applied inside a federated reactor.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
+      return;
+    }
+    if (!isCBasedTarget() && this.target != Target.Python) {
+      error(
+          "The @transient attribute is only supported for the C and Python targets.",
+          attr,
+          Literals.ATTRIBUTE__ATTR_NAME);
     }
   }
 
@@ -2161,6 +2207,11 @@ public class LFValidator extends BaseLFValidator {
     return type1.getCode().getBody().equals(type2.getCode().getBody());
   }
 
+  /** Return true if the given object is in a file with the .ulf extension. */
+  private boolean isUlfFile(EObject object) {
+    return "ulf".equalsIgnoreCase(object.eResource().getURI().fileExtension());
+  }
+
   //////////////////////////////////////////////////////////////
   //// Private fields.
 
@@ -2224,7 +2275,7 @@ public class LFValidator extends BaseLFValidator {
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
   private static final Set<String> GLOBAL_ATTRIBUTE_NAMES =
-      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync", "platform");
+      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "platform");
 
   private static List<String> SPACING_VIOLATION_POLICIES =
       List.of("defer", "drop", "replace", "update");

@@ -70,7 +70,7 @@ while [[ $# -gt 0 ]]; do
             echo "Build and run the Lingua Franca compiler (lfc)."
             echo ""
             echo "Options:"
-            echo "  --offline    Run Gradle in offline mode"
+            echo "  --offline    Run Gradle in offline mode only (no network fallback)"
             echo "  -h, --help   Show this help message"
             echo ""
             echo "All other arguments are passed to the lfc compiler."
@@ -83,6 +83,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Launch the tool.
-"${gradlew}" --quiet ${gradle_args} -p "${base}" assemble ":cli:lfc:assemble"
-"${base}/build/install/lf-cli/bin/lfc" "${lfc_args[@]}"
+# Build only the lfc CLI (not the whole project, which would also build :lsp).
+# Try offline first so dev workflows work without network after an initial build.
+build_lfc() {
+    "${gradlew}" --quiet "$@" -p "${base}" ":cli:lfc:installDist"
+}
+
+if [[ "${gradle_args}" == *"--offline"* ]]; then
+    build_lfc --offline
+elif ! build_lfc --offline; then
+    build_lfc
+fi
+
+"${base}/cli/lfc/build/install/lfc/bin/lfc" "${lfc_args[@]}"

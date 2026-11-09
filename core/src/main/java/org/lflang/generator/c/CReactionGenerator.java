@@ -148,6 +148,14 @@ public class CReactionGenerator {
       for (Input input : tpr.reactor().getInputs()) {
         reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
       }
+      // Actions listed as sources are not inputs, so they are not covered above.
+      // They must still be declared, e.g., so that they can be passed to a reaction
+      // that has no body in the LF source.
+      for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+        if (src.getVariable() instanceof Action action && actionsAsTriggers.add(action)) {
+          reactionInitialization.pr(generateActionVariablesInReaction(action, tpr, types));
+        }
+      }
     } else {
       // Define argument for non-triggering inputs.
       for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
@@ -928,8 +936,15 @@ public class CReactionGenerator {
 
       var deadlineFunctionPointer = "NULL";
       if (reaction.getDeadline() != null) {
-        // The following has to match the name chosen in generateReactions
-        var deadlineFunctionName = generateDeadlineFunctionName(tpr, reactionCount);
+        String deadlineFunctionName;
+        if (reaction.getDeadline().getCode() != null) {
+          // There is a deadline violation handler.
+          // The following has to match the name chosen in generateReactions
+          deadlineFunctionName = generateDeadlineFunctionName(tpr, reactionCount);
+        } else {
+          // There is no deadline handler body. Invoke the ordinary reaction.
+          deadlineFunctionName = generateReactionFunctionName(tpr, reactionCount);
+        }
         deadlineFunctionPointer = "&" + deadlineFunctionName;
       }
 
@@ -1228,7 +1243,7 @@ public class CReactionGenerator {
     }
 
     // Now generate code for the deadline violation function, if there is one.
-    if (reaction.getDeadline() != null) {
+    if (reaction.getDeadline() != null && reaction.getDeadline().getCode() != null) {
       code.pr(
           generateFunction(
               generateDeadlineFunctionHeader(tpr, reactionIndex),

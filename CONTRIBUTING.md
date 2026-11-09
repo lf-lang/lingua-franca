@@ -8,7 +8,7 @@ We welcome contributions from the community and provide these guidelines in orde
 
 ## Contributing code
 
-You can work on the Lingua Franca code base in your favorite editor and build [using Gradle](https://www.lf-lang.org/docs/developer/downloading-and-building#building-the-command-line-tools). We recommend to use the [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) IDE.
+You can work on the Lingua Franca code base in your favorite editor and build [using Gradle](https://www.lf-lang.org/docs/developer/downloading-and-building#building-the-command-line-tools). We recommend using [Visual Studio Code](https://code.visualstudio.com), [Cursor](https://cursor.com/sdk), or [IntelliJ](https://www.lf-lang.org/docs/handbook/intellij) IDEs.
 
 ### Writing tests
 

@@ -39,6 +39,7 @@ import org.lflang.target.property.ExternalRuntimePathProperty
 import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.target.property.RustIncludeProperty
+import org.lflang.target.property.RustEditionProperty
 import org.lflang.target.property.SingleFileProjectProperty
 import org.lflang.target.property.SingleThreadedProperty
 import org.lflang.target.property.TimeOutProperty
@@ -292,7 +293,8 @@ data class CrateInfo(
     /** Paths to modules that should be copied to the output & linked into `main.rs`. */
     val modulesToIncludeInMain: List<Path>,
     /** Features to enable in the build command. */
-    val enabledCargoFeatures: Set<String>
+    val enabledCargoFeatures: Set<String>,
+    val rustEdition: String?
 )
 
 
@@ -451,7 +453,9 @@ object RustModelBuilder {
                 authors = listOf(System.getProperty("user.name")),
                 dependencies = dependencies,
                 modulesToIncludeInMain = targetConfig.get(RustIncludeProperty.INSTANCE),
-                enabledCargoFeatures = targetConfig.get(CargoFeaturesProperty.INSTANCE).toSet()
+                enabledCargoFeatures = targetConfig.get(CargoFeaturesProperty.INSTANCE).toSet(),
+                // default edition is set to 2018.
+                rustEdition = targetConfig.get(RustEditionProperty.INSTANCE).ifBlank { "2018" }
             ),
             reactors = reactorsInfos,
             mainReactor = mainReactor,

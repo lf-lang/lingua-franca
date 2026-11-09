@@ -63,16 +63,16 @@ object RustTypes : TargetTypes {
 
 val RustKeywords = setOf(
     // https://doc.rust-lang.org/reference/keywords.html
-    "as", "break", "const", "continue", "crate", "else",
-    "enum", "extern", /*"false",*/ "fn", "for", "if", "impl",
-    "in", "let", "loop", "match", "mod", "move", "mut",
-    "pub", "ref", "return", /*"self",*/ "Self", "static",
-    "struct", "super", "trait", /*"true",*/ "type", "unsafe",
-    "use", "where", "while",
+    "as", "async", "await", "break", "const", "continue",
+    "crate", "dyn", "else", "enum", "extern", /*"false",*/
+    "fn",  "for", "if", "impl",  "in", "let", "loop", "match",
+    "mod", "move", "mut", "pub", "ref", "return", /*"self",*/
+    "Self", "static", "struct", "super", "trait", /*"true",*/
+    "type", "unsafe", "use", "where", "while",
     // reserved kws
-    "abstract", "async", "await", "dyn", "become", "box",
-    "do", "final", "macro", "override", "priv", "typeof",
-    "unsized", "virtual", "yield", "try",
+    "abstract",   "become", "box",  "do", "final", "gen",
+    "macro", "override", "priv", "try", "typeof",
+    "unsized", "virtual", "yield",
     // "weak" keywords, disallow them anyway
-    "union", "dyn"
+    "'static", "macro_rules", "raw", "union", "dyn"
 )

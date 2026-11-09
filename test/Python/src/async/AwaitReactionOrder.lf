@@ -1,0 +1,60 @@
+/**
+ * At the tag where the input arrives, reactions run in declaration order, which is their level
+ * order. The two reactions suspended in lf_await() continue at their own levels, after
+ * lf_await_resume() and before the later reaction triggered by the same input.
+ */
+target Python {
+  timeout: 1 sec
+}
+
+preamble {=
+  def fail(message):
+      sys.stderr.write(str(message) + "\n")
+      sys.exit(1)
+=}
+
+reactor Await {
+  input signal
+  state check = 0
+
+  reaction(signal) {=
+    if self.check != 0:
+        fail(f"First reaction was not executed first: {self.check}")
+    self.check = 1
+    self.lf_await_resume(signal)
+  =}
+
+  reaction(startup) signal {=
+    self.lf_await(signal)
+    if self.check != 1:
+        fail(f"Second reaction was not executed second: {self.check}")
+    self.check = 2
+  =}
+
+  reaction(startup) signal {=
+    self.lf_await(signal)
+    if self.check != 2:
+        fail(f"Third reaction was not executed third: {self.check}")
+    self.check = 3
+  =}
+
+  reaction(signal) {=
+    if self.check != 3:
+        fail(f"Fourth reaction was not executed fourth: {self.check}")
+    self.check = 4
+  =}
+
+  reaction(shutdown) {=
+    if self.check != 4:
+        fail(f"Not all reactions were executed: {self.check}")
+  =}
+}
+
+main reactor {
+  timer t(50 ms)
+  a = new Await()
+
+  reaction(t) -> a.signal {=
+    a.signal.set(1)
+  =}
+}

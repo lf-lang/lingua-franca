@@ -1008,6 +1008,13 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
     Table<ReactorInstance, PortInstance, KPort> outputPorts = HashBasedTable.create();
     Map<ReactionInstance, KNode> reactionNodes = new HashMap<>();
     Map<KPort, KNode> directConnectionDummyNodes = new HashMap<>();
+    // Tracks port pairs that are already connected by an edge so that connections collapsing onto
+    // the same pair of visual ports (e.g. bank or multiport broadcast connections) are rendered by
+    // a single edge instead of many overlapping ones. Without this, each overlapping edge would
+    // carry its own delay/physical decorator, duplicating the decorator (e.g. the physical
+    // connection squiggle) once per collapsed channel. Only the existence of a pair matters here,
+    // so a set of (source, target) pairs is tracked rather than the edges themselves.
+    Multimap<KPort, KPort> connectedPortPairs = HashMultimap.create();
     Multimap<ActionInstance, KPort> actionDestinations = HashMultimap.create();
     Multimap<ActionInstance, KPort> actionSources = HashMultimap.create();
     Map<TimerInstance, KNode> timerNodes = new HashMap<>();
@@ -1305,6 +1312,16 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
           // There should be a connection, but skip if not.
           Connection connection = sendRange.connection;
           if (connection != null) {
+            // Skip connections that collapse onto a pair of visual ports already connected by an
+            // edge. This occurs for bank and multiport broadcast connections, where multiple
+            // runtime ranges map to the same source and target ports. Rendering them as separate
+            // overlapping edges would duplicate the edge decorators (such as the physical
+            // connection squiggle) once per collapsed channel.
+            if (source != null
+                && target != null
+                && connectedPortPairs.containsEntry(source, target)) {
+              continue;
+            }
             KEdge edge =
                 createIODependencyEdge(
                     connection, (leftPort.isMultiport() || rightPort.isMultiport()));
@@ -1321,10 +1338,22 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 _linguaFrancaStyleExtensions.applyOnEdgeDelayStyle(delayLabel);
               }
             } else if (connection.isPhysical()) {
-              KLabel physicalConnectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, "---");
-              _linguaFrancaStyleExtensions.applyOnEdgePysicalStyle(
-                  physicalConnectionLabel,
-                  reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
+              if (source != null && target != null && source.getNode() == target.getNode()) {
+                // Self-loop / feedback connections (e.g. a bank's output routed back to its own
+                // input) are routed around the node, where ELK does not honor inline label
+                // placement and the label-based squiggle ends up off the connection line. Draw the
+                // squiggle as an on-line decorator instead, which follows the routed path. Ordinary
+                // connections keep the inline-label squiggle below.
+                _linguaFrancaStyleExtensions.addPhysicalConnectionSquiggle(
+                    edge,
+                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95,
+                    0.5f);
+              } else {
+                KLabel physicalConnectionLabel = _kLabelExtensions.addCenterEdgeLabel(edge, "---");
+                _linguaFrancaStyleExtensions.applyOnEdgePysicalStyle(
+                    physicalConnectionLabel,
+                    reactorInstance.isMainOrFederated() ? Colors.WHITE : Colors.GRAY_95);
+              }
             }
             // Add label annotation if present
             if (getBooleanValue(SHOW_USER_LABELS)) {
@@ -1335,8 +1364,8 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
                 _linguaFrancaStyleExtensions.applyOnEdgeLabelStyle(connectionLabel);
               }
               // Add absent_after annotation if present
-              TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
-              if (!absentAfter.equals(TimeValue.ZERO)) {
+              if (AttributeUtils.hasAbsentAfter(connection)) {
+                TimeValue absentAfter = AttributeUtils.getAbsentAfter(connection);
                 KLabel absentAfterLabel =
                     _kLabelExtensions.addCenterEdgeLabel(
                         edge, "absent_after: " + absentAfter.toString());
@@ -1345,6 +1374,7 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
               }
             }
             if (source != null && target != null) {
+              connectedPortPairs.put(source, target);
               // check for inside loop (direct in -> out connection with delay)
               if (parentInputPorts.values().contains(source)
                   && parentOutputPorts.values().contains(target)) {
@@ -1750,26 +1780,23 @@ public class LinguaFrancaSynthesis extends AbstractDiagramSynthesis<Model> {
   }
 
   private Iterable<KNode> createMaxWaitComment(EObject element, KNode targetNode) {
-    if (getBooleanValue(SHOW_USER_LABELS)) {
+    if (getBooleanValue(SHOW_USER_LABELS) && AttributeUtils.hasMaxWait(element)) {
       TimeValue maxWait = AttributeUtils.getMaxWait(element);
+      KNode comment = _kNodeExtensions.createNode();
+      setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
+      String commentText = "maxwait: " + maxWait.toString();
+      KRoundedRectangle commentFigure =
+          _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
+      _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
 
-      if (!maxWait.equals(TimeValue.ZERO)) {
-        KNode comment = _kNodeExtensions.createNode();
-        setLayoutOption(comment, CoreOptions.COMMENT_BOX, true);
-        String commentText = "maxwait: " + maxWait.toString();
-        KRoundedRectangle commentFigure =
-            _linguaFrancaShapeExtensions.addCommentFigure(comment, commentText);
-        _linguaFrancaStyleExtensions.maxWaitCommentStyle(commentFigure);
+      // connect
+      KEdge edge = _kEdgeExtensions.createEdge();
+      edge.setSource(comment);
+      edge.setTarget(targetNode);
+      _linguaFrancaStyleExtensions.maxWaitCommentStyle(
+          _linguaFrancaShapeExtensions.addCommentPolyline(edge));
 
-        // connect
-        KEdge edge = _kEdgeExtensions.createEdge();
-        edge.setSource(comment);
-        edge.setTarget(targetNode);
-        _linguaFrancaStyleExtensions.maxWaitCommentStyle(
-            _linguaFrancaShapeExtensions.addCommentPolyline(edge));
-
-        return List.of(comment);
-      }
+      return List.of(comment);
     }
     return List.of();
   }

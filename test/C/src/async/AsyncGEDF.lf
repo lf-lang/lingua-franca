@@ -1,0 +1,28 @@
+target C {
+  scheduler: GEDF_NP,
+  timeout: 1 sec
+}
+
+main reactor {
+  preamble {=
+    int identity(int x) {
+      return x;
+    }
+  =}
+  timer t(0, 100 ms)
+  logical action done(200 ms)
+
+  reaction(done) {=
+    lf_async_resume(done);
+  =}
+
+  reaction(startup) -> done {=
+    int result = lf_async(done, identity, 42);
+    interval_t elapsed = lf_time_logical_elapsed();
+    microstep_t microstep = lf_tag().microstep;
+    lf_print("lf_async() returned %d at (" PRINTF_TIME ", %u).", result, elapsed, microstep);
+    if (elapsed != MSEC(200) || microstep != 0) {
+      lf_print_error_and_exit("Expected lf_async() to resume at (200 ms, 0).");
+    }
+  =}
+}

@@ -1,0 +1,102 @@
+/**
+ * Test lf_async() with a logical action whose minimum delay makes the resume tag later than the tag
+ * that triggered the calling reaction.
+ *
+ * The first call's function returns in about 50 ms, before the 200 ms delay elapses. Logical time
+ * keeps advancing while it runs, and the call resumes at logical time 200 ms.
+ *
+ * The second call's function takes about 350 ms. Its action is scheduled 200 ms after the calling
+ * tag, at logical time 400 ms, while the function is still running. lf_async_resume() blocks until
+ * the function returns, so the call resumes at logical time 400 ms.
+ */
+target Python {
+  timeout: 1 sec,
+  workers: 1
+}
+
+preamble {=
+  import time
+
+  def fail(message):
+      sys.stderr.write(str(message) + "\n")
+      sys.exit(1)
+
+  def slow(milliseconds):
+      time.sleep(milliseconds / 1000.0)
+      return milliseconds
+=}
+
+reactor Blocker {
+  output lagging
+  logical action done(200 ms)
+  state early = 0
+  state late = 0
+
+  reaction(done) {=
+    self.lf_async_resume(done)
+  =}
+
+  reaction(startup) -> done, lagging {=
+    start = lf.time.logical_elapsed()
+    print(f"Calling lf_async() at {start} (physical {lf.time.physical_elapsed()})")
+    self.early = self.lf_async(done, slow, 50)
+    first = lf.time.logical_elapsed()
+    print(f"First resume at {first} (physical {lf.time.physical_elapsed()})")
+    if first != MSEC(200):
+        fail(f"Expected the first lf_async() to resume at logical time 200 ms. Got {first}.")
+    self.late = self.lf_async(done, slow, 350)
+    second = lf.time.logical_elapsed()
+    physical = lf.time.physical_elapsed()
+    print(f"Second resume at {second} (physical {physical})")
+    if second != MSEC(400):
+        fail(f"Expected the second lf_async() to resume at logical time 400 ms. Got {second}.")
+    # Resuming at 400 ms logical while the function takes 350 ms from the 200 ms tag means the
+    # function, not merely the delay, determined when the call returned.
+    if physical < MSEC(500):
+        fail(f"Expected the slow function to finish after the second resume. Physical time {physical}.")
+    # Tell the checker that we are at 400 ms logical time.
+    lagging.set(400)
+  =}
+
+  reaction(shutdown) {=
+    if self.early != 50 or self.late != 350:
+        fail(f"Unexpected results {self.early} and {self.late}.")
+  =}
+}
+
+reactor Checker {
+  input lagging
+  input tick
+  state ticks = 0
+
+  reaction(tick) {=
+    self.ticks += 1
+    print(f"Checker ticks at {lf.time.logical_elapsed()}.")
+  =}
+
+  reaction(lagging) {=
+    print(f"Checker received lagging at {lf.time.logical_elapsed()}.")
+    # Ticks at 0, 20, ..., 380 ms.
+    if self.ticks < 19:
+        fail(f"Expected logical time to advance during lf_async(). Saw {self.ticks} ticks before 400 ms.")
+  =}
+}
+
+main reactor {
+  timer t(0, 20 ms)
+  b = new Blocker()
+  c = new Checker()
+
+  b.lagging -> c.lagging
+
+  reaction(t) -> c.tick {=
+    c.tick.set(1)
+  =}
+
+  reaction(shutdown) {=
+    added = self.lf_added_worker_thread_count()
+    if added != 1:
+        fail(f"Expected 1 added worker. Got {added}.")
+    print("SUCCESS")
+  =}
+}

@@ -1,0 +1,35 @@
+target C {
+  coordination: decentralized
+}
+
+reactor Node(bank_index: int = 0, num_nodes: int = 3) {
+  input[num_nodes] in: int
+  output out: int
+
+  reaction(startup) -> out {=
+    lf_print("Node %d startup.", self->bank_index);
+    lf_set(out, self->bank_index);
+  =}
+}
+
+reactor Check(num_nodes: int = 3) {
+  input[num_nodes] in: int
+
+  reaction(in) {=
+    for (int i = 0; i < self->num_nodes; i++) {
+      lf_print("Check %d received %d.", i, in[i]->value);
+      if (in[i]->value != i) {
+        lf_print_error_and_exit("Expected %d, not %d.", i, in[i]->value);
+      }
+    }
+    lf_print("Success.");
+    lf_request_stop();
+  =}
+}
+
+federated reactor {
+  b = new[4] Node(num_nodes=4)
+  @maxwait(forever)
+  c = new Check(num_nodes=4)
+  b.out -> c.in
+}

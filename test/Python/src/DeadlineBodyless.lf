@@ -1,0 +1,47 @@
+/**
+ * Test that a deadline without a handler body still executes the regular reaction body when the
+ * deadline is violated (analogous to body-less `tardy`).
+ */
+target Python
+
+reactor Deadline(threshold = 100 msec) {
+  input x
+  output done
+
+  reaction(x) -> done {=
+    print("Regular reaction body executed despite deadline violation.")
+    done.set(True)
+  =} deadline(threshold)
+}
+
+reactor Print {
+  input inp
+  state success = False
+
+  reaction(inp) {=
+    if inp.value is True:
+      print("Output successfully produced by regular reaction body.")
+      self.success = True
+  =}
+
+  reaction(shutdown) {=
+    if not self.success:
+      sys.stderr.write("ERROR: Regular reaction body was not executed.\n")
+      exit(1)
+  =}
+}
+
+main reactor {
+  timer start
+  d = new Deadline(threshold = 10 msec)
+  p = new Print()
+  d.done -> p.inp
+  preamble {=
+    import time
+  =}
+
+  reaction(start) -> d.x {=
+    self.time.sleep(0.02)
+    d.x.set(42)
+  =}
+}

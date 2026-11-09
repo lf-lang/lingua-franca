@@ -1,0 +1,9 @@
+target rust {
+  edition: "2024"
+}
+
+main reactor {
+  reaction(startup) {=
+    println!("success");
+  =}
+}

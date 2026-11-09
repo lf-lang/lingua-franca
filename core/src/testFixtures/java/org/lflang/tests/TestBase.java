@@ -68,8 +68,15 @@ public abstract class TestBase extends LfInjectedTestBase {
 
   @Inject TestRegistry testRegistry;
 
-  /** Execution timeout enforced for all tests. */
-  private static final long MAX_EXECUTION_TIME_SECONDS = 300;
+  /**
+   * Maximum wall-clock seconds allowed for executing a single test binary.
+   *
+   * <p>Subclasses may override this for platforms whose simulators/emulators are much slower than
+   * native execution (e.g. cycle-accurate Patmos {@code patemu}).
+   */
+  protected long getMaxExecutionTimeSeconds() {
+    return 300;
+  }
 
   /** Content separator used in test output, 78 characters wide. */
   public static final String THIN_LINE =
@@ -125,6 +132,8 @@ public abstract class TestBase extends LfInjectedTestBase {
         "Target does not support single-threaded execution.";
     public static final String NO_FEDERATION_SUPPORT =
         "Target does not support federated execution.";
+    public static final String NO_DECENTRALIZED_COORDINATION_SUPPORT =
+        "The TypeScript target does not support decentralized coordination.";
     public static final String NO_ENCLAVE_SUPPORT = "Targeet does not support the enclave feature.";
     public static final String NO_DOCKER_SUPPORT = "Target does not support the 'docker' property.";
     public static final String NO_DOCKER_TEST_SUPPORT = "Docker tests are only supported on Linux.";
@@ -142,6 +151,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
     public static final String DESC_ENCLAVE = "Run enclave tests.";
     public static final String DESC_CONCURRENT = "Run concurrent tests.";
+    public static final String DESC_ASYNC = "Run async tests.";
     public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
     public static final String DESC_ARDUINO = "Running Arduino tests.";
     public static final String DESC_ZEPHYR = "Running Zephyr tests.";
@@ -521,7 +531,7 @@ public abstract class TestBase extends LfInjectedTestBase {
       stderr.start();
       stdout.start();
       long t0 = System.nanoTime();
-      var timeout = !p.waitFor(MAX_EXECUTION_TIME_SECONDS, TimeUnit.SECONDS);
+      var timeout = !p.waitFor(getMaxExecutionTimeSeconds(), TimeUnit.SECONDS);
       test.setExecutionTimeNanoseconds(System.nanoTime() - t0);
       stdout.interrupt();
       stderr.interrupt();

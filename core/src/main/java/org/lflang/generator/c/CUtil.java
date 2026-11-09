@@ -605,24 +605,22 @@ public class CUtil {
     for (LFCommand cmd : commands) {
       int returnCode = cmd.run();
       if (returnCode != 0 && mode != LFGeneratorContext.Mode.EPOCH) {
-        // FIXME: Why is the content of stderr not provided to the user in this error
-        // message?
-        messageReporter
-            .nowhere()
-            .error(
-                String.format(
-                    // FIXME: Why is the content of stderr not provided to the user in this error
-                    // message?
-                    "Build command \"%s\" failed with error code %d.",
-                    targetConfig.get(BuildCommandsProperty.INSTANCE), returnCode));
+        String errors = cmd.getErrors();
+        String message =
+            String.format(
+                "Build command \"%s\" failed with error code %d.",
+                targetConfig.get(BuildCommandsProperty.INSTANCE), returnCode);
+        if (!errors.isEmpty()) {
+          message += System.lineSeparator() + errors.stripTrailing();
+        }
+        messageReporter.nowhere().error(message);
         return;
       }
       // For warnings (vs. errors), the return code is 0.
       // But we still want to mark the IDE.
       if (!cmd.getErrors().isEmpty() && mode == LFGeneratorContext.Mode.EPOCH) {
         reportCommandErrors.report(cmd.getErrors());
-        return; // FIXME: Why do we return here? Even if there are warnings, the build process
-        // should proceed.
+        return;
       }
     }
   }
@@ -636,7 +634,7 @@ public class CUtil {
   public static void deleteBinFiles(FileConfig fileConfig) {
     String name = FileUtil.nameWithoutExtension(fileConfig.srcFile);
     String[] files = fileConfig.binPath.toFile().list();
-    List<String> federateNames = new LinkedList<>(); // FIXME: put this in ASTUtils?
+    List<String> federateNames = new LinkedList<>();
     fileConfig
         .resource
         .getAllContents()

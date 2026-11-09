@@ -34,15 +34,50 @@ public class FedImportEmitter {
         .forEach(
             i -> {
               visitedImports.add(i);
-              Path importPath =
-                  fileConfig
-                      .srcPath
-                      .resolve(
-                          i.getImportURI() != null
-                              ? Paths.get(i.getImportURI())
-                              : ImportUtil.buildPackageURIfromSrc(
+              Path importPath;
+              if (i.getImportURI() != null) {
+                importPath =
+                    fileConfig.srcPath.resolve(Paths.get(i.getImportURI())).toAbsolutePath();
+              } else {
+                // Support import syntax where the library file may be omitted:
+                //   import ReactorClassName from <packageName>
+                //   import ReactorClassName from <packageName/subdir>
+                // which map to src/lib[/subdir]/ReactorClassName.lf (or .ulf)
+                if (!ImportUtil.specifiesLibraryFile(i.getImportPackage())) {
+                  if (i.getReactorClasses().size() != 1) {
+                    throw new IllegalArgumentException(
+                        "Import from <"
+                            + i.getImportPackage()
+                            + "> omitted the library file name, but the import statement "
+                            + "imports multiple reactor classes. Use <package/file.lf> instead.");
+                  }
+                  var reactorClassName =
+                      ImportUtil.getImportedReactorClassName(i.getReactorClasses().get(0));
+                  if (reactorClassName == null || reactorClassName.isBlank()) {
+                    throw new IllegalArgumentException(
+                        "Cannot resolve imported reactor class name for import from <"
+                            + i.getImportPackage()
+                            + ">.");
+                  }
+                  importPath =
+                      fileConfig
+                          .srcPath
+                          .resolve(
+                              ImportUtil.buildPackageURIfromSrc(
+                                  i.getImportPackage(),
+                                  fileConfig.srcPath.toString(),
+                                  reactorClassName + ".lf"))
+                          .toAbsolutePath();
+                } else {
+                  importPath =
+                      fileConfig
+                          .srcPath
+                          .resolve(
+                              ImportUtil.buildPackageURIfromSrc(
                                   i.getImportPackage(), fileConfig.srcPath.toString()))
-                      .toAbsolutePath();
+                          .toAbsolutePath();
+                }
+              }
               i.setImportURI(
                   fileConfig.getSrcPath().relativize(importPath).toString().replace('\\', '/'));
             });

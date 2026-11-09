@@ -1,0 +1,21 @@
+# Test the import statement for packages installed in the local lf-packages directory with the import
+# path enclosed in angle brackets
+target Python {
+  timeout: 2 sec
+}
+
+import Count from <library-test-3-numeric-name/Import.lf>
+
+reactor Actuator {
+  input results
+
+  reaction(results) {=
+    print(f"Count: {results.value}")
+  =}
+}
+
+main reactor {
+  count = new Count()
+  act = new Actuator()
+  count.out -> act.results
+}

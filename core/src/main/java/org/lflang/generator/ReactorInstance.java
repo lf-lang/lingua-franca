@@ -803,10 +803,6 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     this.reporter = reporter;
     this.reactorDeclaration = definition.getReactorClass();
     this.reactorDefinition = ASTUtils.toDefinition(reactorDeclaration);
-    this.tpr =
-        parent == null
-            ? new TypeParameterizedReactor(definition, reactors)
-            : new TypeParameterizedReactor(definition, parent.tpr);
 
     // Set the enclave field to point to the top-level instance of the current enclave
     if (parent == null || isEnclave(definition)) {
@@ -834,11 +830,16 @@ public class ReactorInstance extends NamedInstance<Instantiation> {
     }
 
     // If the reactor definition is null, give up here. Otherwise, diagram generation
-    // will fail an NPE.
+    // will fail an NPE when constructing TypeParameterizedReactor.
     if (reactorDefinition == null) {
       reporter.at(definition).error("Reactor instantiation has no matching reactor definition.");
       return;
     }
+
+    this.tpr =
+        parent == null
+            ? new TypeParameterizedReactor(definition, reactors)
+            : new TypeParameterizedReactor(definition, parent.tpr);
 
     setInitialWidth();
 
