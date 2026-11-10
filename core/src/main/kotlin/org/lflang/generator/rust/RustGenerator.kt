@@ -72,7 +72,7 @@ class RustGenerator(
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
         val platform = targetConfig.get(PlatformProperty.INSTANCE)
-        if (platform.board().setByUser() && platform.board().value() !in RustBoardInfo.supportedBoards) {
+        if (platform.board().setByUser() && !RustBoardInfo.isSupported(platform.board().value())) {
             messageReporter.at(targetConfig.lookup(PlatformProperty.INSTANCE)).error(
                 "Unsupported board for the Rust target: '${platform.board().value()}'. " +
                     "Supported boards are: ${RustBoardInfo.supportedBoards.joinToString()}."

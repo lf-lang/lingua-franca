@@ -1,0 +1,27 @@
+target Rust {
+  platform: {
+    board: "stm32l4",
+  },
+  edition: "2024",
+  keepalive: true
+}
+
+reactor Blinky(period: time = 1000ms) {
+
+  state led: {= Option<Output<'static>> =} = {= None =}
+  timer t(0, period)
+
+  reaction(startup) {=
+    let pin = embassy_stm32::init(Default::default());
+    self.led = Some(Output::new(pin, Level::Low, Speed::low);
+  =}
+  reaction(t) {=
+    if let Some(led) = self.led.as_mut() {
+        led.toggle();
+    }
+  =}
+}
+
+main reactor {
+  blinky = new Blinky()
+}

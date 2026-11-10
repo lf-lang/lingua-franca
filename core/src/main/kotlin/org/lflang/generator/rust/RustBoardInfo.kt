@@ -38,6 +38,75 @@ data class BoardInfo(
     val extraFiles: Map<String, String> = emptyMap(),
 )
 
+enum class Arch { XTENSA, RISCV }
+
+data class StmChip(val part: String, val family: StmFamily) {
+    companion object {
+        fun fromId(id: String): StmChip? {
+            val part = id.lowercase()
+            // Require more than the bare family prefix: embassy-stm32 needs the full part.
+            val family = StmFamily.forPart(part) ?: return null
+            return if (part.length > family.prefix.length) StmChip(part, family) else null
+        }
+    }
+}
+
+enum class StmFamily(val prefix: String, val targetTriple: String) {
+    // ARMv6-M (Cortex-M0/M0+)
+    C0("stm32c0", "thumbv6m-none-eabi"),
+    F0("stm32f0", "thumbv6m-none-eabi"),
+    G0("stm32g0", "thumbv6m-none-eabi"),
+    L0("stm32l0", "thumbv6m-none-eabi"),
+    U0("stm32u0", "thumbv6m-none-eabi"),
+    WB0("stm32wb0", "thumbv6m-none-eabi"),
+    // ARMv7-M (Cortex-M3)
+    F1("stm32f1", "thumbv7m-none-eabi"),
+    F2("stm32f2", "thumbv7m-none-eabi"),
+    L1("stm32l1", "thumbv7m-none-eabi"),
+    // ARMv7E-M, no FPU
+    WL("stm32wl", "thumbv7em-none-eabi"),
+    // ARMv7E-M with FPU (Cortex-M4F/M7F)
+    F3("stm32f3", "thumbv7em-none-eabihf"),
+    F4("stm32f4", "thumbv7em-none-eabihf"),
+    F7("stm32f7", "thumbv7em-none-eabihf"),
+    G4("stm32g4", "thumbv7em-none-eabihf"),
+    H7("stm32h7", "thumbv7em-none-eabihf"),
+    L4("stm32l4", "thumbv7em-none-eabihf"),   // includes L4+ (l4r/l4s/l4p/l4q)
+    WB("stm32wb", "thumbv7em-none-eabihf"),
+    // ARMv8-M Mainline with FPU (Cortex-M33)
+    H5("stm32h5", "thumbv8m.main-none-eabihf"),
+    L5("stm32l5", "thumbv8m.main-none-eabihf"),
+    U3("stm32u3", "thumbv8m.main-none-eabihf"),
+    U5("stm32u5", "thumbv8m.main-none-eabihf"),
+    WBA("stm32wba", "thumbv8m.main-none-eabihf"),
+    // ARMv8.1-M (Cortex-M55)
+    N6("stm32n6", "thumbv8.1m.main-none-eabihf");
+
+    val isArmV6: Boolean get() = targetTriple.startsWith("thumbv6m")
+
+    companion object {
+        /** Longest prefix wins, so "stm32wba52cg" matches WBA rather than WB. */
+        fun forPart(part: String): StmFamily? {
+            val p = part.lowercase()
+            return entries.filter { p.startsWith(it.prefix) }.maxByOrNull { it.prefix.length }
+        }
+    }
+}
+
+enum class EspChip(val id: String, val arch: Arch, val targetTriple: String) {
+    ESP32 ("esp32", Arch.XTENSA, "xtensa-esp32-none-elf"),
+    ESP32S2 ("esp32s2", Arch.XTENSA, "xtensa-esp32s2-none-elf"),
+    ESP32S3 ("esp32s3", Arch.XTENSA, "xtensa-esp32s3-none-elf"),
+    ESP32C2 ("esp32c2", Arch.RISCV, "riscv32imc-unknown-none-elf"),
+    ESP32C3 ("esp32c3", Arch.RISCV, "riscv32imc-unknown-none-elf"),
+    ESP32C6 ("esp32c6", Arch.RISCV, "riscv32imac-unknown-none-elf"),
+    ESP32H2 ("esp32h2", Arch.RISCV, "riscv32imac-unknown-none-elf");
+
+    companion object {
+        fun fromId(id: String): EspChip? = entries.find { it.id == id.lowercase() }
+    }
+}
+
 object RustBoardInfo {
 
     /** Heap given to the global allocator, in KiB. The runtime allocates its reactors and event queue on it. */
@@ -47,53 +116,110 @@ object RustBoardInfo {
     private const val EMBASSY_EXECUTOR = "0.10"
     private const val EMBASSY_TIME = "0.5"
 
-    val supportedBoards = listOf("esp32", "rp2040")
+    val supportedBoards: List<String> = buildList {
+        EspChip.entries.mapTo(this) { it.id }
+        StmFamily.entries.mapTo(this) { "${it.prefix}xxxx" }
+        add("rp2040")
+    }
 
-    fun getBoardInfo(platformProperty: PlatformProperty.PlatformOptions): BoardInfo =
-        when (val board = platformProperty.board().value()) {
-            "esp32"  -> esp32()
+    /** The board info for [board], or null if it is not supported. */
+    fun boardInfoOrNull(board: String): BoardInfo? {
+        EspChip.fromId(board)?.let { return esp(it) }
+        StmChip.fromId(board)?.let { return stm32(it) }
+        return when (board.lowercase()) {
             "rp2040" -> rp2040()
-            else     -> throw IllegalArgumentException(
-                "Unsupported board for the Rust target: '$board'. Supported boards are: ${supportedBoards.joinToString()}."
-            )
+            else     -> null
         }
+    }
+
+    fun isSupported(board: String): Boolean = boardInfoOrNull(board) != null
+
+    fun getBoardInfo(platformProperty: PlatformProperty.PlatformOptions): BoardInfo {
+        val board = platformProperty.board().value()
+        return boardInfoOrNull(board) ?: throw IllegalArgumentException(
+            "Unsupported board for the Rust target: '$board'. Supported boards are: ${supportedBoards.joinToString()}."
+        )
+    }
+
+    private fun stm32(chip: StmChip, heapKib: Int = HEAP_KIB): BoardInfo = BoardInfo(
+        name = chip.part,
+        targetTriple = chip.family.targetTriple,
+        toolchainChannel = "stable",
+        toolchainTargets = listOf(chip.family.targetTriple),
+        runner = "probe-rs run --chip ${chip.part.uppercase().substringBefore("-")}",
+        rustFlags = listOf("-C", "link-arg=-Tlink.x"),
+        dependencies = buildMap {
+            put("embassy-stm32", """{ version = "0.4", features = ["${chip.part}", "time-driver-any", "memory-x", "exti"] }""")
+            put("embassy-executor", """{ version = "$EMBASSY_EXECUTOR", features = ["platform-cortex-m", "executor-thread"] }""")
+            put("embassy-time", """{ version = "$EMBASSY_TIME" }""")
+            put("cortex-m", """{ version = "0.7", features = ["critical-section-single-core"] }""")
+            put("cortex-m-rt", """{ version = "0.7" }""")
+            put("embedded-alloc", """{ version = "0.6" }""")
+            put("panic-halt", """{ version = "1.0" }""")
+            if (chip.family.isArmV6) {
+                // No CAS atomics on ARMv6-M
+                put("portable-atomic", """{ version = "1", features = ["critical-section"] }""")
+            }
+        },
+        preamble = """
+        |#[global_allocator]
+        |static HEAP: embedded_alloc::LlffHeap = embedded_alloc::LlffHeap::empty();
+    """.trimMargin(),
+        mainAttribute = "embassy_executor::main",
+        init = """
+        |let peripherals = embassy_stm32::init(Default::default());
+        |{
+        |    use core::mem::MaybeUninit;
+        |    const HEAP_SIZE: usize = $heapKib * 1024;
+        |    static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
+        |    unsafe { HEAP.init(core::ptr::addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE) }
+        |}
+    """.trimMargin(),
+        extraFiles = mapOf(),
+    )
 
     /**
-     * ESP32 (Xtensa), using `esp-hal` with `esp-rtos` as the embassy
+     * ESP32 (Xtensa|riscv), using `esp-hal` with `esp-rtos` as the embassy
      * executor and time driver. Needs the `esp` toolchain (install it with `espup`).
      */
-    private fun esp32(): BoardInfo = BoardInfo(
-        name = "esp32",
-        targetTriple = "xtensa-esp32-none-elf",
-        toolchainChannel = "esp",
-        buildStd = listOf("core", "alloc"),
-        runner = "espflash flash --monitor --chip esp32",
-        rustFlags = listOf(
-            "-C", "link-arg=-nostartfiles",
-            "-C", "link-arg=-Tlinkall.x",
-        ),
-        dependencies = mapOf(
-            "esp-hal" to """{ version = "~1.2", features = ["esp32", "unstable"] }""",
-            "esp-rtos" to """{ version = "0.4", features = ["esp32", "embassy"] }""",
-            "esp-alloc" to """{ version = "0.11", features = ["esp32"] }""",
-            "esp-bootloader-esp-idf" to """{ version = "0.6", features = ["esp32"] }""",
-            "embassy-executor" to """{ version = "$EMBASSY_EXECUTOR" }""",
-            "embassy-time" to """{ version = "$EMBASSY_TIME" }""",
-            "panic-halt" to """{ version = "1.0" }""",
-        ),
-        preamble = """
-            |// Application descriptor, read by the ESP-IDF bootloader.
-            |esp_bootloader_esp_idf::esp_app_desc!();
-        """.trimMargin(),
-        mainAttribute = "esp_rtos::main",
-        init = """
-            |let peripherals = esp_hal::init(esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()));
-            |esp_alloc::heap_allocator!(size: $HEAP_KIB * 1024);
-            |// esp-rtos is the embassy time driver
-            |let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
-            |esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
-        """.trimMargin(),
-    )
+    private fun esp(chip: EspChip): BoardInfo {
+        val c = chip.id
+        val xtensa = chip.arch == Arch.XTENSA
+
+        return BoardInfo(
+            name = c,
+            targetTriple = chip.targetTriple,
+            toolchainChannel = if (xtensa) "esp" else "stable",
+            buildStd = if (xtensa) listOf("core", "alloc") else emptyList(),
+            runner = "espflash flash --monitor --chip $c",
+            rustFlags = buildList {
+                if (xtensa) addAll(listOf("-C", "link-arg=-nostartfiles"))
+                addAll(listOf("-C", "link-arg=-Tlinkall.x"))
+            },
+            dependencies = mapOf(
+                "esp-hal" to """{ version = "~1.2", features = ["$c", "unstable"] }""",
+                "esp-rtos" to """{ version = "0.4", features = ["$c", "embassy"] }""",
+                "esp-alloc" to """{ version = "0.11", features = ["$c"] }""",
+                "esp-bootloader-esp-idf" to """{ version = "0.6", features = ["$c"] }""",
+                "embassy-executor" to """{ version = "$EMBASSY_EXECUTOR" }""",
+                "embassy-time" to """{ version = "$EMBASSY_TIME" }""",
+                "panic-halt" to """{ version = "1.0" }""",
+            ),
+            preamble = """
+                |// Application descriptor, read by the ESP-IDF bootloader.
+                |esp_bootloader_esp_idf::esp_app_desc!();
+            """.trimMargin(),
+            mainAttribute = "esp_rtos::main",
+            init = """
+                |let peripherals = esp_hal::init(esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()));
+                |esp_alloc::heap_allocator!(size: $HEAP_KIB * 1024);
+                |// esp-rtos is the embassy time driver
+                |let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
+                |let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
+                |esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+            """.trimMargin(),
+        )
+    }
 
     /**
      * RP2040 (Cortex-M0+), using `embassy-rp`, which also provides the
