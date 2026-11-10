@@ -76,6 +76,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
+import org.lflang.util.EvalTrace;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -182,6 +183,7 @@ public class FedGenerator {
             rtiConfig);
 
     // Generate LF code for each federate.
+    EvalTrace.begin("gen.lf_federates");
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
       lf2lfCodeMapMap.putAll(
@@ -192,16 +194,20 @@ public class FedGenerator {
               federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
+    EvalTrace.end("gen.lf_federates");
     // If a RTI docker image is to be build locally. Set it up.
+    EvalTrace.begin("gen.rti_prepare");
     prepareRtiDockerBuildEnvironment(context);
 
     // Prepare the native build of an RTI for this federation by copying reactor-c into
     // the src-gen folder.
     prepareRtiLocalBuild(context);
+    EvalTrace.end("gen.rti_prepare");
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
     // Compile federates
+    EvalTrace.begin("gen.compile_federates");
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
@@ -218,7 +224,9 @@ public class FedGenerator {
                     }
                   });
               try {
+                EvalTrace.begin("gen.security_setup");
                 setupSstOrTls(context, federation);
+                EvalTrace.end("gen.security_setup");
               } catch (IOException e) {
                 context
                     .getErrorReporter()
@@ -226,14 +234,21 @@ public class FedGenerator {
                     .error("SST/TLS setup failed: " + e.getMessage());
               }
               if (useDocker) {
+                EvalTrace.begin("gen.docker_artifacts_and_build");
                 buildUsingDocker(context, subContexts, federation);
+                EvalTrace.end("gen.docker_artifacts_and_build");
               } else {
+                EvalTrace.begin("gen.launcher");
                 generateLaunchScript();
+                EvalTrace.end("gen.launcher");
               }
             });
 
+    EvalTrace.end("gen.compile_federates");
     // Compile an RTI for this federation.
+    EvalTrace.begin("build.rti_local");
     buildRtiLocally(context);
+    EvalTrace.end("build.rti_local");
 
     context.finish(Status.COMPILED, codeMapMap);
     return context.getErrorReporter().getErrorsOccurred();
@@ -300,7 +315,9 @@ public class FedGenerator {
       var launchScriptGen = new FedDeploymentScriptGenerator(context);
       launchScriptGen.generate();
 
+      EvalTrace.begin("build.docker_compose_build");
       dockerGen.buildIfRequested();
+      EvalTrace.end("build.docker_compose_build");
     } catch (IOException e) {
       context
           .getErrorReporter()

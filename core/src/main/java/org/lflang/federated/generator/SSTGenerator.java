@@ -21,6 +21,7 @@ import org.lflang.federated.launcher.RtiConfig;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.DockerProperty;
 import org.lflang.target.property.SSTProperty;
+import org.lflang.util.EvalTrace;
 import org.lflang.util.FileUtil;
 
 /**
@@ -132,6 +133,7 @@ public class SSTGenerator {
 
     // Start the process
     try {
+      EvalTrace.begin("gen.sst.generate_credentials");
       Process process = processBuilder.start();
 
       // Create threads to capture output and error streams
@@ -152,6 +154,7 @@ public class SSTGenerator {
       outputThread.start();
 
       int exitCode = process.waitFor(); // Wait for process to finish
+      EvalTrace.end("gen.sst.generate_credentials");
       outputThread.join();
 
       if (exitCode == 0) {
@@ -169,6 +172,7 @@ public class SSTGenerator {
     mvnProcessBuilder.command("mvn", "clean", "install");
 
     try {
+      EvalTrace.begin("build.sst.auth_maven");
       Process mvnProcess = mvnProcessBuilder.start();
 
       // Create threads to capture output and error streams
@@ -189,6 +193,7 @@ public class SSTGenerator {
       mvnOutputThread.start();
 
       int mvnExitCode = mvnProcess.waitFor();
+      EvalTrace.end("build.sst.auth_maven");
       mvnOutputThread.join();
 
       if (mvnExitCode == 0) {
