@@ -39,6 +39,10 @@ public class TLSGenerator {
     Path credentialsRoot = getLocalCredentialsRoot(fileConfig); // fed-gen/[program]/credentials
     Files.createDirectories(credentialsRoot);
 
+    // Per-federation CA: every entity certificate is signed by it, and every
+    // entity receives ca.crt as its trust anchor for peer verification.
+    generateFederationCA(credentialsRoot);
+
     // RTI
     generateEntityCertAndKey(credentialsRoot, "rti");
 
@@ -94,9 +98,28 @@ public class TLSGenerator {
   // internals
   // ------------------------------------------------------------
 
+  /** credentialsRoot/ca/ca.{key,crt}: self-signed CA for this federation. */
+  private void generateFederationCA(Path credentialsRoot) throws IOException {
+    Path dir = credentialsRoot.resolve("ca");
+    Files.createDirectories(dir);
+    String keyStr = FileUtil.toUnixString(dir.resolve("ca.key"));
+    String crtStr = FileUtil.toUnixString(dir.resolve("ca.crt"));
+    String cmd =
+        "openssl req -x509 -newkey rsa:2048 -nodes -keyout "
+            + shellEscape(keyStr)
+            + " -out "
+            + shellEscape(crtStr)
+            + " -days 365 -subj "
+            + shellEscape("/CN=LF Federation CA " + fileConfig.name)
+            + " -addext basicConstraints=critical,CA:TRUE"
+            + " -addext keyUsage=critical,keyCertSign,cRLSign";
+    messageReporter.nowhere().info("Generating TLS federation CA...");
+    runLocalCommand(cmd, "[TLS Gen CA]");
+  }
+
   /**
-   * Generate a self-signed cert+key for one entity under
-   * credentialsRoot/<entityName>/
+   * Generate a key and a certificate signed by the federation CA for one entity under
+   * credentialsRoot/<entityName>/, and place a copy of ca.crt next to them.
    */
   private void generateEntityCertAndKey(Path credentialsRoot, String entityName)
       throws IOException {
@@ -105,27 +128,57 @@ public class TLSGenerator {
 
     Path key = dir.resolve(entityName + ".key");
     Path crt = dir.resolve(entityName + ".crt");
+    Path csr = dir.resolve(entityName + ".csr");
+    Path ext = dir.resolve(entityName + ".ext");
+    Path caDir = credentialsRoot.resolve("ca");
 
     // Using openssl to generate:
-    // - RSA 2048 key (unencrypted) + self-signed cert, CN=<entityName>
+    // - RSA 2048 key (unencrypted) + CSR with CN=<entityName>
+    // - certificate signed by the federation CA, usable for TLS server and client auth
     // NOTE: Use unix paths in the shell command.
     String keyStr = FileUtil.toUnixString(key);
     String crtStr = FileUtil.toUnixString(crt);
+    String csrStr = FileUtil.toUnixString(csr);
+    String extStr = FileUtil.toUnixString(ext);
+    String caKey = FileUtil.toUnixString(caDir.resolve("ca.key"));
+    String caCrt = FileUtil.toUnixString(caDir.resolve("ca.crt"));
+
+    Files.writeString(
+        ext,
+        "basicConstraints=critical,CA:FALSE\n"
+            + "keyUsage=critical,digitalSignature,keyEncipherment\n"
+            + "extendedKeyUsage=serverAuth,clientAuth\n");
 
     String cmd =
-        "openssl req -x509 -newkey rsa:2048 -nodes "
-            + "-keyout "
+        "openssl req -newkey rsa:2048 -nodes -keyout "
             + shellEscape(keyStr)
-            + " "
-            + "-out "
+            + " -out "
+            + shellEscape(csrStr)
+            + " -subj "
+            + shellEscape("/CN=" + entityName)
+            + " && openssl x509 -req -in "
+            + shellEscape(csrStr)
+            + " -CA "
+            + shellEscape(caCrt)
+            + " -CAkey "
+            + shellEscape(caKey)
+            + " -set_serial "
+            + Math.abs(new java.security.SecureRandom().nextLong())
+            + " -days 365 -extfile "
+            + shellEscape(extStr)
+            + " -out "
             + shellEscape(crtStr)
+            + " && rm -f "
+            + shellEscape(csrStr)
             + " "
-            + "-days 365 "
-            + "-subj "
-            + shellEscape("/CN=" + entityName);
+            + shellEscape(extStr);
 
     messageReporter.nowhere().info("Generating TLS certificate and key for " + entityName + "...");
     runLocalCommand(cmd, "[TLS Gen " + entityName + "]");
+    Files.copy(
+        caDir.resolve("ca.crt"),
+        dir.resolve("ca.crt"),
+        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     messageReporter
         .nowhere()
         .info("Successfully generated TLS credentials for " + entityName + ".");
