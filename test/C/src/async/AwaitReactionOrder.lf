@@ -1,7 +1,7 @@
 /**
- * At the tag where the input is set, reactions run in declaration order, which is their level order.
- * The two reactions suspended in lf_await() continue at their own levels, after the earlier reaction
- * triggered by the input and before the later one.
+ * At the tag where the input is set, reactions run in declaration order, which is their level
+ * order. The two reactions suspended in lf_await() continue at their own levels, after the earlier
+ * reaction triggered by the input and before the later one.
  */
 target C {
   timeout: 1 s

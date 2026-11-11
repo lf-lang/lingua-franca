@@ -1,7 +1,7 @@
 /**
  * At the tag where the logical actions trigger, reactions run in declaration order, which is their
- * level order. Each reaction suspended in lf_async() continues at its own level, after the reactions
- * declared before it and before the later reaction triggered by done.
+ * level order. Each reaction suspended in lf_async() continues at its own level, after the
+ * reactions declared before it and before the later reaction triggered by done.
  */
 target Python {
   timeout: 1 sec
