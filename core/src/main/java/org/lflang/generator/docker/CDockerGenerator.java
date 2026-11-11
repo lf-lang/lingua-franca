@@ -3,6 +3,7 @@ package org.lflang.generator.docker;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import org.lflang.federated.generator.KubernetesCredentialPlan;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.generator.c.CCompiler;
 import org.lflang.generator.c.CFileConfig;
@@ -29,6 +30,10 @@ public class CDockerGenerator extends DockerGenerator {
   }
 
   public static final String DEFAULT_BASE_IMAGE = "alpine:latest";
+
+  /** Dockerfile comment used instead of credential COPY instructions for Kubernetes builds. */
+  public static final String K8S_CREDENTIALS_NOTE =
+      "# (Credentials are not part of the image; Kubernetes mounts them from Secrets.)";
 
   @Override
   public String defaultImage() {
@@ -66,6 +71,9 @@ public class CDockerGenerator extends DockerGenerator {
     var isSST = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var isTLS = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS;
 
+    if ((isSST || isTLS) && KubernetesCredentialPlan.isKubernetes(config)) {
+      return K8S_CREDENTIALS_NOTE;
+    }
     if (isSST) {
       return "COPY sst/ ./sst/";
     }

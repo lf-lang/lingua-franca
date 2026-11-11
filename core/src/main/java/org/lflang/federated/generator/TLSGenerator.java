@@ -51,6 +51,16 @@ public class TLSGenerator {
       generateEntityCertAndKey(credentialsRoot, fed.name);
     }
 
+    // The credential store (including the CA private key) is owner-only.
+    KubernetesCredentialPlan.restrictTree(credentialsRoot);
+
+    if (KubernetesCredentialPlan.isKubernetes(context.getTargetConfig())) {
+      // 2a) Kubernetes: stage each entity's key, certificate and ca.crt outside of the Docker
+      // build contexts; they are provided to the Pods as Secrets at run time.
+      KubernetesCredentialPlan.create(fileConfig, context.getTargetConfig(), federates).stage();
+      return;
+    }
+
     // 2) Copy into src-gen for tar deployments (only what each needs)
     copyTLSCredentialsToSrcGen(federates, credentialsRoot);
   }
@@ -199,6 +209,7 @@ public class TLSGenerator {
 
       // Copy only files in that entity dir
       FileUtil.copyDirectoryContents(srcDir, dst, false);
+      KubernetesCredentialPlan.restrictTree(dst);
     }
 
     // RTI: src-gen/RTI/credentials/
@@ -210,6 +221,7 @@ public class TLSGenerator {
       throw new IOException("Missing TLS credentials dir for RTI: " + rtiSrcDir);
     }
     FileUtil.copyDirectoryContents(rtiSrcDir, rtiDst, false);
+    KubernetesCredentialPlan.restrictTree(rtiDst);
   }
 
   private void runLocalCommand(String bashCommand, String tag) throws IOException {

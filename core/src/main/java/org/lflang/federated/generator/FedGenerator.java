@@ -306,14 +306,16 @@ public class FedGenerator {
           return;
         }
 
+        var plan = KubernetesCredentialPlan.create(fileConfig, targetConfig, federates);
+        writeKubernetesDockerIgnores(context, subContexts);
         var kubernetesGen =
             new FedKubernetesGenerator(
-                context, federates, rtiConfig, federation.getHost().getAddr());
+                context, federates, rtiConfig, federation.getHost().getAddr(), plan);
         kubernetesGen.generate();
+        new FedDeploymentScriptGenerator(context, plan).generate();
+      } else {
+        new FedDeploymentScriptGenerator(context).generate();
       }
-
-      var launchScriptGen = new FedDeploymentScriptGenerator(context);
-      launchScriptGen.generate();
 
       EvalTrace.begin("build.docker_compose_build");
       dockerGen.buildIfRequested();
@@ -323,6 +325,39 @@ public class FedGenerator {
           .getErrorReporter()
           .nowhere()
           .error("Docker build failed due to invalid file system state.");
+    }
+  }
+
+  /**
+   * Kubernetes: write a defensive .dockerignore into every image build context so that credential
+   * material can never enter a build stage, even if it were placed there by mistake. Credentials
+   * are staged outside the build contexts (see {@link KubernetesCredentialPlan}). The Auth context
+   * is an allow-list containing only the server jar.
+   */
+  private void writeKubernetesDockerIgnores(
+      LFGeneratorContext context, List<SubContext> subContexts) throws IOException {
+    String deny =
+        String.join(
+            "\n",
+            "# Generated for Kubernetes builds: credentials are mounted at run time.",
+            "credentials/",
+            "sst/",
+            "auth/",
+            "**/*.key",
+            "**/*.pem",
+            "**/*.pfx",
+            "**/*.db",
+            "**/*.crt",
+            "");
+    for (SubContext sub : subContexts) {
+      FileUtil.writeToFile(deny, sub.getFileConfig().getSrcGenPath().resolve(".dockerignore"));
+    }
+    FileUtil.writeToFile(deny, fileConfig.getSrcGenPath().resolve("rti").resolve(".dockerignore"));
+    var authDir = fileConfig.getSrcGenPath().resolve("auth");
+    if (Files.isDirectory(authDir)) {
+      FileUtil.writeToFile(
+          "*\n!Dockerfile\n!auth-server-jar-with-dependencies.jar\n",
+          authDir.resolve(".dockerignore"));
     }
   }
 

@@ -221,15 +221,28 @@ public class SSTGenerator {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+    // The local credential store (entity keys, Auth CA key, Auth databases) is owner-only.
+    KubernetesCredentialPlan.restrictTree(fileConfig.getSSTCredentialsPath());
+    KubernetesCredentialPlan.restrictTree(fileConfig.getSSTAuthPath());
+
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
-    if (useDocker) {
-      try {
-        Path srcGenAuthPath = context.getFileConfig().getSrcGenPath().resolve("auth");
+    var isKubernetes = KubernetesCredentialPlan.isKubernetes(context.getTargetConfig());
+    Path srcGenAuthPath = context.getFileConfig().getSrcGenPath().resolve("auth");
+    try {
+      if (isKubernetes) {
+        // Kubernetes: the Auth image build context contains only the server jar. Keystores,
+        // the initial database, the trusted CA certificate and the password input are provided
+        // at run time (see KubernetesCredentialPlan).
+        Files.createDirectories(srcGenAuthPath);
+        FileUtil.copyFile(
+            fileConfig.getSSTAuthPath().resolve("auth-server-jar-with-dependencies.jar"),
+            srcGenAuthPath.resolve("auth-server-jar-with-dependencies.jar"));
+      } else if (useDocker) {
         FileUtil.copyDirectoryContents(fileConfig.getSSTAuthPath(), srcGenAuthPath, false);
         updatePropertiesFile(srcGenAuthPath.resolve("properties"), "/auth");
-      } catch (IOException e) {
-        throw new RuntimeException(e);
       }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
 
     // Generate SST config for the RTI.
@@ -319,18 +332,24 @@ public class SSTGenerator {
                 + "Net1."
                 + name
                 + "Key.pem";
+    // In containers the credentials are under ./sst/credentials (relative to the working
+    // directory), as for the private key above.
     String cipherkeyRoot =
-        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
-            + File.separator
-            + "Net1."
-            + name
-            + "CipherKey.key";
+        useDocker
+            ? "sst/credentials/keys/net1/Net1." + name + "CipherKey.key"
+            : fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+                + File.separator
+                + "Net1."
+                + name
+                + "CipherKey.key";
     String mackeyRoot =
-        fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
-            + File.separator
-            + "Net1."
-            + name
-            + "MacKey.key";
+        useDocker
+            ? "sst/credentials/keys/net1/Net1." + name + "MacKey.key"
+            : fileConfig.getSSTCredentialsPath().resolve("keys").resolve("net1").toString()
+                + File.separator
+                + "Net1."
+                + name
+                + "MacKey.key";
     if ("localhost".equals(rtiIP)) {
       rtiIP = "127.0.0.1";
       authIP = "127.0.0.1";
@@ -684,14 +703,26 @@ public class SSTGenerator {
   private void copyAuthAndConfigsAndKeys(
       List<FederateInstance> federates, boolean usePermanentDistKey, boolean useDocker)
       throws IOException {
-    // 1. Copy Auth to RTI directory.
-    Path auth_src = fileConfig.getSSTAuthPath();
-    Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
-    FileUtil.copyDirectoryContents(auth_src, rti_src, false);
+    if (KubernetesCredentialPlan.isKubernetes(context.getTargetConfig())) {
+      // Kubernetes: nothing secret goes into src-gen (the Docker build contexts). Stage each
+      // component's files into the provisioning directory instead.
+      stageForKubernetes(federates);
+      return;
+    }
 
-    // Update the copied properties to the remote base.
-    updatePropertiesFile(
-        rti_src.resolve("properties"), getRelativeRemoteBasePath("RTI") + "/auth/");
+    if (useDocker) {
+      // Docker Compose: unchanged behavior (credentials are copied into the images).
+      Path auth_src = fileConfig.getSSTAuthPath();
+      Path rti_src = fileConfig.getRtiSrcGenPath().resolve("auth");
+      FileUtil.copyDirectoryContents(auth_src, rti_src, false);
+      updatePropertiesFile(
+          rti_src.resolve("properties"), getRelativeRemoteBasePath("RTI") + "/auth/");
+    } else {
+      // SCP/SSH: Auth gets its own source tree (and archive), deployed to the RTI host. It holds
+      // only what Auth AUTH_ID needs at run time: not the CA private key and not the other Auth's
+      // keystores and database.
+      stageAuthForRemote(fileConfig.getSrcGenPath().resolve("auth"));
+    }
 
     // 2. Copy Configs and Keys to src-gen of federates and RTIs.
     Path credentialsRoot = fileConfig.getSSTCredentialsPath(); // .../sst/credentials
@@ -730,17 +761,8 @@ public class SSTGenerator {
         Path macKeyRel = credentialsRoot.relativize(macKeyFile);
         Path macKeyDst = dstCredentialsRoot.resolve(macKeyRel);
         FileUtil.copyFile(macKeyFile, macKeyDst);
-
-        // Also copy the .pem private key — needed for auth server authentication
-        String pemKeySuffix = federate.name + "Key.pem";
-        List<Path> pemKeyMatches = FileUtil.globFilesEndsWith(keysRoot, pemKeySuffix);
-        if (!pemKeyMatches.isEmpty()) {
-          Path pemKeyFile = pemKeyMatches.get(0);
-          Path pemKeyRel = credentialsRoot.relativize(pemKeyFile);
-          Path pemKeyDst = dstCredentialsRoot.resolve(pemKeyRel);
-          Files.createDirectories(pemKeyDst.getParent());
-          FileUtil.copyFile(pemKeyFile, pemKeyDst, false);
-        }
+        // The entity's RSA private key is not copied: in permanent distribution-key mode the SST
+        // C API loads only the distribution cipher and MAC keys (init_SST()).
       } else {
         String keySuffix = federate.name + "Key.pem";
         List<Path> keyMatches = FileUtil.globFilesEndsWith(keysRoot, keySuffix);
@@ -815,16 +837,7 @@ public class SSTGenerator {
       Path macKeyRel = credentialsRoot.relativize(macKeyFile);
       Path macKeyDst = rtiCredentialsDst.resolve(macKeyRel);
       FileUtil.copyFile(macKeyFile, macKeyDst);
-
-      // Also copy the .pem private key — needed for auth server authentication
-      List<Path> rtiPemMatches = FileUtil.globFilesEndsWith(keysRoot, "rtiKey.pem");
-      if (!rtiPemMatches.isEmpty()) {
-        Path rtiPemFile = rtiPemMatches.get(0);
-        Path rtiPemRel = credentialsRoot.relativize(rtiPemFile);
-        Path rtiPemDst = rtiCredentialsDst.resolve(rtiPemRel);
-        Files.createDirectories(rtiPemDst.getParent());
-        FileUtil.copyFile(rtiPemFile, rtiPemDst, true);
-      }
+      // The RSA private key is not needed in permanent distribution-key mode (see above).
     } else {
       String rtiKeySuffix = "rtiKey.pem";
       List<Path> rtiKeyMatches = FileUtil.globFilesEndsWith(keysRoot, rtiKeySuffix);
@@ -860,6 +873,85 @@ public class SSTGenerator {
     if (!useDocker) {
       updateConfigFile(rtiDst.resolve("rti.config"), getRelativeSSTRemoteBasePath("RTI"));
     }
+
+    // Restrict the copied credential trees (they are archived with these permissions).
+    KubernetesCredentialPlan.restrictTree(rtiDst);
+    for (FederateInstance federate : federates) {
+      KubernetesCredentialPlan.restrictTree(
+          fileConfig.getSrcGenPath().resolve(federate.name).resolve("sst"));
+    }
+  }
+
+  /**
+   * Stage a minimal Auth tree for SCP/SSH deployment: the server jar, the properties of Auth
+   * AUTH_ID (paths rewritten to the remote location), its database directory, and the trusted CA
+   * certificate. The CA private key and the other Auth's files are not included.
+   */
+  private void stageAuthForRemote(Path dst) throws IOException {
+    Path auth = fileConfig.getSSTAuthPath();
+    int id = KubernetesCredentialPlan.AUTH_ID;
+    String props = "exampleAuth" + id + ".properties";
+    Files.createDirectories(dst.resolve("properties"));
+    Files.createDirectories(dst.resolve("credentials").resolve("ca"));
+    FileUtil.copyFile(
+        auth.resolve("auth-server-jar-with-dependencies.jar"),
+        dst.resolve("auth-server-jar-with-dependencies.jar"));
+    FileUtil.copyFile(
+        auth.resolve("properties").resolve(props), dst.resolve("properties").resolve(props));
+    FileUtil.copyFile(
+        auth.resolve("credentials").resolve("ca").resolve("CACert.pem"),
+        dst.resolve("credentials").resolve("ca").resolve("CACert.pem"));
+    FileUtil.copyDirectoryContents(
+        auth.resolve("databases").resolve("auth" + id),
+        dst.resolve("databases").resolve("auth" + id),
+        false);
+    updatePropertiesFile(dst.resolve("properties"), getRelativeRemoteBasePath("auth") + "/");
+    KubernetesCredentialPlan.restrictTree(dst);
+  }
+
+  /**
+   * Kubernetes: generate the Auth properties (paths pointing to the read-only Secret mount and to
+   * the writable state volume) and the password input, then stage every component's files.
+   */
+  private void stageForKubernetes(List<FederateInstance> federates) throws IOException {
+    var plan = KubernetesCredentialPlan.create(fileConfig, context.getTargetConfig(), federates);
+    int id = KubernetesCredentialPlan.AUTH_ID;
+    Path srcProps =
+        fileConfig
+            .getSSTAuthPath()
+            .resolve("properties")
+            .resolve("exampleAuth" + id + ".properties");
+    String a = "Auth" + id;
+    String secretDir = KubernetesCredentialPlan.AUTH_SECRET_MOUNT + "/";
+    List<String> lines = new ArrayList<>();
+    for (String line : Files.readAllLines(srcProps)) {
+      int eq = line.indexOf('=');
+      String key = eq < 0 ? "" : line.substring(0, eq);
+      String value =
+          switch (key) {
+            case "entity_key_store_path" -> secretDir + a + "Entity.pfx";
+            case "internet_key_store_path" -> secretDir + a + "Internet.pfx";
+            case "database_key_store_path" -> secretDir + a + "Database.pfx";
+            case "database_encryption_key_path" -> secretDir + a + "Database.bin";
+            case "trusted_ca_cert_paths" -> secretDir + "CACert.pem";
+            case "auth_database_dir" -> KubernetesCredentialPlan.AUTH_STATE_MOUNT + "/auth" + id;
+            default -> null;
+          };
+      lines.add(value == null ? line : key + "=" + value);
+    }
+    String fed = fileConfig.name;
+    for (var spec : plan.secrets()) {
+      for (var item : spec.items()) {
+        if (item.key().equals(KubernetesCredentialPlan.AUTH_PROPERTIES_KEY)) {
+          KubernetesCredentialPlan.writePrivateFile(item.source(), String.join("\n", lines) + "\n");
+        } else if (item.key().equals(KubernetesCredentialPlan.AUTH_PASSWORD_KEY)) {
+          // The keystore password chosen by generateAll.sh (-p <program name>). Auth reads it from
+          // standard input when no console is attached; the leading "y" answers its prompt.
+          KubernetesCredentialPlan.writePrivateFile(item.source(), "y\n" + fed + "\n");
+        }
+      }
+    }
+    plan.stage();
   }
 
   private void updateConfigFile(Path fileToUpdate, String newBasePath) throws IOException {

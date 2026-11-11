@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.lflang.federated.generator.KubernetesCredentialPlan;
 import org.lflang.generator.LFGeneratorContext;
 import org.lflang.target.property.CommunicationModeProperty;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
@@ -50,7 +51,9 @@ public class RtiDockerGenerator extends CDockerGenerator {
           content.replace(
               "COPY --from=builder /usr/local/bin/RTI /usr/local/bin/RTI",
               "COPY --from=builder /usr/local/bin/RTI /usr/local/bin/RTI\n"
-                  + "COPY credentials/ /lingua-franca/credentials/");
+                  + (KubernetesCredentialPlan.isKubernetes(context.getTargetConfig())
+                      ? K8S_CREDENTIALS_NOTE
+                      : "COPY credentials/ /lingua-franca/credentials/"));
       content =
           content.replace(
               "ENTRYPOINT [\"/usr/local/bin/RTI\"]",
@@ -66,6 +69,9 @@ public class RtiDockerGenerator extends CDockerGenerator {
     var isSST = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST;
     var isTLS = config.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.TLS;
 
+    if ((isSST || isTLS) && KubernetesCredentialPlan.isKubernetes(config)) {
+      return K8S_CREDENTIALS_NOTE;
+    }
     if (isSST) {
       return "COPY sst/ ./sst/";
     }
