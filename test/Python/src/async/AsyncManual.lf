@@ -38,12 +38,7 @@ reactor Blocker(id=0) {
   output blocker
   state result = 0
 
-  reaction(awake) {=
-    # Unblock the `lf_async` function.
-    self.lf_async_resume(awake)
-  =}
-
-  reaction(startup) -> blocker, awake {=
+  reaction(startup, awake) -> blocker, awake {=
     print(f"Starting Blocker {self.id}")
     # These outputs must be delivered at this tag, before lf_async() lets logical time advance.
     blocker.set(1)

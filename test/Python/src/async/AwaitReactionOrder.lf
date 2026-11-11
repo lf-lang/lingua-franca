@@ -1,7 +1,7 @@
 /**
  * At the tag where the input arrives, reactions run in declaration order, which is their level
- * order. The two reactions suspended in lf_await() continue at their own levels, after
- * lf_await_resume() and before the later reaction triggered by the same input.
+ * order. The two reactions suspended in lf_await() continue at their own levels, after the earlier
+ * reaction triggered by the input and before the later one.
  */
 target Python {
   timeout: 1 sec
@@ -21,7 +21,6 @@ reactor Await {
     if self.check != 0:
         fail(f"First reaction was not executed first: {self.check}")
     self.check = 1
-    self.lf_await_resume(signal)
   =}
 
   reaction(startup) signal {=

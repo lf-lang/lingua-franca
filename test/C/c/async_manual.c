@@ -1,4 +1,4 @@
-// Externally defined reactions that use lf_async_ext() and lf_async_resume().
+// Externally defined reactions that use lf_async().
 #include "../include/AsyncExtManual/Blocker.h"
 
 // To use reaction macros, the self pointer argument must be named "self".
@@ -13,15 +13,10 @@ static int slow(int iterations) {
     return result;
 }
 
-void resume(blocker_self_t* self, blocker_awake_t* awake) {
-    // Unblock the lf_async_ext() function.
-    lf_async_resume(awake);
-}
-
 void block(blocker_self_t* self, blocker_blocker_t* blocker, blocker_awake_t* awake) {
     environment_t* env = self->base.environment;
     lf_print("Starting Blocker %d", self->id);
-    // These outputs must be delivered at this tag, before lf_async_ext() lets logical time advance.
+    // These outputs must be delivered at this tag, before lf_async() lets logical time advance.
     lf_set(blocker, 1);
     lf_print("Blocker blocking.");
     int result = lf_async(awake, slow, 1);

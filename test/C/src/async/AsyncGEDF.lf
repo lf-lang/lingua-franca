@@ -12,11 +12,7 @@ main reactor {
   timer t(0, 100 ms)
   logical action done(200 ms)
 
-  reaction(done) {=
-    lf_async_resume(done);
-  =}
-
-  reaction(startup) -> done {=
+  reaction(startup, done) -> done {=
     int result = lf_async(done, identity, 42);
     interval_t elapsed = lf_time_logical_elapsed();
     microstep_t microstep = lf_tag().microstep;

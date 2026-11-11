@@ -42,15 +42,7 @@ reactor Source {
   state from_pong: int = 0
   state saw: int = 0
 
-  reaction(awake) {=
-    lf_async_resume(awake);
-  =}
-
-  reaction(awake_pong) {=
-    lf_async_resume(awake_pong);
-  =}
-
-  reaction(startup) -> ping, awake {=
+  reaction(startup, awake) -> ping, awake {=
     // The relay runs in place and sets pong. The pong reaction of this reactor
     // must be queued, then run at this tag after this call releases the mutex.
     lf_set(ping, 1);
@@ -60,7 +52,7 @@ reactor Source {
     self->from_async += lf_async(awake, take_time_ms, 20);
   =}
 
-  reaction(pong) -> awake_pong {=
+  reaction(pong, awake_pong) -> awake_pong {=
     self->saw += pong->value;
     self->from_pong += lf_async(awake_pong, take_time_ms, 1);
   =}

@@ -66,6 +66,7 @@ public class CReactorHeaderFileGenerator {
     appendPoundIncludes(builder);
     tpr.doDefines(builder);
     appendSelfStruct(builder, types, tpr);
+    appendAwaitMarkers(builder, tpr);
     generator.generate(builder, tpr, true);
     for (Reaction reaction : tpr.reactor().getReactions()) {
       appendSignature(builder, types, reaction, tpr);
@@ -126,6 +127,22 @@ public class CReactorHeaderFileGenerator {
     builder.pr("int end[0]; // placeholder; MSVC does not compile empty structs");
     builder.unindent();
     builder.pr("} " + userFacingSelfType(tpr) + ";");
+  }
+
+  /**
+   * Declare the identifiers that let externally defined reactions pass the single, non-mutable
+   * inputs of `tpr` to `lf_await()`. Each is guarded because a source file may include the headers
+   * of several reactors that have an input with the same name.
+   */
+  private static void appendAwaitMarkers(CodeBuilder builder, TypeParameterizedReactor tpr) {
+    for (var input : ASTUtils.allInputs(tpr.reactor())) {
+      if (input.isMutable() || ASTUtils.isMultiport(input)) continue;
+      var guard = "_LF_AWAIT_MARKER__" + input.getName();
+      builder.pr("#ifndef " + guard);
+      builder.pr("#define " + guard);
+      builder.pr(CReactionGenerator.awaitMarker(input.getName()));
+      builder.pr("#endif");
+    }
   }
 
   private static void appendSignature(
@@ -210,7 +227,7 @@ public class CReactorHeaderFileGenerator {
    * Return a stream of the actions referenced by the signature of `r`, without duplicates, in the
    * order in which they are mentioned (triggers, then sources, then effects). They are passed to an
    * externally defined reaction after the ports so that the reaction can, for example, use them
-   * with `lf_async_ext()` and `lf_async_resume()`.
+   * with `lf_async()`.
    */
   private static Stream<Action> actionStream(Reaction r) {
     return varRefStream(r)
