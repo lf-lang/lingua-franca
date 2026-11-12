@@ -71,6 +71,15 @@ class RustGenerator(
 
         if (!canGenerate(errorsOccurred(), mainDef, messageReporter, context)) return
 
+        val platform = targetConfig.get(PlatformProperty.INSTANCE)
+        if (platform.board().setByUser() && !RustBoardInfo.isSupported(platform.board().value())) {
+            messageReporter.at(targetConfig.lookup(PlatformProperty.INSTANCE)).error(
+                "Unsupported board for the Rust target: '${platform.board().value()}'. " +
+                    "Supported boards are: ${RustBoardInfo.supportedBoards.joinToString()}."
+            )
+            return
+        }
+
         Files.createDirectories(fileConfig.srcGenPath)
 
         val gen = RustModelBuilder.makeGenerationInfo(targetConfig, reactors, messageReporter)
@@ -127,7 +136,12 @@ class RustGenerator(
         if (cargoReturnCode == 0) {
             // We still have to copy the compiled binary to the destination folder.
             val buildType = targetConfig.get(BuildTypeProperty.INSTANCE)
-            val binaryPath = validator.metadata?.targetDirectory!!
+            val platform = targetConfig.get(PlatformProperty.INSTANCE)
+            // Board builds set `build.target`, so cargo puts their output in a directory named after the triple.
+            val targetDir = validator.metadata?.targetDirectory!!.let {
+                if (platform.board().setByUser()) it.resolve(RustBoardInfo.getBoardInfo(platform).targetTriple) else it
+            }
+            val binaryPath = targetDir
                 .resolve(buildType.cargoProfileName)
                 .resolve(fileConfig.executable.fileName)
             val destPath = fileConfig.executable
