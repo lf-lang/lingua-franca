@@ -456,6 +456,12 @@ public class CTriggerObjectsGenerator {
   private static String deferredOptimizeForSingleDominatingReaction(ReactorInstance r) {
     var code = new CodeBuilder();
     for (ReactionInstance reaction : r.reactions) {
+      // A reaction with a single dominating upstream reaction may be executed by the thread that
+      // executes that upstream reaction, before the upstream reaction is done. Such a reaction
+      // must not suspend in lf_async() or lf_await(), as the upstream reaction would be suspended
+      // with it, and neither reaction would be marked by the scheduler as executing.
+      // Hence, we skip this optimization if this reaction may call lf_async() or lf_await().
+      if (mayCallAsync(reaction)) continue;
       // The following code attempts to gather into a loop assignments of successive
       // bank members relations between reactions to avoid large chunks of inline code
       // when a large bank sends to a large bank or when a large bank receives from
@@ -509,6 +515,21 @@ public class CTriggerObjectsGenerator {
       }
     }
     return code.toString();
+  }
+
+  /**
+   * Return true if the specified reaction might call lf_async() or lf_await(). This is the case if
+   * the body of the reaction, or a method or preamble of its reactor, mentions either one, or if
+   * the reaction is defined externally, in which case its body is not available.
+   */
+  private static boolean mayCallAsync(ReactionInstance reaction) {
+    var definition = reaction.getDefinition();
+    if (definition.getCode() == null) return true;
+    var reactor = reaction.getParent().reactorDefinition;
+    var code = new StringBuilder(ASTUtils.toText(definition.getCode()));
+    ASTUtils.allMethods(reactor).forEach(m -> code.append(ASTUtils.toText(m.getCode())));
+    ASTUtils.allPreambles(reactor).forEach(p -> code.append(ASTUtils.toText(p.getCode())));
+    return code.indexOf("lf_async") >= 0 || code.indexOf("lf_await") >= 0;
   }
 
   /** Print statement that sets the last_enabling_reaction field of a reaction. */
