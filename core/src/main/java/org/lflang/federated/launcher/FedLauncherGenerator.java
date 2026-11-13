@@ -135,6 +135,18 @@ public class FedLauncherGenerator {
               getDistCode(
                   rtiConfig.getDirectory(), "RTI", rtiConfig.getUser(), rtiConfig.getHost()))
           .append("\n");
+      if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
+        // Auth runs on the RTI host from its own tree (not inside the RTI's tree).
+        distCode
+            .append(
+                getDistCode(
+                    rtiConfig.getDirectory(),
+                    "auth",
+                    rtiConfig.getUser(),
+                    rtiConfig.getHost(),
+                    false))
+            .append("\n");
+      }
 
       String logFileName = String.format("log/%s_RTI.log", fileConfig.name);
 
@@ -469,7 +481,14 @@ public class FedLauncherGenerator {
         "#!/bin/bash",
         "# Distributor for federated " + fileConfig.name + ".lf Lingua Franca program.",
         "# Uncomment to specify to behave as close as possible to the POSIX standard.",
-        "# set -o posix");
+        "# set -o posix",
+        "# Stop at the first failing step (bundling, copying, extracting, or building).",
+        "set -eo pipefail",
+        "# Archives may contain credentials: create them owner-only in a private temporary",
+        "# directory that is removed on success and on failure.",
+        "umask 077",
+        "LF_DIST_TMP=$(mktemp -d)",
+        "trap 'rm -rf \"$LF_DIST_TMP\"' EXIT");
   }
 
   private String getRtiCommand(
@@ -602,7 +621,7 @@ public class FedLauncherGenerator {
     String sstAuthLaunch = "";
 
     if (targetConfig.getOrDefault(CommunicationModeProperty.INSTANCE) == CommunicationMode.SST) {
-      String authBase = SSTGenerator.getRemoteBasePath(fileConfig, "RTI") + "/auth";
+      String authBase = SSTGenerator.getRemoteBasePath(fileConfig, "auth");
       String authCommand =
           "java -jar "
               + authBase
@@ -695,6 +714,15 @@ public class FedLauncherGenerator {
    * @param federate The federate to distribute.
    */
   private String getDistCode(Path remoteBase, String name, String user, String host) {
+    return getDistCode(remoteBase, name, user, host, true);
+  }
+
+  /**
+   * Like {@link #getDistCode(Path, String, String, String)}; if {@code build} is false, the tree is
+   * only copied and extracted (used for the SST Auth tree, which has nothing to compile).
+   */
+  private String getDistCode(
+      Path remoteBase, String name, String user, String host, boolean build) {
     String binDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/bin";
     String logDirectory = "~/" + remoteBase + "/" + fileConfig.name + "/log";
     String remoteBuildLogFileName = logDirectory + "/build.log";
@@ -711,8 +739,12 @@ public class FedLauncherGenerator {
 
     // The >> syntax appends stdout to a file. The 2>&1 appends stderr to the same file. tee
     // sends to stdout and file.
+    // pipefail: a failing make is not masked by the tee into the build log.
     String buildCmdLine =
-        "echo \"rm -rf build && mkdir -p build && cd build && cmake .."
+        "echo \"set -eo pipefail\" >> "
+            + buildShellFileName
+            + "; "
+            + "echo \"rm -rf build && mkdir -p build && cd build && cmake .."
             + cmakeArgs
             + " && make 2>&1 | tee -a "
             + remoteBuildLogFileName
@@ -720,58 +752,74 @@ public class FedLauncherGenerator {
             + buildShellFileName
             + "; ";
 
+    String localTar = "\"$LF_DIST_TMP/" + tarFileName + "\"";
+    String transfer =
+        String.join(
+            "\n",
+            "echo \""
+                + ANSI_INFO
+                + "------ Making directory "
+                + remoteBase
+                + " and subdirectories federate_name, bin, and log on host "
+                + getUserHost(user, host)
+                + ANSI_RESET
+                + "\"",
+            "ssh " + getUserHost(user, host) + " '\\",
+            "    umask 077; \\",
+            "    mkdir -p " + binDirectory + " " + logDirectory + " && \\",
+            "    echo \"------Build of "
+                + fileConfig.name
+                + " "
+                + name
+                + "\" >> "
+                + remoteBuildLogFileName
+                + " && \\",
+            "    date >> " + remoteBuildLogFileName + ";",
+            "'",
+            "echo \""
+                + ANSI_INFO
+                + "**** Bundling source files into "
+                + tarFileName
+                + ANSI_RESET
+                + "\"",
+            "tar -czf "
+                + localTar
+                + " -C "
+                + fileConfig.getSrcGenPath()
+                + " --exclude build "
+                + name,
+            "echo \""
+                + ANSI_INFO
+                + "**** Copying tarfile to host "
+                + getUserHost(user, host)
+                + ANSI_RESET
+                + "\"",
+            "scp "
+                + localTar
+                + " "
+                + getUserHost(user, host)
+                + ":"
+                + remoteBase
+                + "/"
+                + fileConfig.name
+                + "/"
+                + tarFileName,
+            "rm -f " + localTar,
+            "# Extract with owner-only permissions; the tree may contain credentials.",
+            "ssh " + getUserHost(user, host) + " '\\",
+            "    umask 077; \\",
+            "    cd ~/" + remoteBase + "/" + fileConfig.name + " && \\",
+            "    tar -xzf " + tarFileName + " && \\",
+            "    rm -f " + tarFileName + " && \\",
+            "    chmod -R go-rwx " + name,
+            "'");
+    if (!build) {
+      return transfer;
+    }
+
     return String.join(
         "\n",
-        "echo \""
-            + ANSI_INFO
-            + "------ Making directory "
-            + remoteBase
-            + " and subdirectories federate_name, bin, and log on host "
-            + getUserHost(user, host)
-            + ANSI_RESET
-            + "\"",
-        "ssh " + getUserHost(user, host) + " '\\",
-        "    mkdir -p " + binDirectory + " " + logDirectory + "; \\",
-        "    echo \"------Build of "
-            + fileConfig.name
-            + " "
-            + name
-            + "\" >> "
-            + remoteBuildLogFileName
-            + "; \\",
-        "    date >> " + remoteBuildLogFileName + ";",
-        "'",
-        "pushd " + fileConfig.getSrcGenPath() + " > /dev/null",
-        "echo \""
-            + ANSI_INFO
-            + "**** Bundling source files into "
-            + tarFileName
-            + ANSI_RESET
-            + "\"",
-        "tar -czf " + tarFileName + " --exclude build " + name,
-        "echo \""
-            + ANSI_INFO
-            + "**** Copying tarfile to host "
-            + getUserHost(user, host)
-            + ANSI_RESET
-            + "\"",
-        "scp -r "
-            + tarFileName
-            + " "
-            + getUserHost(user, host)
-            + ":"
-            + remoteBase
-            + "/"
-            + fileConfig.name
-            + "/"
-            + tarFileName,
-        "rm " + tarFileName,
-        "ssh " + getUserHost(user, host) + " '\\",
-        "    cd ~/" + remoteBase + "/" + fileConfig.name + "; \\",
-        "    tar -xzf " + tarFileName + "; \\",
-        "    rm " + tarFileName + ";",
-        "'",
-        "popd > /dev/null",
+        transfer,
         "echo \""
             + ANSI_INFO
             + "**** Generating and executing compile.sh on host "

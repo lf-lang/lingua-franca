@@ -48,8 +48,11 @@ import org.lflang.generator.ReactorInstance;
 import org.lflang.generator.RuntimeRange;
 import org.lflang.generator.SendRange;
 import org.lflang.generator.SubContext;
+import org.lflang.generator.docker.AuthDockerGenerator;
 import org.lflang.generator.docker.DockerData;
+import org.lflang.generator.docker.FedDeploymentScriptGenerator;
 import org.lflang.generator.docker.FedDockerComposeGenerator;
+import org.lflang.generator.docker.FedKubernetesGenerator;
 import org.lflang.generator.docker.RtiDockerGenerator;
 import org.lflang.lf.Expression;
 import org.lflang.lf.ImportedReactor;
@@ -73,6 +76,7 @@ import org.lflang.target.property.PlatformProperty;
 import org.lflang.target.property.type.CommunicationModeType.CommunicationMode;
 import org.lflang.target.property.type.CoordinationModeType.CoordinationMode;
 import org.lflang.util.Averager;
+import org.lflang.util.EvalTrace;
 import org.lflang.util.FileUtil;
 import org.lflang.util.LFCommand;
 
@@ -179,6 +183,7 @@ public class FedGenerator {
             rtiConfig);
 
     // Generate LF code for each federate.
+    EvalTrace.begin("gen.lf_federates");
     Map<Path, CodeMap> lf2lfCodeMapMap = new HashMap<>();
     for (FederateInstance federate : federates) {
       lf2lfCodeMapMap.putAll(
@@ -189,16 +194,20 @@ public class FedGenerator {
               federates.stream().map(fed -> fed.name).collect(Collectors.toList())));
     }
 
+    EvalTrace.end("gen.lf_federates");
     // If a RTI docker image is to be build locally. Set it up.
+    EvalTrace.begin("gen.rti_prepare");
     prepareRtiDockerBuildEnvironment(context);
 
     // Prepare the native build of an RTI for this federation by copying reactor-c into
     // the src-gen folder.
     prepareRtiLocalBuild(context);
+    EvalTrace.end("gen.rti_prepare");
 
     var useDocker = context.getTargetConfig().get(DockerProperty.INSTANCE).enabled();
 
     // Compile federates
+    EvalTrace.begin("gen.compile_federates");
     Map<Path, CodeMap> codeMapMap =
         compileFederates(
             context,
@@ -214,28 +223,54 @@ public class FedGenerator {
                           .error("Failure during code generation of " + c.getFileConfig().srcFile);
                     }
                   });
+              try {
+                EvalTrace.begin("gen.security_setup");
+                setupSstOrTls(context, federation);
+                EvalTrace.end("gen.security_setup");
+              } catch (IOException e) {
+                context
+                    .getErrorReporter()
+                    .nowhere()
+                    .error("SST/TLS setup failed: " + e.getMessage());
+              }
               if (useDocker) {
-                buildUsingDocker(context, subContexts);
+                EvalTrace.begin("gen.docker_artifacts_and_build");
+                buildUsingDocker(context, subContexts, federation);
+                EvalTrace.end("gen.docker_artifacts_and_build");
               } else {
+                EvalTrace.begin("gen.launcher");
                 generateLaunchScript();
+                EvalTrace.end("gen.launcher");
               }
             });
 
+    EvalTrace.end("gen.compile_federates");
     // Compile an RTI for this federation.
+    EvalTrace.begin("build.rti_local");
     buildRtiLocally(context);
+    EvalTrace.end("build.rti_local");
 
-    // Generate SST configurations/credentials or TLS credentials depending on the
-    // mode.
+    context.finish(Status.COMPILED, codeMapMap);
+    return context.getErrorReporter().getErrorsOccurred();
+  }
+
+  private void setupSstOrTls(LFGeneratorContext context, Reactor federation) throws IOException {
+    var useDocker = targetConfig.get(DockerProperty.INSTANCE).enabled();
     if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.SST) {
-      new SSTGenerator(fileConfig, messageReporter, context).setupSST(federates, rtiConfig);
+      var isKubernetes =
+          context.getTargetConfig().get(DockerProperty.INSTANCE).deployment().equals("kubernetes");
+      var authHost =
+          ((!useDocker || isKubernetes) && federation.getHost() != null)
+              ? federation.getHost().getAddr()
+              : context.getTargetConfig().get(DockerProperty.INSTANCE).authIP();
+
+      new SSTGenerator(fileConfig, messageReporter, context)
+          .setupSST(federates, rtiConfig, authHost);
     } else if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
         == CommunicationMode.TLS) {
       new TLSGenerator(fileConfig, messageReporter, context).setupTLS(federates);
     }
-
-    context.finish(Status.COMPILED, codeMapMap);
-    return context.getErrorReporter().getErrorsOccurred();
   }
 
   /**
@@ -244,16 +279,85 @@ public class FedGenerator {
    * @param context The main generator context.
    * @param subContexts The context for the federates.
    */
-  private void buildUsingDocker(LFGeneratorContext context, List<SubContext> subContexts) {
+  private void buildUsingDocker(
+      LFGeneratorContext context, List<SubContext> subContexts, Reactor federation) {
     try {
       var dockerGen = new FedDockerComposeGenerator(context, rtiConfig.getHost());
       dockerGen.writeDockerComposeFile(createDockerFiles(context, subContexts));
+      if (context.getTargetConfig().getOrDefault(CommunicationModeProperty.INSTANCE)
+          == CommunicationMode.SST) {
+        new AuthDockerGenerator(context).generate();
+      }
+
+      // Check if deployment mode is set to "kubernetes" and confirm if the registry address is
+      // provided in lf code file
+      if (context
+          .getTargetConfig()
+          .get(DockerProperty.INSTANCE)
+          .deployment()
+          .equals("kubernetes")) {
+        if (context.getTargetConfig().get(DockerProperty.INSTANCE).registryAddress().isEmpty()) {
+          context
+              .getErrorReporter()
+              .nowhere()
+              .error(
+                  "registry-address must be set in docker options when deployment-type is"
+                      + " kubernetes");
+          return;
+        }
+
+        var plan = KubernetesCredentialPlan.create(fileConfig, targetConfig, federates);
+        writeKubernetesDockerIgnores(context, subContexts);
+        var kubernetesGen =
+            new FedKubernetesGenerator(
+                context, federates, rtiConfig, federation.getHost().getAddr(), plan);
+        kubernetesGen.generate();
+        new FedDeploymentScriptGenerator(context, plan).generate();
+      } else {
+        new FedDeploymentScriptGenerator(context).generate();
+      }
+
+      EvalTrace.begin("build.docker_compose_build");
       dockerGen.buildIfRequested();
+      EvalTrace.end("build.docker_compose_build");
     } catch (IOException e) {
       context
           .getErrorReporter()
           .nowhere()
           .error("Docker build failed due to invalid file system state.");
+    }
+  }
+
+  /**
+   * Kubernetes: write a defensive .dockerignore into every image build context so that credential
+   * material can never enter a build stage, even if it were placed there by mistake. Credentials
+   * are staged outside the build contexts (see {@link KubernetesCredentialPlan}). The Auth context
+   * is an allow-list containing only the server jar.
+   */
+  private void writeKubernetesDockerIgnores(
+      LFGeneratorContext context, List<SubContext> subContexts) throws IOException {
+    String deny =
+        String.join(
+            "\n",
+            "# Generated for Kubernetes builds: credentials are mounted at run time.",
+            "credentials/",
+            "sst/",
+            "auth/",
+            "**/*.key",
+            "**/*.pem",
+            "**/*.pfx",
+            "**/*.db",
+            "**/*.crt",
+            "");
+    for (SubContext sub : subContexts) {
+      FileUtil.writeToFile(deny, sub.getFileConfig().getSrcGenPath().resolve(".dockerignore"));
+    }
+    FileUtil.writeToFile(deny, fileConfig.getSrcGenPath().resolve("rti").resolve(".dockerignore"));
+    var authDir = fileConfig.getSrcGenPath().resolve("auth");
+    if (Files.isDirectory(authDir)) {
+      FileUtil.writeToFile(
+          "*\n!Dockerfile\n!auth-server-jar-with-dependencies.jar\n",
+          authDir.resolve(".dockerignore"));
     }
   }
 
@@ -586,6 +690,11 @@ public class FedGenerator {
    * @param federation The top-level Reactor.
    */
   private void setRTIHost(Reactor federation) {
+    if (rtiConfig.getHost().equals("localhost")
+        && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
+      rtiConfig.setHost("rti");
+    }
+
     if (federation.getHost() != null) {
       if (rtiConfig.getHost().equals("localhost")
           && !federation.getHost().getAddr().equals("localhost")) {
@@ -594,11 +703,6 @@ public class FedGenerator {
       if (rtiConfig.getUser() == null) {
         rtiConfig.setUser(federation.getHost().getUser());
       }
-    }
-
-    if (rtiConfig.getHost().equals("localhost")
-        && targetConfig.get(DockerProperty.INSTANCE).enabled()) {
-      rtiConfig.setHost("rti");
     }
   }
 
