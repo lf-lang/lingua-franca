@@ -1,7 +1,7 @@
 /**
  * At the tag where the logical action triggers, reactions run in declaration order, which is their
- * level order. The two reactions suspended in lf_async() continue at their own levels, after
- * lf_async_resume() and before the later reaction triggered by the same action.
+ * level order. The two reactions suspended in lf_async() continue at their own levels, after the
+ * earlier reaction triggered by the action and before the later one.
  */
 target Python {
   timeout: 1 sec
@@ -27,17 +27,16 @@ main reactor {
     if self.check != 0:
         fail(f"First reaction was not executed first: {self.check}")
     self.check = 1
-    self.lf_async_resume(done)
   =}
 
-  reaction(startup) -> done {=
+  reaction(startup, done) -> done {=
     self.lf_async(done, slow, 50)
     if self.check != 1:
         fail(f"Second reaction was not executed second: {self.check}")
     self.check = 2
   =}
 
-  reaction(startup) -> done {=
+  reaction(startup, done) -> done {=
     self.lf_async(done, slow, 50)
     if self.check != 2:
         fail(f"Third reaction was not executed third: {self.check}")

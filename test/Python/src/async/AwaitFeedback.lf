@@ -1,16 +1,14 @@
 /**
- * Test lf_await(port), which suspends the calling reaction until another reaction of the same
- * reactor calls lf_await_resume(port) on the same input port.
+ * Test lf_await(port), which suspends the calling reaction until the input port is next set.
  *
  * Before calling lf_await(response), the startup reaction of Requester sets an output that triggers
  * Relay, whose output feeds back to the response input of Requester through a connection with an
- * `after` delay of 100 ms. The response reaction calls lf_await_resume(response), so lf_await()
- * returns at a logical time exactly 100 ms later than the one at which it was called. The startup
- * reaction then repeats this at the new tag.
+ * `after` delay of 100 ms. The response resumes the call, so lf_await() returns at a logical time
+ * exactly 100 ms later than the one at which it was called, after the response reaction, which is
+ * declared earlier, has run. The startup reaction then repeats this at the new tag.
  *
  * At 50 ms, a second reaction of Requester also calls lf_await(response). Both calls are pending
- * when the first response arrives at 100 ms, and the single lf_await_resume(response) in the
- * response reaction resumes both of them at that tag.
+ * when the first response arrives at 100 ms, and that response resumes both of them at that tag.
  *
  * The startup reaction of Forgotten calls lf_await() on an input that never receives anything and
  * is never resumed. When the program stops, lf_await() returns at the stop tag so that the reaction
@@ -50,7 +48,6 @@ reactor Requester {
   reaction(response) {=
     self.responses += 1
     print(f"Response {response.value} received at {lf.time.logical_elapsed()}.")
-    self.lf_await_resume(response)
   =}
 
   reaction(startup) response -> request {=
@@ -80,7 +77,7 @@ reactor Requester {
     self.lf_await(response)
     self.late_resumed_at = lf.time.logical_elapsed()
     print(f"Late reaction resumed at {self.late_resumed_at}.")
-    # The same lf_await_resume() that resumed the startup reaction resumed this one.
+    # The same response that resumed the startup reaction resumed this one.
     if self.late_resumed_at != MSEC(100):
         fail(f"Expected the late reaction to resume at 100 ms. Resumed at {self.late_resumed_at}.")
   =}

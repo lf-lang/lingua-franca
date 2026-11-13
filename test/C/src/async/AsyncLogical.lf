@@ -6,8 +6,9 @@
  * keeps advancing while it runs, and the call resumes at logical time 200 ms.
  *
  * The second call's function takes about 350 ms. Its action is scheduled 200 ms after the calling
- * tag, at logical time 400 ms, while the function is still running. lf_async_resume() blocks until
- * the function returns, so the call resumes at logical time 400 ms.
+ * tag, at logical time 400 ms, while the function is still running. The scheduler waits for the
+ * function to return before it moves past the level of the calling reaction at that tag, so the
+ * call resumes at logical time 400 ms.
  */
 target C {
   timeout: 1 sec,
@@ -26,11 +27,7 @@ reactor Blocker {
   state early: int = 0
   state late: int = 0
 
-  reaction(done) {=
-    lf_async_resume(done);
-  =}
-
-  reaction(startup) -> done, lagging {=
+  reaction(startup, done) -> done, lagging {=
     interval_t start = lf_time_logical_elapsed();
     lf_print("Calling lf_async() at " PRINTF_TIME " (physical " PRINTF_TIME ")", start, lf_time_physical_elapsed());
     self->early = lf_async(done, slow, 50);

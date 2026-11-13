@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -2246,74 +2247,78 @@ public class CGenerator extends GeneratorBase {
 
   /** Generate top-level preamble code. */
   protected String generateTopLevelPreambles(Reactor reactor) {
-    // Reactors that are instantiated or inherited by the specified reactor need to have
-    // their file-level preambles included. Avoid including the same preamble multiple times.
-    var visited = new LinkedHashSet<EObject>();
-    return generateTopLevelPreambles(reactor, visited);
-  }
-
-  private String generateTopLevelPreambles(Reactor reactor, Set<EObject> visited) {
     CodeBuilder builder = new CodeBuilder();
-
-    // First, generate the preambles for the base classes of the specified reactor.
-    // Use ASTUtils.superClasses to get the full resolved superclass chain, which handles
-    // imported reactors correctly. This returns classes in deepest-first order.
-    var allSuperClasses = ASTUtils.superClasses(reactor);
-    if (allSuperClasses != null) {
-      for (var superClass : allSuperClasses) {
-        generatePreambleForFile(superClass.eContainer(), visited, builder);
-      }
-    }
-
-    // Generate preamble for the current reactor's file (may have been visited via superclasses).
-    generatePreambleForFile(reactor.eContainer(), visited, builder);
-
-    // Finally, generate the preambles for all the reactors that are instantiated.
-    // This recursively collects preambles from instantiated reactors and their superclasses.
-    for (var instantiation : ASTUtils.allInstantiations(reactor)) {
-      var instantiated = toDefinition(instantiation.getReactorClass());
-      if (instantiated != null) {
-        builder.pr(generateTopLevelPreambles(instantiated, visited));
-      }
+    for (var model : filesWithTopLevelPreambles(reactor)) {
+      generatePreambleForFile(model, builder);
     }
     return builder.toString();
   }
 
   /**
-   * Generate guarded preamble code for the given file (Model container) if not already visited.
+   * Return the files (Model containers) whose file-level preambles are visible to the specified
+   * reactor, each once, in the order in which their preambles are generated.
    *
-   * <p>In addition to emitting the preambles declared in the file itself, this also recursively
-   * emits the preambles of every file imported (directly or transitively) by this file. This
-   * ensures that type and macro definitions from a preamble in an imported file are visible to all
-   * reactors defined in the importing file, not just reactors that happen to instantiate something
-   * from the imported file.
+   * <p>These are the files of the base classes of the reactor, the file of the reactor itself, and,
+   * recursively, the files that are visible to every reactor that it instantiates. A file is
+   * preceded by every file that it imports (directly or transitively). This ensures that type and
+   * macro definitions from a preamble in an imported file are visible to all reactors defined in
+   * the importing file, not just reactors that happen to instantiate something from the imported
+   * file.
    *
-   * @param fileContainer The eContainer of a reactor (the Model/file containing it).
-   * @param visited Set of already-visited containers to avoid duplicates.
-   * @param builder The CodeBuilder to append the preamble to.
+   * @param reactor The reactor.
    */
-  private void generatePreambleForFile(
-      EObject fileContainer, Set<EObject> visited, CodeBuilder builder) {
+  public static List<Model> filesWithTopLevelPreambles(Reactor reactor) {
+    var files = new ArrayList<Model>();
+    collectFilesWithTopLevelPreambles(reactor, new HashSet<>(), files);
+    return files;
+  }
+
+  private static void collectFilesWithTopLevelPreambles(
+      Reactor reactor, Set<EObject> visited, List<Model> files) {
+    // Use ASTUtils.superClasses to get the full resolved superclass chain, which handles
+    // imported reactors correctly. This returns classes in deepest-first order.
+    var allSuperClasses = ASTUtils.superClasses(reactor);
+    if (allSuperClasses != null) {
+      for (var superClass : allSuperClasses) {
+        collectFile(superClass.eContainer(), visited, files);
+      }
+    }
+    // The current reactor's file may have been visited via superclasses.
+    collectFile(reactor.eContainer(), visited, files);
+    for (var instantiation : ASTUtils.allInstantiations(reactor)) {
+      var instantiated = toDefinition(instantiation.getReactorClass());
+      if (instantiated != null) {
+        collectFilesWithTopLevelPreambles(instantiated, visited, files);
+      }
+    }
+  }
+
+  private static void collectFile(EObject fileContainer, Set<EObject> visited, List<Model> files) {
     if (visited.contains(fileContainer) || !(fileContainer instanceof Model model)) {
       return;
     }
     visited.add(fileContainer);
-
-    // First, recursively emit preambles of files imported by this file. A preamble declared
-    // at the top level of an imported file should be visible to every reactor defined in this
-    // file, mirroring the way imported type names are resolved by the scope provider.
+    // A preamble declared at the top level of an imported file should be visible to every reactor
+    // defined in this file, mirroring the way imported type names are resolved by the scope
+    // provider.
     for (var imp : model.getImports()) {
       for (var importedReactor : imp.getReactorClasses()) {
         var resolved = importedReactor.getReactorClass();
-        if (resolved != null) {
-          var importedFile = resolved.eContainer();
-          if (importedFile != null) {
-            generatePreambleForFile(importedFile, visited, builder);
-          }
+        if (resolved != null && resolved.eContainer() != null) {
+          collectFile(resolved.eContainer(), visited, files);
         }
       }
     }
+    files.add(model);
+  }
 
+  /**
+   * Generate guarded preamble code for the preambles declared in the given file.
+   *
+   * @param model The file.
+   * @param builder The CodeBuilder to append the preamble to.
+   */
+  private void generatePreambleForFile(Model model, CodeBuilder builder) {
     var preambles = model.getPreambles();
     var hasPreamble =
         !preambles.isEmpty() || targetConfig.get(ProtobufsProperty.INSTANCE).size() > 0;
@@ -2321,7 +2326,7 @@ public class CGenerator extends GeneratorBase {
       return;
     }
 
-    var guard = "TOP_LEVEL_PREAMBLE_" + fileContainer.hashCode() + "_H";
+    var guard = "TOP_LEVEL_PREAMBLE_" + model.hashCode() + "_H";
     builder.pr("#ifndef " + guard);
     builder.pr("#define " + guard);
 

@@ -33,12 +33,7 @@ reactor Blocker(id: int = 0) {
   output blocker: int
   state result: int = 0
 
-  reaction(awake) {=
-    // Unblock the `lf_async` function.
-    lf_async_resume(awake);
-  =}
-
-  reaction(startup) -> blocker, awake {=
+  reaction(startup, awake) -> blocker, awake {=
     lf_print("Starting Blocker %d", self->id);
     // These outputs must be delivered at this tag, before lf_async() lets logical time advance.
     lf_set(blocker, 1);
