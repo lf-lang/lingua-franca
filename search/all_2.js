@@ -141,5 +141,6 @@ var searchData=
   ['authproperty_138',['AuthProperty',['../classorg_1_1lflang_1_1target_1_1property_1_1AuthProperty.html',1,'org::lflang::target::property']]],
   ['auto_139',['AUTO',['../enumorg_1_1lflang_1_1target_1_1property_1_1type_1_1PlatformType_1_1Platform.html#a032b0139a6e75709ec81a0c15d57792c',1,'org::lflang::target::property::type::PlatformType::Platform']]],
   ['automatically_20generated_20doc_20files_140',['Automatically Generated Doc Files',['../md__2Users_2runner_2work_2lingua-franca_2lingua-franca_2DOCUMENTATION.html#autotoc_md10',1,'']]],
-  ['averager_141',['Averager',['../classorg_1_1lflang_1_1util_1_1Averager.html',1,'org.lflang.util.Averager'],['../classorg_1_1lflang_1_1util_1_1Averager.html#a624e0369ae8a2d9b94c8293ba711c018',1,'org.lflang.util.Averager.Averager()']]]
+  ['averager_141',['Averager',['../classorg_1_1lflang_1_1util_1_1Averager.html',1,'org.lflang.util.Averager'],['../classorg_1_1lflang_1_1util_1_1Averager.html#a624e0369ae8a2d9b94c8293ba711c018',1,'org.lflang.util.Averager.Averager()']]],
+  ['awaitmarker_142',['awaitMarker',['../classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html#a944531c3410594be420dac4d03789519',1,'org::lflang::generator::c::CReactionGenerator']]]
 ];

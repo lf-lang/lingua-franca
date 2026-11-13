@@ -15216,6 +15216,13 @@
     <name>org::lflang::generator::c::CReactionGenerator</name>
     <filename>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</filename>
     <member kind="function" static="yes">
+      <type>static String</type>
+      <name>awaitMarker</name>
+      <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</anchorfile>
+      <anchor>a944531c3410594be420dac4d03789519</anchor>
+      <arglist>(String inputName)</arglist>
+    </member>
+    <member kind="function" static="yes">
       <type>static void</type>
       <name>generateBuiltinTriggeredReactionsArray</name>
       <anchorfile>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</anchorfile>

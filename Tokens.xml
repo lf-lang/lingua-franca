@@ -7591,6 +7591,17 @@
   </Token>
   <Token>
     <TokenIdentifier>
+      <Name>awaitMarker</Name>
+      <APILanguage>java</APILanguage>
+      <Type>clm</Type>
+      <Scope>org.lflang.generator.c.CReactionGenerator</Scope>
+    </TokenIdentifier>
+    <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>
+    <Anchor>a944531c3410594be420dac4d03789519</Anchor>
+    <DeclaredIn>CReactionGenerator.java</DeclaredIn>
+  </Token>
+  <Token>
+    <TokenIdentifier>
       <Name>BADNESS_PER_CHARACTER_VIOLATING_LINE_LENGTH</Name>
       <APILanguage>java</APILanguage>
       <Type>data</Type>

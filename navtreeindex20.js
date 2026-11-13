@@ -1,5 +1,6 @@
 var NAVTREEINDEX20 =
 {
+"classorg_1_1lflang_1_1tests_1_1TestBase.html#ac2d0777be07d4c6f9590aadae07a3483":[4,8,40,20],
 "classorg_1_1lflang_1_1tests_1_1TestBase.html#ac3023dc25f71161659a0c3aa8861fc5e":[4,8,40,7],
 "classorg_1_1lflang_1_1tests_1_1TestBase.html#ac30e35f8c8edd2ca1f2b26e03ddf6ec6":[4,8,40,24],
 "classorg_1_1lflang_1_1tests_1_1TestBase.html#ac847b48162a5aa845f798a78465ff5fb":[4,8,40,12],
@@ -248,6 +249,5 @@ var NAVTREEINDEX20 =
 "classorg_1_1lflang_1_1tests_1_1lsp_1_1ErrorInserter_1_1Builder.html#af6a73d1c64592fa45f48e9ff05eb2992":[4,8,18,1,2],
 "classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html":[4,8,19],
 "classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html#a8dac5fb903ec7a4eef9260a921dc03c2":[4,8,19,4],
-"classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html#a8e4aea5ee65fe4f6f2709d85f82763c7":[4,8,19,2],
-"classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html#a8ee8e1899c1365750531a222e6a697d6":[4,8,19,3]
+"classorg_1_1lflang_1_1tests_1_1lsp_1_1LspTests.html#a8e4aea5ee65fe4f6f2709d85f82763c7":[4,8,19,2]
 };

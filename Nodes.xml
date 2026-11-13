@@ -6081,6 +6081,11 @@
             <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>
           <Subnodes>
              <Node>
+              <Name>awaitMarker</Name>
+              <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>
+              <Anchor>a944531c3410594be420dac4d03789519</Anchor>
+             </Node>
+             <Node>
               <Name>generateBuiltinTriggeredReactionsArray</Name>
               <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>
               <Anchor>aa3a8868e3d2b9a1deebc0ad8dfc709a2</Anchor>
@@ -31738,6 +31743,11 @@
                     <Name>CReactionGenerator</Name>
                     <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>
                   <Subnodes>
+                     <Node>
+                      <Name>awaitMarker</Name>
+                      <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>
+                      <Anchor>a944531c3410594be420dac4d03789519</Anchor>
+                     </Node>
                      <Node>
                       <Name>generateBuiltinTriggeredReactionsArray</Name>
                       <Path>classorg_1_1lflang_1_1generator_1_1c_1_1CReactionGenerator.html</Path>

@@ -124,6 +124,8 @@ document.addEventListener('DOMContentLoaded',() => { initNavTree('classorg_1_1lf
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 id="header-pub-static-methods" class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
+<tr class="memitem:a944531c3410594be420dac4d03789519" id="r_a944531c3410594be420dac4d03789519"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#a944531c3410594be420dac4d03789519">awaitMarker</a> (String inputName)</td></tr>
+<tr class="memdesc:a944531c3410594be420dac4d03789519"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return a declaration of the identifier that the <span class="tt">lf_await()</span> macro requires for the specified input.  <br /></td></tr>
 <tr class="memitem:aa3a8868e3d2b9a1deebc0ad8dfc709a2" id="r_aa3a8868e3d2b9a1deebc0ad8dfc709a2"><td class="memItemLeft">static void&#160;</td><td class="memItemRight"><a class="el" href="#aa3a8868e3d2b9a1deebc0ad8dfc709a2">generateBuiltinTriggeredReactionsArray</a> (Set&lt; Integer &gt; reactions, String name, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> body, <a class="el" href="classorg_1_1lflang_1_1generator_1_1CodeBuilder.html">CodeBuilder</a> constructorCode)</td></tr>
 <tr class="memitem:ad3e77975316393134a6ff825a89bd22b" id="r_ad3e77975316393134a6ff825a89bd22b"><td class="memItemLeft">static String&#160;</td><td class="memItemRight"><a class="el" href="#ad3e77975316393134a6ff825a89bd22b">generateDeadlineFunctionHeader</a> (<a class="el" href="classorg_1_1lflang_1_1generator_1_1c_1_1TypeParameterizedReactor.html">TypeParameterizedReactor</a> tpr, int reactionIndex)</td></tr>
 <tr class="memdesc:ad3e77975316393134a6ff825a89bd22b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return the top level C function header for the deadline function numbered "reactionIndex" in "r".  <br /></td></tr>
@@ -162,6 +164,40 @@ Static Protected Attributes</h2></td></tr>
 <a name="details" id="details"></a><h2 id="header-details" class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Generate code for reactions. </p>
 </div><a name="doc-func-members" id="doc-func-members"></a><h2 id="header-doc-func-members" class="groupheader">Member Function Documentation</h2>
+<a id="a944531c3410594be420dac4d03789519" name="a944531c3410594be420dac4d03789519"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a944531c3410594be420dac4d03789519">&#9670;&#160;</a></span>awaitMarker()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">String org.lflang.generator.c.CReactionGenerator.awaitMarker </td>
+          <td>(</td>
+          <td class="paramtype">String</td>          <td class="paramname"><span class="paramname"><em>inputName</em></span></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel static">static</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Return a declaration of the identifier that the <span class="tt">lf_await()</span> macro requires for the specified input. </p>
+<p>It is declared only for single, non-mutable inputs, so that passing any other port to <span class="tt">lf_await()</span> is a compile error that names the port.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">inputName</td><td>The name of the input. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aa3a8868e3d2b9a1deebc0ad8dfc709a2" name="aa3a8868e3d2b9a1deebc0ad8dfc709a2"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aa3a8868e3d2b9a1deebc0ad8dfc709a2">&#9670;&#160;</a></span>generateBuiltinTriggeredReactionsArray()</h2>
 
