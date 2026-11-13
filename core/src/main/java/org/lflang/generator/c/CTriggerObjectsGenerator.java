@@ -504,8 +504,9 @@ public class CTriggerObjectsGenerator {
 
   /**
    * Return true if the specified reaction might call lf_async() or lf_await(). This is the case if
-   * the body of the reaction, or a method or preamble of its reactor, mentions either one, or if
-   * the reaction is defined externally, in which case its body is not available.
+   * the body of the reaction, a method or preamble of its reactor, or a file-level preamble visible
+   * to its reactor mentions either one, or if the reaction is defined externally, in which case its
+   * body is not available.
    */
   private static boolean mayCallAsync(ReactionInstance reaction) {
     var definition = reaction.getDefinition();
@@ -514,6 +515,9 @@ public class CTriggerObjectsGenerator {
     var code = new StringBuilder(ASTUtils.toText(definition.getCode()));
     ASTUtils.allMethods(reactor).forEach(m -> code.append(ASTUtils.toText(m.getCode())));
     ASTUtils.allPreambles(reactor).forEach(p -> code.append(ASTUtils.toText(p.getCode())));
+    for (var file : CGenerator.filesWithTopLevelPreambles(reactor)) {
+      file.getPreambles().forEach(p -> code.append(ASTUtils.toText(p.getCode())));
+    }
     return code.indexOf("lf_async") >= 0 || code.indexOf("lf_await") >= 0;
   }
 
