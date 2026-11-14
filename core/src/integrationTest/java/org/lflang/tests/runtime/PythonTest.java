@@ -53,6 +53,11 @@ public class PythonTest extends RuntimeTest {
     return true;
   }
 
+  @Override
+  protected boolean supportsEnclaves() {
+    return true;
+  }
+
   @Test
   @Override
   public void runBasicTests() {

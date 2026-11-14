@@ -1,0 +1,26 @@
+target Python {
+  timeout: 10 sec,
+  keepalive: true
+}
+
+reactor Stop(stop_time = 5 s) {
+  timer t(stop_time)
+
+  reaction(t) {=
+    request_stop()
+  =}
+
+  reaction(shutdown) {=
+    print("Stopped at tag ({}, {})".format(lf.time.logical_elapsed(), lf.tag().microstep))
+    if lf.time.logical_elapsed() != 50000000 or lf.tag().microstep != 1:
+        sys.stderr.write("Expected stop tag to be (50ms, 1).")
+        sys.exit(1)
+  =}
+}
+
+main reactor {
+  @enclave
+  s1 = new Stop(stop_time = 5 s)
+  @enclave
+  s2 = new Stop(stop_time = 50 ms)
+}
