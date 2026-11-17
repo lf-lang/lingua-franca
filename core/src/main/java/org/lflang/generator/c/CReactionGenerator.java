@@ -148,6 +148,14 @@ public class CReactionGenerator {
       for (Input input : tpr.reactor().getInputs()) {
         reactionInitialization.pr(generateInputVariablesInReaction(input, tpr, types));
       }
+      // Actions listed as sources are not inputs, so they are not covered above.
+      // They must still be declared, e.g., so that they can be passed to a reaction
+      // that has no body in the LF source.
+      for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
+        if (src.getVariable() instanceof Action action && actionsAsTriggers.add(action)) {
+          reactionInitialization.pr(generateActionVariablesInReaction(action, tpr, types));
+        }
+      }
     } else {
       // Define argument for non-triggering inputs.
       for (VarRef src : ASTUtils.convertToEmptyListIfNull(reaction.getSources())) {
@@ -646,6 +654,17 @@ public class CReactionGenerator {
   }
 
   /**
+   * Return a declaration of the identifier that the `lf_await()` macro requires for the specified
+   * input. It is declared only for single, non-mutable inputs, so that passing any other port to
+   * `lf_await()` is a compile error that names the port.
+   *
+   * @param inputName The name of the input.
+   */
+  public static String awaitMarker(String inputName) {
+    return "enum { _lf_await_requires_a_single_non_mutable_input_port__" + inputName + " = 1 };";
+  }
+
+  /**
    * Generate into the specified string builder the code to initialize local variables for the
    * specified input port in a reaction function from the "self" struct.
    *
@@ -667,6 +686,9 @@ public class CReactionGenerator {
     // below, we have to use lf_writable_copy()). There are 8 cases,
     // depending on whether the input is mutable, whether it is a multiport,
     // and whether it is a token type.
+    if (!input.isMutable() && !ASTUtils.isMultiport(input)) {
+      builder.pr(awaitMarker(inputName));
+    }
     // Easy case first.
     if (!input.isMutable() && !CUtil.isTokenType(inputType) && !ASTUtils.isMultiport(input)) {
       // Non-mutable, non-multiport, primitive type.

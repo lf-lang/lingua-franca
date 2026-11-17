@@ -151,6 +151,7 @@ public abstract class TestBase extends LfInjectedTestBase {
     public static final String DESC_DOCKER_FEDERATED = "Run docker federated tests.";
     public static final String DESC_ENCLAVE = "Run enclave tests.";
     public static final String DESC_CONCURRENT = "Run concurrent tests.";
+    public static final String DESC_ASYNC = "Run async tests.";
     public static final String DESC_TARGET_SPECIFIC = "Run target-specific tests";
     public static final String DESC_ARDUINO = "Running Arduino tests.";
     public static final String DESC_ZEPHYR = "Running Zephyr tests.";

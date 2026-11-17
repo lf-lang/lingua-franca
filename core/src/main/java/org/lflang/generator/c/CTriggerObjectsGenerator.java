@@ -456,59 +456,69 @@ public class CTriggerObjectsGenerator {
   private static String deferredOptimizeForSingleDominatingReaction(ReactorInstance r) {
     var code = new CodeBuilder();
     for (ReactionInstance reaction : r.reactions) {
-      // The following code attempts to gather into a loop assignments of successive
-      // bank members relations between reactions to avoid large chunks of inline code
-      // when a large bank sends to a large bank or when a large bank receives from
-      // one reaction that is either multicasting or sending through a multiport.
+      // A reaction with a single dominating upstream reaction may be executed by the thread that
+      // executes that upstream reaction, before the upstream reaction is done. Such a reaction
+      // must not suspend in lf_async() or lf_await(), as the upstream reaction would be suspended
+      // with it, and neither reaction would be marked by the scheduler as executing.
+      // Hence, we skip this optimization if this reaction may call lf_async() or lf_await().
+      if (mayCallAsync(reaction)) continue;
+      // Gather into a loop the assignments for successive bank members to avoid large chunks of
+      // code when a large bank sends to a large bank or when a large bank receives from one
+      // reaction that is either multicasting or sending through a multiport. Each run of runtime
+      // instances either has the same dominating runtime instance (possibly none), or has as
+      // dominating runtime instances successive runtime instances of the same reaction.
+      var runtimes = reaction.getRuntimeInstances();
       var start = 0;
-      var end = 0;
-      var domStart = 0;
-      var same = false; // Set to true when finding a string of identical dominating reactions.
-      ReactionInstance.Runtime previousRuntime = null;
-      var first = true; // First time through the loop.
-      for (ReactionInstance.Runtime runtime : reaction.getRuntimeInstances()) {
-        if (!first) { // Not the first time through the loop.
-          if (same) { // Previously seen at least two identical dominating.
-            if (runtime.dominating != previousRuntime.dominating) {
-              // End of streak of same dominating reaction runtime instance.
-              code.pr(
-                  printOptimizeForSingleDominatingReaction(
-                      previousRuntime, start, end, domStart, same));
-              same = false;
-              start = runtime.id;
-              domStart = (runtime.dominating != null) ? runtime.dominating.id : 0;
-            }
-          } else if (runtime.dominating == previousRuntime.dominating) {
-            // Start of a streak of identical dominating reaction runtime instances.
-            same = true;
-          } else if (runtime.dominating != null
-              && previousRuntime.dominating != null
-              && runtime.dominating.getReaction() == previousRuntime.dominating.getReaction()) {
-            // Same dominating reaction even if not the same dominating runtime.
-            if (runtime.dominating.id != previousRuntime.dominating.id + 1) {
-              // End of a streak of contiguous runtimes.
-              printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same);
-              same = false;
-              start = runtime.id;
-              domStart = runtime.dominating.id;
-            }
-          } else {
-            // Different dominating reaction.
-            printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same);
-            same = false;
-            start = runtime.id;
-            domStart = (runtime.dominating != null) ? runtime.dominating.id : 0;
+      while (start < runtimes.size()) {
+        var dominating = runtimes.get(start).dominating;
+        var end = start + 1;
+        while (end < runtimes.size() && runtimes.get(end).dominating == dominating) end++;
+        var same = end > start + 1;
+        if (!same) {
+          while (end < runtimes.size()
+              && isSuccessor(runtimes.get(end - 1).dominating, runtimes.get(end).dominating)) {
+            end++;
           }
         }
-        first = false;
-        previousRuntime = runtime;
-        end++;
-      }
-      if (end > start) {
-        printOptimizeForSingleDominatingReaction(previousRuntime, start, end, domStart, same);
+        var domStart = (dominating != null) ? dominating.id : 0;
+        code.pr(
+            printOptimizeForSingleDominatingReaction(
+                runtimes.get(start), start, end, domStart, same));
+        start = end;
       }
     }
     return code.toString();
+  }
+
+  /**
+   * Return true if the second runtime instance is the runtime instance that follows the first one
+   * among the runtime instances of the same reaction.
+   */
+  private static boolean isSuccessor(
+      ReactionInstance.Runtime first, ReactionInstance.Runtime second) {
+    return first != null
+        && second != null
+        && first.getReaction() == second.getReaction()
+        && second.id == first.id + 1;
+  }
+
+  /**
+   * Return true if the specified reaction might call lf_async() or lf_await(). This is the case if
+   * the body of the reaction, a method or preamble of its reactor, or a file-level preamble visible
+   * to its reactor mentions either one, or if the reaction is defined externally, in which case its
+   * body is not available.
+   */
+  private static boolean mayCallAsync(ReactionInstance reaction) {
+    var definition = reaction.getDefinition();
+    if (definition.getCode() == null) return true;
+    var reactor = reaction.getParent().reactorDefinition;
+    var code = new StringBuilder(ASTUtils.toText(definition.getCode()));
+    ASTUtils.allMethods(reactor).forEach(m -> code.append(ASTUtils.toText(m.getCode())));
+    ASTUtils.allPreambles(reactor).forEach(p -> code.append(ASTUtils.toText(p.getCode())));
+    for (var file : CGenerator.filesWithTopLevelPreambles(reactor)) {
+      file.getPreambles().forEach(p -> code.append(ASTUtils.toText(p.getCode())));
+    }
+    return code.indexOf("lf_async") >= 0 || code.indexOf("lf_await") >= 0;
   }
 
   /** Print statement that sets the last_enabling_reaction field of a reaction. */

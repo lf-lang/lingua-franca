@@ -89,5 +89,6 @@ jobs:
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
+          fail_ci_if_error: false
           files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
         if: ${{ github.repository == 'lf-lang/lingua-franca' }}

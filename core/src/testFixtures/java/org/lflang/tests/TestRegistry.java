@@ -314,6 +314,16 @@ public class TestRegistry {
   public enum TestCategory {
     /** Tests about concurrent execution. */
     CONCURRENT(true, "", TestLevel.EXECUTION),
+    /**
+     * Tests about asynchronous interaction with the runtime, such as reactions that block and
+     * add worker threads to compensate. These require the threaded runtime.
+     */
+    ASYNC(false, "", TestLevel.EXECUTION),
+    /**
+     * Tests of the asynchronous API (lf_async_ext, lf_await_ext) in externally defined reactions.
+     * These require the threaded runtime and are not compatible with the C++ wrapper.
+     */
+    ASYNC_NO_INLINING(false, "async" + File.separator + "no_inlining", TestLevel.EXECUTION),
     /** Test about enclaves */
     ENCLAVE(false, "", TestLevel.EXECUTION),
     /** Basic tests, ie, tests that all targets are supposed to implement. */

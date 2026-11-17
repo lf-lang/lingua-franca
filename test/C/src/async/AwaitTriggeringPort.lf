@@ -1,0 +1,75 @@
+/**
+ * Test lf_await() on the input that triggers the calling reaction.
+ *
+ * Source sets out[0] every 100 ms, and the only reaction it then enables is the reaction of w[0]
+ * triggered by that input. Because Source is the only upstream reaction of w[0] and w[1], that
+ * reaction is eligible to be executed in the same thread as Source's reaction, without going
+ * through the reaction queue. (w[2] has a different upstream reaction, which is what makes the code
+ * generator record Source as the single upstream reaction of w[0] and w[1].)
+ *
+ * At 0 ms, the reaction of w[0] suspends in lf_await() until the next input. The input at 100 ms
+ * resumes it. Because the reaction is still executing, that input must not invoke it a second time.
+ * The input at 200 ms invokes it again.
+ */
+target C {
+  timeout: 250 ms
+}
+
+reactor Source {
+  output[2] out: int
+  timer t(0, 100 ms)
+  state count: int = 0
+
+  reaction(t) -> out {=
+    self->count++;
+    lf_set(out[0], self->count);
+  =}
+}
+
+reactor Silent {
+  output out: int
+
+  reaction(startup) -> out {=  =}
+}
+
+reactor Waiter(bank_index: int = 0) {
+  input in: int
+  state invocations: int = 0
+  state resumed_with: int = 0
+
+  reaction(in) {=
+    self->invocations++;
+    lf_print("Invoked with %d at " PRINTF_TIME ".", in->value, lf_time_logical_elapsed());
+    if (in->value == 1) {
+      lf_await(in);
+      self->resumed_with = in->value;
+      lf_print("Resumed with %d at " PRINTF_TIME ".", in->value, lf_time_logical_elapsed());
+      if (lf_time_logical_elapsed() != MSEC(100)) {
+        lf_print_error_and_exit("Expected to resume at 100 ms.");
+      }
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->bank_index != 0) {
+      return;
+    }
+    if (self->resumed_with != 2) {
+      lf_print_error_and_exit("Expected to resume with 2. Got %d.", self->resumed_with);
+    }
+    if (self->invocations != 2) {
+      lf_print_error_and_exit("Expected 2 invocations, at 0 ms and 200 ms. Got %d.", self->invocations);
+    }
+  =}
+}
+
+main reactor {
+  source = new Source()
+  silent = new Silent()
+  w = new[3] Waiter()
+  source.out, silent.out -> w.in
+
+  reaction(shutdown) {=
+    lf_print("SUCCESS");
+  =}
+}

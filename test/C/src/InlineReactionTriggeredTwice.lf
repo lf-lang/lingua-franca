@@ -1,0 +1,46 @@
+/**
+ * Test that a reaction triggered by both a timer and an input is invoked once per tag.
+ *
+ * Source is the only upstream reaction of the reaction of Sink, so that reaction is eligible to be
+ * executed in the same thread as Source's reaction, without going through the reaction queue. At
+ * each tag, however, the timer of Sink has already queued it. It must then be invoked only from the
+ * reaction queue.
+ */
+target C {
+  timeout: 300 ms
+}
+
+reactor Source {
+  output out: int
+  timer t(0, 100 ms)
+
+  reaction(t) -> out {=
+    lf_set(out, 42);
+  =}
+}
+
+reactor Sink {
+  input in: int
+  timer t(0, 100 ms)
+  state count: int = 0
+
+  reaction(t, in) {=
+    self->count++;
+    if (!in->is_present) {
+      lf_print_error_and_exit("Expected input to be present.");
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->count != 4) {
+      lf_print_error_and_exit("Expected 4 invocations. Got %d.", self->count);
+    }
+    lf_print("SUCCESS");
+  =}
+}
+
+main reactor {
+  s = new Source()
+  k = new Sink()
+  s.out -> k.in
+}

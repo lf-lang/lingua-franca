@@ -340,7 +340,7 @@ public class FedGenerator {
               "low_level_platform",
               "network",
               "trace",
-              "version",
+              "lf_version",
               "tag")) {
         var entry = "/lib/c/reactor-c/" + directory;
         FileUtil.copyFromClassPath(entry, dest, true, false);

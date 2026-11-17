@@ -53,6 +53,7 @@ jobs:
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
+          fail_ci_if_error: false
           files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
         if: ${{ github.repository == 'lf-lang/lingua-franca' }}
       - name: Collect reactor-cpp coverage data
@@ -70,5 +71,6 @@ jobs:
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
+          fail_ci_if_error: false
           files: reactor-cpp.info
         if: ${{ github.repository == 'lf-lang/lingua-franca' && matrix.platform == 'ubuntu-24.04' }}

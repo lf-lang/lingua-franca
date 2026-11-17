@@ -1530,9 +1530,7 @@ public class LFValidator extends BaseLFValidator {
     var container = attr.eContainer();
     if (!(container instanceof Reactor)) {
       error(
-          "The @"
-              + attr.getAttrName()
-              + " attribute is only allowed on a main or federated reactor.",
+          "The @" + attr.getAttrName() + " attribute is only allowed on a reactor.",
           Literals.ATTRIBUTE__ATTR_NAME);
       return;
     }
@@ -2277,7 +2275,7 @@ public class LFValidator extends BaseLFValidator {
           + " timers, parameters, state, reactor definitions, and reactor instantiation): ";
 
   private static final Set<String> GLOBAL_ATTRIBUTE_NAMES =
-      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "clock_sync", "platform");
+      Set.of("build_type", "logging", "timeout", "fast", "keepalive", "platform");
 
   private static List<String> SPACING_VIOLATION_POLICIES =
       List.of("defer", "drop", "replace", "update");

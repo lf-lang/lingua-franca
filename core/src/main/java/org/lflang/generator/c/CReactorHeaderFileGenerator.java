@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.lflang.ast.ASTUtils;
 import org.lflang.generator.CodeBuilder;
+import org.lflang.lf.Action;
 import org.lflang.lf.Instantiation;
 import org.lflang.lf.LfFactory;
 import org.lflang.lf.Parameter;
@@ -65,6 +66,7 @@ public class CReactorHeaderFileGenerator {
     appendPoundIncludes(builder);
     tpr.doDefines(builder);
     appendSelfStruct(builder, types, tpr);
+    appendAwaitMarkers(builder, tpr);
     generator.generate(builder, tpr, true);
     for (Reaction reaction : tpr.reactor().getReactions()) {
       appendSignature(builder, types, reaction, tpr);
@@ -127,6 +129,22 @@ public class CReactorHeaderFileGenerator {
     builder.pr("} " + userFacingSelfType(tpr) + ";");
   }
 
+  /**
+   * Declare the identifiers that let externally defined reactions pass the single, non-mutable
+   * inputs of `tpr` to `lf_await()`. Each is guarded because a source file may include the headers
+   * of several reactors that have an input with the same name.
+   */
+  private static void appendAwaitMarkers(CodeBuilder builder, TypeParameterizedReactor tpr) {
+    for (var input : ASTUtils.allInputs(tpr.reactor())) {
+      if (input.isMutable() || ASTUtils.isMultiport(input)) continue;
+      var guard = "_LF_AWAIT_MARKER__" + input.getName();
+      builder.pr("#ifndef " + guard);
+      builder.pr("#define " + guard);
+      builder.pr(CReactionGenerator.awaitMarker(input.getName()));
+      builder.pr("#endif");
+    }
+  }
+
   private static void appendSignature(
       CodeBuilder builder, CTypes types, Reaction r, TypeParameterizedReactor tpr) {
     if (r.getName() != null)
@@ -135,8 +153,11 @@ public class CReactorHeaderFileGenerator {
 
   private static String reactionParameters(Reaction r, TypeParameterizedReactor tpr) {
     return Stream.concat(
-            Stream.of(userFacingSelfType(tpr) + "* self"),
-            portVariableStream(r, tpr).map(tv -> tv.getType(true) + tv.getName()))
+            Stream.concat(
+                Stream.of(userFacingSelfType(tpr) + "* self"),
+                portVariableStream(r, tpr).map(tv -> tv.getType(true) + tv.getName())),
+            actionStream(r)
+                .map(a -> CGenerator.variableStructType(a, tpr, true) + "* " + a.getName()))
         .collect(Collectors.joining(", "));
   }
 
@@ -189,10 +210,30 @@ public class CReactorHeaderFileGenerator {
   /** Return a string representation of the arguments passed to the function for `r`. */
   public static String reactionArguments(Reaction r, TypeParameterizedReactor reactor) {
     return Stream.concat(
-            Stream.of(getApiSelfStruct(reactor)),
-            portVariableStream(r, reactor)
-                .map(it -> String.format("((%s) %s)", it.getType(true), it.getAlias())))
+            Stream.concat(
+                Stream.of(getApiSelfStruct(reactor)),
+                portVariableStream(r, reactor)
+                    .map(it -> String.format("((%s) %s)", it.getType(true), it.getAlias()))),
+            actionStream(r)
+                .map(
+                    a ->
+                        String.format(
+                            "((%s*) %s)",
+                            CGenerator.variableStructType(a, reactor, true), a.getName())))
         .collect(Collectors.joining(", "));
+  }
+
+  /**
+   * Return a stream of the actions referenced by the signature of `r`, without duplicates, in the
+   * order in which they are mentioned (triggers, then sources, then effects). They are passed to an
+   * externally defined reaction after the ports so that the reaction can, for example, use them
+   * with `lf_async()`.
+   */
+  private static Stream<Action> actionStream(Reaction r) {
+    return varRefStream(r)
+        .filter(it -> it.getVariable() instanceof Action)
+        .map(it -> (Action) it.getVariable())
+        .distinct();
   }
 
   /** Return a stream of all ports referenced by the signature of `r`. */

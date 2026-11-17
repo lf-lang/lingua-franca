@@ -43,5 +43,6 @@ jobs:
       - name: Report to CodeCov
         uses: ./.github/actions/report-code-coverage
         with:
+          fail_ci_if_error: false
           files: core/build/reports/jacoco/integrationTestCodeCoverageReport/integrationTestCodeCoverageReport.xml
         if: ${{ !inputs.compiler-ref }}  # i.e., if this is part of the main repo's CI
