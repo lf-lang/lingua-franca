@@ -521,7 +521,7 @@ public class FileUtil {
    */
   private static boolean isFileInJar(JarURLConnection connection) throws IOException {
     return connection.getJarFile().stream()
-        .anyMatch(it -> it.getName().equals(connection.getEntryName()));
+        .anyMatch(it -> !it.isDirectory() && it.getName().equals(connection.getEntryName()));
   }
 
   /**
@@ -540,7 +540,7 @@ public class FileUtil {
     var filename = Paths.get(entry.getName()).getFileName();
     InputStream is = jar.getInputStream(entry);
     try (is) {
-      copyInputStream(is, dstDir.resolve(filename), skipIfUnchanged);
+      copyInputStream(is, resolveJarEntry(dstDir, filename.toString()), skipIfUnchanged);
     }
   }
 
@@ -603,15 +603,16 @@ public class FileUtil {
 
     boolean copiedFiles = false;
     if (!contentsOnly) {
-      dstDir = dstDir.resolve(Paths.get(source).getFileName());
+      dstDir = resolveJarEntry(dstDir, Paths.get(source).getFileName().toString());
     }
+    final String sourcePrefix = source.endsWith("/") ? source : source + "/";
     // Iterate all entries in the jar file.
     for (Enumeration<JarEntry> e = jar.entries(); e.hasMoreElements(); ) {
       final JarEntry entry = e.nextElement();
       final String entryName = entry.getName();
-      if (entryName.startsWith(source)) {
-        String filename = entry.getName().substring(source.length() + 1);
-        Path currentFile = dstDir.resolve(filename);
+      if (entryName.startsWith(sourcePrefix) && entryName.length() > sourcePrefix.length()) {
+        String filename = entryName.substring(sourcePrefix.length());
+        Path currentFile = resolveJarEntry(dstDir, filename);
         if (entry.isDirectory()) {
           Files.createDirectories(currentFile);
         } else {
@@ -624,6 +625,23 @@ public class FileUtil {
       }
     }
     return copiedFiles;
+  }
+
+  /** Resolve an archive entry only if it remains strictly inside the destination directory. */
+  private static Path resolveJarEntry(Path dstDir, String filename) throws IOException {
+    Path root = dstDir.toAbsolutePath().normalize();
+    Path destination = root.resolve(filename).normalize();
+    if (!destination.startsWith(root) || destination.equals(root)) {
+      throw new IOException("Archive entry escapes destination directory: " + filename);
+    }
+    // Also reject escapes through existing symbolic links before reading, deleting, or writing.
+    Path canonicalRoot = root.toFile().getCanonicalFile().toPath();
+    Path canonicalDestination = destination.toFile().getCanonicalFile().toPath();
+    if (!canonicalDestination.startsWith(canonicalRoot)
+        || canonicalDestination.equals(canonicalRoot)) {
+      throw new IOException("Archive entry escapes destination directory: " + filename);
+    }
+    return destination;
   }
 
   /**
