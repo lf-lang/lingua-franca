@@ -215,8 +215,7 @@ object RustBoardInfo {
                 |esp_alloc::heap_allocator!(size: $HEAP_KIB * 1024);
                 |// esp-rtos is the embassy time driver
                 |let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
-                |let sw_int = esp_hal::interrupt::software::SoftwareInterruptControl::new(peripherals.SW_INTERRUPT);
-                |esp_rtos::start(timg0.timer0, sw_int.software_interrupt0);
+                |esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
             """.trimMargin(),
         )
     }

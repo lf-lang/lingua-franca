@@ -60,6 +60,9 @@ abstract class RustEmitterBase {
         const val runtimeCrateFullName = "reactor_rt"
         const val runtimeGitUrl = "https://github.com/lf-lang/reactor-rust.git"
 
+        /** Runtime used when a board is specified: the `embassy` branch of the fork, pinned to a commit. */
+        const val embeddedRuntimeGitUrl = "https://github.com/lf-lang/reactor-rs.git"
+        const val embeddedRuntimeRev = "b50175a1bcb84e5bb0b08d7cffdab083f5407380"
         /** Qualification prefix to refer to a member of the runtime library crate. */
         const val rsRuntime = "::$runtimeCrateFullName"
 

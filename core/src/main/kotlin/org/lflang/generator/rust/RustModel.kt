@@ -487,8 +487,14 @@ object RustModelBuilder {
             }
 
             if (localPath == null) {
-                this.gitRepo = RustEmitterBase.runtimeGitUrl
-                this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+                if (targetConfig.get(PlatformProperty.INSTANCE).board().setByUser()) {
+                    // boards need the embassy backend, which only exists on the `embassy` branch
+                    this.gitRepo = RustEmitterBase.embeddedRuntimeGitUrl
+                    this.rev = RustEmitterBase.embeddedRuntimeRev
+                } else {
+                    this.gitRepo = RustEmitterBase.runtimeGitUrl
+                    this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+                }
             }
         }
 
