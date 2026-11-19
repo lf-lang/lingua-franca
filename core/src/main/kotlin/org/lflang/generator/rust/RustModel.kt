@@ -37,6 +37,7 @@ import org.lflang.target.property.CargoFeaturesProperty
 import org.lflang.target.property.ExportDependencyGraphProperty
 import org.lflang.target.property.ExternalRuntimePathProperty
 import org.lflang.target.property.KeepaliveProperty
+import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.target.property.RustIncludeProperty
 import org.lflang.target.property.RustEditionProperty
@@ -56,7 +57,8 @@ data class GenerationInfo(
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
-    val properties: RustTargetProperties
+    val properties: RustTargetProperties,
+    val platform: PlatformProperty.PlatformOptions,
 ) {
 
     private val byId = reactors.associateBy { it.globalId }
@@ -462,7 +464,8 @@ object RustModelBuilder {
             // Rust exec names are snake case, otherwise we get a cargo warning
             // https://github.com/rust-lang/rust/issues/45127
             executableName = mainReactor.lfName.camelToSnakeCase(),
-            properties = targetConfig.toRustProperties()
+            properties = targetConfig.toRustProperties(),
+            platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE)
         )
     }
 
@@ -484,8 +487,14 @@ object RustModelBuilder {
             }
 
             if (localPath == null) {
-                this.gitRepo = RustEmitterBase.runtimeGitUrl
-                this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+                if (targetConfig.get(PlatformProperty.INSTANCE).board().setByUser()) {
+                    // boards need the embassy backend, which only exists on the `embassy` branch
+                    this.gitRepo = RustEmitterBase.embeddedRuntimeGitUrl
+                    this.rev = RustEmitterBase.embeddedRuntimeRev
+                } else {
+                    this.gitRepo = RustEmitterBase.runtimeGitUrl
+                    this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+                }
             }
         }
 
