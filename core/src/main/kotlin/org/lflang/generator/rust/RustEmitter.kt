@@ -86,6 +86,7 @@ object RustEmitter : RustEmitterBase() {
         }
 
         if (!gen.properties.singleFile) {
+            fileConfig.emit(codeMaps, "src/globals.rs") { makeGlobalsModule(gen) }
             fileConfig.emit(codeMaps, "src/reactors.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
                 fileConfig.emit(codeMaps, "src/reactors/${reactor.names.modFileName}.rs") {
@@ -106,6 +107,23 @@ object RustEmitter : RustEmitterBase() {
             }
         }
         return codeMaps
+    }
+
+    /**
+     * Contents of the `globals` module: the file-level preambles.
+     * Items declared there (consts, statics, pin assignments, helper
+     * functions) are visible from `main` and from every reactor.
+     */
+    internal fun Emitter.makeGlobalsModule(gen: GenerationInfo) {
+        this += with(PrependOperator) {
+            """
+            |${generatedByComment("//")}
+            |#![allow(unused)]
+            |
+${"         |"..gen.globalPreambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
+            |
+        """.trimMargin()
+        }
     }
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {

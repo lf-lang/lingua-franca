@@ -39,6 +39,7 @@ ${"         |"..gen.crate.dependencies.keys.joinWithLn { "extern crate ${it.repl
 ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName.toString().removeSuffix(".rs")};" }}
             |
             |use $rsRuntime::*;
+            |pub use self::globals::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
@@ -73,7 +74,7 @@ ${"         |        "..mainReactor.ctorParams.joinWithCommasLn { it.defaultValu
         if (gen.properties.singleFile) {
             with(RustMainFileEmitter) { makeSingleFileProject(gen) }
         } else {
-            this += "mod reactors;\n"
+            this += "pub mod globals;\nmod reactors;\n"
         }
     }
 }

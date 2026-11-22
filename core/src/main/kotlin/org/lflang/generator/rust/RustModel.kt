@@ -58,6 +58,8 @@ data class GenerationInfo(
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
     val properties: RustTargetProperties,
+    /** File-level preambles of every file that contributes reactors. Emitted as the `globals` module. */
+    val globalPreambles: List<TargetCode>,
     val platform: PlatformProperty.PlatformOptions,
 ) {
 
@@ -465,7 +467,11 @@ object RustModelBuilder {
             // https://github.com/rust-lang/rust/issues/45127
             executableName = mainReactor.lfName.camelToSnakeCase(),
             properties = targetConfig.toRustProperties(),
-            platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE)
+            platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE),
+            globalPreambles = reactors.mapNotNull { it.eContainer() as? Model }
+                .distinct()
+                .flatMap { model -> model.preambles.map { it.code.toText() } }
+                .distinct(),
         )
     }
 

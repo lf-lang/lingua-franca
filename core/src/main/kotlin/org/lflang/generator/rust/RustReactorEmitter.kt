@@ -46,7 +46,7 @@ object RustReactorEmitter : RustEmitterBase() {
             val typeParams = typeParamList.map { it.targetCode }.angle()
             val typeArgs = typeParamList.map { it.lfName }.angle()
 
-            val privateParams = reactor.extraConstructionParams;
+            val privateParams = reactor.extraConstructionParams
 
             with(reactor.names) {
                 with(PrependOperator) {
@@ -55,6 +55,8 @@ object RustReactorEmitter : RustEmitterBase() {
                 |#![allow(unused)]
                 |
                 |use $rsRuntime::prelude::*;
+                |#[allow(unused_imports)]
+                |use crate::globals::*;
                 |
 ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |

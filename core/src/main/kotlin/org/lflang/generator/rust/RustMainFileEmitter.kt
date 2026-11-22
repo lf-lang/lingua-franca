@@ -61,6 +61,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
             |
             |use $rsRuntime::*;
             |use log::LevelFilter;
+            |pub use self::globals::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
@@ -99,7 +100,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
         if (gen.properties.singleFile) {
             makeSingleFileProject(gen)
         } else {
-            this += "mod reactors;\n"
+            this += "pub mod globals;\nmod reactors;\n"
         }
     }
 
@@ -254,6 +255,11 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
     }
 
     internal fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
+        this.writeInBlock("pub mod globals {") {
+            with(RustEmitter) { makeGlobalsModule(gen) }
+        }
+        this.skipLines(2)
+
         this += """
             |//-------------------//
             |//---- REACTORS -----//
