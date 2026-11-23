@@ -64,6 +64,7 @@ public class CPatmosTest extends TestBase {
 
   @Test
   public void runPatmosUnthreadedTests() {
+    System.out.println("Run Patmos unthreaded tests");
     Assumptions.assumeTrue(isLinux(), "Patmos tests only run on Linux");
     super.runTestsFor(
         List.of(Target.C),
