@@ -293,7 +293,8 @@ public class FederateInstance {
    * @param declaration The reactor declaration to check whether it is referenced.
    */
   private boolean references(Instantiation instantiation, ReactorDecl declaration) {
-    if (instantiation.getReactorClass().equals(ASTUtils.toDefinition(declaration))) {
+    if (ASTUtils.toDefinition(instantiation.getReactorClass())
+        .equals(ASTUtils.toDefinition(declaration))) {
       return true;
     }
 
