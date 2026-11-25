@@ -223,7 +223,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
             |    }
             |
             |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
-            |        reactor_rt::try_parse_duration(t).map(|d| {
+            |        $rsRuntime::try_parse_duration(t).map(|d| {
             |            if d.is_zero() { None } else { Some(d) }
             |        })
             |    }

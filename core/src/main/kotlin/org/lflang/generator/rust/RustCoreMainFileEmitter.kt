@@ -47,8 +47,10 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
 ${"         |"..board.preamble}
             |
             |#[${board.mainAttribute}]
-            |async fn main(_spawner: embassy_executor::Spawner) {
+            |async fn main(spawner: embassy_executor::Spawner) {
 ${"         |    "..board.init}
+            |    // Reactions reach the executor through `globals::spawner()`.
+            |    globals::__lf_set_spawner(spawner.make_send());
             |
             |    let mut options = SchedulerOptions::default();
             |    options.timeout = $timeout;

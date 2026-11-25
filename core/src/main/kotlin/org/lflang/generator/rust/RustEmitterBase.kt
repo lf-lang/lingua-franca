@@ -56,13 +56,15 @@ abstract class RustEmitterBase {
 
 
     companion object {
-        /** Name of the runtime crate that is in its Cargo.toml.*/
-        const val runtimeCrateFullName = "reactor_rt"
+        /** Package name of the runtime crate, as in its Cargo.toml. */
+        const val runtimeCratePackageName = "reactor-rs"
+        /** Library name of the runtime crate (`[lib] name` in its Cargo.toml), used to refer to it in Rust code. */
+        const val runtimeCrateFullName = "reactor_rs"
         const val runtimeGitUrl = "https://github.com/lf-lang/reactor-rust.git"
 
         /** Runtime used when a board is specified: the `embassy` branch of the fork, pinned to a commit. */
         const val embeddedRuntimeGitUrl = "https://github.com/lf-lang/reactor-rs.git"
-        const val embeddedRuntimeRev = "b50175a1bcb84e5bb0b08d7cffdab083f5407380"
+        const val embeddedRuntimeRev = "1545c3227a4f1a99e8284edad7897743b9ef7c52"
         /** Qualification prefix to refer to a member of the runtime library crate. */
         const val rsRuntime = "::$runtimeCrateFullName"
 

@@ -115,16 +115,44 @@ object RustEmitter : RustEmitterBase() {
      * functions) are visible from `main` and from every reactor.
      */
     internal fun Emitter.makeGlobalsModule(gen: GenerationInfo) {
+        val runtimeSupport = if (gen.platform.board().setByUser()) embassySpawnerSupport else ""
         this += with(PrependOperator) {
             """
             |${generatedByComment("//")}
             |#![allow(unused)]
+            |
+            |// same names as in reactions (AsyncCtx, Asap, After, Duration, ...)
+            |use $rsRuntime::prelude::*;
+            |
+${"         |"..runtimeSupport}
             |
 ${"         |"..gen.globalPreambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
             |
         """.trimMargin()
         }
     }
+
+    /**
+     * Gives reactions access to the embassy executor, so they can spawn tasks
+     * (e.g. ones that feed a physical action through `ctx.new_async_ctx()`).
+     * `Spawner` is `!Send`, so the cell holds its `SendSpawner` instead.
+     */
+    private val embassySpawnerSupport = """
+        |static __LF_SPAWNER: critical_section::Mutex<core::cell::Cell<Option<embassy_executor::SendSpawner>>> =
+        |    critical_section::Mutex::new(core::cell::Cell::new(None));
+        |
+        |/// Spawner of the embassy executor that runs the reactor program.
+        |/// Only spawns tasks whose arguments are `Send`.
+        |pub fn spawner() -> embassy_executor::SendSpawner {
+        |    critical_section::with(|cs| __LF_SPAWNER.borrow(cs).get())
+        |        .expect("the spawner is set by `main` before any reaction runs")
+        |}
+        |
+        |#[doc(hidden)]
+        |pub fn __lf_set_spawner(spawner: embassy_executor::SendSpawner) {
+        |    critical_section::with(|cs| __LF_SPAWNER.borrow(cs).set(Some(spawner)));
+        |}
+    """.trimMargin()
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {
         fun ReactorInfo.modDecl(): String = with(names) {

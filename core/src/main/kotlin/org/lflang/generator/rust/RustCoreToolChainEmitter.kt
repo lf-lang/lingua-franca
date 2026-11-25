@@ -23,10 +23,11 @@ object RustCoreToolChainEmitter : RustEmitterBase() {
         val (crate) = gen
         val board = getBoardInfo(gen.platform)
         val userDependencies = crate.dependencies.mapValues { (name, spec) ->
-            if (name == runtimeCrateFullName) spec.toRuntimeToml() else spec.toToml()
+            if (name == runtimeCratePackageName) spec.toRuntimeToml(board) else spec.toToml()
         }
         // user dependencies win over the board's, so that board crates can be pinned or patched
-        val allDependencies = board.dependencies + userDependencies
+        // `critical-section` backs the spawner cell in the `globals` module; every board provides an implementation.
+        val allDependencies = board.dependencies + ("critical-section" to """{ version = "1" }""") + userDependencies
         this += """
             |${generatedByComment("#")}
             |[package]
@@ -96,8 +97,8 @@ ${"         |"..allDependencies.asIterable().joinWithLn { (name, toml) -> "$name
     }
 
     /** The runtime crate, with its `embassy` backend instead of `std`. */
-    private fun CargoDependencySpec.toRuntimeToml(): String {
-        val runtimeFeatures = (features - hostedRuntimeFeatures) + listOf("embassy", "vec-id-sets")
+    private fun CargoDependencySpec.toRuntimeToml(board: BoardInfo): String {
+        val runtimeFeatures = (features - hostedRuntimeFeatures) + listOf("embassy", "vec-id-sets") + board.runtimeFeatures
         return toToml(runtimeFeatures, defaultFeatures = false)
     }
 

@@ -36,7 +36,17 @@ data class BoardInfo(
     val init: String,
     /** Extra files to write in the project, by path relative to the project root. */
     val extraFiles: Map<String, String> = emptyMap(),
+    /** Features of the runtime crate to enable, on top of `embassy`. */
+    val runtimeFeatures: List<String> = emptyList(),
 )
+
+/**
+ * ARMv6-M (Cortex-M0/M0+) has no compare-and-swap atomics. The runtime's
+ * `portable-atomic` feature makes it (and `atomic_refcell`) use `portable-atomic`,
+ * which emulates them with the critical section that the board's HAL provides.
+ */
+private const val ARMV6M_RUNTIME_FEATURE = "portable-atomic"
+private const val PORTABLE_ATOMIC_CS = """{ version = "1", features = ["critical-section"] }"""
 
 enum class Arch { XTENSA, RISCV }
 
@@ -112,7 +122,7 @@ object RustBoardInfo {
     /** Heap given to the global allocator, in KiB. The runtime allocates its reactors and event queue on it. */
     private const val HEAP_KIB = 64
 
-    /** Versions shared by all boards. They must match the ones `reactor_rt` uses with its `embassy` feature. */
+    /** Versions shared by all boards. They must match the ones `reactor-rs` uses with its `embassy` feature. */
     private const val EMBASSY_EXECUTOR = "0.10"
     private const val EMBASSY_TIME = "0.5"
 
@@ -157,8 +167,7 @@ object RustBoardInfo {
             put("embedded-alloc", """{ version = "0.6" }""")
             put("panic-halt", """{ version = "1.0" }""")
             if (chip.family.isArmV6) {
-                // No CAS atomics on ARMv6-M
-                put("portable-atomic", """{ version = "1", features = ["critical-section"] }""")
+                put("portable-atomic", PORTABLE_ATOMIC_CS)
             }
         },
         preamble = """
@@ -167,7 +176,7 @@ object RustBoardInfo {
     """.trimMargin(),
         mainAttribute = "embassy_executor::main",
         init = """
-        |let peripherals = embassy_stm32::init(Default::default());
+        |let _peripherals = embassy_stm32::init(Default::default());
         |{
         |    use core::mem::MaybeUninit;
         |    const HEAP_SIZE: usize = $heapKib * 1024;
@@ -175,7 +184,7 @@ object RustBoardInfo {
         |    unsafe { HEAP.init(core::ptr::addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE) }
         |}
     """.trimMargin(),
-        extraFiles = mapOf(),
+        runtimeFeatures = if (chip.family.isArmV6) listOf(ARMV6M_RUNTIME_FEATURE) else emptyList(),
     )
 
     /**
@@ -242,7 +251,9 @@ object RustBoardInfo {
             "cortex-m-rt" to """{ version = "0.7" }""",
             "embedded-alloc" to """{ version = "0.7" }""",
             "panic-halt" to """{ version = "1.0" }""",
+            "portable-atomic" to PORTABLE_ATOMIC_CS,
         ),
+        runtimeFeatures = listOf(ARMV6M_RUNTIME_FEATURE),
         preamble = """
             |#[global_allocator]
             |static HEAP: embedded_alloc::LlffHeap = embedded_alloc::LlffHeap::empty();

@@ -446,8 +446,10 @@ object RustModelBuilder {
 
 
         val dependencies = targetConfig.get(CargoDependenciesProperty.INSTANCE).toMutableMap()
-        dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, messageReporter)
+        // Users may name the runtime by its package name or its library name; Cargo only knows the former.
+        val userRuntimeSpec = dependencies.remove(RustEmitterBase.runtimeCrateFullName)
+        dependencies.compute(RustEmitterBase.runtimeCratePackageName) { _, spec ->
+            computeDefaultRuntimeConfiguration(spec ?: userRuntimeSpec, targetConfig, messageReporter)
         }
 
         return GenerationInfo(
@@ -498,8 +500,8 @@ object RustModelBuilder {
                     this.gitRepo = RustEmitterBase.embeddedRuntimeGitUrl
                     this.rev = RustEmitterBase.embeddedRuntimeRev
                 } else {
-                    this.gitRepo = RustEmitterBase.runtimeGitUrl
-                    this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+                    this.gitRepo = RustEmitterBase.embeddedRuntimeGitUrl
+                    this.rev = RustEmitterBase.embeddedRuntimeRev
                 }
             }
         }

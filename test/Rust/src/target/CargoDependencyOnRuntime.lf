@@ -1,7 +1,8 @@
-// This tests the ability to depend on crates with carg if this compiles it's fine
+// This tests the ability to depend on crates with cargo if this compiles it's fine
+// We have to use "" to allow for antlr to accept the crate name
 target Rust {
   cargo-dependencies: {
-    reactor_rt: {
+    "reactor-rs": {
       features: ["parallel-runtime"]
     }
   }

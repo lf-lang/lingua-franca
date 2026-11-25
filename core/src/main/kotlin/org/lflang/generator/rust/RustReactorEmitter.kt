@@ -239,7 +239,7 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
                 |    // dependency declarations
                 |    |__assembler, __self, $pattern| {
                 |        #[allow(unused)]
-                |        use reactor_rt::unsafe_iter_bank;
+                |        use $rsRuntime::unsafe_iter_bank;
 ${"             |        "..graphDependencyDeclarations()}
 ${"             |        "..declareChildConnections()}
                 |
