@@ -1,0 +1,14 @@
+// Test that reactors imported under an alias are imported into the generated federate code.
+// See https://github.com/lf-lang/lingua-franca/issues/2728.
+target C {
+  timeout: 1 ms
+}
+
+import Count as C from "../lib/Count.lf"
+import TestCount as T from "../lib/TestCount.lf"
+
+federated reactor {
+  c = new C()
+  t = new T(num_inputs=1)
+  c.out -> t.in
+}
