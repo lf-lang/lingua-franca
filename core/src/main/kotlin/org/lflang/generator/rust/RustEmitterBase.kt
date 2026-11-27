@@ -24,13 +24,9 @@
 
 package org.lflang.generator.rust
 
-import org.lflang.*
-import org.lflang.*
-import org.lflang.generator.*
-import org.lflang.generator.PrependOperator.rangeTo
-import org.lflang.generator.rust.RustEmitter.generateRustProject
-import java.nio.file.Files
-import java.nio.file.Paths
+import org.lflang.generator.LocationInfo
+import org.lflang.generator.TargetCode
+import org.lflang.joinLines
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -60,10 +56,15 @@ abstract class RustEmitterBase {
 
 
     companion object {
-        /** Name of the runtime crate that is in its Cargo.toml.*/
-        const val runtimeCrateFullName = "reactor_rt"
+        /** Package name of the runtime crate, as in its Cargo.toml. */
+        const val runtimeCratePackageName = "reactor-rs"
+        /** Library name of the runtime crate (`[lib] name` in its Cargo.toml), used to refer to it in Rust code. */
+        const val runtimeCrateFullName = "reactor_rs"
         const val runtimeGitUrl = "https://github.com/lf-lang/reactor-rust.git"
 
+        /** Runtime used when a board is specified: the `embassy` branch of the fork, pinned to a commit. */
+        const val embeddedRuntimeGitUrl = "https://github.com/lf-lang/reactor-rs.git"
+        const val embeddedRuntimeRev = "1545c3227a4f1a99e8284edad7897743b9ef7c52"
         /** Qualification prefix to refer to a member of the runtime library crate. */
         const val rsRuntime = "::$runtimeCrateFullName"
 

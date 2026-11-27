@@ -28,7 +28,6 @@ import org.lflang.camelToSnakeCase
 import org.lflang.escapeStringLiteral
 import org.lflang.generator.PrependOperator
 import org.lflang.generator.PrependOperator.rangeTo
-import org.lflang.generator.UnsupportedGeneratorFeatureException
 import org.lflang.joinWithCommasLn
 import org.lflang.joinWithLn
 import org.lflang.withoutQuotes
@@ -62,6 +61,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
             |
             |use $rsRuntime::*;
             |use log::LevelFilter;
+            |pub use self::globals::*;
             |pub use self::reactors::${mainReactorNames.wrapperName} as __MainReactor;
             |pub use self::reactors::${mainReactorNames.paramStructName} as __MainParams;
             |
@@ -100,7 +100,7 @@ ${"         |"..gen.crate.modulesToIncludeInMain.joinWithLn { "mod ${it.fileName
         if (gen.properties.singleFile) {
             makeSingleFileProject(gen)
         } else {
-            this += "mod reactors;\n"
+            this += "pub mod globals;\nmod reactors;\n"
         }
     }
 
@@ -223,7 +223,7 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
             |    }
             |
             |    fn try_parse_duration(t: &str) -> ::std::result::Result<Option<Duration>, String> {
-            |        reactor_rt::try_parse_duration(t).map(|d| {
+            |        $rsRuntime::try_parse_duration(t).map(|d| {
             |            if d.is_zero() { None } else { Some(d) }
             |        })
             |    }
@@ -254,7 +254,12 @@ ${"         |           "..mainReactor.ctorParams.joinWithCommasLn { "opts." + i
         append(cliParamName).append(": ").append(type)
     }
 
-    private fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
+    internal fun Emitter.makeSingleFileProject(gen: GenerationInfo) {
+        this.writeInBlock("pub mod globals {") {
+            with(RustEmitter) { makeGlobalsModule(gen) }
+        }
+        this.skipLines(2)
+
         this += """
             |//-------------------//
             |//---- REACTORS -----//

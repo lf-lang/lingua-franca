@@ -36,7 +36,9 @@ import org.lflang.target.property.CargoDependenciesProperty
 import org.lflang.target.property.CargoFeaturesProperty
 import org.lflang.target.property.ExportDependencyGraphProperty
 import org.lflang.target.property.ExternalRuntimePathProperty
+import org.lflang.target.property.HeapSizeProperty
 import org.lflang.target.property.KeepaliveProperty
+import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.RuntimeVersionProperty
 import org.lflang.target.property.RustIncludeProperty
 import org.lflang.target.property.RustEditionProperty
@@ -56,7 +58,10 @@ data class GenerationInfo(
     val reactors: List<ReactorInfo>,
     val mainReactor: ReactorInfo, // it's also in the list
     val executableName: Ident,
-    val properties: RustTargetProperties
+    val properties: RustTargetProperties,
+    /** File-level preambles of every file that contributes reactors. Emitted as the `globals` module. */
+    val globalPreambles: List<TargetCode>,
+    val platform: PlatformProperty.PlatformOptions,
 ) {
 
     private val byId = reactors.associateBy { it.globalId }
@@ -74,6 +79,8 @@ data class RustTargetProperties(
     /** note: zero means "1 per core" */
     val workers: Int = 0,
     val dumpDependencyGraph: Boolean = false,
+    /** Heap size on embedded boards, in KiB. */
+    val heapKib: Int = HeapSizeProperty.DEFAULT_KIB,
 )
 
 /**
@@ -442,8 +449,10 @@ object RustModelBuilder {
 
 
         val dependencies = targetConfig.get(CargoDependenciesProperty.INSTANCE).toMutableMap()
-        dependencies.compute(RustEmitterBase.runtimeCrateFullName) { _, spec ->
-            computeDefaultRuntimeConfiguration(spec, targetConfig, messageReporter)
+        // Users may name the runtime by its package name or its library name; Cargo only knows the former.
+        val userRuntimeSpec = dependencies.remove(RustEmitterBase.runtimeCrateFullName)
+        dependencies.compute(RustEmitterBase.runtimeCratePackageName) { _, spec ->
+            computeDefaultRuntimeConfiguration(spec ?: userRuntimeSpec, targetConfig, messageReporter)
         }
 
         return GenerationInfo(
@@ -462,7 +471,12 @@ object RustModelBuilder {
             // Rust exec names are snake case, otherwise we get a cargo warning
             // https://github.com/rust-lang/rust/issues/45127
             executableName = mainReactor.lfName.camelToSnakeCase(),
-            properties = targetConfig.toRustProperties()
+            properties = targetConfig.toRustProperties(),
+            platform = targetConfig.getOrDefault(PlatformProperty.INSTANCE),
+            globalPreambles = reactors.mapNotNull { it.eContainer() as? Model }
+                .distinct()
+                .flatMap { model -> model.preambles.map { it.code.toText() } }
+                .distinct(),
         )
     }
 
@@ -484,8 +498,14 @@ object RustModelBuilder {
             }
 
             if (localPath == null) {
-                this.gitRepo = RustEmitterBase.runtimeGitUrl
-                this.rev = LanguageRuntimeVersions.rustRuntimeVersion
+                if (targetConfig.get(PlatformProperty.INSTANCE).board().setByUser()) {
+                    // boards need the embassy backend, which only exists on the `embassy` branch
+                    this.gitRepo = RustEmitterBase.embeddedRuntimeGitUrl
+                    this.rev = RustEmitterBase.embeddedRuntimeRev
+                } else {
+                    this.gitRepo = RustEmitterBase.embeddedRuntimeGitUrl
+                    this.rev = RustEmitterBase.embeddedRuntimeRev
+                }
             }
         }
 
@@ -539,6 +559,7 @@ object RustModelBuilder {
             singleFile = this.get(SingleFileProjectProperty.INSTANCE),
             workers = this.get(WorkersProperty.INSTANCE),
             dumpDependencyGraph = this.get(ExportDependencyGraphProperty.INSTANCE),
+            heapKib = this.get(HeapSizeProperty.INSTANCE),
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =

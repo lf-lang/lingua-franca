@@ -46,7 +46,7 @@ object RustReactorEmitter : RustEmitterBase() {
             val typeParams = typeParamList.map { it.targetCode }.angle()
             val typeArgs = typeParamList.map { it.lfName }.angle()
 
-            val privateParams = reactor.extraConstructionParams;
+            val privateParams = reactor.extraConstructionParams
 
             with(reactor.names) {
                 with(PrependOperator) {
@@ -55,6 +55,8 @@ object RustReactorEmitter : RustEmitterBase() {
                 |#![allow(unused)]
                 |
                 |use $rsRuntime::prelude::*;
+                |#[allow(unused_imports)]
+                |use crate::globals::*;
                 |
 ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
                 |
@@ -62,7 +64,7 @@ ${"             |"..reactor.preambles.joinToString("\n\n") { "// preamble {=\n${
                 |///
                 |/${loc.lfTextComment()}
                 |pub struct $structName$typeParams {
-                |    pub __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
+                |    pub __phantom: core::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..reactor.stateVars.joinWithCommasLn { it.lfName + ": " + it.type }}
                 |}
                 |
@@ -75,7 +77,7 @@ ${"             |    "..reactions.joinToString("\n\n") { it.toWorkerFunction() }
                 |
                 |/// Parameters for the construction of a [$structName]
                 |pub struct ${names.paramStructName}$typeParams {
-                |    __phantom: std::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
+                |    __phantom: core::marker::PhantomData<(${typeParamList.map { it.lfName }.joinWithCommas()})>,
 ${"             |    "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRustIdent()}: ${it.type}" }}
                 |}
                 |
@@ -83,7 +85,7 @@ ${"             |    "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRustIde
                 |   pub fn new(
 ${"             |       "..ctorParams.joinWithCommasLn { "${it.lfName.escapeRustIdent()}: ${it.type}" }}
                 |   ) -> Self {
-                |       Self { __phantom: std::marker::PhantomData, ${ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }} }
+                |       Self { __phantom: core::marker::PhantomData, ${ctorParams.joinWithCommas { it.lfName.escapeRustIdent() }} }
                 |   }
                 |}
                 |
@@ -113,7 +115,7 @@ ${"             |    "..otherComponents.joinWithCommasLn { it.toStructField() }}
 ${"             |            "..reactor.stateVars.joinWithLn { "let ${it.lfName}: ${it.type} = ${it.init};" }}
                 |
                 |            $structName {
-                |                __phantom: std::marker::PhantomData,
+                |                __phantom: core::marker::PhantomData,
 ${"             |                "..reactor.stateVars.joinWithCommasLn { it.lfName }}
                 |            }
                 |        };
@@ -237,7 +239,7 @@ ${"             |        "..otherComponents.mapNotNull { it.cleanupAction() }.jo
                 |    // dependency declarations
                 |    |__assembler, __self, $pattern| {
                 |        #[allow(unused)]
-                |        use reactor_rt::unsafe_iter_bank;
+                |        use $rsRuntime::unsafe_iter_bank;
 ${"             |        "..graphDependencyDeclarations()}
 ${"             |        "..declareChildConnections()}
                 |

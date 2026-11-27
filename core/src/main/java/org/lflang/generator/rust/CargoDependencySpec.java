@@ -138,7 +138,9 @@ public class CargoDependencySpec {
   private static CargoDependencySpec parseValue(KeyValuePair pair) {
     // note that we hardcode the value because RustEmitterBase is a
     // kotlin class and we can't depend on it to use a constant.
-    boolean isRuntimeCrate = pair.getName().equals("reactor_rt");
+    // Accept both the package name and the library name of the runtime crate.
+    boolean isRuntimeCrate =
+        pair.getName().equals("reactor-rs") || pair.getName().equals("reactor_rs");
     return parseValue(pair.getValue(), isRuntimeCrate);
   }
 

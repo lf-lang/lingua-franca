@@ -26,7 +26,6 @@ package org.lflang.generator.rust
 
 import org.lflang.generator.CodeMap
 import org.lflang.generator.PrependOperator
-import org.lflang.generator.rust.RustEmitter.generateRustProject
 import org.lflang.joinWithLn
 import org.lflang.util.FileUtil
 import java.nio.file.Files
@@ -44,22 +43,51 @@ object RustEmitter : RustEmitterBase() {
 
     fun generateRustProject(fileConfig: RustFileConfig, gen: GenerationInfo): Map<Path, CodeMap> {
         val codeMaps = mutableMapOf<Path, CodeMap>()
+        val platformOptions = gen.platform
 
-        fileConfig.emit(codeMaps, "Cargo.toml") {
-            with(RustCargoTomlEmitter) {
-                makeCargoTomlFile(gen)
+        if (!platformOptions.board().setByUser()) {
+            fileConfig.emit(codeMaps, "Cargo.toml") {
+                with(RustCargoTomlEmitter) {
+                    makeCargoTomlFile(gen)
+                }
             }
-        }
 
-        // if singleFile, this file will contain every module.
-        fileConfig.emit(codeMaps, "src/main.rs") {
-            with(RustMainFileEmitter) {
-                makeMainFile(gen)
+            // if singleFile, this file will contain every module.
+            fileConfig.emit(codeMaps, "src/main.rs") {
+                with(RustMainFileEmitter) {
+                    makeMainFile(gen)
+                }
+            }
+        } else {
+            fileConfig.emit(codeMaps, "Cargo.toml") {
+                with(RustCoreToolChainEmitter) {
+                    makeCoreCargoTomlFile(gen)
+                }
+            }
+            fileConfig.emit(codeMaps, "rust-toolchain.toml") {
+                with(RustCoreToolChainEmitter) {
+                    makeRustToolchainToml(gen)
+                }
+            }
+            // if singleFile, this file will contain every module.
+            fileConfig.emit(codeMaps, "src/main.rs") {
+                with(RustCoreMainFileEmitter) {
+                    makeCoreMainFile(gen)
+                }
+            }
+            fileConfig.emit(codeMaps, ".cargo/config.toml") {
+                with(RustCoreToolChainEmitter) {
+                    makeConfigTomlFile(gen)
+                }
+            }
+            for ((path, content) in RustBoardInfo.getBoardInfo(platformOptions).extraFiles) {
+                fileConfig.emit(codeMaps, path) { this += content }
             }
         }
 
         if (!gen.properties.singleFile) {
-            fileConfig.emit(codeMaps, "src/reactors/mod.rs") { makeReactorsAggregateModule(gen) }
+            fileConfig.emit(codeMaps, "src/globals.rs") { makeGlobalsModule(gen) }
+            fileConfig.emit(codeMaps, "src/reactors.rs") { makeReactorsAggregateModule(gen) }
             for (reactor in gen.reactors) {
                 fileConfig.emit(codeMaps, "src/reactors/${reactor.names.modFileName}.rs") {
                     with(RustReactorEmitter) {
@@ -80,6 +108,51 @@ object RustEmitter : RustEmitterBase() {
         }
         return codeMaps
     }
+
+    /**
+     * Contents of the `globals` module: the file-level preambles.
+     * Items declared there (consts, statics, pin assignments, helper
+     * functions) are visible from `main` and from every reactor.
+     */
+    internal fun Emitter.makeGlobalsModule(gen: GenerationInfo) {
+        val runtimeSupport = if (gen.platform.board().setByUser()) embassySpawnerSupport else ""
+        this += with(PrependOperator) {
+            """
+            |${generatedByComment("//")}
+            |#![allow(unused)]
+            |
+            |// same names as in reactions (AsyncCtx, Asap, After, Duration, ...)
+            |use $rsRuntime::prelude::*;
+            |
+${"         |"..runtimeSupport}
+            |
+${"         |"..gen.globalPreambles.joinToString("\n\n") { "// preamble {=\n${it.trimIndent()}\n// =}" }}
+            |
+        """.trimMargin()
+        }
+    }
+
+    /**
+     * Gives reactions access to the embassy executor, so they can spawn tasks
+     * (e.g. ones that feed a physical action through `ctx.new_async_ctx()`).
+     * `Spawner` is `!Send`, so the cell holds its `SendSpawner` instead.
+     */
+    private val embassySpawnerSupport = """
+        |static __LF_SPAWNER: critical_section::Mutex<core::cell::Cell<Option<embassy_executor::SendSpawner>>> =
+        |    critical_section::Mutex::new(core::cell::Cell::new(None));
+        |
+        |/// Spawner of the embassy executor that runs the reactor program.
+        |/// Only spawns tasks whose arguments are `Send`.
+        |pub fn spawner() -> embassy_executor::SendSpawner {
+        |    critical_section::with(|cs| __LF_SPAWNER.borrow(cs).get())
+        |        .expect("the spawner is set by `main` before any reaction runs")
+        |}
+        |
+        |#[doc(hidden)]
+        |pub fn __lf_set_spawner(spawner: embassy_executor::SendSpawner) {
+        |    critical_section::with(|cs| __LF_SPAWNER.borrow(cs).set(Some(spawner)));
+        |}
+    """.trimMargin()
 
     private fun Emitter.makeReactorsAggregateModule(gen: GenerationInfo) {
         fun ReactorInfo.modDecl(): String = with(names) {

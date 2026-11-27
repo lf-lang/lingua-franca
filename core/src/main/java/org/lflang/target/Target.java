@@ -642,6 +642,8 @@ public enum Target {
               SingleThreadedProperty.INSTANCE,
               WorkersProperty.INSTANCE,
               RustEditionProperty.INSTANCE,
+              HeapSizeProperty.INSTANCE,
+              PlatformProperty.INSTANCE,
               DockerProperty.INSTANCE);
       case TS ->
           config.register(
