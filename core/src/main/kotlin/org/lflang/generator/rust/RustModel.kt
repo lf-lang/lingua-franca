@@ -36,6 +36,7 @@ import org.lflang.target.property.CargoDependenciesProperty
 import org.lflang.target.property.CargoFeaturesProperty
 import org.lflang.target.property.ExportDependencyGraphProperty
 import org.lflang.target.property.ExternalRuntimePathProperty
+import org.lflang.target.property.HeapSizeProperty
 import org.lflang.target.property.KeepaliveProperty
 import org.lflang.target.property.PlatformProperty
 import org.lflang.target.property.RuntimeVersionProperty
@@ -78,6 +79,8 @@ data class RustTargetProperties(
     /** note: zero means "1 per core" */
     val workers: Int = 0,
     val dumpDependencyGraph: Boolean = false,
+    /** Heap size on embedded boards, in KiB. */
+    val heapKib: Int = HeapSizeProperty.DEFAULT_KIB,
 )
 
 /**
@@ -556,6 +559,7 @@ object RustModelBuilder {
             singleFile = this.get(SingleFileProjectProperty.INSTANCE),
             workers = this.get(WorkersProperty.INSTANCE),
             dumpDependencyGraph = this.get(ExportDependencyGraphProperty.INSTANCE),
+            heapKib = this.get(HeapSizeProperty.INSTANCE),
         )
 
     private fun makeReactorInfos(reactors: List<Reactor>): List<ReactorInfo> =

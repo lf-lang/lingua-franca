@@ -1,5 +1,6 @@
 package org.lflang.generator.rust
 
+import org.lflang.target.property.HeapSizeProperty
 import org.lflang.target.property.PlatformProperty
 
 /**
@@ -119,9 +120,6 @@ enum class EspChip(val id: String, val arch: Arch, val targetTriple: String) {
 
 object RustBoardInfo {
 
-    /** Heap given to the global allocator, in KiB. The runtime allocates its reactors and event queue on it. */
-    private const val HEAP_KIB = 64
-
     /** Versions shared by all boards. They must match the ones `reactor-rs` uses with its `embassy` feature. */
     private const val EMBASSY_EXECUTOR = "0.10"
     private const val EMBASSY_TIME = "0.5"
@@ -133,25 +131,29 @@ object RustBoardInfo {
     }
 
     /** The board info for [board], or null if it is not supported. */
-    fun boardInfoOrNull(board: String): BoardInfo? {
-        EspChip.fromId(board)?.let { return esp(it) }
-        StmChip.fromId(board)?.let { return stm32(it) }
+    fun boardInfoOrNull(board: String, heapKib: Int = HeapSizeProperty.DEFAULT_KIB): BoardInfo? {
+        EspChip.fromId(board)?.let { return esp(it, heapKib) }
+        StmChip.fromId(board)?.let { return stm32(it, heapKib) }
         return when (board.lowercase()) {
-            "rp2040" -> rp2040()
+            "rp2040" -> rp2040(heapKib)
             else     -> null
         }
     }
 
     fun isSupported(board: String): Boolean = boardInfoOrNull(board) != null
 
-    fun getBoardInfo(platformProperty: PlatformProperty.PlatformOptions): BoardInfo {
+    /** [heapKib] only affects [BoardInfo.init]; callers that don't emit `main` can leave the default. */
+    fun getBoardInfo(
+        platformProperty: PlatformProperty.PlatformOptions,
+        heapKib: Int = HeapSizeProperty.DEFAULT_KIB,
+    ): BoardInfo {
         val board = platformProperty.board().value()
-        return boardInfoOrNull(board) ?: throw IllegalArgumentException(
+        return boardInfoOrNull(board, heapKib) ?: throw IllegalArgumentException(
             "Unsupported board for the Rust target: '$board'. Supported boards are: ${supportedBoards.joinToString()}."
         )
     }
 
-    private fun stm32(chip: StmChip, heapKib: Int = HEAP_KIB): BoardInfo = BoardInfo(
+    private fun stm32(chip: StmChip, heapKib: Int): BoardInfo = BoardInfo(
         name = chip.part,
         targetTriple = chip.family.targetTriple,
         toolchainChannel = "stable",
@@ -191,7 +193,7 @@ object RustBoardInfo {
      * ESP32 (Xtensa|riscv), using `esp-hal` with `esp-rtos` as the embassy
      * executor and time driver. Needs the `esp` toolchain (install it with `espup`).
      */
-    private fun esp(chip: EspChip): BoardInfo {
+    private fun esp(chip: EspChip, heapKib: Int): BoardInfo {
         val c = chip.id
         val xtensa = chip.arch == Arch.XTENSA
 
@@ -221,7 +223,7 @@ object RustBoardInfo {
             mainAttribute = "esp_rtos::main",
             init = """
                 |let peripherals = esp_hal::init(esp_hal::Config::default().with_cpu_clock(esp_hal::clock::CpuClock::max()));
-                |esp_alloc::heap_allocator!(size: $HEAP_KIB * 1024);
+                |esp_alloc::heap_allocator!(size: $heapKib * 1024);
                 |// esp-rtos is the embassy time driver
                 |let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
                 |esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
@@ -233,7 +235,7 @@ object RustBoardInfo {
      * RP2040 (Cortex-M0+), using `embassy-rp`, which also provides the
      * time driver and critical-section implementation.
      */
-    private fun rp2040(): BoardInfo = BoardInfo(
+    private fun rp2040(heapKib: Int): BoardInfo = BoardInfo(
         name = "rp2040",
         targetTriple = "thumbv6m-none-eabi",
         toolchainChannel = "stable",
@@ -263,7 +265,7 @@ object RustBoardInfo {
             |let _peripherals = embassy_rp::init(Default::default());
             |{
             |    use core::mem::MaybeUninit;
-            |    const HEAP_SIZE: usize = $HEAP_KIB * 1024;
+            |    const HEAP_SIZE: usize = $heapKib * 1024;
             |    static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];
             |    unsafe { HEAP.init(core::ptr::addr_of_mut!(HEAP_MEM) as usize, HEAP_SIZE) }
             |}

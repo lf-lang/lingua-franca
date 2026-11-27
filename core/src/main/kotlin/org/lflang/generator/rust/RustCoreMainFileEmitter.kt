@@ -17,7 +17,7 @@ object RustCoreMainFileEmitter : RustEmitterBase() {
     fun Emitter.makeCoreMainFile(gen: GenerationInfo) {
         val mainReactor = gen.mainReactor
         val mainReactorNames = mainReactor.names
-        val board = getBoardInfo(gen.platform)
+        val board = getBoardInfo(gen.platform, gen.properties.heapKib)
         val timeout = gen.properties.timeoutLf?.toRustTimeExpr().toRustOption()
 
         this += with(PrependOperator) {
